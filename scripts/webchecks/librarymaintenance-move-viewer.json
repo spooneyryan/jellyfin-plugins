@@ -1,0 +1,98 @@
+{
+  "name": "A non-admin user never sees Move's entry, and their page never asks Library Maintenance for anything",
+  "timeout": 30000,
+  "steps": [
+    {
+      "name": "the helpers (a log of Library Maintenance's requests, short names)",
+      "initScript": {
+        "file": "probes/librarymaintenance-move-helpers.js"
+      }
+    },
+    {
+      "name": "sign in as viewer",
+      "login": "viewer"
+    },
+    {
+      "name": "home page, Library Maintenance's script and its capabilities",
+      "waitFor": "!!document.querySelector('.homePage:not(.hide) .card[data-type=Movie]') && !!window.__jfkit && !!window.__jfkit.jflm",
+      "timeout": 60000
+    },
+    {
+      "name": "3a. a movie card's menu",
+      "script": "__s.admin = (await ApiClient.getCurrentUser()).Policy.IsAdministrator; __s.a = __lmm.menu(__lmm.card('Movie')); return { admin: __s.admin, card: __s.a };",
+      "save": "card"
+    },
+    {
+      "waitFor": "!!__lmm.sheet()"
+    },
+    {
+      "name": "3a. the sheet, after the user check had time to answer",
+      "sleep": 1500
+    },
+    {
+      "name": "3a. rows",
+      "eval": "__lmm.rows()",
+      "full": true
+    },
+    {
+      "assert": "__s.admin === false && __lmm.ours().length === 0 && __lmm.rows().indexOf('refresh') < 0"
+    },
+    {
+      "script": "__lmm.close(); return true;"
+    },
+    {
+      "waitFor": "!__lmm.sheet()"
+    },
+    {
+      "name": "3b. details page of a movie: More",
+      "script": "location.hash = '#/details?id=' + __s.a; return location.hash;"
+    },
+    {
+      "waitFor": "!!__lmm.page().querySelector('.btnMoreCommands:not(.hide)')"
+    },
+    {
+      "sleep": 1000
+    },
+    {
+      "script": "__lmm.page().querySelector('.btnMoreCommands').click(); return true;"
+    },
+    {
+      "waitFor": "!!__lmm.sheet()"
+    },
+    {
+      "sleep": 1500
+    },
+    {
+      "name": "3b. rows",
+      "eval": "__lmm.rows()",
+      "full": true
+    },
+    {
+      "assert": "__lmm.ours().length === 0"
+    },
+    {
+      "screenshot": "lm-move-3-viewer-details-sheet.png"
+    },
+    {
+      "script": "__lmm.close(); return true;"
+    },
+    {
+      "waitFor": "!__lmm.sheet()"
+    },
+    {
+      "name": "the viewer's page sent Library Maintenance no request (no Capabilities, no Eligibility)",
+      "eval": "__lmm.log()",
+      "full": true
+    },
+    {
+      "assert": "__lmm.log().length === 0"
+    },
+    {
+      "name": "no kit health miss for the viewer either",
+      "assert": "Array.isArray(__lmm.health()) && __lmm.health().length === 0"
+    },
+    {
+      "noExceptions": true
+    }
+  ]
+}

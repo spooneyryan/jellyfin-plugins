@@ -1,0 +1,237 @@
+{
+  "name": "The My Bookmarks page's row and bulk actions, as admin on Long Test Movie, on the My Bookmarks page filtered to it: the inline rename (Name it turns the title into a field, Enter saves through the Name endpoint with IfUpdatedAt and only the video's group is read again, never the shown pages; Rename on a named row with the name selected; a 409 after a rename made elsewhere shows the latest name under 'Changed elsewhere' and the next Enter saves over it; Escape cancels), the scissors on a point bookmark (the editor with the End field focused), the bulk select (the checkbox per row, the bar, Select all, Clear) and the bulk delete with the clip choice unticked (the default since My Clips lists kept clips, with the hint that the clips stay there; the clip files stay as tombstones: they still download, then DELETE Clip is 204) and ticked (the files go); then Select all over 205 rows of the flat view deleted in two requests of 200 and 5 with the progress line; two inline renames open at once kept through the group's redraw, and the delete of another 205 closed with Escape during its first request, which stops it there with the outcome as a toast; the header's My Clips link and each clip line's View in My Clips. Seeds and deletes its own 'page-probe actions' bookmarks and clips. Run by bookmarks-page-probe.mjs.",
+  "failOnException": false,
+  "timeout": 30000,
+  "steps": [
+    { "name": "sign in as admin", "login": "admin" },
+    { "name": "the Bookmarks script ran", "waitFor": "!!window.__jfkit && !!window.__jfkit.jfbm && !!window.ApiClient && !!ApiClient.getCurrentUserId()" },
+    { "name": "the capabilities offer the page and My Clips; clips may be made", "assert": "((c) => c.Pages.Bookmarks === true && c.Pages.Clips === true && c.CanCreateClips === true)(await ApiClient.getJSON(ApiClient.getUrl('Bookmarks/Capabilities')))" },
+    { "name": "find Long Test Movie", "eval": "(await ApiClient.getItems(ApiClient.getCurrentUserId(), { IncludeItemTypes: 'Movie', Recursive: true, SearchTerm: 'Long Test Movie', Limit: 1 })).Items[0].Id", "save": "movieId" },
+    {
+      "name": "the admin's 'page-probe actions' bookmarks of an earlier run deleted, with their clips (200 a request until none is left)",
+      "script": "let n = 0; for (let round = 0; round < 10; round++) { const r = await ApiClient.getJSON(ApiClient.getUrl('Bookmarks/Query', { searchTerm: 'page-probe actions', limit: 200 })); const ids = r.Items.map(b => b.Id); if (!ids.length) break; n += ids.length; await ApiClient.ajax({ type: 'POST', url: ApiClient.getUrl('Bookmarks/BulkDelete'), data: JSON.stringify({ Ids: ids, DeleteClips: true }), contentType: 'application/json', dataType: 'json' }); } return n;"
+    },
+    {
+      "name": "seed: an unnamed point bookmark with a note (A), a named range with a Fast clip (B), a named point (C), a second named range with a Fast clip (D)",
+      "script": "const T = 10000000; const post = (body) => ApiClient.ajax({ type: 'POST', url: ApiClient.getUrl('Bookmarks'), data: JSON.stringify(body), contentType: 'application/json', dataType: 'json' }); const a = await post({ ItemId: __vars.movieId, StartTicks: 15 * T, Note: 'page-probe actions point' }); const b = await post({ ItemId: __vars.movieId, StartTicks: 30 * T, EndTicks: 34 * T, Name: 'page-probe actions range' }); const c = await post({ ItemId: __vars.movieId, StartTicks: 40 * T, Name: 'page-probe actions named' }); const d = await post({ ItemId: __vars.movieId, StartTicks: 50 * T, EndTicks: 52 * T, Name: 'page-probe actions second' }); for (const id of [b.Id, d.Id]) { await ApiClient.ajax({ type: 'POST', url: ApiClient.getUrl('Bookmarks/' + id + '/Clip'), data: JSON.stringify({ Mode: 'Fast' }), contentType: 'application/json', dataType: 'json' }); } const files = {}; for (const id of [b.Id, d.Id]) { for (let i = 0; i < 240; i++) { const x = await ApiClient.getJSON(ApiClient.getUrl('Bookmarks/' + id)); if (x.Clip && x.Clip.Status === 'Completed' && x.Clip.FileName) { files[id] = x.Clip.FileName; break; } if (x.Clip && x.Clip.Status === 'Failed') throw new Error('the clip failed: ' + x.Clip.Error); await new Promise(r => setTimeout(r, 500)); } if (!files[id]) throw new Error('the clip did not complete'); } return { a: a.Id, b: b.Id, c: c.Id, d: d.Id, files };",
+      "save": "seed",
+      "full": true,
+      "timeout": 240000
+    },
+
+    { "name": "A's id (webcheck substitutes top-level variables)", "eval": "__vars.seed.a", "save": "seedA" },
+    { "name": "B's id", "eval": "__vars.seed.b", "save": "seedB" },
+    { "name": "the page filtered to the movie", "goto": "/web/index.html#/jfbm-bookmarks?item=${movieId}" },
+    {
+      "name": "the group with the four rows: A with Name it and the point scissors, B and D with the clip ready and View in My Clips, C with Rename and the point scissors; a checkbox per row; My Clips and Player options in the header",
+      "waitFor": "(() => { const r = document.querySelector('#fallbackPage > [data-jfbm-page=\"bookmarks\"][data-jfbm-state=\"on\"]'); if (!r) return false; const c = r.querySelector('.jfbm-page-content'); if (!c || c.hasAttribute('aria-busy')) return false; const row = (id) => c.querySelector('.jfbm-row[data-id=\"' + id + '\"]'); if (![__vars.seed.a, __vars.seed.b, __vars.seed.c, __vars.seed.d].every(id => row(id))) return false; const titles = (id) => [...row(id).querySelectorAll('.jfbm-row-actions button')].map(b => b.title); return { a: titles(__vars.seed.a), b: titles(__vars.seed.b), c: titles(__vars.seed.c), nameIt: !!row(__vars.seed.a).querySelector('.jfbm-name-it'), boxes: c.querySelectorAll('.jfbm-row-select-box').length === c.querySelectorAll('.jfbm-row').length, clipsReady: [__vars.seed.b, __vars.seed.d].filter(id => !!row(id).querySelector('.jfbm-clip-ready')).length, others: c.querySelectorAll('.jfbm-row').length - 4, options: !!r.querySelector('.jfbm-page-header .jfbm-page-options'), clipsLink: ((a) => !!a && a.textContent.trim() === 'My Clips' && a.getAttribute('href') === '#/jfbm-clips')(r.querySelector('.jfbm-page-header .jfbm-page-clips-link')), inClips: [__vars.seed.b, __vars.seed.d].filter(id => ((a) => !!a && a.getAttribute('href') === '#/jfbm-clips?highlight=' + id)(row(id).querySelector('.jfbm-clip-ready a.jfbm-clip-in-clips'))).length, bar: r.querySelector('.jfbm-bulk-bar').classList.contains('hide'), count: r.querySelector('.jfbm-page-count').textContent }; })()",
+      "timeout": 20000,
+      "save": "rows",
+      "full": true
+    },
+    { "name": "as expected", "assert": "JSON.stringify(__vars.rows.a) === JSON.stringify(['Make a clip (set an end first)', 'Edit', 'Delete', 'More actions']) && JSON.stringify(__vars.rows.b) === JSON.stringify(['Rename', 'Make the clip again', 'Edit', 'Delete', 'More actions']) && JSON.stringify(__vars.rows.c) === JSON.stringify(['Rename', 'Make a clip (set an end first)', 'Edit', 'Delete', 'More actions']) && __vars.rows.nameIt && __vars.rows.boxes && __vars.rows.clipsReady === 2 && __vars.rows.options && __vars.rows.clipsLink && __vars.rows.inClips === 2 && __vars.rows.bar && __vars.rows.count.startsWith((4 + __vars.rows.others) + ' bookmarks on 1 title')" },
+    { "name": "the resource timings cleared and widened (the seeds and the clips' progress polls can fill the browser's buffer of 250), the clock before the rename", "script": "performance.setResourceTimingBufferSize(5000); performance.clearResourceTimings(); return performance.now();", "save": "t0" },
+    { "name": "Name it on A", "click": "#fallbackPage [data-jfbm-page=\"bookmarks\"] .jfbm-row[data-id=\"${seedA}\"] .jfbm-name-it", "js": true },
+    {
+      "name": "the title line is a field, empty, focused, with Save and Cancel",
+      "eval": "(() => { const row = document.querySelector('#fallbackPage [data-jfbm-page=\"bookmarks\"] .jfbm-row[data-id=\"' + __vars.seed.a + '\"]'); const f = row.querySelector('.jfbm-rename'); const input = f && f.querySelector('input'); return !!input && { value: input.value, focused: document.activeElement === input, maxlength: input.getAttribute('maxlength'), buttons: [...f.querySelectorAll('button')].map(b => b.title), title: !!row.querySelector('.jfbm-row-title') }; })()",
+      "save": "renameForm",
+      "full": true
+    },
+    { "name": "as expected", "assert": "__vars.renameForm.value === '' && __vars.renameForm.focused && __vars.renameForm.maxlength === '100' && JSON.stringify(__vars.renameForm.buttons) === JSON.stringify(['Save the name', 'Cancel renaming']) && !__vars.renameForm.title" },
+    { "name": "type the name", "type": "page-probe actions renamed" },
+    { "name": "Enter saves", "key": "Enter" },
+    {
+      "name": "named: the row drawn again with the name and Rename, the server has it with the time unchanged, the toast; only the video's group and the count line were read (no page of 25 groups)",
+      "waitFor": "(async () => { const row = document.querySelector('#fallbackPage [data-jfbm-page=\"bookmarks\"] .jfbm-row[data-id=\"' + __vars.seed.a + '\"]'); if (!row || row.querySelector('.jfbm-rename') || !row.querySelector('.jfbm-row-title') || row.querySelector('.jfbm-row-title').textContent !== 'page-probe actions renamed') return false; const b = await ApiClient.getJSON(ApiClient.getUrl('Bookmarks/' + __vars.seed.a)); const since = performance.getEntriesByType('resource').filter(e => e.startTime > __vars.t0).map(e => e.name); return { name: b.Name, note: b.Note, startSeconds: b.StartTicks / 10000000, rename: !!row.querySelector('button[title=\"Rename\"]'), nameIt: !!row.querySelector('.jfbm-name-it'), toast: [...document.querySelectorAll('.jfbm-toast')].map(t => t.textContent), groups: since.filter(n => /\\/Bookmarks\\/Groups\\?/.test(n)).map(n => n.replace(/^.*\\/Bookmarks\\/Groups\\?/, '')), queries: since.filter(n => /\\/Bookmarks\\/Query\\?/.test(n)).map(n => n.replace(/^.*\\/Bookmarks\\/Query\\?/, '')), focus: document.activeElement === row.querySelector('button[title=\"Rename\"]') }; })()",
+      "timeout": 10000,
+      "save": "renamed",
+      "full": true
+    },
+    { "name": "as expected: the group with itemId and limit=1, the two totals, nothing with limit=25", "assert": "__vars.renamed.name === 'page-probe actions renamed' && __vars.renamed.note === 'page-probe actions point' && __vars.renamed.startSeconds === 15 && __vars.renamed.rename && !__vars.renamed.nameIt && __vars.renamed.toast.includes('Named \"page-probe actions renamed\".') && __vars.renamed.groups.length === 2 && __vars.renamed.groups.some(q => q.includes('itemId=') && q.includes('limit=1')) && __vars.renamed.groups.every(q => !q.includes('limit=25')) && __vars.renamed.queries.length === 1 && __vars.renamed.queries[0].includes('limit=1') && __vars.renamed.focus" },
+    { "sleep": 300 },
+    { "screenshot": "page-actions-renamed.png" },
+
+    { "name": "Rename on C", "script": "const row = document.querySelector('#fallbackPage [data-jfbm-page=\"bookmarks\"] .jfbm-row[data-id=\"' + __vars.seed.c + '\"]'); row.querySelector('button[title=\"Rename\"]').click(); const input = row.querySelector('.jfbm-rename input'); return { value: input.value, focused: document.activeElement === input, selection: [input.selectionStart, input.selectionEnd] };", "save": "renameC", "full": true },
+    { "name": "the name, selected, focused", "assert": "__vars.renameC.value === 'page-probe actions named' && __vars.renameC.focused && __vars.renameC.selection[0] === 0 && __vars.renameC.selection[1] === 'page-probe actions named'.length" },
+    { "name": "meanwhile, renamed elsewhere (another tab: the API without IfUpdatedAt)", "script": "const b = await ApiClient.ajax({ type: 'POST', url: ApiClient.getUrl('Bookmarks/' + __vars.seed.c + '/Name'), data: JSON.stringify({ Name: 'page-probe actions elsewhere' }), contentType: 'application/json', dataType: 'json' }); return b.Name;" },
+    { "name": "type over the selection", "type": "page-probe actions mine" },
+    { "name": "Enter: a 409", "key": "Enter" },
+    {
+      "name": "the field shows the name it has now, selected, under 'Changed elsewhere'",
+      "waitFor": "(() => { const row = document.querySelector('#fallbackPage [data-jfbm-page=\"bookmarks\"] .jfbm-row[data-id=\"' + __vars.seed.c + '\"]'); const input = row && row.querySelector('.jfbm-rename input'); const error = row && row.querySelector('.jfbm-rename-error'); if (!input || !error || !error.textContent) return false; return { value: input.value, error: error.textContent, selection: [input.selectionStart, input.selectionEnd], disabled: input.disabled, focused: document.activeElement === input }; })()",
+      "timeout": 10000,
+      "save": "conflict",
+      "full": true
+    },
+    { "name": "as the name dialog has it", "assert": "__vars.conflict.value === 'page-probe actions elsewhere' && __vars.conflict.error === 'Changed elsewhere: it is named \"page-probe actions elsewhere\" now. Save replaces that.' && __vars.conflict.selection[0] === 0 && __vars.conflict.selection[1] === 'page-probe actions elsewhere'.length && !__vars.conflict.disabled && __vars.conflict.focused" },
+    { "sleep": 200 },
+    { "screenshot": "page-actions-conflict.png" },
+    { "name": "type the name again", "type": "page-probe actions mine" },
+    { "name": "Enter saves over it (the latest UpdatedAt)", "key": "Enter" },
+    { "name": "the server has it, the row too", "waitFor": "(async () => { const row = document.querySelector('#fallbackPage [data-jfbm-page=\"bookmarks\"] .jfbm-row[data-id=\"' + __vars.seed.c + '\"]'); if (!row || row.querySelector('.jfbm-rename') || row.querySelector('.jfbm-row-title').textContent !== 'page-probe actions mine') return false; return (await ApiClient.getJSON(ApiClient.getUrl('Bookmarks/' + __vars.seed.c))).Name === 'page-probe actions mine'; })()", "timeout": 10000 },
+
+    { "name": "Rename on C again, Escape cancels", "script": "const row = document.querySelector('#fallbackPage [data-jfbm-page=\"bookmarks\"] .jfbm-row[data-id=\"' + __vars.seed.c + '\"]'); row.querySelector('button[title=\"Rename\"]').click(); return !!row.querySelector('.jfbm-rename');" },
+    { "name": "type something", "type": "page-probe actions never" },
+    { "name": "Escape", "key": "Escape" },
+    { "name": "the title line back, nothing sent, the focus on Rename", "waitFor": "(async () => { const row = document.querySelector('#fallbackPage [data-jfbm-page=\"bookmarks\"] .jfbm-row[data-id=\"' + __vars.seed.c + '\"]'); if (!row || row.querySelector('.jfbm-rename')) return false; return row.querySelector('.jfbm-row-title').textContent === 'page-probe actions mine' && document.activeElement === row.querySelector('button[title=\"Rename\"]') && (await ApiClient.getJSON(ApiClient.getUrl('Bookmarks/' + __vars.seed.c))).Name === 'page-probe actions mine'; })()", "timeout": 5000 },
+
+    { "name": "Rename on A and type, then Rename on C and type, neither saved (two renames open at once; the focus in C's field); A's, B's and C's rows marked, so a redraw shows", "script": "const page = document.querySelector('#fallbackPage [data-jfbm-page=\"bookmarks\"]'); const row = (id) => page.querySelector('.jfbm-row[data-id=\"' + id + '\"]'); const a = row(__vars.seed.a); const b = row(__vars.seed.b); const c = row(__vars.seed.c); a.querySelector('button[title=\"Rename\"]').click(); a.querySelector('.jfbm-rename input').value = 'page-probe actions typing A'; c.querySelector('button[title=\"Rename\"]').click(); const input = c.querySelector('.jfbm-rename input'); input.value = 'page-probe actions typing'; a.setAttribute('data-probe-node', 'a'); c.setAttribute('data-probe-node', 'c'); b.setAttribute('data-probe-node', 'b'); return document.activeElement === input && !!a.querySelector('.jfbm-rename input');", "save": "typing" },
+    { "name": "the focus in C's field, A's rename still open", "assert": "__vars.typing === true" },
+    { "name": "meanwhile B's clip made again, its button pressed by script (the focus stays in C's field): the video's group is drawn again", "click": "#fallbackPage [data-jfbm-page=\"bookmarks\"] .jfbm-row[data-id=\"${seedB}\"] .jfbm-row-actions button[title=\"Make the clip again\"]", "js": true },
+    {
+      "name": "the group drawn again (B's row a fresh node, queued or being made); C's row the same node with the typed name and the focus still in its field, and A's the same node with its typed name (the review: only the first open rename was kept)",
+      "waitFor": "(() => { const page = document.querySelector('#fallbackPage [data-jfbm-page=\"bookmarks\"]'); const b = page.querySelector('.jfbm-row[data-id=\"' + __vars.seed.b + '\"]'); const c = page.querySelector('.jfbm-row[data-id=\"' + __vars.seed.c + '\"]'); const a = page.querySelector('.jfbm-row[data-id=\"' + __vars.seed.a + '\"]'); if (!b || !c || !a || b.hasAttribute('data-probe-node')) return false; const input = c.querySelector('.jfbm-rename input'); const aInput = a.querySelector('.jfbm-rename input'); return { cKept: c.getAttribute('data-probe-node') === 'c', value: input ? input.value : null, focused: document.activeElement === input, aKept: a.getAttribute('data-probe-node') === 'a', aValue: aInput ? aInput.value : null, bClip: b.querySelector('.jfbm-clip') ? b.querySelector('.jfbm-clip').textContent : null }; })()",
+      "timeout": 15000,
+      "save": "typingKept",
+      "full": true
+    },
+    { "name": "as expected", "assert": "__vars.typingKept.cKept && __vars.typingKept.value === 'page-probe actions typing' && __vars.typingKept.focused && __vars.typingKept.aKept && __vars.typingKept.aValue === 'page-probe actions typing A'" },
+    { "name": "B's clip complete (the group drawn again once more, each progress tick B's row alone): C's row still kept with the typed name and the focus, A's with its typed name", "waitFor": "(async () => { const x = await ApiClient.getJSON(ApiClient.getUrl('Bookmarks/' + __vars.seed.b)); if (!x.Clip || x.Clip.Status !== 'Completed') return false; const page = document.querySelector('#fallbackPage [data-jfbm-page=\"bookmarks\"]'); const b = page.querySelector('.jfbm-row[data-id=\"' + __vars.seed.b + '\"]'); const c = page.querySelector('.jfbm-row[data-id=\"' + __vars.seed.c + '\"]'); const a = page.querySelector('.jfbm-row[data-id=\"' + __vars.seed.a + '\"]'); if (!b || !b.querySelector('.jfbm-clip-ready') || b.querySelector('.jfbm-clip-ready').textContent.indexOf('Clip ready') < 0) return false; const input = c && c.querySelector('.jfbm-rename input'); const aInput = a && a.querySelector('.jfbm-rename input'); return !!input && c.getAttribute('data-probe-node') === 'c' && input.value === 'page-probe actions typing' && document.activeElement === input && !!aInput && a.getAttribute('data-probe-node') === 'a' && aInput.value === 'page-probe actions typing A'; })()", "timeout": 120000 },
+    { "name": "Escape ends C's", "key": "Escape" },
+    { "name": "the title back, nothing sent (the name as before)", "waitFor": "(async () => { const row = document.querySelector('#fallbackPage [data-jfbm-page=\"bookmarks\"] .jfbm-row[data-id=\"' + __vars.seed.c + '\"]'); if (!row || row.querySelector('.jfbm-rename')) return false; return row.querySelector('.jfbm-row-title').textContent === 'page-probe actions mine' && (await ApiClient.getJSON(ApiClient.getUrl('Bookmarks/' + __vars.seed.c))).Name === 'page-probe actions mine'; })()", "timeout": 5000 },
+    { "name": "A's rename still open with its typed name through C's redraw; the focus into A's field", "script": "const a = document.querySelector('#fallbackPage [data-jfbm-page=\"bookmarks\"]').querySelector('.jfbm-row[data-id=\"' + __vars.seed.a + '\"]'); const input = a && a.querySelector('.jfbm-rename input'); if (!input) return { open: false }; input.focus(); return { open: true, value: input.value, focused: document.activeElement === input };", "save": "typingA", "full": true },
+    { "name": "as expected", "assert": "__vars.typingA.open && __vars.typingA.value === 'page-probe actions typing A' && __vars.typingA.focused" },
+    { "name": "Escape ends A's", "key": "Escape" },
+    { "name": "A's title back, nothing sent (its name as before)", "waitFor": "(async () => { const row = document.querySelector('#fallbackPage [data-jfbm-page=\"bookmarks\"]').querySelector('.jfbm-row[data-id=\"' + __vars.seed.a + '\"]'); if (!row || row.querySelector('.jfbm-rename')) return false; return row.querySelector('.jfbm-row-title').textContent === 'page-probe actions renamed' && (await ApiClient.getJSON(ApiClient.getUrl('Bookmarks/' + __vars.seed.a))).Name === 'page-probe actions renamed'; })()", "timeout": 5000 },
+
+    { "name": "the scissors on the point bookmark A", "click": "#fallbackPage [data-jfbm-page=\"bookmarks\"] .jfbm-row[data-id=\"${seedA}\"] .jfbm-row-actions button[title=\"Make a clip (set an end first)\"]", "js": true },
+    {
+      "name": "the editor on A with the End field focused",
+      "waitFor": "(() => { const p = document.querySelector('.jfbm-backdrop .jfbm-panel'); if (!p || p.querySelector('h3').textContent !== 'Edit bookmark') return false; const end = [...p.querySelectorAll('.jfbm-field')].find(f => f.querySelector('label').textContent === 'End'); return !!end && { name: p.querySelector('input[maxlength=\"100\"]').value, endFocused: document.activeElement === end.querySelector('input'), endValue: end.querySelector('input').value }; })()",
+      "timeout": 10000,
+      "save": "pointEditor",
+      "full": true
+    },
+    { "name": "as expected (point bookmarks open the editor with End focused)", "assert": "__vars.pointEditor.name === 'page-probe actions renamed' && __vars.pointEditor.endFocused && __vars.pointEditor.endValue === ''" },
+    { "name": "Escape closes it", "key": "Escape" },
+    { "name": "closed", "waitFor": "!document.querySelector('.jfbm-backdrop')" },
+
+    { "name": "select B and D (both with a clip file)", "script": "for (const id of [__vars.seed.b, __vars.seed.d]) { const box = document.querySelector('#fallbackPage [data-jfbm-page=\"bookmarks\"] .jfbm-row[data-id=\"' + id + '\"] .jfbm-row-select-box'); box.click(); } const bar = document.querySelector('#fallbackPage [data-jfbm-page=\"bookmarks\"] .jfbm-bulk-bar'); const r = bar.getBoundingClientRect(); return { hidden: bar.classList.contains('hide'), shown: r.width > 0 && r.height > 0, count: bar.querySelector('.jfbm-bulk-count').textContent, buttons: [...bar.querySelectorAll('button')].map(b => b.textContent) };", "save": "selected", "full": true },
+    { "name": "the bar: 2 selected, Select all, Clear, Delete…", "assert": "!__vars.selected.hidden && __vars.selected.shown && __vars.selected.count === '2 bookmarks selected' && JSON.stringify(__vars.selected.buttons) === JSON.stringify(['Select all', 'Clear', 'Delete…'])" },
+    { "name": "Select all, then Clear", "script": "const bar = document.querySelector('#fallbackPage [data-jfbm-page=\"bookmarks\"] .jfbm-bulk-bar'); bar.querySelector('.jfbm-bulk-all').click(); const all = bar.querySelector('.jfbm-bulk-count').textContent; const rows = document.querySelectorAll('#fallbackPage [data-jfbm-page=\"bookmarks\"] .jfbm-row').length; const checked = [...document.querySelectorAll('#fallbackPage [data-jfbm-page=\"bookmarks\"] .jfbm-row-select-box')].filter(b => b.checked).length; bar.querySelector('.jfbm-bulk-clear').click(); return { all, rows, checked, hidden: bar.classList.contains('hide'), left: [...document.querySelectorAll('#fallbackPage [data-jfbm-page=\"bookmarks\"] .jfbm-row-select-box')].filter(b => b.checked).length };", "save": "selectAll", "full": true },
+    { "name": "as expected", "assert": "__vars.selectAll.all === __vars.selectAll.rows + ' bookmarks selected' && __vars.selectAll.checked === __vars.selectAll.rows && __vars.selectAll.rows >= 4 && __vars.selectAll.hidden && __vars.selectAll.left === 0" },
+    { "name": "select B and D again", "script": "for (const id of [__vars.seed.b, __vars.seed.d]) { document.querySelector('#fallbackPage [data-jfbm-page=\"bookmarks\"] .jfbm-row[data-id=\"' + id + '\"] .jfbm-row-select-box').click(); } return document.querySelector('#fallbackPage [data-jfbm-page=\"bookmarks\"] .jfbm-bulk-count').textContent;" },
+    { "sleep": 200 },
+    { "screenshot": "page-actions-selected.png" },
+    { "name": "Delete…", "click": "#fallbackPage [data-jfbm-page=\"bookmarks\"] .jfbm-bulk-bar .jfbm-bulk-delete", "js": true },
+    {
+      "name": "'Delete 2 bookmarks?': the description, 'Also delete their clips (2 clip files)' unticked, with the hint that the clips stay in My Clips",
+      "waitFor": "(() => { const p = document.querySelector('.jfbm-backdrop .jfbm-panel'); if (!p || p.querySelector('h3').textContent !== 'Delete 2 bookmarks?') return false; const box = p.querySelector('.jfbm-delete-clip input'); const hint = p.querySelector('.jfbm-delete-hint'); return { description: p.querySelector('.jfbm-bulk-description').textContent, label: box.nextElementSibling.textContent, checked: box.checked, hint: hint.classList.contains('hide') || hint.getClientRects().length === 0 ? null : hint.textContent }; })()",
+      "timeout": 10000,
+      "save": "bulkDialog",
+      "full": true
+    },
+    { "name": "as expected (unticked once My Clips lists kept clips; ticked in 1.1.0)", "assert": "__vars.bulkDialog.description === '2 bookmarks on 1 title will be deleted.' && __vars.bulkDialog.label === 'Also delete their clips (2 clip files)' && __vars.bulkDialog.checked === false && __vars.bulkDialog.hint === 'The clip stays in My Clips.'" },
+    { "sleep": 200 },
+    { "screenshot": "page-actions-bulk-delete.png" },
+    { "name": "tick it", "click": ".jfbm-backdrop .jfbm-delete-clip input", "js": true },
+    { "name": "ticked: the hint goes", "waitFor": "(() => { const h = document.querySelector('.jfbm-backdrop .jfbm-delete-hint'); return !!h && document.querySelector('.jfbm-backdrop .jfbm-delete-clip input').checked && h.classList.contains('hide'); })()" },
+    { "name": "untick it", "click": ".jfbm-backdrop .jfbm-delete-clip input", "js": true },
+    { "name": "unticked: the hint back", "waitFor": "(() => { const h = document.querySelector('.jfbm-backdrop .jfbm-delete-hint'); return !!h && !document.querySelector('.jfbm-backdrop .jfbm-delete-clip input').checked && !h.classList.contains('hide') && h.textContent; })()", "save": "hint" },
+    { "name": "its sentence", "assert": "__vars.hint === 'The clip stays in My Clips.'" },
+    { "name": "Delete", "script": "[...document.querySelectorAll('.jfbm-backdrop .jfbm-actions button')].find(b => b.textContent === 'Delete').click(); return true;" },
+    {
+      "name": "deleted: the dialog gone, the toast, the two rows gone and the count line following; B and D are 404, their clip files still download (tombstones)",
+      "waitFor": "(async () => { if (document.querySelector('.jfbm-backdrop')) return false; const r = document.querySelector('#fallbackPage > [data-jfbm-page=\"bookmarks\"]'); const c = r.querySelector('.jfbm-page-content'); const row = (id) => c.querySelector('.jfbm-row[data-id=\"' + id + '\"]'); if (c.hasAttribute('aria-busy') || row(__vars.seed.b) || row(__vars.seed.d) || !row(__vars.seed.a) || !row(__vars.seed.c)) return false; const status = async (p, q) => { const x = await fetch(ApiClient.getUrl(p, q), { headers: { Authorization: 'MediaBrowser Token=\"' + ApiClient.accessToken() + '\"' } }); return x.status; }; return { toast: [...document.querySelectorAll('.jfbm-toast')].map(t => t.textContent), rows: [__vars.seed.a, __vars.seed.b, __vars.seed.c, __vars.seed.d].filter(id => !!row(id)), others: c.querySelectorAll('.jfbm-row').length - 2, count: r.querySelector('.jfbm-page-count').textContent, bar: r.querySelector('.jfbm-bulk-bar').classList.contains('hide'), b: await status('Bookmarks/' + __vars.seed.b), d: await status('Bookmarks/' + __vars.seed.d), bFile: await status('Bookmarks/' + __vars.seed.b + '/Clip/File', { download: 'false' }), dFile: await status('Bookmarks/' + __vars.seed.d + '/Clip/File', { download: 'false' }) }; })()",
+      "timeout": 15000,
+      "save": "bulkKept",
+      "full": true
+    },
+    { "name": "as expected", "assert": "__vars.bulkKept.toast.includes('2 bookmarks deleted.') && JSON.stringify(__vars.bulkKept.rows) === JSON.stringify([__vars.seed.a, __vars.seed.c]) && __vars.bulkKept.count.startsWith((2 + __vars.bulkKept.others) + ' bookmarks on 1 title') && __vars.bulkKept.bar && __vars.bulkKept.b === 404 && __vars.bulkKept.d === 404 && __vars.bulkKept.bFile === 200 && __vars.bulkKept.dFile === 200" },
+    { "name": "the kept clips deleted by the bookmarks' ids (a tombstone's DELETE Clip is 204, then 404)", "script": "const out = {}; for (const id of [__vars.seed.b, __vars.seed.d]) { const first = await fetch(ApiClient.getUrl('Bookmarks/' + id + '/Clip'), { method: 'DELETE', headers: { Authorization: 'MediaBrowser Token=\"' + ApiClient.accessToken() + '\"' } }); const second = await fetch(ApiClient.getUrl('Bookmarks/' + id + '/Clip'), { method: 'DELETE', headers: { Authorization: 'MediaBrowser Token=\"' + ApiClient.accessToken() + '\"' } }); out[id] = [first.status, second.status]; } return out;", "save": "tombstones", "full": true },
+    { "name": "as expected", "assert": "Object.values(__vars.tombstones).every(s => s[0] === 204 && s[1] === 404)" },
+
+    {
+      "name": "seed E (a range with a Fast clip) and F (a point) for the delete with the clips",
+      "script": "const T = 10000000; const post = (body) => ApiClient.ajax({ type: 'POST', url: ApiClient.getUrl('Bookmarks'), data: JSON.stringify(body), contentType: 'application/json', dataType: 'json' }); const e = await post({ ItemId: __vars.movieId, StartTicks: 60 * T, EndTicks: 62 * T, Name: 'page-probe actions clipped' }); const f = await post({ ItemId: __vars.movieId, StartTicks: 70 * T, Name: 'page-probe actions plain' }); await ApiClient.ajax({ type: 'POST', url: ApiClient.getUrl('Bookmarks/' + e.Id + '/Clip'), data: JSON.stringify({ Mode: 'Fast' }), contentType: 'application/json', dataType: 'json' }); let file = null; for (let i = 0; i < 240; i++) { const x = await ApiClient.getJSON(ApiClient.getUrl('Bookmarks/' + e.Id)); if (x.Clip && x.Clip.Status === 'Completed' && x.Clip.FileName) { file = x.Clip.FileName; break; } if (x.Clip && x.Clip.Status === 'Failed') throw new Error('the clip failed: ' + x.Clip.Error); await new Promise(r => setTimeout(r, 500)); } if (!file) throw new Error('the clip did not complete'); return { e: e.Id, f: f.Id, file };",
+      "save": "seed2",
+      "full": true,
+      "timeout": 240000
+    },
+    { "name": "the page again (the seed was made outside the page)", "reload": true },
+    { "name": "the four seeded rows (A, C, E, F)", "waitFor": "(() => { const c = document.querySelector('#fallbackPage > [data-jfbm-page=\"bookmarks\"][data-jfbm-state=\"on\"] .jfbm-page-content'); return !!c && !c.hasAttribute('aria-busy') && [__vars.seed.a, __vars.seed.c, __vars.seed2.e, __vars.seed2.f].every(id => !!c.querySelector('.jfbm-row[data-id=\"' + id + '\"]')); })()", "timeout": 20000 },
+    { "name": "select E and F", "script": "for (const id of [__vars.seed2.e, __vars.seed2.f]) { document.querySelector('#fallbackPage [data-jfbm-page=\"bookmarks\"] .jfbm-row[data-id=\"' + id + '\"] .jfbm-row-select-box').click(); } return document.querySelector('#fallbackPage [data-jfbm-page=\"bookmarks\"] .jfbm-bulk-count').textContent;", "save": "selected2" },
+    { "name": "2 selected", "assert": "__vars.selected2 === '2 bookmarks selected'" },
+    { "name": "Delete…", "click": "#fallbackPage [data-jfbm-page=\"bookmarks\"] .jfbm-bulk-bar .jfbm-bulk-delete", "js": true },
+    { "name": "the dialog with 'Also delete their clips (1 clip file)' unticked (since My Clips)", "waitFor": "(() => { const p = document.querySelector('.jfbm-backdrop .jfbm-panel'); if (!p || p.querySelector('h3').textContent !== 'Delete 2 bookmarks?') return false; const box = p.querySelector('.jfbm-delete-clip input'); return !box.checked && box.nextElementSibling.textContent === 'Also delete their clips (1 clip file)'; })()", "timeout": 10000 },
+    { "name": "tick it", "click": ".jfbm-backdrop .jfbm-delete-clip input", "js": true },
+    { "name": "ticked", "waitFor": "document.querySelector('.jfbm-backdrop .jfbm-delete-clip input').checked" },
+    { "name": "Delete", "script": "[...document.querySelectorAll('.jfbm-backdrop .jfbm-actions button')].find(b => b.textContent === 'Delete').click(); return true;" },
+    {
+      "name": "deleted with the clip: E and F 404, E's clip file 404, A and C left",
+      "waitFor": "(async () => { if (document.querySelector('.jfbm-backdrop')) return false; const c = document.querySelector('#fallbackPage > [data-jfbm-page=\"bookmarks\"] .jfbm-page-content'); const row = (id) => c.querySelector('.jfbm-row[data-id=\"' + id + '\"]'); if (c.hasAttribute('aria-busy') || row(__vars.seed2.e) || row(__vars.seed2.f) || !row(__vars.seed.a) || !row(__vars.seed.c)) return false; const status = async (p, q) => (await fetch(ApiClient.getUrl(p, q), { headers: { Authorization: 'MediaBrowser Token=\"' + ApiClient.accessToken() + '\"' } })).status; return { e: await status('Bookmarks/' + __vars.seed2.e), f: await status('Bookmarks/' + __vars.seed2.f), eFile: await status('Bookmarks/' + __vars.seed2.e + '/Clip/File', { download: 'false' }) }; })()",
+      "timeout": 15000,
+      "save": "bulkGone",
+      "full": true
+    },
+    { "name": "as expected", "assert": "__vars.bulkGone.e === 404 && __vars.bulkGone.f === 404 && __vars.bulkGone.eFile === 404" },
+
+    {
+      "name": "seed 205 points 'page-probe actions many' (half a second apart) for a Select all over more than one request's worth",
+      "script": "const T = 10000000; const ids = []; for (let i = 0; i < 205; i++) { const b = await ApiClient.ajax({ type: 'POST', url: ApiClient.getUrl('Bookmarks'), data: JSON.stringify({ ItemId: __vars.movieId, StartTicks: Math.round(i * 0.5 * T), Note: 'page-probe actions many ' + i }), contentType: 'application/json', dataType: 'json' }); ids.push(b.Id); } return ids.length;",
+      "save": "many",
+      "timeout": 240000
+    },
+    { "name": "205 seeded", "assert": "__vars.many === 205" },
+    { "name": "the flat view of the movie, searched for them, five pages in one go (the hash's page=5)", "goto": "/web/index.html#/jfbm-bookmarks?view=flat&item=${movieId}&q=page-probe%20actions%20many&page=5" },
+    {
+      "name": "the 205 rows shown, the count line counting them",
+      "waitFor": "(() => { const r = document.querySelector('#fallbackPage > [data-jfbm-page=\"bookmarks\"][data-jfbm-state=\"on\"]'); if (!r) return false; const c = r.querySelector('.jfbm-page-content'); if (!c || c.hasAttribute('aria-busy')) return false; const rows = c.querySelectorAll('.jfbm-row').length; if (rows !== 205) return false; return { rows, count: r.querySelector('.jfbm-page-count').textContent, pager: r.querySelector('.jfbm-pager').classList.contains('hide') }; })()",
+      "timeout": 30000,
+      "save": "manyRows",
+      "full": true
+    },
+    { "name": "as expected: 205 bookmarks on 1 title, no Load more", "assert": "__vars.manyRows.rows === 205 && __vars.manyRows.count.startsWith('205 bookmarks on 1 title') && __vars.manyRows.pager" },
+    { "name": "tick one, then Select all: 205 selected", "script": "const r = document.querySelector('#fallbackPage [data-jfbm-page=\"bookmarks\"]'); r.querySelector('.jfbm-row-select-box').click(); r.querySelector('.jfbm-bulk-all').click(); return { count: r.querySelector('.jfbm-bulk-count').textContent, checked: [...r.querySelectorAll('.jfbm-row-select-box')].filter(b => b.checked).length };", "save": "manySelected", "full": true },
+    { "name": "as expected", "assert": "__vars.manySelected.count === '205 bookmarks selected' && __vars.manySelected.checked === 205" },
+    { "name": "Delete…", "click": "#fallbackPage [data-jfbm-page=\"bookmarks\"] .jfbm-bulk-bar .jfbm-bulk-delete", "js": true },
+    { "name": "'Delete 205 bookmarks?' without a clip choice (none has a clip file)", "waitFor": "(() => { const p = document.querySelector('.jfbm-backdrop .jfbm-panel'); if (!p || p.querySelector('h3').textContent !== 'Delete 205 bookmarks?') return false; return { description: p.querySelector('.jfbm-bulk-description').textContent, choice: !!p.querySelector('.jfbm-delete-clip'), progress: p.querySelector('.jfbm-bulk-progress').textContent }; })()", "timeout": 10000, "save": "manyDialog", "full": true },
+    { "name": "as expected", "assert": "__vars.manyDialog.description === '205 bookmarks on 1 title will be deleted.' && !__vars.manyDialog.choice && __vars.manyDialog.progress === ''" },
+    { "name": "the resource timings cleared and widened (the 205 seeds filled the browser's buffer of 250), the clock", "eval": "(performance.clearResourceTimings(), performance.setResourceTimingBufferSize(2000), performance.now())", "save": "tMany" },
+    { "name": "Delete: the progress line's texts while the batches go (recorded by a MutationObserver)", "script": "const p = document.querySelector('.jfbm-backdrop .jfbm-panel'); const line = p.querySelector('.jfbm-bulk-progress'); const seen = []; const note = (records) => { for (const r of records) { const texts = r.type === 'characterData' ? [r.target.data] : [...r.addedNodes].map(n => n.textContent); for (const t of texts) if (t && seen[seen.length - 1] !== t) seen.push(t); } }; const observer = new MutationObserver(note); observer.observe(line, { childList: true, characterData: true, subtree: true }); [...p.querySelectorAll('.jfbm-actions button')].find(b => b.textContent === 'Delete').click(); const until = performance.now() + 15000; while (performance.now() < until && document.body.contains(p)) await new Promise(r => setTimeout(r, 20)); note(observer.takeRecords()); observer.disconnect(); return { seen, closed: !document.body.contains(p), last: line.textContent };", "save": "manyProgress", "full": true },
+    {
+      "name": "deleted in two requests (200 then 5): the dialog gone, the toast '205 bookmarks deleted.', no row left, the no-match notice, the bar hidden, the server has none left",
+      "waitFor": "(async () => { if (document.querySelector('.jfbm-backdrop')) return false; const r = document.querySelector('#fallbackPage > [data-jfbm-page=\"bookmarks\"]'); const c = r.querySelector('.jfbm-page-content'); if (c.hasAttribute('aria-busy') || c.querySelectorAll('.jfbm-row').length > 0 || !c.querySelector('.jfbm-notice')) return false; const posts = performance.getEntriesByType('resource').filter(e => e.startTime > __vars.tMany && /\\/Bookmarks\\/BulkDelete(\\?|$)/.test(e.name)); const left = await ApiClient.getJSON(ApiClient.getUrl('Bookmarks/Query', { searchTerm: 'page-probe actions many', limit: 1 })); return { toast: [...document.querySelectorAll('.jfbm-toast')].map(t => t.textContent), requests: posts.length, notice: c.querySelector('.jfbm-notice-text').textContent, bar: r.querySelector('.jfbm-bulk-bar').classList.contains('hide'), left: left.TotalRecordCount }; })()",
+      "timeout": 20000,
+      "save": "manyDeleted",
+      "full": true
+    },
+    { "name": "as expected (the server takes at most 200 ids a request; one request for all 205 was a 400 with nothing deleted)", "assert": "__vars.manyDeleted.toast.includes('205 bookmarks deleted.') && __vars.manyDeleted.requests === 2 && __vars.manyDeleted.notice === 'No bookmarks match these filters.' && __vars.manyDeleted.bar && __vars.manyDeleted.left === 0 && __vars.manyProgress.closed && __vars.manyProgress.last === '' && JSON.stringify(__vars.manyProgress.seen) === JSON.stringify(['Deleting 1–200 of 205…', 'Deleting 201–205 of 205…'])" },
+
+    {
+      "name": "seed 205 more points 'page-probe actions stop' for a delete closed while its batches go",
+      "script": "const T = 10000000; const ids = []; for (let i = 0; i < 205; i++) { const b = await ApiClient.ajax({ type: 'POST', url: ApiClient.getUrl('Bookmarks'), data: JSON.stringify({ ItemId: __vars.movieId, StartTicks: Math.round(i * 0.5 * T), Note: 'page-probe actions stop ' + i }), contentType: 'application/json', dataType: 'json' }); ids.push(b.Id); } return ids.length;",
+      "save": "stopSeeded",
+      "timeout": 240000
+    },
+    { "name": "205 seeded", "assert": "__vars.stopSeeded === 205" },
+    { "name": "the flat view of the movie, searched for them, page=5", "goto": "/web/index.html#/jfbm-bookmarks?view=flat&item=${movieId}&q=page-probe%20actions%20stop&page=5" },
+    { "name": "the 205 rows shown", "waitFor": "(() => { const r = document.querySelector('#fallbackPage > [data-jfbm-page=\"bookmarks\"][data-jfbm-state=\"on\"]'); if (!r) return false; const c = r.querySelector('.jfbm-page-content'); if (!c || c.hasAttribute('aria-busy')) return false; return c.querySelectorAll('.jfbm-row').length === 205; })()", "timeout": 30000 },
+    { "name": "tick one, then Select all: 205 selected; Delete…", "script": "const r = document.querySelector('#fallbackPage [data-jfbm-page=\"bookmarks\"]'); r.querySelector('.jfbm-row-select-box').click(); r.querySelector('.jfbm-bulk-all').click(); const count = r.querySelector('.jfbm-bulk-count').textContent; r.querySelector('.jfbm-bulk-delete').click(); return count;", "save": "stopSelected" },
+    { "name": "205 selected", "assert": "__vars.stopSelected === '205 bookmarks selected'" },
+    { "name": "'Delete 205 bookmarks?'", "waitFor": "(() => { const p = document.querySelector('.jfbm-backdrop .jfbm-panel'); return !!p && p.querySelector('h3').textContent === 'Delete 205 bookmarks?'; })()", "timeout": 10000 },
+    { "name": "every BulkDelete request held 3 s before it goes out, so the dialog can be closed during the first", "delayRequests": {"url": "/Bookmarks/BulkDelete", "ms": 3000} },
+    { "name": "the resource timings cleared, the clock", "eval": "(performance.clearResourceTimings(), performance.setResourceTimingBufferSize(2000), performance.now())", "save": "tStop" },
+    { "name": "Delete; while the first request is held, the progress line and Cancel enabled; the focus to Cancel", "script": "const p = document.querySelector('.jfbm-backdrop .jfbm-panel'); const buttons = () => [...p.querySelectorAll('.jfbm-actions button')]; buttons().find(b => b.textContent === 'Delete').click(); await new Promise(r => setTimeout(r, 200)); const cancel = buttons().find(b => b.textContent === 'Cancel'); cancel.focus(); return { progress: p.querySelector('.jfbm-bulk-progress').textContent, cancelEnabled: !cancel.disabled, deleteDisabled: buttons().find(b => b.textContent === 'Delete').disabled, focused: document.activeElement === cancel, open: document.body.contains(p) };", "save": "stopRunning", "full": true },
+    { "name": "as expected", "assert": "__vars.stopRunning.open && __vars.stopRunning.progress === 'Deleting 1–200 of 205…' && __vars.stopRunning.cancelEnabled && __vars.stopRunning.deleteDisabled && __vars.stopRunning.focused" },
+    { "name": "Escape closes the dialog during the first request", "key": "Escape" },
+    { "name": "closed at once", "waitFor": "!document.querySelector('.jfbm-backdrop')", "timeout": 2000 },
+    {
+      "name": "the held request answered, the run stopped there: the toast saying so, the five left in the list and still ticked, the bar '5 bookmarks selected', one BulkDelete request since the click, five left on the server",
+      "waitFor": "(async () => { const toast = [...document.querySelectorAll('.jfbm-toast')].map(t => t.textContent).find(t => t.indexOf('Stopped') >= 0); if (!toast) return false; const r = document.querySelector('#fallbackPage > [data-jfbm-page=\"bookmarks\"]'); const c = r.querySelector('.jfbm-page-content'); if (c.hasAttribute('aria-busy')) return false; const rows = [...c.querySelectorAll('.jfbm-row')]; if (rows.length !== 5) return false; await new Promise(x => setTimeout(x, 4000)); const posts = performance.getEntriesByType('resource').filter(e => e.startTime > __vars.tStop && /\\/Bookmarks\\/BulkDelete(\\?|$)/.test(e.name)); const left = await ApiClient.getJSON(ApiClient.getUrl('Bookmarks/Query', { searchTerm: 'page-probe actions stop', limit: 1 })); return { toast, rows: c.querySelectorAll('.jfbm-row').length, ticked: [...c.querySelectorAll('.jfbm-row-select-box')].filter(b => b.checked).length, count: r.querySelector('.jfbm-bulk-count').textContent, bar: !r.querySelector('.jfbm-bulk-bar').classList.contains('hide'), requests: posts.length, left: left.TotalRecordCount }; })()",
+      "timeout": 20000,
+      "save": "stopped",
+      "full": true
+    },
+    { "name": "as expected (before the review the other batch went on after the dialog closed, and the outcome went into the closed dialog)", "assert": "__vars.stopped.toast === '200 bookmarks deleted. Stopped: 5 bookmarks were not deleted. They are still selected.' && __vars.stopped.rows === 5 && __vars.stopped.ticked === 5 && __vars.stopped.count === '5 bookmarks selected' && __vars.stopped.bar && __vars.stopped.requests === 1 && __vars.stopped.left === 5" },
+    { "name": "no request held any more", "delayRequests": null },
+    { "name": "Delete… on the five", "click": "#fallbackPage [data-jfbm-page=\"bookmarks\"] .jfbm-bulk-bar .jfbm-bulk-delete", "js": true },
+    { "name": "'Delete 5 bookmarks?', Delete", "waitFor": "(() => { const p = document.querySelector('.jfbm-backdrop .jfbm-panel'); if (!p || p.querySelector('h3').textContent !== 'Delete 5 bookmarks?') return false; [...p.querySelectorAll('.jfbm-actions button')].find(b => b.textContent === 'Delete').click(); return true; })()", "timeout": 10000 },
+    { "name": "the toast '5 bookmarks deleted.', none left", "waitFor": "(async () => { if (document.querySelector('.jfbm-backdrop')) return false; if (![...document.querySelectorAll('.jfbm-toast')].some(t => t.textContent === '5 bookmarks deleted.')) return false; return (await ApiClient.getJSON(ApiClient.getUrl('Bookmarks/Query', { searchTerm: 'page-probe actions stop', limit: 1 }))).TotalRecordCount === 0; })()", "timeout": 20000 },
+
+    { "name": "no uncaught exception of ours", "noExceptions": true, "ignore": "/CustomRatings/script|^Error: player cannot be null" },
+    { "name": "clean-up: the remaining 'page-probe actions' bookmarks deleted (200 a request until none is left)", "script": "let ids = 0; let deleted = 0; for (let round = 0; round < 10; round++) { const r = await ApiClient.getJSON(ApiClient.getUrl('Bookmarks/Query', { searchTerm: 'page-probe actions', limit: 200 })); const batch = r.Items.map(b => b.Id); if (!batch.length) break; ids += batch.length; const x = await ApiClient.ajax({ type: 'POST', url: ApiClient.getUrl('Bookmarks/BulkDelete'), data: JSON.stringify({ Ids: batch, DeleteClips: true }), contentType: 'application/json', dataType: 'json' }); deleted += x.Deleted.length; } return { ids, deleted };", "save": "cleanup", "full": true },
+    { "name": "all deleted (A and C)", "assert": "__vars.cleanup.ids === 2 && __vars.cleanup.deleted === 2" }
+  ]
+}

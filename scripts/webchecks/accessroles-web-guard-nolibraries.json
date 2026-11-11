@@ -1,0 +1,52 @@
+{
+  "description": "A managed user with no library: viewer2 while accessroles-web-guard-probe.mjs manages it with no library (the probe's Kid role, its own library mode Only with nothing, confirmed). /Me says NoLibraries; Home's \"Ask an administrator to create a library.\" is replaced by /Me's message, as text, also after leaving Home and coming back (Home rebuilds it). When a playlist is visible to viewer2, Home shows no such message at all: the run records which. Reads only.",
+  "timeout": 30000,
+  "steps": [
+    {
+      "name": "sign in as viewer2",
+      "login": "viewer2"
+    },
+    {
+      "name": "the guard has viewer2's /Me: managed, no libraries",
+      "waitFor": "!!window.__jfkit && !!window.__jfkit.jfar && __jfkit.jfar.instance.accessRoles.rules().source === 'me' && __jfkit.jfar.instance.accessRoles.rules().rules.NoLibraries === true"
+    },
+    {
+      "name": "Home",
+      "goto": "/web/index.html#/home"
+    },
+    {
+      "name": "Home is built",
+      "waitFor": "!!document.querySelector('.homePage:not(.hide) .sections') && document.querySelector('.homePage:not(.hide) .sections').children.length > 0"
+    },
+    {
+      "sleep": 1500
+    },
+    {
+      "name": "what Home shows",
+      "eval": "(() => { const p = document.querySelector('.homePage:not(.hide) .sections > .centerMessage p'); const sections = [...document.querySelectorAll('.homePage:not(.hide) .sections > *')].map((e) => (e.querySelector('.sectionTitle') || e).textContent.trim().slice(0, 40)).filter(Boolean); return p ? { message: p.textContent, replaced: p.getAttribute('data-jfar-replaced'), elements: p.children.length, sections } : { message: null, sections }; })()",
+      "save": "home",
+      "full": true
+    },
+    {
+      "name": "the stock message is /Me's, as text (or no message at all, a playlist being visible)",
+      "assert": "__vars.home.message === null ? true : (__vars.home.message === 'No libraries have been shared with you yet. Ask your server administrator.' && __vars.home.elements === 0)"
+    },
+    {
+      "screenshot": "accessroles-web-guard-nolibraries-home.png"
+    },
+    {
+      "name": "leave Home and come back",
+      "script": "location.hash = '#/mypreferencesmenu'; await new Promise((r) => setTimeout(r, 1500)); location.hash = '#/home'; await new Promise((r) => setTimeout(r, 2500)); const p = document.querySelector('.homePage:not(.hide) .sections > .centerMessage p'); return p ? p.textContent : null;",
+      "save": "again"
+    },
+    {
+      "name": "replaced again when Home rebuilt it",
+      "assert": "__vars.home.message === null ? __vars.again === null : __vars.again === 'No libraries have been shared with you yet. Ask your server administrator.'"
+    },
+    {
+      "name": "no uncaught exceptions (the stale CustomRatings tag excepted)",
+      "noExceptions": true,
+      "ignore": "/CustomRatings/script"
+    }
+  ]
+}

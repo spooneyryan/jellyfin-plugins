@@ -1,0 +1,491 @@
+{
+  "name": "User Ratings 1.0.2.0, Reload after Reload: as viewer in three browser contexts (three windows of the same member), the reviewer's sequence: window A edits its review of Long Test Movie; window B saves one; A's Save is a 409 (the panel shows B's review) and A reloads: B's review in the text area, A's text kept beside it; A edits B's review there; window C saves one; A's Save is a 409 again and A reloads: C's review in the text area and both of A's texts kept beside it, in the order written, and in the draft (before the fix the second Reload dropped A's first text); a reload of the page brings all of it back; Use my text puts A's first text in the text area with the other kept and C's review beside it; Save sends C's review time and saves A's text, and the form stays open with A's other text beside it and in the draft, C's review gone; Discard lets it go and Cancel closes the form with no draft. The member's row is deleted at the end.",
+  "failOnException": false,
+  "timeout": 30000,
+  "steps": [
+    {
+      "name": "the details probe in every document (it watches the section the served script mounts)",
+      "initScript": {
+        "file": "probes/userratings-details-probe.js"
+      }
+    },
+    {
+      "name": "sign in as viewer",
+      "login": "viewer"
+    },
+    {
+      "name": "desktop layout",
+      "eval": "(localStorage.removeItem('layout'), true)"
+    },
+    {
+      "name": "reload",
+      "reload": true
+    },
+    {
+      "name": "the layout applied, User Ratings 1.0.2.0 started",
+      "waitFor": "document.documentElement.classList.contains('layout-desktop') && !!window.ApiClient && !!ApiClient.getCurrentUserId() && !!(window.__jfkit && window.__jfkit.jfur)",
+      "timeout": 40000
+    },
+    {
+      "name": "the served script is 1.0.2.0",
+      "assert": "window.__jfkit.jfur.version === '1.0.2.0'",
+      "message": "User Ratings 1.0.2.0 is not the script the page loaded"
+    },
+    {
+      "name": "Long Test Movie",
+      "eval": "(await ApiClient.getItems(ApiClient.getCurrentUserId(), { IncludeItemTypes: 'Movie', Recursive: true, SearchTerm: \"Long Test Movie\", Limit: 1 })).Items[0].Id",
+      "save": "movieId"
+    },
+    {
+      "name": "clean: Long Test Movie without a rating of this member",
+      "script": "const r = await __jfurDetails.server('DELETE', 'UserRatings/Items/' + __vars.movieId + '/Mine'); return r.status;",
+      "save": "cleaned"
+    },
+    {
+      "name": "Long Test Movie: the member's 3 stars and review, through the API",
+      "script": "const a = await __jfurDetails.server('PUT', 'UserRatings/Items/' + __vars.movieId + '/Mine/Rating', { Stars: 3 }); const b = await __jfurDetails.server('PUT', 'UserRatings/Items/' + __vars.movieId + '/Mine/Review', { Text: \"T0, the review as seeded\", IsSpoiler: false }); return [a.status, b.status];"
+    },
+    {
+      "name": "window A: Long Test Movie: its details page",
+      "script": "location.hash = '#/details?id=' + __vars.movieId; return true;"
+    },
+    {
+      "name": "window A: Long Test Movie: drawn",
+      "waitFor": "(() => { const p = document.querySelector('#itemDetailPage:not(.hide)'); return !!p && location.hash.indexOf(__vars.movieId) > 0 && !!p.querySelector('.mainDetailButtons .btnPlay:not(.hide)'); })()",
+      "timeout": 30000
+    },
+    {
+      "name": "window A: Long Test Movie: the section mounted for it",
+      "waitFor": "(() => { const s = __jfurDetails.section(); return !!s && s.getAttribute('data-jfur-item') === __vars.movieId && !!s.querySelector('.jfur-summary[data-jfur-summary]'); })()",
+      "timeout": 15000
+    },
+    {
+      "sleep": 400
+    },
+    {
+      "name": "window A: Edit",
+      "click": "#itemDetailPage:not(.hide) .jfur-section .jfur-own-edit"
+    },
+    {
+      "sleep": 300
+    },
+    {
+      "name": "window A: its text selected",
+      "script": "const a = document.activeElement; a.select(); return a.tagName;"
+    },
+    {
+      "name": "window A: type over it",
+      "type": "A first: window A's own words"
+    },
+    {
+      "name": "window-b: a browser context of its own",
+      "context": "window-b"
+    },
+    {
+      "name": "window-b: the details probe there too",
+      "initScript": {
+        "file": "probes/userratings-details-probe.js"
+      }
+    },
+    {
+      "name": "window-b: sign in as viewer",
+      "login": "viewer"
+    },
+    {
+      "name": "window-b: desktop layout",
+      "eval": "(localStorage.removeItem('layout'), true)"
+    },
+    {
+      "name": "window-b: reload",
+      "reload": true
+    },
+    {
+      "name": "window-b: User Ratings 1.0.2.0 started",
+      "waitFor": "!!window.ApiClient && !!ApiClient.getCurrentUserId() && !!(window.__jfkit && window.__jfkit.jfur)",
+      "timeout": 40000
+    },
+    {
+      "name": "window B: Long Test Movie: its details page",
+      "script": "location.hash = '#/details?id=' + __vars.movieId; return true;"
+    },
+    {
+      "name": "window B: Long Test Movie: drawn",
+      "waitFor": "(() => { const p = document.querySelector('#itemDetailPage:not(.hide)'); return !!p && location.hash.indexOf(__vars.movieId) > 0 && !!p.querySelector('.mainDetailButtons .btnPlay:not(.hide)'); })()",
+      "timeout": 30000
+    },
+    {
+      "name": "window B: Long Test Movie: the section mounted for it",
+      "waitFor": "(() => { const s = __jfurDetails.section(); return !!s && s.getAttribute('data-jfur-item') === __vars.movieId && !!s.querySelector('.jfur-summary[data-jfur-summary]'); })()",
+      "timeout": 15000
+    },
+    {
+      "sleep": 400
+    },
+    {
+      "name": "window B: Edit",
+      "click": "#itemDetailPage:not(.hide) .jfur-section .jfur-own-edit"
+    },
+    {
+      "sleep": 300
+    },
+    {
+      "name": "window B: its text selected",
+      "script": "const a = document.activeElement; a.select(); return a.tagName;"
+    },
+    {
+      "name": "window B: type over it",
+      "type": "B saved"
+    },
+    {
+      "name": "window B: Save",
+      "click": "#itemDetailPage:not(.hide) .jfur-section .jfur-review-save"
+    },
+    {
+      "sleep": 900
+    },
+    {
+      "name": "window B: saved, the form closed",
+      "assert": "!__jfurDetails.state().form && __jfurDetails.state().own === \"B saved\""
+    },
+    {
+      "name": "window A",
+      "context": "main"
+    },
+    {
+      "name": "window A: Save (409)",
+      "click": "#itemDetailPage:not(.hide) .jfur-section .jfur-review-save"
+    },
+    {
+      "sleep": 900
+    },
+    {
+      "name": "window A: the first 409",
+      "eval": "__jfurDetails.state()",
+      "save": "first409",
+      "full": true
+    },
+    {
+      "name": "window A: the first 409 shows \"B saved\"",
+      "assert": "(c => !!c && c.text === 'B saved')(__vars.first409.conflictPanel) && __vars.first409.formText === \"A first: window A's own words\""
+    },
+    {
+      "name": "window A: Reload",
+      "click": "#itemDetailPage:not(.hide) .jfur-section .jfur-conflict-reload"
+    },
+    {
+      "sleep": 900
+    },
+    {
+      "name": "window A: after the first Reload",
+      "eval": "__jfurDetails.state()",
+      "save": "firstReload",
+      "full": true
+    },
+    {
+      "name": "window A: \"B saved\" in the text area, its own text beside it",
+      "assert": "__vars.firstReload.formText === 'B saved' && JSON.stringify(__vars.firstReload.kept.map(k => [k.label, k.text])) === JSON.stringify([['Your text, not saved', \"A first: window A's own words\"]])"
+    },
+    {
+      "name": "window A: the text area",
+      "script": "const a = __jfurDetails.section().querySelector('.jfur-review-form textarea'); a.focus(); a.selectionStart = a.selectionEnd = a.value.length; return a.tagName;"
+    },
+    {
+      "name": "window A: edits B's review",
+      "type": ", and window A's edit of it"
+    },
+    {
+      "name": "window-c: a browser context of its own",
+      "context": "window-c"
+    },
+    {
+      "name": "window-c: the details probe there too",
+      "initScript": {
+        "file": "probes/userratings-details-probe.js"
+      }
+    },
+    {
+      "name": "window-c: sign in as viewer",
+      "login": "viewer"
+    },
+    {
+      "name": "window-c: desktop layout",
+      "eval": "(localStorage.removeItem('layout'), true)"
+    },
+    {
+      "name": "window-c: reload",
+      "reload": true
+    },
+    {
+      "name": "window-c: User Ratings 1.0.2.0 started",
+      "waitFor": "!!window.ApiClient && !!ApiClient.getCurrentUserId() && !!(window.__jfkit && window.__jfkit.jfur)",
+      "timeout": 40000
+    },
+    {
+      "name": "window C: Long Test Movie: its details page",
+      "script": "location.hash = '#/details?id=' + __vars.movieId; return true;"
+    },
+    {
+      "name": "window C: Long Test Movie: drawn",
+      "waitFor": "(() => { const p = document.querySelector('#itemDetailPage:not(.hide)'); return !!p && location.hash.indexOf(__vars.movieId) > 0 && !!p.querySelector('.mainDetailButtons .btnPlay:not(.hide)'); })()",
+      "timeout": 30000
+    },
+    {
+      "name": "window C: Long Test Movie: the section mounted for it",
+      "waitFor": "(() => { const s = __jfurDetails.section(); return !!s && s.getAttribute('data-jfur-item') === __vars.movieId && !!s.querySelector('.jfur-summary[data-jfur-summary]'); })()",
+      "timeout": 15000
+    },
+    {
+      "sleep": 400
+    },
+    {
+      "name": "window C: Edit",
+      "click": "#itemDetailPage:not(.hide) .jfur-section .jfur-own-edit"
+    },
+    {
+      "sleep": 300
+    },
+    {
+      "name": "window C: its text selected",
+      "script": "const a = document.activeElement; a.select(); return a.tagName;"
+    },
+    {
+      "name": "window C: type over it",
+      "type": "C saved"
+    },
+    {
+      "name": "window C: Save",
+      "click": "#itemDetailPage:not(.hide) .jfur-section .jfur-review-save"
+    },
+    {
+      "sleep": 900
+    },
+    {
+      "name": "window C: saved, the form closed",
+      "assert": "!__jfurDetails.state().form && __jfurDetails.state().own === \"C saved\""
+    },
+    {
+      "name": "the server: after window C saved",
+      "eval": "__jfurDetails.mine(__vars.movieId)",
+      "save": "afterC",
+      "full": true
+    },
+    {
+      "name": "window A again",
+      "context": "main"
+    },
+    {
+      "name": "window A second Save: mark",
+      "script": "window.__mark = __jfurDetails.requests.length; window.__keys = __jfurDetails.log.length; return true;"
+    },
+    {
+      "name": "window A: Save (409 again)",
+      "click": "#itemDetailPage:not(.hide) .jfur-section .jfur-review-save"
+    },
+    {
+      "sleep": 900
+    },
+    {
+      "name": "window A: the second 409",
+      "eval": "__jfurDetails.state()",
+      "save": "second409",
+      "full": true
+    },
+    {
+      "name": "window A: the second 409 shows \"C saved\"",
+      "assert": "(c => !!c && c.text === 'C saved')(__vars.second409.conflictPanel) && __vars.second409.formText === \"B saved, and window A's edit of it\""
+    },
+    {
+      "name": "window A: Reload again",
+      "click": "#itemDetailPage:not(.hide) .jfur-section .jfur-conflict-reload"
+    },
+    {
+      "sleep": 900
+    },
+    {
+      "name": "window A: after the second Reload",
+      "eval": "__jfurDetails.state()",
+      "save": "secondReload",
+      "full": true
+    },
+    {
+      "name": "window A: the draft as stored",
+      "eval": "(() => { const k = Object.keys(__jfurDetails.storage()).filter(k => k.indexOf('jfur:draft:') === 0); return k.length === 1 ? JSON.parse(localStorage.getItem(k[0])).kept.map(x => x.text) : k.length; })()",
+      "save": "draftKept",
+      "full": true
+    },
+    {
+      "name": "window A: \"C saved\" in the text area, and both of the member's texts kept beside it, in the order written, and in the draft (before the fix: \"A first\" was gone)",
+      "assert": "__vars.secondReload.formText === 'C saved' && JSON.stringify(__vars.secondReload.kept.map(k => [k.label, k.text])) === JSON.stringify([['Your text, not saved', \"A first: window A's own words\"], ['Your text, not saved', \"B saved, and window A's edit of it\"]]) && JSON.stringify(__vars.draftKept) === JSON.stringify([\"A first: window A's own words\", \"B saved, and window A's edit of it\"])"
+    },
+    {
+      "name": "window A: reload the page",
+      "reload": true
+    },
+    {
+      "name": "window A: started",
+      "waitFor": "!!window.ApiClient && !!ApiClient.getCurrentUserId() && !!(window.__jfkit && window.__jfkit.jfur)",
+      "timeout": 40000
+    },
+    {
+      "name": "window A: Long Test Movie after the reload: its details page",
+      "script": "location.hash = '#/details?id=' + __vars.movieId; return true;"
+    },
+    {
+      "name": "window A: Long Test Movie after the reload: drawn",
+      "waitFor": "(() => { const p = document.querySelector('#itemDetailPage:not(.hide)'); return !!p && location.hash.indexOf(__vars.movieId) > 0 && !!p.querySelector('.mainDetailButtons .btnPlay:not(.hide)'); })()",
+      "timeout": 30000
+    },
+    {
+      "name": "window A: Long Test Movie after the reload: the section mounted for it",
+      "waitFor": "(() => { const s = __jfurDetails.section(); return !!s && s.getAttribute('data-jfur-item') === __vars.movieId && !!s.querySelector('.jfur-summary[data-jfur-summary]'); })()",
+      "timeout": 15000
+    },
+    {
+      "sleep": 400
+    },
+    {
+      "name": "window A: Continue editing",
+      "click": "#itemDetailPage:not(.hide) .jfur-section .jfur-own-edit"
+    },
+    {
+      "sleep": 300
+    },
+    {
+      "name": "window A: the draft put back",
+      "eval": "__jfurDetails.state()",
+      "save": "putBack",
+      "full": true
+    },
+    {
+      "name": "window A: \"C saved\" and both kept texts back after the reload",
+      "assert": "__vars.putBack.formText === 'C saved' && __vars.putBack.restored && JSON.stringify(__vars.putBack.kept.map(k => k.text)) === JSON.stringify([\"A first: window A's own words\", \"B saved, and window A's edit of it\"])"
+    },
+    {
+      "name": "window A: Use my text on the first",
+      "click": "#itemDetailPage:not(.hide) .jfur-section .jfur-aside-use"
+    },
+    {
+      "name": "window A: after Use my text",
+      "eval": "__jfurDetails.state()",
+      "save": "used",
+      "full": true
+    },
+    {
+      "name": "window A: its first text in the text area; the other kept, and \"C saved\" beside it as the other window's",
+      "assert": "__vars.used.formText === \"A first: window A's own words\" && JSON.stringify(__vars.used.kept.map(k => [k.label, k.text])) === JSON.stringify([['Your text, not saved', \"B saved, and window A's edit of it\"], ['Your review as saved in the other window', 'C saved']])"
+    },
+    {
+      "name": "window A last Save: mark",
+      "script": "window.__mark = __jfurDetails.requests.length; window.__keys = __jfurDetails.log.length; return true;"
+    },
+    {
+      "name": "window A: Save",
+      "click": "#itemDetailPage:not(.hide) .jfur-section .jfur-review-save"
+    },
+    {
+      "sleep": 900
+    },
+    {
+      "name": "window A last Save: the section's requests since",
+      "eval": "__jfurDetails.since(window.__mark)",
+      "save": "lastSave",
+      "full": true
+    },
+    {
+      "name": "window A: what Save sent",
+      "eval": "(__jfurDetails.requests.filter(r => r.method === 'PUT' && /Mine\\/Review$/.test(r.path)).pop() || { body: null }).body",
+      "save": "lastBody",
+      "full": true
+    },
+    {
+      "name": "the server: after window A saved",
+      "eval": "__jfurDetails.mine(__vars.movieId)",
+      "save": "afterA",
+      "full": true
+    },
+    {
+      "name": "window A: a 200 against window C's review (its time from the Reload); window A's first text saved",
+      "assert": "__vars.lastSave.length === 1 && / 200$/.test(__vars.lastSave[0]) && __vars.lastBody.IfReviewUpdatedUtc === __vars.afterC.reviewUpdated && __vars.afterA.text === \"A first: window A's own words\""
+    },
+    {
+      "name": "window A: after the save",
+      "eval": "__jfurDetails.state()",
+      "save": "savedKept",
+      "full": true
+    },
+    {
+      "name": "window A: the form stays open on the text as saved, window A's other text beside it (window C's review gone), the sentence with Discard, and a draft keeping it",
+      "assert": "__vars.savedKept.form && __vars.savedKept.formText === \"A first: window A's own words\" && JSON.stringify(__vars.savedKept.kept.map(k => [k.label, k.text])) === JSON.stringify([['Your text, not saved', \"B saved, and window A's edit of it\"]]) && __vars.savedKept.restored && document.querySelector('#itemDetailPage:not(.hide) .jfur-section .jfur-review-restored .jfur-notice-text').textContent === 'Review saved. The other texts you kept are still beside the form.' && Object.keys(__jfurDetails.storage()).filter(k => k.indexOf('jfur:draft:') === 0).length === 1"
+    },
+    {
+      "name": "window A: Discard",
+      "click": "#itemDetailPage:not(.hide) .jfur-section .jfur-review-restored .jfur-draft-discard"
+    },
+    {
+      "name": "window A: after Discard",
+      "eval": "__jfurDetails.state()",
+      "save": "discarded",
+      "full": true
+    },
+    {
+      "name": "window A: nothing kept beside the form, the draft gone",
+      "assert": "__vars.discarded.form && __vars.discarded.formText === \"A first: window A's own words\" && __vars.discarded.kept.length === 0 && Object.keys(__jfurDetails.storage()).filter(k => k.indexOf('jfur:draft:') === 0).length === 0"
+    },
+    {
+      "name": "window A: Cancel",
+      "click": "#itemDetailPage:not(.hide) .jfur-section .jfur-review-cancel"
+    },
+    {
+      "sleep": 300
+    },
+    {
+      "name": "window A: after Cancel",
+      "eval": "__jfurDetails.state()",
+      "save": "closed",
+      "full": true
+    },
+    {
+      "name": "window A: the form closed with no draft; the own card shows the text as saved",
+      "assert": "!__vars.closed.form && __vars.closed.own === \"A first: window A's own words\" && Object.keys(__jfurDetails.storage()).filter(k => k.indexOf('jfur:draft:') === 0).length === 0"
+    },
+    {
+      "name": "window A: screenshot",
+      "screenshot": "userratings-details-three-windows.png"
+    },
+    {
+      "name": "clean: Long Test Movie at the end without a rating of this member",
+      "script": "const r = await __jfurDetails.server('DELETE', 'UserRatings/Items/' + __vars.movieId + '/Mine'); return r.status;",
+      "save": "cleaned"
+    },
+    {
+      "name": "window A: no draft left",
+      "script": "Object.keys(__jfurDetails.storage()).filter(k => k.indexOf('jfur:draft:') === 0).forEach(k => localStorage.removeItem(k)); return Object.keys(__jfurDetails.storage()).filter(k => k.indexOf('jfur:draft:') === 0).length;"
+    },
+    {
+      "name": "window A: no uncaught exception",
+      "noExceptions": true,
+      "ignore": "/CustomRatings/script|^Error: player cannot be null"
+    },
+    {
+      "name": "window A: every request of the section",
+      "eval": "__jfurDetails.since(0)",
+      "full": true
+    },
+    {
+      "name": "window B",
+      "context": "window-b"
+    },
+    {
+      "name": "window B: no draft left",
+      "script": "Object.keys(__jfurDetails.storage()).filter(k => k.indexOf('jfur:draft:') === 0).forEach(k => localStorage.removeItem(k)); return Object.keys(__jfurDetails.storage()).filter(k => k.indexOf('jfur:draft:') === 0).length;"
+    },
+    {
+      "name": "window C",
+      "context": "window-c"
+    },
+    {
+      "name": "window C: no draft left",
+      "script": "Object.keys(__jfurDetails.storage()).filter(k => k.indexOf('jfur:draft:') === 0).forEach(k => localStorage.removeItem(k)); return Object.keys(__jfurDetails.storage()).filter(k => k.indexOf('jfur:draft:') === 0).length;"
+    }
+  ]
+}

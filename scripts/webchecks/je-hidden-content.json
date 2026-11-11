@@ -1,0 +1,68 @@
+{
+  "name": "My Bookmarks under Jellyfin Enhanced's Hidden Content, in the je sandbox with Jellyfin Enhanced's Hidden Content switched on and one movie hidden by viewer (bookmarks-je-web-probe.mjs sets both up through JE's own APIs, with viewer's 'je-hidden' bookmarks on the hidden movie and on a visible one): as viewer, My Bookmarks searched for 'je-hidden', grouped and flat; what JE's script hides on our page is recorded (each group and row, shown or hidden, and JE's je-hidden class) and the probe judges it. The page must render either way.",
+  "failOnException": false,
+  "timeout": 30000,
+  "steps": [
+    {
+      "name": "sign in as viewer",
+      "login": "viewer"
+    },
+    {
+      "name": "the Bookmarks script ran and JE loaded",
+      "waitFor": "!!window.__jfkit && !!window.__jfkit.jfbm && !!window.ApiClient && !!ApiClient.getCurrentUserId() && !!window.JellyfinEnhanced && !!window.JellyfinEnhanced.pluginConfig",
+      "timeout": 60000
+    },
+    {
+      "name": "JE's Hidden Content on",
+      "assert": "window.JellyfinEnhanced.pluginConfig.HiddenContentEnabled === true"
+    },
+    {
+      "name": "My Bookmarks, grouped, searched",
+      "goto": "/web/index.html#/jfbm-bookmarks?q=je-hidden"
+    },
+    {
+      "name": "the page rendered its groups",
+      "waitFor": "(() => { const p = document.querySelector('#fallbackPage [data-jfbm-page=\"bookmarks\"]'); return !!p && !p.querySelector('.jfbm-page-content').hasAttribute('aria-busy') && p.querySelectorAll('[data-jfbm-group]').length > 0; })()",
+      "timeout": 20000
+    },
+    {
+      "name": "JE's observer has had its time",
+      "sleep": 4000
+    },
+    {
+      "name": "what is shown: each group and its rows",
+      "eval": "(() => { const p = document.querySelector('#fallbackPage [data-jfbm-page=\"bookmarks\"]'); const shown = (e) => !!e && e.getClientRects().length > 0 && getComputedStyle(e).display !== 'none'; return { count: (p.querySelector('.jfbm-page-count') || {}).textContent || null, groups: Array.from(p.querySelectorAll('.jfbm-group[data-jfbm-group]')).map(g => { const h = g.querySelector('.jfbm-group-header'); return { key: g.getAttribute('data-jfbm-group'), shown: shown(g), jeHidden: g.classList.contains('je-hidden'), header: h ? { dataId: h.getAttribute('data-id'), classes: h.className, shown: shown(h), jeHidden: h.classList.contains('je-hidden'), title: (h.querySelector('.listItemBodyText') || h).textContent.trim().slice(0, 80) } : null, rows: Array.from(g.querySelectorAll('.jfbm-row')).map(r => ({ id: r.getAttribute('data-id'), shown: shown(r), jeHidden: r.classList.contains('je-hidden') })) }; }) }; })()",
+      "save": "grouped",
+      "full": true
+    },
+    {
+      "screenshot": "je-hidden-grouped.png"
+    },
+    {
+      "name": "the flat view",
+      "goto": "/web/index.html#/jfbm-bookmarks?view=flat&q=je-hidden"
+    },
+    {
+      "name": "the flat rows rendered",
+      "waitFor": "(() => { const p = document.querySelector('#fallbackPage [data-jfbm-page=\"bookmarks\"]'); return !!p && !p.querySelector('.jfbm-page-content').hasAttribute('aria-busy') && p.querySelectorAll('.jfbm-row').length > 0; })()",
+      "timeout": 20000
+    },
+    {
+      "sleep": 3000
+    },
+    {
+      "name": "what is shown: each row",
+      "eval": "(() => { const p = document.querySelector('#fallbackPage [data-jfbm-page=\"bookmarks\"]'); const shown = (e) => e.getClientRects().length > 0 && getComputedStyle(e).display !== 'none'; return Array.from(p.querySelectorAll('.jfbm-row')).map(r => ({ id: r.getAttribute('data-id'), classes: r.className, shown: shown(r), jeHidden: r.classList.contains('je-hidden') })); })()",
+      "save": "flat",
+      "full": true
+    },
+    {
+      "screenshot": "je-hidden-flat.png"
+    },
+    {
+      "name": "no uncaught exceptions (the stale CustomRatings tag and jellyfin-web's Home tab slider excepted)",
+      "noExceptions": true,
+      "ignore": "/CustomRatings/script|^TypeError: t\\.value\\.pause is not a function"
+    }
+  ]
+}

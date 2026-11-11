@@ -1,0 +1,17 @@
+<Project>
+  <!--
+    The plan-only build of Library Maintenance. With MovePreviewOnly true the plugin compiles
+    MOVE_PREVIEW_ONLY: Capabilities.CanMove stays false, and every route and call that changes files is left out (no
+    job route, no probe file). Imported by the plugin's csproj and by its tests' csproj, so a
+    test build compiles alike; `-p:MovePreviewOnly=true` or `false` overrides the default for both. The default is false
+    on the development line (1.1.0.N) and true for the plan-only releases (1.0.2 to 1.0.4): this one is Library
+    Maintenance 1.0.4.
+  -->
+  <PropertyGroup>
+    <MovePreviewOnly Condition="'$(MovePreviewOnly)' == ''">true</MovePreviewOnly>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(MovePreviewOnly)' == 'true'">
+    <DefineConstants>$(DefineConstants);MOVE_PREVIEW_ONLY</DefineConstants>
+  </PropertyGroup>
+</Project>

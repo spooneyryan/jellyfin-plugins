@@ -1,0 +1,257 @@
+{
+  "name": "User Ratings 1.0.2.0: the details page's section on Long Test Movie as viewer in the mobile layout at 390x844 with touch: no part of the section past the screen's edges; a tap on star 4's right half saves 4.0; a sideways drag saves 2.0 once; + + − saves 2.5 once; the histogram hidden under 600 px; the review form fits. Touches through Input.dispatchTouchEvent. The member's row is deleted at the end.",
+  "failOnException": false,
+  "timeout": 30000,
+  "steps": [
+    {
+      "name": "the details probe in every document (it watches the section the served script mounts)",
+      "initScript": {
+        "file": "probes/userratings-details-probe.js"
+      }
+    },
+    {
+      "name": "the phone's screen and touch, before signing in",
+      "emulate": {
+        "width": 390,
+        "height": 844,
+        "mobile": true,
+        "touch": true
+      }
+    },
+    {
+      "name": "sign in as viewer",
+      "login": "viewer"
+    },
+    {
+      "name": "mobile layout",
+      "eval": "(localStorage.setItem('layout', 'mobile'), true)"
+    },
+    {
+      "name": "reload",
+      "reload": true
+    },
+    {
+      "name": "the layout applied, User Ratings 1.0.2.0 started",
+      "waitFor": "document.documentElement.classList.contains('layout-mobile') && !!window.ApiClient && !!ApiClient.getCurrentUserId() && !!(window.__jfkit && window.__jfkit.jfur)",
+      "timeout": 40000
+    },
+    {
+      "name": "the served script is 1.0.2.0",
+      "assert": "window.__jfkit.jfur.version === '1.0.2.0'",
+      "message": "User Ratings 1.0.2.0 is not the script the page loaded"
+    },
+    {
+      "name": "Long Test Movie",
+      "eval": "(await ApiClient.getItems(ApiClient.getCurrentUserId(), { IncludeItemTypes: 'Movie', Recursive: true, SearchTerm: \"Long Test Movie\", Limit: 1 })).Items[0].Id",
+      "save": "movieId"
+    },
+    {
+      "name": "clean: Long Test Movie without a rating of this member",
+      "script": "const r = await __jfurDetails.server('DELETE', 'UserRatings/Items/' + __vars.movieId + '/Mine'); return r.status;",
+      "save": "cleaned"
+    },
+    {
+      "name": "Long Test Movie: its details page",
+      "script": "location.hash = '#/details?id=' + __vars.movieId; return true;"
+    },
+    {
+      "name": "Long Test Movie: drawn",
+      "waitFor": "(() => { const p = document.querySelector('#itemDetailPage:not(.hide)'); return !!p && location.hash.indexOf(__vars.movieId) > 0 && !!p.querySelector('.mainDetailButtons .btnPlay:not(.hide)'); })()",
+      "timeout": 30000
+    },
+    {
+      "name": "Long Test Movie: the section mounted for it",
+      "waitFor": "(() => { const s = __jfurDetails.section(); return !!s && s.getAttribute('data-jfur-item') === __vars.movieId && !!s.querySelector('.jfur-summary[data-jfur-summary]'); })()",
+      "timeout": 15000
+    },
+    {
+      "sleep": 400
+    },
+    {
+      "name": "touch: styles at 390 px",
+      "eval": "__jfurDetails.styles()",
+      "save": "touchStyles",
+      "full": true
+    },
+    {
+      "name": "touch: no part of the section past the edges of the screen; in the slider's row the slider and its − / + only (− off at \"Not rated\")",
+      "assert": "(s => s.section.right <= s.viewport.w + 1 && s.section.x >= -1 && s.overflow.length === 0 && s.rowFocusables.some(f => f.indexOf('div.jfur-stars.focusable') === 0) && s.rowFocusables.every(f => /^(div\\.jfur-stars\\.focusable|button\\.jfur-stars-step)/.test(f)))(__vars.touchStyles)"
+    },
+    {
+      "name": "touch: the stars in the middle (the tap)",
+      "script": "__jfurDetails.slider().scrollIntoView({ block: 'center' }); await new Promise(r => setTimeout(r, 500)); window.__mark = __jfurDetails.requests.length; return Math.round(window.scrollY);"
+    },
+    {
+      "cdp": "Input.dispatchTouchEvent",
+      "params": "({ type: 'touchStart', touchPoints: [{ x: Math.round(__jfurDetails.xFor(3.75)), y: Math.round(__jfurDetails.box(__jfurDetails.slider()).cy) }] })"
+    },
+    {
+      "cdp": "Input.dispatchTouchEvent",
+      "params": "({ type: 'touchEnd', touchPoints: [] })"
+    },
+    {
+      "sleep": 1000
+    },
+    {
+      "name": "the server: after the tap",
+      "eval": "__jfurDetails.mine(__vars.movieId)",
+      "save": "tapServer",
+      "full": true
+    },
+    {
+      "name": "touch: a tap on star 4's right half saved 4.0",
+      "assert": "__jfurDetails.state().value === 4 && __vars.tapServer.stars === 4 && __jfurDetails.since(window.__mark).filter(r => r.indexOf('PUT ') === 0).length === 1"
+    },
+    {
+      "name": "touch: the summary's histogram hidden under 600 px",
+      "assert": "__jfurDetails.state().summaryKind === 'average' && __jfurDetails.styles().histogram === 'none'"
+    },
+    {
+      "name": "touch: the stars in the middle (the drag)",
+      "script": "__jfurDetails.slider().scrollIntoView({ block: 'center' }); await new Promise(r => setTimeout(r, 500)); window.__mark = __jfurDetails.requests.length; return Math.round(window.scrollY);"
+    },
+    {
+      "cdp": "Input.dispatchTouchEvent",
+      "params": "({ type: 'touchStart', touchPoints: [{ x: Math.round(__jfurDetails.xFor(3.75)), y: Math.round(__jfurDetails.box(__jfurDetails.slider()).cy) }] })"
+    },
+    {
+      "cdp": "Input.dispatchTouchEvent",
+      "params": "({ type: 'touchMove', touchPoints: [{ x: Math.round(__jfurDetails.xFor(3.75) - __jfurDetails.box(__jfurDetails.slider()).w * 2 / 5 * 1 / 8), y: Math.round(__jfurDetails.box(__jfurDetails.slider()).cy) }] })"
+    },
+    {
+      "cdp": "Input.dispatchTouchEvent",
+      "params": "({ type: 'touchMove', touchPoints: [{ x: Math.round(__jfurDetails.xFor(3.75) - __jfurDetails.box(__jfurDetails.slider()).w * 2 / 5 * 2 / 8), y: Math.round(__jfurDetails.box(__jfurDetails.slider()).cy) }] })"
+    },
+    {
+      "cdp": "Input.dispatchTouchEvent",
+      "params": "({ type: 'touchMove', touchPoints: [{ x: Math.round(__jfurDetails.xFor(3.75) - __jfurDetails.box(__jfurDetails.slider()).w * 2 / 5 * 3 / 8), y: Math.round(__jfurDetails.box(__jfurDetails.slider()).cy) }] })"
+    },
+    {
+      "cdp": "Input.dispatchTouchEvent",
+      "params": "({ type: 'touchMove', touchPoints: [{ x: Math.round(__jfurDetails.xFor(3.75) - __jfurDetails.box(__jfurDetails.slider()).w * 2 / 5 * 4 / 8), y: Math.round(__jfurDetails.box(__jfurDetails.slider()).cy) }] })"
+    },
+    {
+      "cdp": "Input.dispatchTouchEvent",
+      "params": "({ type: 'touchMove', touchPoints: [{ x: Math.round(__jfurDetails.xFor(3.75) - __jfurDetails.box(__jfurDetails.slider()).w * 2 / 5 * 5 / 8), y: Math.round(__jfurDetails.box(__jfurDetails.slider()).cy) }] })"
+    },
+    {
+      "cdp": "Input.dispatchTouchEvent",
+      "params": "({ type: 'touchMove', touchPoints: [{ x: Math.round(__jfurDetails.xFor(3.75) - __jfurDetails.box(__jfurDetails.slider()).w * 2 / 5 * 6 / 8), y: Math.round(__jfurDetails.box(__jfurDetails.slider()).cy) }] })"
+    },
+    {
+      "cdp": "Input.dispatchTouchEvent",
+      "params": "({ type: 'touchMove', touchPoints: [{ x: Math.round(__jfurDetails.xFor(3.75) - __jfurDetails.box(__jfurDetails.slider()).w * 2 / 5 * 7 / 8), y: Math.round(__jfurDetails.box(__jfurDetails.slider()).cy) }] })"
+    },
+    {
+      "cdp": "Input.dispatchTouchEvent",
+      "params": "({ type: 'touchMove', touchPoints: [{ x: Math.round(__jfurDetails.xFor(3.75) - __jfurDetails.box(__jfurDetails.slider()).w * 2 / 5 * 8 / 8), y: Math.round(__jfurDetails.box(__jfurDetails.slider()).cy) }] })"
+    },
+    {
+      "cdp": "Input.dispatchTouchEvent",
+      "params": "({ type: 'touchEnd', touchPoints: [] })"
+    },
+    {
+      "sleep": 1000
+    },
+    {
+      "name": "the server: after the drag",
+      "eval": "__jfurDetails.mine(__vars.movieId)",
+      "save": "dragServer",
+      "full": true
+    },
+    {
+      "name": "touch: a drag two stars to the left saved 2.0 once",
+      "assert": "__jfurDetails.state().value === 2 && __vars.dragServer.stars === 2 && __jfurDetails.since(window.__mark).filter(r => r.indexOf('PUT ') === 0).length === 1"
+    },
+    {
+      "name": "touch: + in view",
+      "script": "__jfurDetails.section().querySelector('.jfur-stars-plus').scrollIntoView({ block: 'center' }); await new Promise(r => setTimeout(r, 500)); window.__mark = __jfurDetails.requests.length; return true;"
+    },
+    {
+      "cdp": "Input.dispatchTouchEvent",
+      "params": "({ type: 'touchStart', touchPoints: [{ x: Math.round(__jfurDetails.box('#itemDetailPage:not(.hide) .jfur-section .jfur-stars-plus').cx), y: Math.round(__jfurDetails.box('#itemDetailPage:not(.hide) .jfur-section .jfur-stars-plus').cy) }] })"
+    },
+    {
+      "cdp": "Input.dispatchTouchEvent",
+      "params": "({ type: 'touchEnd', touchPoints: [] })"
+    },
+    {
+      "sleep": 250
+    },
+    {
+      "cdp": "Input.dispatchTouchEvent",
+      "params": "({ type: 'touchStart', touchPoints: [{ x: Math.round(__jfurDetails.box('#itemDetailPage:not(.hide) .jfur-section .jfur-stars-plus').cx), y: Math.round(__jfurDetails.box('#itemDetailPage:not(.hide) .jfur-section .jfur-stars-plus').cy) }] })"
+    },
+    {
+      "cdp": "Input.dispatchTouchEvent",
+      "params": "({ type: 'touchEnd', touchPoints: [] })"
+    },
+    {
+      "sleep": 250
+    },
+    {
+      "cdp": "Input.dispatchTouchEvent",
+      "params": "({ type: 'touchStart', touchPoints: [{ x: Math.round(__jfurDetails.box('#itemDetailPage:not(.hide) .jfur-section .jfur-stars-minus').cx), y: Math.round(__jfurDetails.box('#itemDetailPage:not(.hide) .jfur-section .jfur-stars-minus').cy) }] })"
+    },
+    {
+      "cdp": "Input.dispatchTouchEvent",
+      "params": "({ type: 'touchEnd', touchPoints: [] })"
+    },
+    {
+      "sleep": 1100
+    },
+    {
+      "name": "the server: after + + −",
+      "eval": "__jfurDetails.mine(__vars.movieId)",
+      "save": "buttonsServer",
+      "full": true
+    },
+    {
+      "name": "touch: + + − saved 2.5 once",
+      "assert": "__jfurDetails.state().value === 2.5 && __vars.buttonsServer.stars === 2.5 && __jfurDetails.since(window.__mark).filter(r => r.indexOf('PUT ') === 0).length === 1"
+    },
+    {
+      "name": "touch: Write a review",
+      "click": "#itemDetailPage:not(.hide) .jfur-section .jfur-write"
+    },
+    {
+      "sleep": 300
+    },
+    {
+      "name": "touch: the form fits the screen",
+      "eval": "__jfurDetails.styles()",
+      "save": "formStyles",
+      "full": true
+    },
+    {
+      "name": "touch: no part of the section past the edges of the screen with the form open",
+      "assert": "__vars.formStyles.section.right <= __vars.formStyles.viewport.w + 1 && __vars.formStyles.overflow.length === 0"
+    },
+    {
+      "name": "touch: Cancel",
+      "click": "#itemDetailPage:not(.hide) .jfur-section .jfur-review-cancel"
+    },
+    {
+      "name": "touch: screenshot",
+      "screenshot": "userratings-details-touch.png"
+    },
+    {
+      "name": "clean: Long Test Movie at the end without a rating of this member",
+      "script": "const r = await __jfurDetails.server('DELETE', 'UserRatings/Items/' + __vars.movieId + '/Mine'); return r.status;",
+      "save": "cleaned"
+    },
+    {
+      "name": "desktop again",
+      "emulate": "desktop"
+    },
+    {
+      "name": "the default layout again",
+      "eval": "(localStorage.removeItem('layout'), true)"
+    },
+    {
+      "name": "no uncaught exception",
+      "noExceptions": true,
+      "ignore": "/CustomRatings/script|^Error: player cannot be null"
+    }
+  ]
+}

@@ -1,0 +1,120 @@
+{
+  "name": "Admin and viewer in the web UI: admin, then viewer (no download permission), then admin again, signing out and in from the drawer without a reload. Admin: the drawer's admin section, GET /Bookmarks/Admin/Diagnostics 200, a range bookmark's Make a clip button and the editor's Save & make clip. Viewer: no admin section and no admin link of ours in the drawer, Admin/Diagnostics 403, only the viewer's own bookmark in the details section, no Make a clip button, no Save & make clip, and making a clip through the API is refused (403). Back as admin: admin's bookmarks and clip controls again. Creates one range bookmark per user on Long Test Movie and deletes both at the end (sandbox data only).",
+  "failOnException": false,
+  "timeout": 30000,
+  "steps": [
+    { "name": "sign in as admin", "login": "admin" },
+    { "name": "the Bookmarks script ran", "waitFor": "!!window.__jfkit && !!window.__jfkit.jfbm && document.querySelectorAll('#jfbm-styles').length === 1" },
+    { "name": "mark this page load (no reload may happen from here on)", "eval": "(window.__usersCheckLoad = Math.random().toString(36).slice(2))", "save": "load" },
+    {
+      "name": "find Long Test Movie",
+      "eval": "(await ApiClient.getItems(ApiClient.getCurrentUserId(), { IncludeItemTypes: 'Movie', Recursive: true, SearchTerm: 'Long Test Movie', Limit: 1 })).Items[0].Id",
+      "save": "movieId"
+    },
+    {
+      "name": "admin's range bookmark 0:50-0:55 ('webcheck-users admin')",
+      "script": "const url = (p, q) => ApiClient.getUrl(p, q); for (const b of await ApiClient.getJSON(url('Bookmarks', { itemId: __vars.movieId }))) { if (b.Note === 'webcheck-users admin') { await ApiClient.ajax({ type: 'DELETE', url: url('Bookmarks/' + b.Id, { deleteClip: 'true' }) }); } } const r = await ApiClient.ajax({ type: 'POST', url: url('Bookmarks'), data: JSON.stringify({ ItemId: __vars.movieId, StartTicks: 500000000, EndTicks: 550000000, Note: 'webcheck-users admin' }), contentType: 'application/json', dataType: 'json' }); return r.Id;",
+      "save": "adminBookmark"
+    },
+    {
+      "name": "admin: Capabilities and GET /Bookmarks/Admin/Diagnostics",
+      "eval": "(async () => { const caps = await ApiClient.getJSON(ApiClient.getUrl('Bookmarks/Capabilities')); const d = await fetch(ApiClient.getUrl('Bookmarks/Admin/Diagnostics'), { headers: { Authorization: 'MediaBrowser Token=\"' + ApiClient.accessToken() + '\"' } }); return { IsAdmin: caps.IsAdmin, CanCreateClips: caps.CanCreateClips, diagnostics: d.status }; })()",
+      "save": "adminApi"
+    },
+    { "name": "admin: an admin with clips, Diagnostics 200", "assert": "__vars.adminApi.IsAdmin === true && __vars.adminApi.CanCreateClips === true && __vars.adminApi.diagnostics === 200" },
+    { "name": "open the drawer", "click": ".skinHeader .mainDrawerButton" },
+    { "name": "drawer open", "waitFor": "(() => { const a = document.querySelector('.mainDrawer .userMenuOptions'); if (!a) return false; const r = a.getBoundingClientRect(); return r.width > 0 && r.height > 0 && r.left >= 0; })()" },
+    { "sleep": 800 },
+    {
+      "name": "admin's drawer",
+      "eval": "({ adminSection: !!document.querySelector('.mainDrawer .adminMenuOptions a[href=\"#/dashboard\"]'), ourLinks: [...document.querySelectorAll('.mainDrawer [data-jfkit-plugin]')].map(a => a.getAttribute('href')) })",
+      "save": "adminDrawer"
+    },
+    { "name": "admin: jellyfin-web's admin section is there", "assert": "__vars.adminDrawer.adminSection === true" },
+    { "name": "details page (closes the drawer)", "goto": "/web/index.html#/details?id=${movieId}" },
+    {
+      "name": "admin: the section lists admin's range with its Make a clip button",
+      "waitFor": "(() => { const s = document.querySelector('#itemDetailPage:not(.hide) .jfbm-section'); if (!s || s.classList.contains('hide')) return false; const row = [...s.querySelectorAll('.jfbm-row')].find(r => r.textContent.includes('webcheck-users admin')); return !!row && !!row.querySelector('.jfbm-row-actions button[title=\"Make a clip\"]') && { rows: s.querySelectorAll('.jfbm-row').length }; })()",
+      "timeout": 20000,
+      "save": "adminSection"
+    },
+    { "name": "admin: open the range's editor", "script": "const row = [...document.querySelectorAll('#itemDetailPage:not(.hide) .jfbm-row')].find(r => r.textContent.includes('webcheck-users admin')); row.querySelector('.jfbm-row-actions button[title=\"Edit\"]').click(); return true;" },
+    {
+      "name": "admin: the editor offers Save & make clip and the clip mode",
+      "waitFor": "(() => { const p = document.querySelector('.jfbm-backdrop .jfbm-panel'); if (!p || p.querySelector('h3').textContent !== 'Edit bookmark') return false; const labels = [...p.querySelectorAll('button')].map(b => b.textContent.trim()); return labels.includes('Save & make clip') && !!p.querySelector('select[aria-label=\"Clip mode\"]') && labels; })()",
+      "save": "adminEditor"
+    },
+    { "screenshot": "users-admin-editor.png" },
+    { "name": "Escape closes it", "key": "Escape" },
+    { "name": "closed", "waitFor": "!document.querySelector('.jfbm-backdrop')" },
+
+    { "name": "open the drawer to sign out", "click": ".skinHeader .mainDrawerButton" },
+    { "name": "Sign out visible in the drawer", "waitFor": "(() => { const a = document.querySelector('.mainDrawer .btnLogout'); if (!a) return false; const r = a.getBoundingClientRect(); return r.width > 0 && r.height > 0; })()" },
+    { "name": "sign out from the drawer", "click": ".mainDrawer .btnLogout", "js": true },
+    { "name": "on the login page", "waitFor": "location.hash.startsWith('#/login') && !!document.querySelector('#txtManualName')" },
+    { "name": "sign in as viewer, in the same page load", "login": "viewer", "stay": true },
+    { "name": "viewer signed in, without a reload", "waitFor": "!!window.ApiClient && ApiClient.getCurrentUserId() && ApiClient.getCurrentUserId() !== '' && window.__usersCheckLoad === __vars.load && !!document.querySelector('.homePage:not(.hide)')", "timeout": 20000 },
+    {
+      "name": "viewer's own range bookmark 0:52-0:56 ('webcheck-users viewer')",
+      "script": "const url = (p, q) => ApiClient.getUrl(p, q); for (const b of await ApiClient.getJSON(url('Bookmarks', { itemId: __vars.movieId }))) { if (b.Note === 'webcheck-users viewer') { await ApiClient.ajax({ type: 'DELETE', url: url('Bookmarks/' + b.Id) }); } } const r = await ApiClient.ajax({ type: 'POST', url: url('Bookmarks'), data: JSON.stringify({ ItemId: __vars.movieId, StartTicks: 520000000, EndTicks: 560000000, Note: 'webcheck-users viewer' }), contentType: 'application/json', dataType: 'json' }); return r.Id;",
+      "save": "viewerBookmark"
+    },
+    {
+      "name": "viewer: Capabilities, Diagnostics, a clip through the API, admin's bookmark",
+      "eval": "(async () => { const auth = { Authorization: 'MediaBrowser Token=\"' + ApiClient.accessToken() + '\"' }; const caps = await ApiClient.getJSON(ApiClient.getUrl('Bookmarks/Capabilities')); const d = await fetch(ApiClient.getUrl('Bookmarks/Admin/Diagnostics'), { headers: auth }); const clip = await fetch(ApiClient.getUrl('Bookmarks/' + __vars.viewerBookmark + '/Clip'), { method: 'POST', headers: Object.assign({ 'Content-Type': 'application/json' }, auth), body: JSON.stringify({ Mode: 'Fast' }) }); const other = await fetch(ApiClient.getUrl('Bookmarks/' + __vars.adminBookmark), { headers: auth }); return { IsAdmin: caps.IsAdmin, CanCreateClips: caps.CanCreateClips, diagnostics: d.status, clip: clip.status, clipType: clip.headers.get('content-type'), adminBookmark: other.status }; })()",
+      "save": "viewerApi"
+    },
+    {
+      "name": "viewer: not an admin, no clips; Diagnostics 403, a clip 403 (ProblemDetails), admin's bookmark 404",
+      "assert": "__vars.viewerApi.IsAdmin === false && __vars.viewerApi.CanCreateClips === false && __vars.viewerApi.diagnostics === 403 && __vars.viewerApi.clip === 403 && /problem\\+json/.test(__vars.viewerApi.clipType) && __vars.viewerApi.adminBookmark === 404"
+    },
+    { "name": "open the drawer", "click": ".skinHeader .mainDrawerButton" },
+    { "name": "drawer open", "waitFor": "(() => { const a = document.querySelector('.mainDrawer .userMenuOptions'); if (!a) return false; const r = a.getBoundingClientRect(); return r.width > 0 && r.height > 0 && r.left >= 0; })()" },
+    { "sleep": 800 },
+    {
+      "name": "viewer's drawer",
+      "eval": "({ adminSection: !!document.querySelector('.mainDrawer .adminMenuOptions'), dashboardLinks: document.querySelectorAll('.mainDrawer a[href*=\"dashboard\"], .mainDrawer a[href*=\"configurationpage\"]').length, ourLinks: [...document.querySelectorAll('.mainDrawer [data-jfkit-plugin]')].map(a => a.getAttribute('href')) })",
+      "save": "viewerDrawer"
+    },
+    { "name": "viewer: no admin section, no dashboard link, no admin link of ours", "assert": "__vars.viewerDrawer.adminSection === false && __vars.viewerDrawer.dashboardLinks === 0 && __vars.viewerDrawer.ourLinks.every(h => !/dashboard|configurationpage|Admin/i.test(h))" },
+    { "screenshot": "users-viewer-drawer.png" },
+    { "name": "details page (closes the drawer)", "goto": "/web/index.html#/details?id=${movieId}" },
+    {
+      "name": "viewer: the section lists the viewer's bookmark and none of admin's, with no Make a clip button",
+      "waitFor": "(() => { const s = document.querySelector('#itemDetailPage:not(.hide) .jfbm-section'); if (!s || s.classList.contains('hide')) return false; const rows = [...s.querySelectorAll('.jfbm-row')]; const own = rows.find(r => r.textContent.includes('webcheck-users viewer')); return !!own && !rows.some(r => r.textContent.includes('webcheck-users admin') || r.textContent.includes('webcheck-ui range')) && !s.querySelector('button[title=\"Make a clip\"], button[title=\"Make the clip again\"]') && { title: s.querySelector('h2').textContent, rows: rows.length, buttons: [...own.querySelectorAll('.jfbm-row-actions button')].map(b => b.getAttribute('title')) }; })()",
+      "timeout": 20000,
+      "save": "viewerSection"
+    },
+    { "name": "viewer: the Add bookmark button is still there", "assert": "!!document.querySelector('#itemDetailPage:not(.hide) .mainDetailButtons .btnBookmarkItem')" },
+    { "screenshot": "users-viewer-details.png" },
+    { "name": "viewer: open the range's editor", "script": "const row = [...document.querySelectorAll('#itemDetailPage:not(.hide) .jfbm-row')].find(r => r.textContent.includes('webcheck-users viewer')); row.querySelector('.jfbm-row-actions button[title=\"Edit\"]').click(); return true;" },
+    {
+      "name": "viewer: the editor has Save but no Save & make clip and no clip mode",
+      "waitFor": "(() => { const p = document.querySelector('.jfbm-backdrop .jfbm-panel'); if (!p || p.querySelector('h3').textContent !== 'Edit bookmark') return false; const labels = [...p.querySelectorAll('button')].map(b => b.textContent.trim()); return labels.includes('Save') && !labels.includes('Save & make clip') && !p.querySelector('select[aria-label=\"Clip mode\"]') && labels; })()",
+      "save": "viewerEditor"
+    },
+    { "screenshot": "users-viewer-editor.png" },
+    { "name": "Escape closes it", "key": "Escape" },
+    { "name": "closed", "waitFor": "!document.querySelector('.jfbm-backdrop')" },
+    { "name": "viewer: delete the viewer's bookmark", "script": "await ApiClient.ajax({ type: 'DELETE', url: ApiClient.getUrl('Bookmarks/' + __vars.viewerBookmark) }); return true;" },
+
+    { "name": "open the drawer to sign out", "click": ".skinHeader .mainDrawerButton" },
+    { "name": "Sign out visible in the drawer", "waitFor": "(() => { const a = document.querySelector('.mainDrawer .btnLogout'); if (!a) return false; const r = a.getBoundingClientRect(); return r.width > 0 && r.height > 0; })()" },
+    { "name": "sign out from the drawer", "click": ".mainDrawer .btnLogout", "js": true },
+    { "name": "on the login page", "waitFor": "location.hash.startsWith('#/login') && !!document.querySelector('#txtManualName')" },
+    { "name": "sign in as admin again, in the same page load", "login": "admin", "stay": true },
+    { "name": "admin signed in again, without a reload", "waitFor": "!!window.ApiClient && !!ApiClient.getCurrentUserId() && window.__usersCheckLoad === __vars.load && !!document.querySelector('.homePage:not(.hide)')", "timeout": 20000 },
+    { "name": "details page", "goto": "/web/index.html#/details?id=${movieId}" },
+    {
+      "name": "admin again: admin's range with its Make a clip button, not the viewer's",
+      "waitFor": "(() => { const s = document.querySelector('#itemDetailPage:not(.hide) .jfbm-section'); if (!s || s.classList.contains('hide')) return false; const rows = [...s.querySelectorAll('.jfbm-row')]; const row = rows.find(r => r.textContent.includes('webcheck-users admin')); return !!row && !rows.some(r => r.textContent.includes('webcheck-users viewer')) && !!row.querySelector('.jfbm-row-actions button[title=\"Make a clip\"]') && { rows: rows.length }; })()",
+      "timeout": 20000,
+      "save": "adminAgain"
+    },
+    { "name": "open the drawer", "click": ".skinHeader .mainDrawerButton" },
+    { "name": "admin again: the admin section is back", "waitFor": "!!document.querySelector('.mainDrawer .adminMenuOptions a[href=\"#/dashboard\"]')" },
+    { "name": "admin: delete admin's range bookmark", "script": "await ApiClient.ajax({ type: 'DELETE', url: ApiClient.getUrl('Bookmarks/' + __vars.adminBookmark, { deleteClip: 'true' }) }); return true;" },
+    { "name": "still the same page load", "assert": "window.__usersCheckLoad === __vars.load" },
+    { "name": "no uncaught exceptions (the stale CustomRatings tag excepted)", "noExceptions": true, "ignore": "/CustomRatings/script" }
+  ]
+}

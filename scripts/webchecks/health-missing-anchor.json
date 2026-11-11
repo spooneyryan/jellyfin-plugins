@@ -1,0 +1,36 @@
+{
+  "description": "The kit's health check with a simulated missing anchor, in a developer build of Bookmarks published with -p:KitRenameAnchors=detailButtons. As viewer: the details page loses only its Add bookmark button, the console warns once per page load, one ClientHealth report goes out and is answered 204, and the next page load doesn't report again within ten minutes. Then forged reports (unknown anchor, bad WebVersion, bad Client, an anchor on a view it isn't declared for, versions in Arabic-Indic digits, a line break in ClientVersion), a flood of valid ones and an oversized one, all sent with the page's own token: every answer is 204 except 413 for the oversized one. health-native.json and health-diagnostics.json follow (scripts/README.md).",
+  "steps": [
+    { "name": "health probe in every document", "initScript": { "file": "probes/health-probe.js" } },
+    { "name": "sign in as viewer", "login": "viewer" },
+    { "name": "the Bookmarks script ran", "waitFor": "!!window.__healthProbe && !!window.__jfkit && !!window.__jfkit.jfbm" },
+    { "name": "this is the developer build that renames detailButtons", "assert": "window.__jfkit.jfbm.instance.anchors.get('detailButtons').css[0] === '.mainDetailButtonsKitRenamed'" },
+    { "name": "forget the report time of an earlier run in this browser profile", "script": "localStorage.removeItem('jfbm:health:lastReport'); return true;" },
+    { "name": "find Long Test Movie", "eval": "(await ApiClient.getItems(ApiClient.getCurrentUserId(), { IncludeItemTypes: 'Movie', Recursive: true, SearchTerm: 'Long Test Movie', Limit: 1 })).Items[0].Id", "save": "movieId" },
+    { "name": "open the details page", "goto": "/web/index.html#/details?id=${movieId}" },
+    { "name": "the details page, with the Bookmarks section in it (hidden: the viewer has no bookmarks)", "waitFor": "!!document.querySelector('#itemDetailPage:not(.hide) .detailPageContent > .jfbm-section')", "timeout": 20000 },
+    { "name": "the console warns: web anchor detailButtons missing on details (web 10.11.5)", "waitFor": "window.__healthProbe.warnings.includes('[jfbm] web anchor \"detailButtons\" missing on details (web 10.11.5)')", "timeout": 15000 },
+    { "name": "the feature that needs the button row is off: no Add bookmark button, while the row itself is there", "assert": "!document.querySelector('.btnBookmarkItem') && !!document.querySelector('#itemDetailPage:not(.hide) .mainDetailButtons')" },
+    { "name": "one ClientHealth report, answered 204", "waitFor": "window.__healthProbe.posts.length === 1 && window.__healthProbe.posts[0].status === 204", "timeout": 15000 },
+    { "name": "the report", "eval": "JSON.parse(window.__healthProbe.posts[0].body)", "save": "report", "full": true },
+    { "name": "the report carries the client fields and the one missing anchor", "assert": "(b => b.WebVersion === '10.11.5' && b.Client === 'Jellyfin Web' && b.ClientVersion === '10.11.5' && b.Layout === 'Desktop' && b.Experimental === false && b.PluginVersion === '1.2.2.0' && b.Missing.length === 1 && b.Missing[0].Anchor === 'detailButtons' && b.Missing[0].View === 'details' && b.Missing[0].Count === 1)(__vars.report)" },
+    { "name": "one warning for the page load", "assert": "window.__healthProbe.warnings.filter(w => w.indexOf('web anchor') >= 0).length === 1" },
+    { "name": "the browser keeps the report time", "assert": "Number(localStorage.getItem('jfbm:health:lastReport')) > Date.now() - 120000" },
+    { "name": "reload the details page", "reload": true },
+    { "name": "the Bookmarks script ran again", "waitFor": "!!window.__healthProbe && !!window.__jfkit && !!window.__jfkit.jfbm && !!document.querySelector('#itemDetailPage:not(.hide) .detailPageContent > .jfbm-section')", "timeout": 20000 },
+    { "name": "the new page load warns again", "waitFor": "window.__healthProbe.warnings.includes('[jfbm] web anchor \"detailButtons\" missing on details (web 10.11.5)')", "timeout": 15000 },
+    { "sleep": 4000 },
+    { "name": "but reports nothing: one report per browser every ten minutes", "assert": "window.__healthProbe.posts.length === 0 && window.__jfkit.jfbm.health.reports() === 0 && window.__jfkit.jfbm.health.missing()[0].count === 1" },
+    {
+      "name": "forged reports and a flood, with the page's own token: every answer is 204",
+      "script": "const api = window.__jfkit.jfbm.instance.api; const valid = { WebVersion: '10.11.5', Client: 'Jellyfin Web', ClientVersion: '10.11.5', Layout: 'Desktop', Experimental: false, PluginVersion: '1.0.0.0', Missing: [{ Anchor: 'detailButtons', View: 'details', Count: 1 }] }; const forged = [Object.assign({}, valid, { Missing: [{ Anchor: 'forgedAnchor', View: 'details', Count: 1 }] }), Object.assign({}, valid, { WebVersion: '10.11.5; <script>' }), Object.assign({}, valid, { Client: '<img src=x onerror=alert(1)>' }), Object.assign({}, valid, { Missing: [{ Anchor: 'detailButtons', View: 'player', Count: 1 }] }), Object.assign({}, valid, { WebVersion: String.fromCharCode(0x661, 0x660, 0x2e, 0x661, 0x661, 0x2e, 0x665), ClientVersion: String.fromCharCode(0x661, 0x660, 0x2e, 0x661, 0x661, 0x2e, 0x665), PluginVersion: String.fromCharCode(0x661, 0x2e, 0x660) }),Object.assign({}, valid, { ClientVersion: '10.11.5\\n[ERR] forged' })]; const answers = []; for (const body of forged) { answers.push(await api('POST', 'Bookmarks/Diagnostics/ClientHealth', { body })); } for (let i = 0; i < 5; i++) { answers.push(await api('POST', 'Bookmarks/Diagnostics/ClientHealth', { body: valid })); } return answers;",
+      "save": "forgedAnswers",
+      "full": true
+    },
+    { "name": "eleven answers, all 204 (the kit returns null for 204)", "assert": "__vars.forgedAnswers.length === 11 && __vars.forgedAnswers.every(a => a === null)" },
+    { "name": "an oversized report: 413", "script": "try { await window.__jfkit.jfbm.instance.api('POST', 'Bookmarks/Diagnostics/ClientHealth', { body: { Padding: 'x'.repeat(17000) } }); return 'no error'; } catch (e) { return e.status; }", "save": "tooLarge" },
+    { "name": "it was 413", "assert": "__vars.tooLarge === 413" },
+    { "screenshot": "health-missing-anchor-details.png" },
+    { "name": "no uncaught exceptions (the stale CustomRatings tag excepted)", "noExceptions": true, "ignore": "/CustomRatings/script" }
+  ]
+}

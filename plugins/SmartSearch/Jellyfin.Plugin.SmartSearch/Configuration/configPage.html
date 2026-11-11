@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Smart Search</title>
+</head>
+<body>
+    <div id="SmartSearchConfigPage" data-role="page" class="page type-interior pluginConfigurationPage" data-require="emby-input,emby-button,emby-select,emby-checkbox">
+        <!-- Inside the page element, which is all jellyfin-web keeps of this file. -->
+        <style>
+            #SmartSearchConfigPage .smartSearchDiagnostics {
+                overflow-x: auto;
+                max-height: 30em;
+                padding: .8em;
+                background: rgba(128, 128, 128, .12);
+                border-radius: .2em;
+                font-size: .85em;
+            }
+
+            #SmartSearchConfigPage {
+                overflow-wrap: break-word;
+            }
+
+            #SmartSearchConfigPage .smartSearchButtons {
+                display: flex;
+                flex-wrap: wrap;
+                gap: .5em;
+                margin: .5em 0;
+            }
+
+            #SmartSearchConfigPage .smartSearchButtons .emby-button {
+                margin: 0;
+            }
+
+            #SmartSearchConfigPage .smartSearchTable {
+                border-collapse: collapse;
+                margin: .5em 0;
+                max-width: 100%;
+                display: block;
+                overflow-x: auto;
+            }
+
+            #SmartSearchConfigPage .smartSearchTable th,
+            #SmartSearchConfigPage .smartSearchTable td {
+                text-align: start;
+                padding: .3em .8em .3em 0;
+                border-bottom: 1px solid rgba(128, 128, 128, .3);
+                vertical-align: top;
+            }
+
+            #SmartSearchConfigPage .smartSearchWarning {
+                color: #ff9800;
+            }
+
+            #SmartSearchConfigPage .smartSearchReport {
+                margin: .5em 0 1em;
+            }
+        </style>
+        <div data-role="content">
+            <div class="content-primary">
+                <h2>Smart Search</h2>
+                <p>An Advanced Search page under <b>Library tools</b> in the menu: rules over title, year, library and more, and saved searches. Every search runs as the signed-in user, over the libraries they can open.</p>
+
+                <form id="SmartSearchConfigForm" class="smartSearchConfigForm">
+                    <h3>Page</h3>
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label class="emby-checkbox-label">
+                            <input is="emby-checkbox" type="checkbox" id="EnableWebUi" name="EnableWebUi" />
+                            <span>Add Smart Search to the web client</span>
+                        </label>
+                        <div class="fieldDescription checkboxFieldDescription">Off removes the page and its menu link from the web client; the REST API still answers. Applies at the next page load.</div>
+                    </div>
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label class="emby-checkbox-label">
+                            <input is="emby-checkbox" type="checkbox" id="EnableSearchPage" name="EnableSearchPage" />
+                            <span>Turn the Advanced Search page on</span>
+                        </label>
+                        <div class="fieldDescription checkboxFieldDescription">Off, its link goes and its address says it is turned off.</div>
+                    </div>
+                    <div class="checkboxContainer">
+                        <label class="emby-checkbox-label">
+                            <input is="emby-checkbox" type="checkbox" id="ShowFallbackNav" name="ShowFallbackNav" />
+                            <span>Link it from Library tools in the menu</span>
+                        </label>
+                    </div>
+                    <div class="checkboxContainer">
+                        <label class="emby-checkbox-label">
+                            <input is="emby-checkbox" type="checkbox" id="ShowHeaderButton" name="ShowHeaderButton" />
+                            <span>Add an Advanced search button next to the header's search button</span>
+                        </label>
+                    </div>
+                    <div class="selectContainer">
+                        <label class="selectLabel" for="PageHostMode">Where the page lives</label>
+                        <select is="emby-select" id="PageHostMode" name="PageHostMode" class="emby-select-withcolor emby-select">
+                            <option value="FallbackOnly">Its own address (the default)</option>
+                            <option value="Auto">Plugin Pages when it lists the page, else its own address</option>
+                            <option value="PluginPagesOnly">Plugin Pages only</option>
+                        </select>
+                        <div class="fieldDescription">Plugin Pages modes need a restart.</div>
+                    </div>
+                    <div class="checkboxContainer">
+                        <label class="emby-checkbox-label">
+                            <input is="emby-checkbox" type="checkbox" id="RegisterPluginPages" name="RegisterPluginPages" />
+                            <span>Register the page with Plugin Pages (in its modes; after a restart)</span>
+                        </label>
+                    </div>
+                    <div class="checkboxContainer">
+                        <label class="emby-checkbox-label">
+                            <input is="emby-checkbox" type="checkbox" id="ReportWebAnchorProblems" name="ReportWebAnchorProblems" />
+                            <span>Record browsers' reports of web client problems</span>
+                        </label>
+                    </div>
+
+                    <h3>Searches</h3>
+                    <div class="selectContainer">
+                        <label class="selectLabel" for="AllowedItemKinds">Item kinds users can search</label>
+                        <select is="emby-select" id="AllowedItemKinds" name="AllowedItemKinds" class="emby-select-withcolor emby-select" multiple size="6">
+                            <option value="Movie">Movies</option>
+                            <option value="Series">Shows</option>
+                            <option value="Episode">Episodes</option>
+                            <option value="MusicVideo">Music videos</option>
+                            <option value="Video">Home videos</option>
+                            <option value="BoxSet">Collections</option>
+                        </select>
+                        <div class="fieldDescription">A search naming another kind is refused, and the rule builder doesn't offer it. Choose at least one (with none chosen the saved list is kept). All six by default.</div>
+                    </div>
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="MaxCandidates">Most items one search checks</label>
+                        <input id="MaxCandidates" name="MaxCandidates" type="number" is="emby-input" min="1000" max="1000000" step="1" />
+                        <div class="fieldDescription">A search whose rules the database can't answer alone checks the items in its scope one by one. Past this many it is refused as too broad, with the count, and never cut short. 100,000 by default.</div>
+                    </div>
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="SearchTimeoutSeconds">Longest search (seconds)</label>
+                        <input id="SearchTimeoutSeconds" name="SearchTimeoutSeconds" type="number" is="emby-input" min="1" max="300" step="1" />
+                        <div class="fieldDescription">A search that runs longer is stopped and refused. 20 by default.</div>
+                    </div>
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="MaxConcurrentSearches">Searches at once</label>
+                        <input id="MaxConcurrentSearches" name="MaxConcurrentSearches" type="number" is="emby-input" min="1" max="16" step="1" />
+                        <div class="fieldDescription">One more waits up to 10 seconds, then is refused as busy. A user runs one search at a time: their next one waits for it the same way. 2 by default; applies after a restart.</div>
+                    </div>
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="ResultCacheSeconds">Keep results for their next pages (seconds)</label>
+                        <input id="ResultCacheSeconds" name="ResultCacheSeconds" type="number" is="emby-input" min="10" max="3600" step="1" />
+                        <div class="fieldDescription">A later page of a search reuses its result for this long after the last page; then the search runs again. 120 by default.</div>
+                    </div>
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="MaxCachedResultIds">Most items in kept results</label>
+                        <input id="MaxCachedResultIds" name="MaxCachedResultIds" type="number" is="emby-input" min="1000000" max="20000000" step="1" />
+                        <div class="fieldDescription">The kept results together hold at most this many items (16 bytes each); past it the least recently used results are dropped. 2,000,000 by default.</div>
+                    </div>
+                    <h3>Saved queries</h3>
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label class="emby-checkbox-label">
+                            <input is="emby-checkbox" type="checkbox" id="AllowQuerySharing" name="AllowQuerySharing" />
+                            <span>Let users share their saved queries</span>
+                        </label>
+                        <div class="fieldDescription checkboxFieldDescription">A shared query is listed for every user, and each runs it as themselves: it finds only what they can see. Off, shared queries are their owners' alone again until it is turned back on.</div>
+                    </div>
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="MaxSavedQueriesPerUser">Most saved queries per user</label>
+                        <input id="MaxSavedQueriesPerUser" name="MaxSavedQueriesPerUser" type="number" is="emby-input" min="1" max="10000" step="1" />
+                        <div class="fieldDescription">200 by default.</div>
+                    </div>
+                    <div class="selectContainer">
+                        <label class="selectLabel" for="DeletedUserPolicy">When a user is deleted</label>
+                        <select is="emby-select" id="DeletedUserPolicy" name="DeletedUserPolicy" class="emby-select-withcolor emby-select">
+                            <option value="Delete">Delete their private queries (the default)</option>
+                            <option value="KeepAsOrphan">Keep their queries</option>
+                            <option value="Anonymize">Keep their queries without their name</option>
+                        </select>
+                        <div class="fieldDescription">Shared queries are always kept, as "Deleted user", until an administrator gives them to someone else or deletes them.</div>
+                    </div>
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="SnapshotsToKeep">Daily snapshots to keep</label>
+                        <input id="SnapshotsToKeep" name="SnapshotsToKeep" type="number" is="emby-input" min="0" max="100" step="1" />
+                        <div class="fieldDescription">Copies of the saved queries taken by the daily maintenance task. 7 by default; 0 takes none.</div>
+                    </div>
+                    <h3>Auto-collections</h3>
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label class="emby-checkbox-label">
+                            <input is="emby-checkbox" type="checkbox" id="EnableAutoCollections" name="EnableAutoCollections" />
+                            <span>Keep auto-collections up to date</span>
+                        </label>
+                        <div class="fieldDescription checkboxFieldDescription">Off, no auto-collection is created or updated; the collections stay as they are.</div>
+                    </div>
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label class="emby-checkbox-label">
+                            <input is="emby-checkbox" type="checkbox" id="ShowCollectionNote" name="ShowCollectionNote" />
+                            <span>Say on an auto-collection's page that it updates automatically</span>
+                        </label>
+                        <div class="fieldDescription checkboxFieldDescription">Users who manage collections also get Edit and Refresh now there.</div>
+                    </div>
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label class="emby-checkbox-label">
+                            <input is="emby-checkbox" type="checkbox" id="AutoCollectionDefaultImage" name="AutoCollectionDefaultImage" />
+                            <span>Give a collection without a poster the default one</span>
+                        </label>
+                        <div class="fieldDescription checkboxFieldDescription">Once per collection, at its next update. A poster you remove or replace afterwards is left as it is, and turning this off removes none.</div>
+                    </div>
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="MaxAutoCollections">Most auto-collections</label>
+                        <input id="MaxAutoCollections" name="MaxAutoCollections" type="number" is="emby-input" min="1" max="1000" step="1" />
+                        <div class="fieldDescription">100 by default.</div>
+                    </div>
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="MaxMembersPerCollection">Most items in one auto-collection</label>
+                        <input id="MaxMembersPerCollection" name="MaxMembersPerCollection" type="number" is="emby-input" min="1" max="20000" step="1" />
+                        <div class="fieldDescription">A collection keeps its items in one database row and in its collection.xml. 5,000 by default.</div>
+                    </div>
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="EventDebounceSeconds">Seconds of quiet before library changes are applied</label>
+                        <input id="EventDebounceSeconds" name="EventDebounceSeconds" type="number" is="emby-input" min="5" max="3600" step="1" />
+                        <div class="fieldDescription">Changes outside library scans are collected until the library has been quiet this long. 60 by default; applies after a restart.</div>
+                    </div>
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="EventMaxWaitMinutes">Longest wait for library changes, in minutes</label>
+                        <input id="EventMaxWaitMinutes" name="EventMaxWaitMinutes" type="number" is="emby-input" min="1" max="1440" step="1" />
+                        <div class="fieldDescription">10 by default; applies after a restart.</div>
+                    </div>
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="DefinitionCooldownSeconds">Seconds between two updates of one collection from library changes</label>
+                        <input id="DefinitionCooldownSeconds" name="DefinitionCooldownSeconds" type="number" is="emby-input" min="0" max="86400" step="1" />
+                        <div class="fieldDescription">120 by default. Updates after a scan, the daily task and Refresh don't wait.</div>
+                    </div>
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="StartupPassDelayMinutes">Minutes after the server starts before every collection is checked</label>
+                        <input id="StartupPassDelayMinutes" name="StartupPassDelayMinutes" type="number" is="emby-input" min="0" max="1440" step="1" />
+                        <div class="fieldDescription">Restores items the server's startup cleanup took out of collections. 5 by default; 0 turns it off.</div>
+                    </div>
+                    <div class="selectContainer">
+                        <label class="selectLabel" for="CollectionWriter">How collections are written</label>
+                        <select is="emby-select" id="CollectionWriter" name="CollectionWriter" class="emby-select-withcolor emby-select">
+                            <option value="Auto">Automatic (the default)</option>
+                            <option value="DirectReplace">Replace the items in one save</option>
+                            <option value="ManagerApi">Jellyfin's own add and remove</option>
+                        </select>
+                        <div class="fieldDescription">Jellyfin's own add and remove can't keep the search's order (such a collection is sorted by name) and leave links to deleted files in place.</div>
+                    </div>
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label class="emby-checkbox-label">
+                            <input is="emby-checkbox" type="checkbox" id="UseUserDataTriggers" name="UseUserDataTriggers" />
+                            <span>Update when watch state changes</span>
+                        </label>
+                        <div class="fieldDescription checkboxFieldDescription">A collection whose search reads watch state (played, favourite, play count) updates about a minute after its evaluation user's watch state changes. Other users' changes start nothing.</div>
+                    </div>
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="DailyPassScanWaitHours">Hours the daily update waits for a running library scan</label>
+                        <input id="DailyPassScanWaitHours" name="DailyPassScanWaitHours" type="number" is="emby-input" min="0" max="48" step="1" />
+                        <div class="fieldDescription">6 by default; then it runs anyway, and large removals wait for a review.</div>
+                    </div>
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="PassCacheMaxItems">Most items kept in memory while updating every collection</label>
+                        <input id="PassCacheMaxItems" name="PassCacheMaxItems" type="number" is="emby-input" min="0" max="200000" step="1" />
+                        <div class="fieldDescription">Collections over the same items share them while they are updated together. 15,000 by default; 0 shares nothing.</div>
+                    </div>
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label class="emby-checkbox-label">
+                            <input is="emby-checkbox" type="checkbox" id="GuardEnabled" name="GuardEnabled" />
+                            <span>Hold large removals for a review when a library looks unhealthy</span>
+                        </label>
+                        <div class="fieldDescription checkboxFieldDescription">When a library folder is missing, far fewer items match than last time, a scan is running or the server just started, a collection losing many items keeps them until a manager applies or keeps the removals.</div>
+                    </div>
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="GuardMaxRemovalPercent">Share of a collection that counts as a large removal, in percent</label>
+                        <input id="GuardMaxRemovalPercent" name="GuardMaxRemovalPercent" type="number" is="emby-input" min="1" max="100" step="1" />
+                        <div class="fieldDescription">50 by default.</div>
+                    </div>
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="GuardMinRemovals">Fewest removals that count as large</label>
+                        <input id="GuardMinRemovals" name="GuardMinRemovals" type="number" is="emby-input" min="1" max="100000" step="1" />
+                        <div class="fieldDescription">5 by default.</div>
+                    </div>
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label class="emby-checkbox-label">
+                            <input is="emby-checkbox" type="checkbox" id="GuardBlockEmpty" name="GuardBlockEmpty" />
+                            <span>Never empty a collection on its own</span>
+                        </label>
+                        <div class="fieldDescription checkboxFieldDescription">A change that would remove every item waits for a review, unless the auto-collection allows being empty.</div>
+                    </div>
+                    <div>
+                        <button is="emby-button" type="submit" class="raised button-submit block"><span>Save</span></button>
+                    </div>
+                </form>
+
+                <!-- Export, import and snapshots of the saved queries (the admin endpoints under SmartSearch/Admin). Every
+                     value the server sends is written with textContent. -->
+                <h3>Export and import</h3>
+                <div class="fieldDescription">Jellyfin's own backups leave plugin data out. An export saves every user's saved queries with their owners' names, in one file (keep it safe: it holds private queries too); an import reads such a file back, here or on another server. Settings are in the file for reference and never imported.</div>
+                <div class="smartSearchButtons">
+                    <button is="emby-button" type="button" id="SmartSearchExport" class="raised">Export</button>
+                </div>
+                <p id="SmartSearchExportStatus" aria-live="polite"></p>
+
+                <h4>Import an export</h4>
+                <div class="inputContainer">
+                    <label class="inputLabel" for="SmartSearchImportFile">Export file</label>
+                    <input id="SmartSearchImportFile" type="file" accept=".json,application/json" />
+                </div>
+                <div class="selectContainer">
+                    <label class="selectLabel" for="SmartSearchImportMode">How</label>
+                    <select is="emby-select" id="SmartSearchImportMode" class="emby-select-withcolor emby-select">
+                        <option value="Merge">Merge: add the file's new queries, and update older copies here</option>
+                        <option value="Replace">Replace: the saved queries become the file's (after a snapshot)</option>
+                    </select>
+                </div>
+                <div class="selectContainer">
+                    <label class="selectLabel" for="SmartSearchImportUsers">Match users</label>
+                    <select is="emby-select" id="SmartSearchImportUsers" class="emby-select-withcolor emby-select">
+                        <option value="Id">By id: an export of this server</option>
+                        <option value="Name">By name: an export of another server</option>
+                    </select>
+                </div>
+                <div class="smartSearchButtons">
+                    <button is="emby-button" type="button" id="SmartSearchImportDryRun" class="raised" disabled="disabled">Dry run</button>
+                    <button is="emby-button" type="button" id="SmartSearchImportApply" class="raised button-submit" disabled="disabled">Import</button>
+                </div>
+                <div id="SmartSearchImportReport" class="smartSearchReport" aria-live="polite"></div>
+
+                <h3>Snapshots</h3>
+                <div class="fieldDescription">The daily maintenance keeps copies of the saved queries (Daily snapshots to keep, above), and a copy is taken before every import, restore and other change of many queries at once. Restoring one makes the saved queries the snapshot's, after a copy of them as they are now. Check it first: the check changes nothing.</div>
+                <div id="SmartSearchSnapshots"></div>
+                <div id="SmartSearchRestoreReport" class="smartSearchReport" aria-live="polite"></div>
+
+                <h3>Diagnostics</h3>
+                <pre class="smartSearchDiagnostics" id="smartSearchDiagnostics">Reading…</pre>
+            </div>
+        </div>
+
+        <script type="text/javascript">
+            (function () {
+                var pluginId = 'd92488d5-409f-4ad0-af1d-3615db9d0513';
+                var page = document.querySelector('#SmartSearchConfigPage');
+                var form = page.querySelector('#SmartSearchConfigForm');
+                var checkboxes = ['EnableWebUi', 'EnableSearchPage', 'ShowFallbackNav', 'ShowHeaderButton', 'RegisterPluginPages', 'ReportWebAnchorProblems', 'AllowQuerySharing', 'EnableAutoCollections', 'ShowCollectionNote', 'AutoCollectionDefaultImage', 'UseUserDataTriggers', 'GuardEnabled', 'GuardBlockEmpty'];
+                var selects = ['PageHostMode', 'DeletedUserPolicy', 'CollectionWriter'];
+                var numbers = ['MaxCandidates', 'SearchTimeoutSeconds', 'MaxConcurrentSearches', 'ResultCacheSeconds', 'MaxCachedResultIds', 'MaxSavedQueriesPerUser', 'SnapshotsToKeep',
+                    'MaxAutoCollections', 'MaxMembersPerCollection', 'EventDebounceSeconds', 'EventMaxWaitMinutes', 'DefinitionCooldownSeconds', 'StartupPassDelayMinutes',
+                    'DailyPassScanWaitHours', 'PassCacheMaxItems', 'GuardMaxRemovalPercent', 'GuardMinRemovals'];
+                var multiples = ['AllowedItemKinds'];
+
+                function field(id) {
+                    return form.querySelector('#' + id);
+                }
+
+                function fill(config) {
+                    checkboxes.forEach(function (id) { field(id).checked = !!config[id]; });
+                    selects.forEach(function (id) { field(id).value = config[id]; });
+                    numbers.forEach(function (id) { field(id).value = config[id]; });
+                    multiples.forEach(function (id) {
+                        var chosen = config[id] || [];
+                        Array.prototype.forEach.call(field(id).options, function (option) { option.selected = chosen.indexOf(option.value) >= 0; });
+                    });
+                }
+
+                function read(config) {
+                    checkboxes.forEach(function (id) { config[id] = field(id).checked; });
+                    // A value this page has no option for (one a newer version wrote) reads back as '' from the
+                    // select; it is kept as it was rather than saved empty.
+                    selects.forEach(function (id) { if (field(id).value) { config[id] = field(id).value; } });
+                    // A number left empty or out of its range keeps the saved value (the server keeps it in range too).
+                    numbers.forEach(function (id) {
+                        var input = field(id);
+                        var value = parseInt(input.value, 10);
+                        if (!isNaN(value) && value >= Number(input.min) && value <= Number(input.max)) {
+                            config[id] = value;
+                        }
+                    });
+                    // A list left empty keeps the saved one (the server reads an empty list as every kind).
+                    multiples.forEach(function (id) {
+                        var chosen = Array.prototype.filter.call(field(id).options, function (option) { return option.selected; })
+                            .map(function (option) { return option.value; });
+                        if (chosen.length > 0) {
+                            config[id] = chosen;
+                        }
+                    });
+                    return config;
+                }
+
+                function loadDiagnostics() {
+                    return ApiClient.getJSON(ApiClient.getUrl('SmartSearch/Admin/Diagnostics')).then(function (diagnostics) {
+                        page.querySelector('#smartSearchDiagnostics').textContent = JSON.stringify(diagnostics, null, 2);
+                    }, function () {
+                        page.querySelector('#smartSearchDiagnostics').textContent = 'The diagnostics could not be read.';
+                    });
+                }
+
+                // ---------------------------------------------------------------- export, import and snapshots
+
+                function find(id) {
+                    return page.querySelector('#' + id);
+                }
+
+                function element(tag, text, className) {
+                    var node = document.createElement(tag);
+                    if (text !== undefined && text !== null) {
+                        node.textContent = String(text);
+                    }
+
+                    if (className) {
+                        node.className = className;
+                    }
+
+                    return node;
+                }
+
+                function button(text, onClick, className) {
+                    var node = element('button', text, 'raised emby-button' + (className ? ' ' + className : ''));
+                    node.type = 'button';
+                    node.addEventListener('click', onClick);
+                    return node;
+                }
+
+                function setDisabled(node, disabled) {
+                    node.disabled = !!disabled;
+                    if (disabled) {
+                        node.setAttribute('disabled', 'disabled');
+                    } else {
+                        node.removeAttribute('disabled');
+                    }
+                }
+
+                function dateText(value) {
+                    var date = new Date(value);
+                    return isNaN(date.getTime()) ? '' : date.toLocaleString();
+                }
+
+                function count(n, one, many) {
+                    return (n || 0) + ' ' + ((n || 0) === 1 ? one : many);
+                }
+
+                function warning(text, role) {
+                    var node = element('p', text, 'smartSearchWarning');
+                    node.setAttribute('role', role || 'status');
+                    return node;
+                }
+
+                function table(titles, rows) {
+                    var node = element('table', null, 'smartSearchTable');
+                    var head = element('tr');
+                    titles.forEach(function (title) { head.appendChild(element('th', title)); });
+                    node.appendChild(head);
+                    rows.forEach(function (row) {
+                        var tr = element('tr');
+                        row.forEach(function (cell) {
+                            var td = element('td');
+                            if (cell && typeof cell === 'object' && cell.nodeType) {
+                                td.appendChild(cell);
+                            } else {
+                                td.textContent = cell === undefined || cell === null ? '' : String(cell);
+                            }
+
+                            tr.appendChild(td);
+                        });
+                        node.appendChild(tr);
+                    });
+                    return node;
+                }
+
+                // A refusal's sentence: the problem's detail or title, else the fallback.
+                function problemText(response, fallback) {
+                    var read = response && typeof response.json === 'function' ? response.json() : Promise.reject(new Error('no body'));
+                    return read.then(function (problem) {
+                        return { text: (problem && (problem.detail || problem.title)) || fallback, problem: problem || {} };
+                    }, function () {
+                        return { text: fallback, problem: {} };
+                    }).then(function (r) {
+                        r.toString = function () { return r.text; };
+                        return r;
+                    });
+                }
+
+                function postJson(path, query, body) {
+                    return ApiClient.ajax({ type: 'POST', url: ApiClient.getUrl(path) + (query ? '?' + query : ''), data: body === undefined ? '{}' : body, contentType: 'application/json', dataType: 'json' });
+                }
+
+                // The auto-collections a change would leave without their query, each with the server's reasons; and, when
+                // there are some, the check box a real run needs (force).
+                // The auto-collections a change breaks: before it (a dry run, a refusal), with the box to go on anyway; after
+                // a forced run (done), what lost its query.
+                function brokenList(list, what, done) {
+                    var parts = [];
+                    if (!list || !list.length) {
+                        return parts;
+                    }
+
+                    parts.push(warning(count(list.length, 'auto-collection', 'auto-collections') + (done ? ' lost the saved query ' : ' would lose the saved query ') + (list.length === 1 ? 'it uses' : 'they use') + ':', 'alert'));
+                    var ul = element('ul');
+                    list.forEach(function (c) {
+                        var li = element('li');
+                        li.appendChild(element('bdi', c.Name || c.name || c.Id || c.id));
+                        (c.Messages || c.messages || []).forEach(function (m) { li.appendChild(element('div', m, 'fieldDescription')); });
+                        ul.appendChild(li);
+                    });
+                    parts.push(ul);
+                    if (done) {
+                        return parts;
+                    }
+
+                    var label = element('label', null, 'emby-checkbox-label');
+                    var box = element('input', null, 'smartSearchForce');
+                    box.type = 'checkbox';
+                    label.appendChild(box);
+                    label.appendChild(element('span', what + ' anyway: these auto-collections lose their query'));
+                    parts.push(element('div', null, 'checkboxContainer'));
+                    parts[parts.length - 1].appendChild(label);
+                    return parts;
+                }
+
+                function forceOf(node) {
+                    var box = node.querySelector('.smartSearchForce');
+                    return !!box && box.checked;
+                }
+
+                // GET SmartSearch/Admin/Export with the session's authorization (never a token in a link), saved under the
+                // server's file name.
+                find('SmartSearchExport').addEventListener('click', function () {
+                    var status = find('SmartSearchExportStatus');
+                    Dashboard.showLoadingMsg();
+                    ApiClient.ajax({ type: 'GET', url: ApiClient.getUrl('SmartSearch/Admin/Export') }).then(function (response) {
+                        var disposition = response && response.headers && typeof response.headers.get === 'function' ? response.headers.get('Content-Disposition') || '' : '';
+                        var match = /filename\*?=(?:UTF-8'')?"?([^";]+)"?/i.exec(disposition);
+                        var name = match ? decodeURIComponent(match[1]) : 'smartsearch-saved-queries-export.json';
+                        return response.blob().then(function (blob) {
+                            var url = URL.createObjectURL(blob);
+                            var link = element('a');
+                            link.setAttribute('href', url);
+                            link.setAttribute('download', name);
+                            link.style.display = 'none';
+                            page.appendChild(link);
+                            link.click();
+                            link.remove();
+                            setTimeout(function () { URL.revokeObjectURL(url); }, 10000);
+                            Dashboard.hideLoadingMsg();
+                            status.replaceChildren(element('span', 'Exported as ' + name + '. It holds every user\'s saved queries, private ones too: keep it safe.'));
+                        });
+                    }).then(null, function (response) {
+                        Dashboard.hideLoadingMsg();
+                        return problemText(response, 'The export didn\'t work.').then(function (r) {
+                            status.replaceChildren(warning(String(r), 'alert'));
+                        });
+                    });
+                });
+
+                // The import: a file chosen, a dry run of it with the options shown, then Import with the same options. A new
+                // file or option needs a new dry run.
+                var importFile = null;
+                function importOptions() {
+                    return 'mode=' + encodeURIComponent(find('SmartSearchImportMode').value) + '&mapUsersBy=' + encodeURIComponent(find('SmartSearchImportUsers').value);
+                }
+
+                function resetImport() {
+                    setDisabled(find('SmartSearchImportDryRun'), !importFile);
+                    setDisabled(find('SmartSearchImportApply'), true);
+                }
+
+                find('SmartSearchImportFile').addEventListener('change', function () {
+                    var files = find('SmartSearchImportFile').files;
+                    importFile = files && files.length ? files[0] : null;
+                    find('SmartSearchImportReport').replaceChildren();
+                    resetImport();
+                });
+                find('SmartSearchImportMode').addEventListener('change', resetImport);
+                find('SmartSearchImportUsers').addEventListener('change', resetImport);
+
+                // The import report, as text: the file, what happens to its queries, its users, the notes, the
+                // auto-collections it would break and the snapshot taken before.
+                function renderImport(r) {
+                    var c = r.Records || {};
+                    var dry = r.DryRun !== false;
+                    var skipped = (c.SkippedUnknownUser || 0) + (c.Skipped || 0);
+                    var parts = [element('p', (dry ? 'Dry run, nothing was changed. ' : 'Imported. ') + 'The file is an export of Smart Search ' + (r.SourcePluginVersion || '?')
+                        + ' from ' + dateText(r.ExportedUtc) + ', with ' + count(c.Incoming, 'query', 'queries') + '. ' + (dry ? 'The import would add ' : 'Added ') + (c.Added || 0)
+                        + ', ' + (dry ? 'update ' : 'updated ') + (c.Updated || 0) + ', ' + (dry ? 'leave ' : 'left ') + (c.Unchanged || 0) + ' unchanged, ' + (dry ? 'keep ' : 'kept ')
+                        + (c.KeptNewer || 0) + ' newer here, ' + (dry ? 'remove ' : 'removed ') + (c.Removed || 0) + ', and ' + (dry ? 'skip ' : 'skipped ') + skipped
+                        + ' (' + (c.SkippedUnknownUser || 0) + ' of users not found here).')];
+                    var users = r.Users || {};
+                    var rows = (users.Mapped || []).map(function (u) { return [element('bdi', u.Name || u.Id), 'Found' + (u.Id === u.NewId ? '' : ': ' + u.NewId), u.Records]; })
+                        .concat((users.Unknown || []).map(function (u) { return [element('bdi', u.Name || u.Id), 'Not found' + (u.Reason ? ': ' + u.Reason : ''), u.Records]; }));
+                    if (rows.length) {
+                        parts.push(table(['Owner in the file', 'On this server', 'Queries'], rows));
+                    }
+
+                    (r.Notes || []).forEach(function (note) { parts.push(warning(note)); });
+                    if (r.SafetySnapshot) {
+                        parts.push(element('p', 'A snapshot of the saved queries as they were was taken first: ' + r.SafetySnapshot + '.'));
+                    }
+
+                    parts = parts.concat(brokenList(r.BrokenAutoCollections, 'Import', !dry));
+                    var ac = r.AutoCollections;
+                    if (ac) {
+                        var a = ac.Records || {};
+                        parts.push(element('p', 'Auto-collections in the file: ' + (a.Incoming || 0) + '. ' + (dry ? 'The import would add ' : 'Added ') + (a.Added || 0)
+                            + ' (without collections), ' + (dry ? 'update ' : 'updated ') + (a.Updated || 0) + ', ' + (dry ? 'leave ' : 'left ') + (a.Unchanged || 0) + ' unchanged, '
+                            + (dry ? 'keep ' : 'kept ') + (a.KeptNewer || 0) + ' newer here, and ' + (dry ? 'skip ' : 'skipped ') + ((a.Skipped || 0) + (a.SkippedUnknownUser || 0)) + '.'));
+                        (ac.Notes || []).forEach(function (note) { parts.push(warning(note)); });
+                        if (ac.SafetySnapshot) {
+                            parts.push(element('p', 'A snapshot of the auto-collections as they were was taken first: ' + ac.SafetySnapshot + '.'));
+                        }
+                    }
+
+                    find('SmartSearchImportReport').replaceChildren.apply(find('SmartSearchImportReport'), parts);
+                }
+
+                function runImport(dryRun) {
+                    if (!importFile) {
+                        return;
+                    }
+
+                    var report = find('SmartSearchImportReport');
+                    var force = !dryRun && forceOf(report);
+                    Dashboard.showLoadingMsg();
+                    importFile.text().then(function (text) {
+                        return postJson('SmartSearch/Admin/Import', importOptions() + '&dryRun=' + dryRun + (force ? '&force=true' : ''), text);
+                    }).then(function (r) {
+                        Dashboard.hideLoadingMsg();
+                        renderImport(r);
+                        setDisabled(find('SmartSearchImportApply'), !dryRun);
+                        if (!dryRun) {
+                            loadSnapshots();
+                        }
+                    }, function (response) {
+                        Dashboard.hideLoadingMsg();
+                        return problemText(response, 'The import didn\'t work.').then(function (r) {
+                            var parts = [warning(String(r), 'alert')].concat(brokenList(r.problem.autoCollections || r.problem.AutoCollections, 'Import'));
+                            report.replaceChildren.apply(report, parts);
+                        });
+                    });
+                }
+
+                find('SmartSearchImportDryRun').addEventListener('click', function () { runImport(true); });
+                find('SmartSearchImportApply').addEventListener('click', function () { runImport(false); });
+
+                // The snapshots, newest first: each checked (a dry run of its restore), then restored from its report.
+                function renderRestore(snapshot, r, dryRun) {
+                    var node = find('SmartSearchRestoreReport');
+                    var parts = [element('p', dryRun
+                        ? 'Checked, nothing was changed. Restoring ' + snapshot.Name + ' would make the saved queries its ' + count(r.Queries, 'query', 'queries') + ', after a snapshot of them as they are now.'
+                        : 'Restored ' + (r.RestoredFrom || snapshot.Name) + ': ' + count(r.Queries, 'query', 'queries') + '.')];
+                    parts = parts.concat(brokenList(r.BrokenAutoCollections, 'Restore', !dryRun));
+                    if (dryRun) {
+                        parts.push(restoreButton(snapshot));
+                    }
+
+                    node.replaceChildren.apply(node, parts);
+                }
+
+                function restoreButton(snapshot) {
+                    var div = element('div', null, 'smartSearchButtons');
+                    div.appendChild(button('Restore ' + snapshot.Name, function () { restore(snapshot, false); }, 'button-submit smartSearchRestoreApply'));
+                    return div;
+                }
+
+                function restore(snapshot, dryRun) {
+                    var node = find('SmartSearchRestoreReport');
+                    var force = !dryRun && forceOf(node);
+                    Dashboard.showLoadingMsg();
+                    postJson('SmartSearch/Admin/Snapshots/Restore', 'name=' + encodeURIComponent(snapshot.Name) + '&dryRun=' + dryRun + (force ? '&force=true' : '')).then(function (r) {
+                        Dashboard.hideLoadingMsg();
+                        renderRestore(snapshot, r, dryRun);
+                        if (!dryRun) {
+                            loadSnapshots();
+                        }
+                    }, function (response) {
+                        Dashboard.hideLoadingMsg();
+                        return problemText(response, 'The restore didn\'t work.').then(function (r) {
+                            var broken = r.problem.autoCollections || r.problem.AutoCollections;
+                            var parts = [warning(String(r), 'alert')].concat(brokenList(broken, 'Restore'));
+                            if (!dryRun && broken && broken.length) {
+                                parts.push(restoreButton(snapshot));
+                            }
+
+                            node.replaceChildren.apply(node, parts);
+                        });
+                    });
+                }
+
+                var snapshotKinds = { Daily: 'Daily', PreOp: 'Before ' };
+                function loadSnapshots() {
+                    var node = find('SmartSearchSnapshots');
+                    return ApiClient.getJSON(ApiClient.getUrl('SmartSearch/Admin/Snapshots')).then(function (r) {
+                        var list = (r && r.Snapshots) || [];
+                        if (!list.length) {
+                            node.replaceChildren(element('p', 'No snapshots yet.'));
+                            return;
+                        }
+
+                        node.replaceChildren(table(['Taken', 'Why', 'Size', ''], list.map(function (s) {
+                            var why = s.Kind === 'PreOp' ? snapshotKinds.PreOp + (s.Operation || 'a change') : (snapshotKinds[s.Kind] || s.Kind || '');
+                            return [dateText(s.Utc), why, Math.max(1, Math.round((s.Size || 0) / 1024)) + ' KB', button('Check restore', function () { restore(s, true); }, 'smartSearchRestoreCheck')];
+                        })));
+                    }, function () {
+                        node.replaceChildren(warning('The snapshots could not be read.', 'alert'));
+                    });
+                }
+
+                page.addEventListener('pageshow', function () {
+                    loadSnapshots();
+                });
+
+                page.addEventListener('pageshow', function () {
+                    Dashboard.showLoadingMsg();
+                    ApiClient.getPluginConfiguration(pluginId).then(function (config) {
+                        fill(config);
+                        Dashboard.hideLoadingMsg();
+                    }, function () {
+                        Dashboard.hideLoadingMsg();
+                    });
+                    loadDiagnostics();
+                });
+
+                form.addEventListener('submit', function (e) {
+                    e.preventDefault();
+                    Dashboard.showLoadingMsg();
+                    ApiClient.getPluginConfiguration(pluginId).then(function (config) {
+                        return ApiClient.updatePluginConfiguration(pluginId, read(config)).then(function (result) {
+                            Dashboard.processPluginConfigurationUpdateResult(result);
+                            loadDiagnostics();
+                        });
+                    }).catch(function () {
+                        Dashboard.hideLoadingMsg();
+                    });
+                    return false;
+                });
+            })();
+        </script>
+    </div>
+</body>
+</html>

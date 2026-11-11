@@ -1,0 +1,96 @@
+{
+  "name": "The drawer after signing out and back in without a reload. Plugin Pages 2.4.7 doesn't add its section again; in Auto mode our \"Library tools\" links then appear (the drawer-based decision), and in FallbackOnly mode they stay. Needs EnablePageDemo on.",
+  "failOnException": false,
+  "timeout": 30000,
+  "steps": [
+    {
+      "name": "sign in as admin",
+      "login": "admin"
+    },
+    {
+      "name": "the kit chose its hosts",
+      "waitFor": "window.__jfkit && __jfkit.jfbm && __jfkit.jfbm.instance.pages.state().hostsKnown && __jfkit.jfbm.instance.pages.state()",
+      "save": "pages"
+    },
+    {
+      "name": "open the drawer",
+      "click": ".skinHeader .mainDrawerButton"
+    },
+    {
+      "name": "drawer open",
+      "waitFor": "(() => { const a = document.querySelector(\".mainDrawer .userMenuOptions\"); if (!a) return false; const r = a.getBoundingClientRect(); return r.width > 0 && r.height > 0 && r.left >= 0 && r.right <= innerWidth && r.top >= 0 && getComputedStyle(a).visibility !== 'hidden'; })()"
+    },
+    {
+      "sleep": 1500
+    },
+    {
+      "name": "our links before signing out",
+      "eval": "(() => ({ pluginPagesSection: !!document.querySelector('.mainDrawer .pluginMenuOptions'), pluginPagesLinks: [...document.querySelectorAll('.mainDrawer .pluginMenuOptions a[data-itemid^=\"Jellyfin.Plugin.Bookmarks\"]')].map(a => a.getAttribute('data-itemid')), libraryToolsLinks: [...document.querySelectorAll('.mainDrawer .jfkit-nav a[data-jfkit-plugin=\"jfbm\"]')].map(a => ({ key: a.getAttribute('data-jfbm-nav'), href: a.getAttribute('href') })) }))()",
+      "save": "before"
+    },
+    {
+      "name": "Sign out visible in the drawer",
+      "waitFor": "(() => { const a = document.querySelector(\".mainDrawer .btnLogout\"); if (!a) return false; const r = a.getBoundingClientRect(); return r.width > 0 && r.height > 0 && r.left >= 0 && r.right <= innerWidth && r.top >= 0 && getComputedStyle(a).visibility !== 'hidden'; })()"
+    },
+    {
+      "name": "sign out from the drawer",
+      "click": ".mainDrawer .btnLogout",
+      "js": true
+    },
+    {
+      "name": "on the login page",
+      "waitFor": "location.hash.startsWith('#/login') && !!document.querySelector('#txtManualName')"
+    },
+    {
+      "name": "sign in again, in the same page load",
+      "login": "admin",
+      "stay": true
+    },
+    {
+      "sleep": 1500
+    },
+    {
+      "name": "open the drawer",
+      "click": ".skinHeader .mainDrawerButton"
+    },
+    {
+      "name": "drawer open",
+      "waitFor": "(() => { const a = document.querySelector(\".mainDrawer .userMenuOptions\"); if (!a) return false; const r = a.getBoundingClientRect(); return r.width > 0 && r.height > 0 && r.left >= 0 && r.right <= innerWidth && r.top >= 0 && getComputedStyle(a).visibility !== 'hidden'; })()"
+    },
+    {
+      "sleep": 1500
+    },
+    {
+      "name": "our links after signing in again without a reload",
+      "eval": "(() => ({ pluginPagesSection: !!document.querySelector('.mainDrawer .pluginMenuOptions'), pluginPagesLinks: [...document.querySelectorAll('.mainDrawer .pluginMenuOptions a[data-itemid^=\"Jellyfin.Plugin.Bookmarks\"]')].map(a => a.getAttribute('data-itemid')), libraryToolsLinks: [...document.querySelectorAll('.mainDrawer .jfkit-nav a[data-jfkit-plugin=\"jfbm\"]')].map(a => ({ key: a.getAttribute('data-jfbm-nav'), href: a.getAttribute('href') })) }))()",
+      "save": "after"
+    },
+    {
+      "name": "both demo pages still have a link: Plugin Pages' or ours",
+      "assert": "['demo-a', 'demo-b'].every(k => __vars.after.libraryToolsLinks.some(l => l.key === k) || __vars.after.pluginPagesLinks.some(id => id.toLowerCase().endsWith(k.replace('-', '') + 'page')))"
+    },
+    {
+      "name": "in Auto mode with Plugin Pages' section gone, the links are ours (the two demo pages, My Bookmarks and My Clips)",
+      "assert": "__jfkit.jfbm.instance.pages.state().mode !== 'Auto' || __vars.after.pluginPagesSection || __vars.after.libraryToolsLinks.length === 4"
+    },
+    {
+      "screenshot": "pages-relogin-drawer.png"
+    },
+    {
+      "name": "click our Demo page A link",
+      "click": ".mainDrawer .jfkit-nav a[data-jfbm-nav=\"demo-a\"]",
+      "optional": true
+    },
+    {
+      "name": "Demo page A renders",
+      "waitFor": "(() => { const r = [...document.querySelectorAll(\" [data-jfbm-page=\\\"demo-a\\\"][data-jfbm-mounted]\")].find(x => x.getClientRects().length > 0); const t = (document.querySelector('.skinHeader .pageTitle') || { textContent: '' }).textContent.trim(); const title = r && r.querySelector('.jfbm-demo-title'); const user = r && r.querySelector('[data-jfbm-demo=\"user\"]'); if (!r || !title || title.textContent !== \"Demo page A\" || [...document.querySelectorAll('#fallbackPage > :not([data-jfbm-page]) h1')].some(h => h.getClientRects().length > 0) || t !== \"Demo page A\" || !user || user.textContent === '…') return false;  return { hash: location.hash, render: Number(r.getAttribute('data-jfbm-render')), reason: r.getAttribute('data-jfbm-reason'), host: r.getAttribute('data-jfbm-host'), params: JSON.parse(r.querySelector('[data-jfbm-demo=\"params\"]').textContent), user: user.textContent, admin: r.querySelector('[data-jfbm-demo=\"admin\"]').textContent, headerTitle: t, documentTitle: document.title, historyLength: history.length }; })()",
+      "save": "a",
+      "optional": true
+    },
+    {
+      "name": "no uncaught exceptions",
+      "noExceptions": true,
+      "ignore": "/CustomRatings/script|^Error: player cannot be null"
+    }
+  ]
+}

@@ -1,0 +1,37 @@
+{
+  "name": "Bookmarks 1.0 UI on a movie's details page (script tag from the kit's index.html middleware)",
+  "failOnException": false,
+  "timeout": 30000,
+  "steps": [
+    { "name": "sign in as admin", "login": "admin" },
+    {
+      "name": "index.html carries the Bookmarks script tag once, from the middleware and not from File Transformation",
+      "waitFor": "fetch(new URL('index.html', location.href), { cache: 'no-store' }).then(r => r.text()).then(t => t.split('data-jfbm-plugin').length === 2 && !t.includes('data-bookmarks-plugin'))"
+    },
+    {
+      "name": "the page loaded the Bookmarks script",
+      "waitFor": "document.querySelectorAll('script[data-jfbm-plugin]').length === 1 && !!document.getElementById('jfbm-styles')"
+    },
+    {
+      "name": "find Long Test Movie",
+      "eval": "(await ApiClient.getItems(ApiClient.getCurrentUserId(), { IncludeItemTypes: 'Movie', Recursive: true, SearchTerm: 'Long Test Movie', Limit: 1 })).Items[0].Id",
+      "save": "movieId"
+    },
+    {
+      "name": "the movie has a bookmark (created once through the API)",
+      "script": "const itemId = __vars.movieId; const list = await ApiClient.getJSON(ApiClient.getUrl('Bookmarks', { itemId: itemId })); if (list.length === 0) { await ApiClient.ajax({ type: 'POST', url: ApiClient.getUrl('Bookmarks'), data: JSON.stringify({ ItemId: itemId, StartTicks: 150000000, Note: 'webcheck' }), contentType: 'application/json', dataType: 'json' }); } return (await ApiClient.getJSON(ApiClient.getUrl('Bookmarks', { itemId: itemId }))).length;",
+      "save": "bookmarkCount"
+    },
+    { "name": "open the details page", "goto": "/web/index.html#/details?id=${movieId}" },
+    {
+      "name": "the My bookmarks section is shown (1.0's 'Bookmarks' section, so named since 1.1)",
+      "waitFor": "(() => { const s = document.querySelector('#itemDetailPage:not(.hide) .jfbm-section'); return !!s && !s.classList.contains('hide') && /^My bookmarks \\(\\d+\\)$/.test(s.querySelector('h2').textContent) && s.querySelector('h2').textContent; })()"
+    },
+    {
+      "name": "the Add bookmark button is shown",
+      "assert": "!!document.querySelector('#itemDetailPage:not(.hide) .mainDetailButtons .btnBookmarkItem')"
+    },
+    { "screenshot": "bookmarks-details.png" },
+    { "name": "no uncaught exceptions (the stale CustomRatings tag excepted)", "noExceptions": true, "ignore": "/CustomRatings/script" }
+  ]
+}

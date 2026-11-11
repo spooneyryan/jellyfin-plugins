@@ -1,0 +1,183 @@
+{
+  "name": "Smart Search's Auto-collections tab in Dark, Light, Apple TV and Purple Haze, as admin: an auto-collection WC AC Themes made through the API; the page's text is the theme's text colour; the names (links), an up-to-date status chip, the selected tab's line and the pressed filter are the theme's accent. Screenshots smartsearch-collections-theme-*.png.",
+  "failOnException": false,
+  "timeout": 30000,
+  "steps": [
+    {
+      "name": "a desktop screen",
+      "emulate": "desktop"
+    },
+    {
+      "name": "page helpers (admin)",
+      "initScript": "\nwindow.__ss = {\n  root: () => [...document.querySelectorAll('[data-jfss-page=\"search\"][data-jfss-mounted] .jfss-search')].find(x => x.getClientRects().length > 0) || null,\n  q: (s) => { const r = window.__ss.root(); return r ? r.querySelector(s) : null; },\n  all: (s) => { const r = window.__ss.root(); return r ? [...r.querySelectorAll(s)] : []; },\n  noHScroll: () => document.documentElement.scrollWidth <= innerWidth && window.__ss.root().scrollWidth <= window.__ss.root().clientWidth + 1,\n  box: (e) => { const r = e.getBoundingClientRect(); return [Math.round(r.width), Math.round(r.height)]; },\n  api: async (method, path, body) => { const r = await fetch(ApiClient.getUrl(path), { method, headers: { 'X-Emby-Token': ApiClient.accessToken(), 'Content-Type': 'application/json' }, body: body === undefined ? undefined : JSON.stringify(body) }); const t = await r.text(); return { status: r.status, body: t ? JSON.parse(t) : null }; },\n  cleanup: async (prefix) => { let n = 0; const acs = (await window.__ss.api('GET', 'SmartSearch/AutoCollections')).body || []; for (const a of acs) { if (a.Name.indexOf(prefix) === 0) { await window.__ss.api('DELETE', 'SmartSearch/AutoCollections/' + a.Id + '?deleteCollection=true'); n++; } } const list = (await window.__ss.api('GET', 'SmartSearch/Queries?scope=Mine&limit=500')).body.Items; for (const q of list) { if (q.Name.indexOf(prefix) === 0) { await window.__ss.api('DELETE', 'SmartSearch/Queries/' + q.Id + '?detachAutoCollections=true'); n++; } } return n; },\n  movies: async (name) => { const libs = (await window.__ss.api('GET', 'SmartSearch/Libraries')).body; const movies = libs.find(l => l.Name === 'Movies').Id; return (await window.__ss.api('POST', 'SmartSearch/Queries', { Name: name, Description: '', Shared: false, Query: { Version: 1, Scope: { ItemKinds: ['Movie'], LibraryIds: [movies], IncludeMissing: false }, Where: { Match: 'All', Children: [] }, Sort: [{ Key: 'SortName', Order: 'Ascending' }] } })).body; },\n  dialog: () => { const d = [...document.querySelectorAll('[role=\"dialog\"]')].filter(x => x.getClientRects().length > 0); return d[d.length - 1] || null; },\n  dq: (s) => { const d = window.__ss.dialog(); return d ? d.querySelector(s) : null; },\n  dset: (s, v) => { const e = window.__ss.dq(s); e.value = v; e.dispatchEvent(new Event('input', { bubbles: true })); e.dispatchEvent(new Event('change', { bubbles: true })); return true; },\n  dbutton: (text) => { const d = window.__ss.dialog(); return d ? [...d.querySelectorAll('button')].find(b => b.textContent === text) || null : null; },\n  rows: () => window.__ss.all('.jfss-ac-row'),\n  names: () => window.__ss.rows().map(r => r.querySelector('.jfss-ac-open').textContent),\n  row: (name) => window.__ss.rows().find(r => r.querySelector('.jfss-ac-open').textContent === name) || null,\n  status: (name) => { const r = window.__ss.row(name); return r ? r.querySelector('.jfss-ac-status').textContent : null; },\n  action: (name, cls) => { const r = window.__ss.row(name); return r ? r.querySelector(cls) : null; },\n  savedRow: (name) => window.__ss.all('.jfss-saved-row').find(r => r.querySelector('.jfss-saved-open').textContent === name) || null,\n  toast: () => [...document.querySelectorAll('.jfss-toast')].map(t => t.textContent.replace(/[\\u2066-\\u2069]/g, '')).join(' | '),\n  ready: () => !!window.__ss.q('.jfss-collections-panel') && !!window.__ss.q('.jfss-ac-count') && /auto-collection/.test(window.__ss.q('.jfss-ac-count').textContent + (window.__ss.q('.jfss-ac-notices') || {}).textContent)\n};\n"
+    },
+    {
+      "name": "sign in as admin",
+      "login": "admin"
+    },
+    {
+      "name": "the Smart Search script ran (admin)",
+      "waitFor": "!!window.__jfkit && !!window.__jfkit.jfss && !!window.ApiClient && !!ApiClient.getCurrentUserId()",
+      "timeout": 20000
+    },
+    {
+      "name": "an auto-collection of admin's",
+      "script": "await __ss.cleanup('WC AC Themes'); const q = await __ss.movies('WC AC Themes'); const preview = (await __ss.api('POST', 'SmartSearch/AutoCollections/Preview', { Definition: { Name: 'WC AC Themes', Source: { SavedQueryId: q.Id } } })).body; const r = await __ss.api('POST', 'SmartSearch/AutoCollections', { Definition: { Name: 'WC AC Themes', Source: { SavedQueryId: q.Id } }, AcceptedPreviewHash: preview.PreviewHash }); return r.status;",
+      "save": "made"
+    },
+    {
+      "name": "Dark for this browser",
+      "eval": "(localStorage.setItem(ApiClient.getCurrentUserId() + '-appTheme', 'dark'), true)"
+    },
+    {
+      "name": "the Auto-collections tab (Dark)",
+      "goto": "/web/index.html#/jfss-search?tab=collections"
+    },
+    {
+      "name": "the page is on its route before the reload (a goto within the page returns before the browser has the new address, and a reload at once would load the old one)",
+      "waitFor": "location.hash.indexOf('#/jfss-search') === 0 && !!window.__ss && !!__ss.root()",
+      "timeout": 20000
+    },
+    {
+      "name": "reload (Dark)",
+      "reload": true
+    },
+    {
+      "name": "let the reloaded page start (Dark)",
+      "sleep": 2000
+    },
+    {
+      "name": "the list (Dark)",
+      "waitFor": "document.documentElement.getAttribute('data-theme') === 'dark' && !!window.__ss && !!__ss.root() && __ss.status('WC AC Themes') === 'Up to date'",
+      "timeout": 60000
+    },
+    {
+      "name": "settle (Dark)",
+      "sleep": 500
+    },
+    {
+      "name": "the colours (Dark)",
+      "eval": "(() => { const host = document.querySelector('[data-jfss-page=\"search\"][data-jfss-mounted]'); const tab = __ss.q('[role=\"tab\"][aria-selected=\"true\"]'); const filter = __ss.all('.jfss-ac-filter').find(b => b.getAttribute('aria-pressed') === 'true'); const name = __ss.q('a.jfss-ac-open'); const chip = __ss.row('WC AC Themes').querySelector('.jfss-ac-status'); return { pageColor: getComputedStyle(host).color, htmlColor: getComputedStyle(document.documentElement).color, tabBorder: getComputedStyle(tab).borderBottomColor, filterBackground: getComputedStyle(filter).backgroundColor, nameColor: getComputedStyle(name).color, chipBorder: getComputedStyle(chip).borderTopColor }; })()",
+      "save": "dark"
+    },
+    {
+      "screenshot": "smartsearch-collections-theme-dark.png"
+    },
+    {
+      "name": "Light for this browser",
+      "eval": "(localStorage.setItem(ApiClient.getCurrentUserId() + '-appTheme', 'light'), true)"
+    },
+    {
+      "name": "the Auto-collections tab (Light)",
+      "goto": "/web/index.html#/jfss-search?tab=collections"
+    },
+    {
+      "name": "reload (Light)",
+      "reload": true
+    },
+    {
+      "name": "let the reloaded page start (Light)",
+      "sleep": 2000
+    },
+    {
+      "name": "the list (Light)",
+      "waitFor": "document.documentElement.getAttribute('data-theme') === 'light' && !!window.__ss && !!__ss.root() && __ss.status('WC AC Themes') === 'Up to date'",
+      "timeout": 60000
+    },
+    {
+      "name": "settle (Light)",
+      "sleep": 500
+    },
+    {
+      "name": "the colours (Light)",
+      "eval": "(() => { const host = document.querySelector('[data-jfss-page=\"search\"][data-jfss-mounted]'); const tab = __ss.q('[role=\"tab\"][aria-selected=\"true\"]'); const filter = __ss.all('.jfss-ac-filter').find(b => b.getAttribute('aria-pressed') === 'true'); const name = __ss.q('a.jfss-ac-open'); const chip = __ss.row('WC AC Themes').querySelector('.jfss-ac-status'); return { pageColor: getComputedStyle(host).color, htmlColor: getComputedStyle(document.documentElement).color, tabBorder: getComputedStyle(tab).borderBottomColor, filterBackground: getComputedStyle(filter).backgroundColor, nameColor: getComputedStyle(name).color, chipBorder: getComputedStyle(chip).borderTopColor }; })()",
+      "save": "light"
+    },
+    {
+      "screenshot": "smartsearch-collections-theme-light.png"
+    },
+    {
+      "name": "Apple TV for this browser",
+      "eval": "(localStorage.setItem(ApiClient.getCurrentUserId() + '-appTheme', 'appletv'), true)"
+    },
+    {
+      "name": "the Auto-collections tab (Apple TV)",
+      "goto": "/web/index.html#/jfss-search?tab=collections"
+    },
+    {
+      "name": "reload (Apple TV)",
+      "reload": true
+    },
+    {
+      "name": "let the reloaded page start (Apple TV)",
+      "sleep": 2000
+    },
+    {
+      "name": "the list (Apple TV)",
+      "waitFor": "document.documentElement.getAttribute('data-theme') === 'appletv' && !!window.__ss && !!__ss.root() && __ss.status('WC AC Themes') === 'Up to date'",
+      "timeout": 60000
+    },
+    {
+      "name": "settle (Apple TV)",
+      "sleep": 500
+    },
+    {
+      "name": "the colours (Apple TV)",
+      "eval": "(() => { const host = document.querySelector('[data-jfss-page=\"search\"][data-jfss-mounted]'); const tab = __ss.q('[role=\"tab\"][aria-selected=\"true\"]'); const filter = __ss.all('.jfss-ac-filter').find(b => b.getAttribute('aria-pressed') === 'true'); const name = __ss.q('a.jfss-ac-open'); const chip = __ss.row('WC AC Themes').querySelector('.jfss-ac-status'); return { pageColor: getComputedStyle(host).color, htmlColor: getComputedStyle(document.documentElement).color, tabBorder: getComputedStyle(tab).borderBottomColor, filterBackground: getComputedStyle(filter).backgroundColor, nameColor: getComputedStyle(name).color, chipBorder: getComputedStyle(chip).borderTopColor }; })()",
+      "save": "appletv"
+    },
+    {
+      "screenshot": "smartsearch-collections-theme-appletv.png"
+    },
+    {
+      "name": "Purple Haze for this browser",
+      "eval": "(localStorage.setItem(ApiClient.getCurrentUserId() + '-appTheme', 'purplehaze'), true)"
+    },
+    {
+      "name": "the Auto-collections tab (Purple Haze)",
+      "goto": "/web/index.html#/jfss-search?tab=collections"
+    },
+    {
+      "name": "reload (Purple Haze)",
+      "reload": true
+    },
+    {
+      "name": "let the reloaded page start (Purple Haze)",
+      "sleep": 2000
+    },
+    {
+      "name": "the list (Purple Haze)",
+      "waitFor": "document.documentElement.getAttribute('data-theme') === 'purplehaze' && !!window.__ss && !!__ss.root() && __ss.status('WC AC Themes') === 'Up to date'",
+      "timeout": 60000
+    },
+    {
+      "name": "settle (Purple Haze)",
+      "sleep": 500
+    },
+    {
+      "name": "the colours (Purple Haze)",
+      "eval": "(() => { const host = document.querySelector('[data-jfss-page=\"search\"][data-jfss-mounted]'); const tab = __ss.q('[role=\"tab\"][aria-selected=\"true\"]'); const filter = __ss.all('.jfss-ac-filter').find(b => b.getAttribute('aria-pressed') === 'true'); const name = __ss.q('a.jfss-ac-open'); const chip = __ss.row('WC AC Themes').querySelector('.jfss-ac-status'); return { pageColor: getComputedStyle(host).color, htmlColor: getComputedStyle(document.documentElement).color, tabBorder: getComputedStyle(tab).borderBottomColor, filterBackground: getComputedStyle(filter).backgroundColor, nameColor: getComputedStyle(name).color, chipBorder: getComputedStyle(chip).borderTopColor }; })()",
+      "save": "purplehaze"
+    },
+    {
+      "screenshot": "smartsearch-collections-theme-purplehaze.png"
+    },
+    {
+      "name": "the page's text is the theme's text colour in every theme, the names (links) and an up-to-date chip its accent, and Light's text differs from Dark's",
+      "assert": "[__vars.dark, __vars.light, __vars.appletv, __vars.purplehaze].every(p => p.pageColor === p.htmlColor && p.nameColor === p.tabBorder && p.chipBorder === p.tabBorder) && __vars.dark.htmlColor !== __vars.light.htmlColor"
+    },
+    {
+      "name": "the selected tab's line and the pressed filter are the theme's accent",
+      "assert": "['dark', 'light', 'appletv'].every(k => __vars[k].tabBorder === 'rgb(0, 164, 220)' && __vars[k].filterBackground === 'rgb(0, 164, 220)') && __vars.purplehaze.tabBorder === 'rgb(72, 195, 200)' && __vars.purplehaze.filterBackground === 'rgb(72, 195, 200)'"
+    },
+    {
+      "name": "back to Dark, and remove it",
+      "script": "localStorage.setItem(ApiClient.getCurrentUserId() + '-appTheme', 'dark'); return await __ss.cleanup('WC AC Themes');"
+    },
+    {
+      "name": "no uncaught exception (the stale CustomRatings tag is known noise)",
+      "noExceptions": true,
+      "ignore": "CustomRatings"
+    }
+  ]
+}

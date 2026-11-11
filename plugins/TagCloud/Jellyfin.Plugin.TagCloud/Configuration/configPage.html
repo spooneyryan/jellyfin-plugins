@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Tag Cloud</title>
+</head>
+<body>
+    <div id="TagCloudConfigPage" data-role="page" class="page type-interior pluginConfigurationPage" data-require="emby-input,emby-button,emby-select,emby-checkbox">
+        <!-- Inside the page element, which is all jellyfin-web keeps of this file. -->
+        <style>
+            #TagCloudConfigPage .tagCloudStatus {
+                margin: 0 0 1.2em;
+                padding: .8em 1em;
+                border-left: .3em solid rgba(128, 128, 128, .6);
+                border-radius: .2em;
+                background: rgba(128, 128, 128, .12);
+                line-height: 1.5;
+            }
+
+            #TagCloudConfigPage .tagCloudDiagnostics {
+                overflow-x: auto;
+                max-height: 30em;
+                padding: .8em;
+                background: rgba(128, 128, 128, .12);
+                border-radius: .2em;
+                font-size: .85em;
+            }
+
+            #TagCloudConfigPage {
+                overflow-wrap: break-word;
+            }
+        </style>
+        <div data-role="content">
+            <div class="content-primary">
+                <h2>Tag Cloud</h2>
+                <p>A Tag Cloud page under <b>Library tools</b> in the menu: the tags, genres, people and studios of your movies and shows as a word cloud, counted for each viewer over the titles they can see.</p>
+
+                <h3>Index</h3>
+                <div class="tagCloudStatus" id="tagCloudStatus" role="status">Reading the index's status…</div>
+                <button is="emby-button" type="button" class="raised button-alt" id="tagCloudRebuild"><span>Count the library again</span></button>
+
+                <form id="TagCloudConfigForm" class="tagCloudConfigForm">
+                    <h3>Page</h3>
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label class="emby-checkbox-label">
+                            <input is="emby-checkbox" type="checkbox" id="EnableWebUi" name="EnableWebUi" />
+                            <span>Add the Tag Cloud to the web client</span>
+                        </label>
+                        <div class="fieldDescription checkboxFieldDescription">Off removes the page and its menu link from the web client; the REST API still answers. Applies at the next page load.</div>
+                    </div>
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label class="emby-checkbox-label">
+                            <input is="emby-checkbox" type="checkbox" id="EnableTagCloudPage" name="EnableTagCloudPage" />
+                            <span>Turn the Tag Cloud page on</span>
+                        </label>
+                        <div class="fieldDescription checkboxFieldDescription">Off, its link goes, its address says it is turned off, and the clouds and saved clouds answer that they are turned off. The index and Diagnostics here stay.</div>
+                    </div>
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label class="emby-checkbox-label">
+                            <input is="emby-checkbox" type="checkbox" id="ShowFallbackNav" name="ShowFallbackNav" />
+                            <span>Link it from Library tools in the menu</span>
+                        </label>
+                    </div>
+                    <div class="selectContainer">
+                        <label class="selectLabel" for="PageHostMode">Where the page lives</label>
+                        <select is="emby-select" id="PageHostMode" name="PageHostMode" class="emby-select-withcolor emby-select">
+                            <option value="FallbackOnly">Its own address (the default)</option>
+                            <option value="Auto">Plugin Pages when it lists the page, else its own address</option>
+                            <option value="PluginPagesOnly">Plugin Pages only</option>
+                        </select>
+                        <div class="fieldDescription">Plugin Pages modes need a restart.</div>
+                    </div>
+                    <div class="checkboxContainer">
+                        <label class="emby-checkbox-label">
+                            <input is="emby-checkbox" type="checkbox" id="RegisterPluginPages" name="RegisterPluginPages" />
+                            <span>Register the page with Plugin Pages (in its modes; after a restart)</span>
+                        </label>
+                    </div>
+                    <div class="checkboxContainer">
+                        <label class="emby-checkbox-label">
+                            <input is="emby-checkbox" type="checkbox" id="ReportWebAnchorProblems" name="ReportWebAnchorProblems" />
+                            <span>Record browsers' reports of web client problems</span>
+                        </label>
+                    </div>
+
+                    <h3>Clouds</h3>
+                    <div class="checkboxContainer"><label class="emby-checkbox-label"><input is="emby-checkbox" type="checkbox" id="EnableTags" name="EnableTags" /><span>Tags</span></label></div>
+                    <div class="checkboxContainer"><label class="emby-checkbox-label"><input is="emby-checkbox" type="checkbox" id="EnableGenres" name="EnableGenres" /><span>Genres</span></label></div>
+                    <div class="checkboxContainer"><label class="emby-checkbox-label"><input is="emby-checkbox" type="checkbox" id="EnableActors" name="EnableActors" /><span>Actors</span></label></div>
+                    <div class="checkboxContainer"><label class="emby-checkbox-label"><input is="emby-checkbox" type="checkbox" id="EnableDirectors" name="EnableDirectors" /><span>Directors</span></label></div>
+                    <div class="checkboxContainer"><label class="emby-checkbox-label"><input is="emby-checkbox" type="checkbox" id="EnableWriters" name="EnableWriters" /><span>Writers</span></label></div>
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label class="emby-checkbox-label"><input is="emby-checkbox" type="checkbox" id="EnableStudios" name="EnableStudios" /><span>Studios</span></label>
+                        <div class="fieldDescription checkboxFieldDescription">A cloud turned off isn't offered or counted. One turned on is counted the first time someone opens it.</div>
+                    </div>
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="MaxWordsLimit">The most words a cloud may show</label>
+                        <input is="emby-input" type="number" id="MaxWordsLimit" name="MaxWordsLimit" min="100" max="2000" step="25" required />
+                        <div class="fieldDescription">The words slider's top: 100 to 2,000, in steps of 25.</div>
+                    </div>
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="TvMaxWordsDefault">Words a cloud starts with on a TV</label>
+                        <input is="emby-input" type="number" id="TvMaxWordsDefault" name="TvMaxWordsDefault" min="25" max="2000" step="25" required />
+                        <div class="fieldDescription">Drawing many words is slow on a TV; viewers can still raise it.</div>
+                    </div>
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label class="emby-checkbox-label">
+                            <input is="emby-checkbox" type="checkbox" id="AllowSharedClouds" name="AllowSharedClouds" />
+                            <span>Let users share saved clouds with everyone</span>
+                        </label>
+                        <div class="fieldDescription checkboxFieldDescription">A shared cloud shares its settings, never its counts: each viewer sees their own titles. Off, shared clouds are listed only to their owners and kept.</div>
+                    </div>
+
+                    <h3>Upkeep</h3>
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="FullRebuildAfterChanges">Count the library again in full after this many changed titles</label>
+                        <input is="emby-input" type="number" id="FullRebuildAfterChanges" name="FullRebuildAfterChanges" min="1" max="1000000" step="1" required />
+                        <div class="fieldDescription">Fewer changed titles are patched one by one. The library is counted again in full every day at 03:40 (Scheduled Tasks, "Tag Cloud: Maintenance") as well.</div>
+                    </div>
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="SnapshotsToKeep">Daily snapshots of the saved clouds to keep</label>
+                        <input is="emby-input" type="number" id="SnapshotsToKeep" name="SnapshotsToKeep" min="0" max="365" step="1" required />
+                    </div>
+                    <div>
+                        <button is="emby-button" type="submit" class="raised button-submit block"><span>Save</span></button>
+                    </div>
+                </form>
+
+                <h3>Diagnostics</h3>
+                <pre class="tagCloudDiagnostics" id="tagCloudDiagnostics">Reading…</pre>
+            </div>
+        </div>
+
+        <script type="text/javascript">
+            (function () {
+                var pluginId = 'e36415cf-46f1-4de6-bd61-d1fe7175c7a9';
+                var page = document.querySelector('#TagCloudConfigPage');
+                var form = page.querySelector('#TagCloudConfigForm');
+                var checkboxes = ['EnableWebUi', 'EnableTagCloudPage', 'ShowFallbackNav', 'RegisterPluginPages', 'ReportWebAnchorProblems', 'EnableTags', 'EnableGenres', 'EnableActors', 'EnableDirectors', 'EnableWriters', 'EnableStudios', 'AllowSharedClouds'];
+                var numbers = ['MaxWordsLimit', 'TvMaxWordsDefault', 'FullRebuildAfterChanges', 'SnapshotsToKeep'];
+                var selects = ['PageHostMode'];
+                var statusTimer = null;
+
+                function field(id) {
+                    return form.querySelector('#' + id);
+                }
+
+                function fill(config) {
+                    checkboxes.forEach(function (id) { field(id).checked = !!config[id]; });
+                    numbers.forEach(function (id) { field(id).value = config[id]; });
+                    selects.forEach(function (id) { field(id).value = config[id]; });
+                }
+
+                function read(config) {
+                    checkboxes.forEach(function (id) { config[id] = field(id).checked; });
+                    numbers.forEach(function (id) { config[id] = parseInt(field(id).value, 10); });
+                    selects.forEach(function (id) { config[id] = field(id).value; });
+                    return config;
+                }
+
+                function time(ms) {
+                    return ms >= 1000 ? (Math.round(ms / 100) / 10) + ' s' : ms + ' ms';
+                }
+
+                function showStatus(status) {
+                    var box = page.querySelector('#tagCloudStatus');
+                    var lines = [];
+                    if (status.State === 'Building') {
+                        lines.push('Counting: ' + status.Done.toLocaleString() + ' of ' + status.Total.toLocaleString() + ' titles read.');
+                    } else if (status.State === 'Failed') {
+                        lines.push('The last count failed: ' + (status.LastError || 'no detail') + '.');
+                    } else if (status.State === 'NotBuilt') {
+                        lines.push('Not counted yet; it is counted once the server has started.');
+                    }
+
+                    if (status.BuiltUtc) {
+                        lines.push(status.Titles.toLocaleString() + ' titles, counted ' + new Date(status.BuiltUtc).toLocaleString() + ' in ' + time(status.BuildMilliseconds)
+                            + (status.PeoplePath ? ' (people: ' + (status.PeoplePath === 'Database' ? 'one database read' : 'title by title') + ', ' + time(status.PeopleMilliseconds) + ')' : '') + '.');
+                        var words = Object.keys(status.Words || {}).map(function (source) { return status.Words[source].toLocaleString() + ' ' + source.toLowerCase(); });
+                        if (words.length) {
+                            lines.push('Words: ' + words.join(', ') + '.');
+                        }
+
+                        if (status.Patched) {
+                            lines.push(status.Patched.toLocaleString() + ' titles updated since, as the library changed.');
+                        }
+                    }
+
+                    box.textContent = lines.join(' ');
+                    clearTimeout(statusTimer);
+                    if (status.State === 'Building' && page.isConnected) {
+                        statusTimer = setTimeout(loadStatus, 2000);
+                    }
+                }
+
+                function loadStatus() {
+                    return ApiClient.getJSON(ApiClient.getUrl('TagCloud/Admin/Status')).then(showStatus, function () {
+                        page.querySelector('#tagCloudStatus').textContent = 'The index\'s status could not be read.';
+                    });
+                }
+
+                function loadDiagnostics() {
+                    return ApiClient.getJSON(ApiClient.getUrl('TagCloud/Admin/Diagnostics')).then(function (diagnostics) {
+                        page.querySelector('#tagCloudDiagnostics').textContent = JSON.stringify(diagnostics, null, 2);
+                    }, function () {
+                        page.querySelector('#tagCloudDiagnostics').textContent = 'The diagnostics could not be read.';
+                    });
+                }
+
+                page.addEventListener('pageshow', function () {
+                    Dashboard.showLoadingMsg();
+                    ApiClient.getPluginConfiguration(pluginId).then(function (config) {
+                        fill(config);
+                        Dashboard.hideLoadingMsg();
+                    }, function () {
+                        Dashboard.hideLoadingMsg();
+                    });
+                    loadStatus();
+                    loadDiagnostics();
+                });
+
+                page.querySelector('#tagCloudRebuild').addEventListener('click', function () {
+                    ApiClient.ajax({ type: 'POST', url: ApiClient.getUrl('TagCloud/Admin/Rebuild'), dataType: 'json' }).then(function (status) {
+                        showStatus(status);
+                        setTimeout(loadStatus, 1000);
+                    });
+                });
+
+                form.addEventListener('submit', function (e) {
+                    e.preventDefault();
+                    Dashboard.showLoadingMsg();
+                    ApiClient.getPluginConfiguration(pluginId).then(function (config) {
+                        return ApiClient.updatePluginConfiguration(pluginId, read(config)).then(function (result) {
+                            Dashboard.processPluginConfigurationUpdateResult(result);
+                            loadStatus();
+                        });
+                    }).catch(function () {
+                        Dashboard.hideLoadingMsg();
+                    });
+                    return false;
+                });
+            })();
+        </script>
+    </div>
+</body>
+</html>

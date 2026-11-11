@@ -1,0 +1,94 @@
+/* Library Maintenance's Dashboard page: the tabs and the sections under the AdminScript's own classes
+   (jflm-page-*). Layout only, neutral surfaces and the kit's accent, warning and danger colours; never
+   --jf-palette-background-*, -text-* or -primary-contrastText. */
+.jflm-page-app [hidden]{display:none!important}
+.jflm-page-app{line-height:1.4;overflow-wrap:break-word}
+.jflm-page-tabs{display:flex;flex-wrap:wrap;gap:.3em;margin:0 0 1.2em;border-bottom:1px solid var(--jflm-divider)}
+.jflm-page-tab{background:none;border:0;border-bottom:.2em solid transparent;color:inherit;font:inherit;padding:.6em 1.1em;cursor:pointer;opacity:.75}
+.jflm-page-tab:hover{opacity:1}
+.jflm-page-tab[aria-selected="true"]{border-bottom-color:var(--jflm-accent);opacity:1;font-weight:600}
+.jflm-page-tab:focus-visible{outline:2px solid var(--jflm-accent);outline-offset:-2px}
+.jflm-page-panel[tabindex="0"]:focus-visible,.layout-tv .jflm-page-panel[tabindex="0"]:focus{outline:2px solid var(--jflm-accent);outline-offset:2px}
+.jflm-page-app .jflm-button[aria-disabled="true"]{opacity:.5;cursor:default}
+.jflm-page-section{margin:0 0 1.8em}
+.jflm-page-heading{margin:1.2em 0 .5em;font-weight:500}
+h3.jflm-page-heading{font-size:1.2em}
+h4.jflm-page-heading{font-size:1.05em}
+.jflm-page-hint{font-size:.88em;opacity:.7;margin:.3em 0 .8em}
+.jflm-page-status{margin:.5em 0}
+.jflm-page-none{opacity:.6}
+.jflm-page-actions{display:flex;flex-wrap:wrap;gap:.5em;align-items:center;margin:.8em 0}
+.jflm-page-list{margin:.3em 0 .8em;padding-left:1.4em}
+.jflm-page-table{border-collapse:collapse;margin:.3em 0 .8em;max-width:100%}
+.jflm-page-table th,.jflm-page-table td{text-align:left;vertical-align:top;padding:.3em .8em .3em 0}
+.jflm-page-table td{overflow-wrap:anywhere}
+.jflm-page-table th{font-weight:500;opacity:.8;white-space:nowrap}
+.jflm-page-groups-view{margin:1.4em 0 0}
+.jflm-page-controls .jflm-page-hint{margin-top:.4em}
+.jflm-page-toggles{display:inline-flex;flex-wrap:wrap;gap:.3em}
+.jflm-page-app .jflm-page-toggle[aria-pressed="true"]{border-color:var(--jflm-accent);box-shadow:inset 0 -.2em 0 var(--jflm-accent);font-weight:600}
+.jflm-page-toolbar{display:flex;flex-wrap:wrap;gap:.6em 1.4em;align-items:center;margin:.6em 0 1em}
+.jflm-page-control{display:flex;flex-wrap:wrap;gap:.4em;align-items:center;min-width:0;max-width:100%}
+.jflm-page-control select{max-width:100%;min-width:0}
+.jflm-page-control-label{opacity:.8}
+.jflm-page-search{flex:1 1 14em;max-width:24em}
+.jflm-page-search input{width:100%}
+.jflm-page-groups{display:flex;flex-direction:column;gap:1em}
+.jflm-page-group{border:1px solid var(--jflm-divider);border-radius:.4em;padding:.7em .9em;min-width:0}
+.jflm-page-group-header{display:flex;flex-wrap:wrap;gap:.3em .8em;align-items:baseline}
+.jflm-page-group-title{margin:0;font-size:1.05em;font-weight:600}
+.jflm-page-group-years{font-weight:400;opacity:.75;margin-left:.5em}
+.jflm-page-group-facts{font-size:.88em;opacity:.75}
+/* The chips' status colours: the kit's, except on Light and Apple TV, where its success and warning are 4.1:1 on Apple
+   TV's pale blue; these shades keep the chips' text above 5:1 on both. */
+.jflm-page-app{--jflm-page-success:var(--jflm-success);--jflm-page-warning:var(--jflm-warning)}
+html[data-theme="light"] .jflm-page-app,html[data-theme="appletv"] .jflm-page-app{--jflm-page-success:#256b29;--jflm-page-warning:#8a4f00}
+.jflm-page-chips{display:flex;flex-wrap:wrap;gap:.3em}
+.jflm-page-chip{display:inline-block;font-size:.8em;line-height:1.5;padding:0 .55em;border:1px solid var(--jflm-divider);border-radius:1em;white-space:nowrap}
+.jflm-page-chip-confidence-confirmed{border-color:var(--jflm-page-success);color:var(--jflm-page-success)}
+.jflm-page-chip-confidence-likely{border-color:var(--jflm-accent)}
+.jflm-page-chip-confidence-conflict,.jflm-page-chip-warning{border-color:var(--jflm-page-warning);color:var(--jflm-page-warning)}
+.jflm-page-chip-keep{border-color:var(--jflm-accent);font-weight:600}
+.jflm-page-entries{list-style:none;margin:.6em 0 0;padding:0}
+.jflm-page-entry{display:grid;grid-template-columns:60px minmax(0,1fr) auto;gap:.8em;align-items:start;padding:.5em 0;border-top:1px solid var(--jflm-divider);min-width:0}
+.jflm-page-poster{position:relative;width:60px;height:90px;border-radius:.25em;overflow:hidden;background:rgba(128,128,128,.22);display:flex;align-items:center;justify-content:center}
+.jflm-page-poster-initials{font-weight:600;font-size:1.15em;letter-spacing:.04em;opacity:.85}
+.jflm-page-poster-image{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover}
+.jflm-page-entry-body{flex:1 1 auto;min-width:0}
+.jflm-page-entry-title{display:flex;flex-wrap:wrap;gap:.4em;align-items:baseline}
+.jflm-page-entry-name{font-weight:500}
+.jflm-page-entry-facts,.jflm-page-entry-ids{font-size:.88em;opacity:.8}
+.jflm-page-entry-path{display:flex;font-family:monospace;font-size:.85em;opacity:.75;white-space:nowrap;min-width:0;max-width:100%}
+.jflm-page-entry-path-folder{flex:0 1 auto;min-width:2em;overflow:hidden;text-overflow:ellipsis}
+.jflm-page-entry-path-file{flex:0 0 auto;max-width:calc(100% - 2em);overflow:hidden;text-overflow:ellipsis}
+.jflm-page-hint-inline{font-size:.85em;opacity:.7}
+.jflm-page-entry-actions{flex:0 0 auto}
+.jflm-page-app a.jflm-button{text-decoration:none;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box}
+.jflm-page-more{margin:1em 0}
+/* The Settings tab: on/off switches as the toggles show a pressed one, the groups' labels as the kit's field labels,
+   a field row that wraps its button under a text area, and a seconds field as wide as its number. */
+.jflm-page-field-label{display:block;margin-bottom:.3em;font-size:.9em;opacity:.75}
+.jflm-page-app .jflm-page-switch{min-width:4.5em}
+.jflm-page-app .jflm-page-switch[aria-checked="true"]{border-color:var(--jflm-accent);box-shadow:inset 0 -.2em 0 var(--jflm-accent);font-weight:600}
+#LibraryMaintenanceSettingsForm .jflm-field-row{flex-wrap:wrap}
+#LibraryMaintenanceSettingsForm .jflm-select{min-width:0;max-width:100%}
+.jflm-page-app .jflm-input.jflm-page-number{flex:0 0 6em;width:6em}
+@media (max-width:40em){
+.jflm-page-entry{grid-template-columns:60px minmax(0,1fr);gap:.3em .6em}
+.jflm-page-entry-actions{grid-column:1/-1}
+.jflm-page-search{max-width:none}
+.jflm-page-tab{flex:1 1 auto;padding:.6em .5em}
+.jflm-page-table,.jflm-page-table tbody,.jflm-page-table tr{display:block}
+.jflm-page-table th,.jflm-page-table td{display:block;padding:.1em 0}
+.jflm-page-table td{padding-bottom:.5em}
+.jflm-page-table th{white-space:normal}
+}
+@media (pointer:coarse){
+.jflm-page-tab,.jflm-page-app .jflm-button{min-height:44px}
+}
+@media (forced-colors:active){
+.jflm-page-tab[aria-selected="true"]{border-bottom-color:Highlight}
+.jflm-page-app .jflm-page-toggle[aria-pressed="true"]{outline:2px solid Highlight}
+.jflm-page-app .jflm-page-switch[aria-checked="true"]{outline:2px solid Highlight}
+.jflm-page-poster{border:1px solid CanvasText}
+}

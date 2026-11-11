@@ -1,0 +1,46 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Framework, nullable, warnings-as-errors, analyzers and InternalsVisibleTo come from the root Directory.Build.props. -->
+  <!-- The shared kit (kit/src) compiles into this assembly. -->
+  <Import Project="$(KitRoot)build\Kit.props" />
+
+  <PropertyGroup>
+    <RootNamespace>Jellyfin.Plugin.AccessRoles</RootNamespace>
+    <!-- Keep equal to build.yaml's version (checked by tests/Repo.Tests). Development builds were 0.9.<n>.0; 1.0.0.0 was the first release, 1.0.1.0 its fixes, 1.0.2.0 corrected texts, 1.0.3.0 the owner name. -->
+    <Version>1.0.3.0</Version>
+    <AssemblyVersion>1.0.3.0</AssemblyVersion>
+    <FileVersion>1.0.3.0</FileVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <!-- Not the root props' InternalsVisibleTo DynamicProxyGenAssembly2 (1.0.1): the tests use
+       written-out doubles of the internal services (tests/.../TestSupport/InternalFakes.cs), so no Moq proxy needs this
+       assembly's internals, and the DLL the server loads lets no other assembly see them but the tests. -->
+  <ItemGroup>
+    <InternalsVisibleTo Remove="DynamicProxyGenAssembly2" />
+  </ItemGroup>
+
+  <!-- The server provides these at runtime; never ship copies of them with the plugin. -->
+  <ItemGroup>
+    <PackageReference Include="Jellyfin.Controller">
+      <ExcludeAssets>runtime</ExcludeAssets>
+    </PackageReference>
+    <PackageReference Include="Jellyfin.Model">
+      <ExcludeAssets>runtime</ExcludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <!-- The dashboard page and its script stub and the action manifest of each Jellyfin line. -->
+  <ItemGroup>
+    <None Remove="Configuration\configPage.html" />
+    <EmbeddedResource Include="Configuration\configPage.html" />
+    <None Remove="Configuration\AccessRolesJs.js" />
+    <EmbeddedResource Include="Configuration\AccessRolesJs.js" />
+    <None Remove="Rules\Manifests\*.json" />
+    <EmbeddedResource Include="Rules\Manifests\*.json" LogicalName="ActionManifest.%(Filename)%(Extension)" />
+  </ItemGroup>
+
+</Project>

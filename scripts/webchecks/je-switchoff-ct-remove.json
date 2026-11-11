@@ -1,0 +1,20 @@
+{
+  "name": "Custom Tabs' Bookmarks tab removed by hand, in the je sandbox: as admin, Custom Tabs' own settings page, the 'Bookmarks' tab (<div class=\"sections bookmarks\"></div>) removed with its Remove button and the page saved, as an admin deletes it by hand. bookmarks-je-web-probe.mjs runs it while Jellyfin Enhanced's Bookmarks is off (set through its API, so the tab it owns is still there) and then checks that nothing puts the tab back.",
+  "failOnException": false,
+  "timeout": 30000,
+  "steps": [
+    { "name": "sign in as admin", "login": "admin" },
+    { "name": "the web client is up", "waitFor": "!!window.ApiClient && !!ApiClient.getCurrentUserId()" },
+    { "name": "Custom Tabs' tabs before", "eval": "(await ApiClient.getPluginConfiguration('fbacd0b6-fd46-4a05-b0a4-2045d6a135b0')).Tabs.map(t => ({ Title: t.Title, ContentHtml: t.ContentHtml }))", "save": "before", "full": true },
+    { "name": "JE's Bookmarks tab is there", "assert": "__vars.before.some(t => String(t.ContentHtml).trim() === '<div class=\"sections bookmarks\"></div>')" },
+    { "name": "Custom Tabs' settings page", "goto": "/web/index.html#/configurationpage?name=Custom%20Tabs" },
+    { "name": "its tabs loaded", "waitFor": "(() => { const p = document.querySelector('#customTabsConfigurationPage'); if (!p) return false; const sets = Array.from(p.querySelectorAll('[data-id=tab-config]')); return sets.length === __vars.before.length && sets.length > 0 ? sets.map(s => s.querySelector('[data-id=txtDisplayText]').value) : false; })()", "timeout": 30000, "save": "shown", "full": true },
+    { "name": "remove the Bookmarks tab with its Remove button", "script": "const p = document.querySelector('#customTabsConfigurationPage'); const set = Array.from(p.querySelectorAll('[data-id=tab-config]')).find(s => s.querySelector('[data-id=templateHtmlContent]').value.trim() === '<div class=\"sections bookmarks\"></div>'); if (!set) throw new Error('no Bookmarks tab on the page'); set.querySelector('[data-id=templateRemoveTab]').click(); return p.querySelectorAll('[data-id=tab-config]').length;", "save": "left" },
+    { "name": "the tab is gone from the page", "assert": "Number(__vars.left) === __vars.before.length - 1" },
+    { "name": "Save", "click": "#customTabsConfigurationPage #saveConfig" },
+    { "name": "saved: Custom Tabs no longer has the tab", "waitFor": "(async () => { const t = (await ApiClient.getPluginConfiguration('fbacd0b6-fd46-4a05-b0a4-2045d6a135b0')).Tabs; return t.length === __vars.before.length - 1 && !t.some(x => String(x.ContentHtml).trim() === '<div class=\"sections bookmarks\"></div>') ? t.map(x => x.Title) : false; })()", "timeout": 20000, "save": "after", "full": true },
+    { "sleep": 300 },
+    { "screenshot": "je-switchoff-ct-removed.png" },
+    { "name": "no uncaught exceptions (the stale CustomRatings tag, jellyfin-web's Home tab slider, and jellyfin-web's emby-input upgrading Custom Tabs' tab fields, whose template has two labels for one input, excepted)", "noExceptions": true, "ignore": "/CustomRatings/script|^TypeError: t\\.value\\.pause is not a function|^TypeError: Cannot set properties of undefined \\(setting 'htmlFor'\\)" }
+  ]
+}

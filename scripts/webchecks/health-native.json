@@ -1,0 +1,15 @@
+{
+  "description": "The kit's health report from a native app wrapper: as viewer2, a report with WebVersion null and a valid Client (what a native app wrapper such as Jellyfin Media Player sends, whose appVersion() is its own version) is accepted; a report with a bad Client is dropped first, and doesn't use up viewer2's one report per ten minutes. Run after health-missing-anchor.json; health-diagnostics.json checks what the server kept.",
+  "steps": [
+    { "name": "sign in as viewer2", "login": "viewer2" },
+    { "name": "the Bookmarks script ran", "waitFor": "!!window.__jfkit && !!window.__jfkit.jfbm && !!window.ApiClient && !!ApiClient.getCurrentUserId()" },
+    {
+      "name": "a bad Client (dropped), then WebVersion null with a valid Client (accepted): both answered 204",
+      "script": "const api = window.__jfkit.jfbm.instance.api; const native = { WebVersion: null, Client: 'Jellyfin Media Player', ClientVersion: '1.12.0', Layout: 'Desktop', Experimental: false, PluginVersion: '1.0.0.0', Missing: [{ Anchor: 'detailButtons', View: 'details', Count: 1 }] }; const bad = Object.assign({}, native, { Client: 'Jellyfin Media Player; DROP' }); return [await api('POST', 'Bookmarks/Diagnostics/ClientHealth', { body: bad }), await api('POST', 'Bookmarks/Diagnostics/ClientHealth', { body: native })];",
+      "save": "answers",
+      "full": true
+    },
+    { "name": "both 204", "assert": "__vars.answers.length === 2 && __vars.answers.every(a => a === null)" },
+    { "name": "no uncaught exceptions (the stale CustomRatings tag excepted)", "noExceptions": true, "ignore": "/CustomRatings/script" }
+  ]
+}

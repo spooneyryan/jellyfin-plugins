@@ -1,0 +1,6 @@
+/* Access Roles' own nodes: the Settings page's note and the administrators' banner. Layout
+   only, neutral surfaces (the kit's theming rule); the hide rules are the head fragment's (Web/AccessRolesHead). */
+.jfar-note{margin:1em .25em;padding:.8em 1em;border-radius:.3em;background:rgba(128,128,128,.12);color:inherit;line-height:1.4}
+.jfar-admin-banner{margin:0 0 1.5em;padding:.8em 1.1em;border-radius:.3em;background:rgba(128,128,128,.12);border-left:.25em solid var(--jf-palette-primary-main,#00a4dc);color:inherit;line-height:1.4}
+.jfar-admin-banner p{margin:.2em 0}
+@media (forced-colors:active){.jfar-note,.jfar-admin-banner{border:1px solid CanvasText}}

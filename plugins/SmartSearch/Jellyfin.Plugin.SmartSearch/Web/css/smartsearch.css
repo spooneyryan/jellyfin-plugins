@@ -1,0 +1,180 @@
+/* The Advanced Search page: the scope bar, the basic and advanced forms, the results' bar, the cards and rows. Our own classes only;
+   colours come from the kit's tokens (the theme's accent, its divider), so every dashboard theme applies. */
+.jfss-search{padding:.5em 0 2em;max-width:100%;box-sizing:border-box}
+.jfss-builder{display:flex;flex-direction:column;gap:.4em;margin-bottom:.8em}
+.jfss-scope{display:flex;flex-wrap:wrap;align-items:flex-end;gap:.4em 1.4em}
+.jfss-scope .jfss-field,.jfss-basic .jfss-field{margin-bottom:.6em}
+.jfss-label{display:block;margin-bottom:.3em;font-size:.9em;opacity:.75}
+.jfss-segments{display:inline-flex;flex-wrap:wrap;border:1px solid var(--jfss-divider);border-radius:.3em;overflow:hidden}
+.jfss-segment{background:none;border:0;color:inherit;font:inherit;padding:.5em .85em;cursor:pointer;white-space:nowrap}
+.jfss-segments .jfss-segment+.jfss-segment{border-left:1px solid var(--jfss-divider)}
+.jfss-segment:hover{background:rgba(128,128,128,.2)}
+.jfss-segment[aria-pressed="true"]{background:var(--jfss-accent);color:#fff}
+.jfss-segment:focus-visible,.jfss-chip:focus-visible,.jfss-suggestion:focus-visible{outline:2px solid var(--jfss-accent);outline-offset:2px}
+.jfss-library{min-width:12em}
+.jfss-missing{margin:0 0 .9em}
+.jfss-kinds-note{flex-basis:100%;font-size:.9em;color:var(--jfss-warning);min-height:0}
+.jfss-kinds-note:empty{display:none}
+.jfss-basic-fields{display:grid;grid-template-columns:minmax(12em,2fr) minmax(12em,1fr) minmax(14em,2fr);gap:0 1.2em;align-items:start}
+.jfss-years .jfss-year{width:6.5em;flex:0 0 auto}
+.jfss-dash{opacity:.7}
+.jfss-chips{display:flex;flex-wrap:wrap;gap:.35em;margin-top:.45em}
+.jfss-chip{display:inline-flex;align-items:center;gap:.25em;background:rgba(128,128,128,.22);color:inherit;border:1px solid var(--jfss-divider);border-radius:1em;padding:.25em .4em .25em .75em;font:inherit;cursor:pointer}
+.jfss-chip:hover{background:rgba(128,128,128,.35)}
+.jfss-chip-icon{font-size:1.1em}
+.jfss-suggestions{display:flex;flex-wrap:wrap;gap:.35em;margin-top:.45em}
+.jfss-suggestion{background:none;color:inherit;border:1px dashed var(--jfss-divider);border-radius:1em;padding:.25em .75em;font:inherit;cursor:pointer}
+.jfss-suggestion:hover{background:rgba(128,128,128,.2)}
+.jfss-actions{display:flex;flex-wrap:wrap;align-items:center;gap:.6em}
+.jfss-form-error:empty,.jfss-field-error:empty{display:none}
+.jfss-form-error{margin:0}
+.jfss-results-bar{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:.4em 1.4em;border-top:1px solid var(--jfss-divider);padding-top:.8em;margin-top:.4em}
+.jfss-count{margin:0 0 .9em;opacity:.85}
+.jfss-results-tools{display:flex;flex-wrap:wrap;align-items:flex-end;gap:.4em 1.2em}
+.jfss-sort{min-width:11em}
+.jfss-grid{display:flex;flex-wrap:wrap}
+.jfss-card .jfss-card-actions,.jfss-card .jfss-open,.jfss-card .jfss-play{color:inherit}
+.jfss-open{text-decoration:none}
+.jfss-facts{font-size:.9em;opacity:.75}
+.jfss-row{gap:.8em}
+/* The TV layout: one field a line, larger targets for the remote. */
+.jfss-tv .jfss-basic-fields{grid-template-columns:minmax(0,1fr)}
+.jfss-tv .jfss-segment{padding:.6em 1.1em}
+/* A phone: the fields stack, the selects take the width, nothing wider than the screen. */
+@media (max-width:50em){.jfss-basic-fields{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:40em){.jfss-scope{display:block}.jfss-library,.jfss-sort{min-width:0;width:100%}.jfss-results-tools{width:100%}.jfss-results-tools>.jfss-field{flex:1 1 40%}.jfss-results-tools>.jfss-view-field{flex-basis:100%}.jfss-years .jfss-year{width:auto;flex:1 1 0}}
+@media (pointer:coarse){.jfss-segment,.jfss-chip,.jfss-suggestion,.jfss-actions .jfss-button,.jfss-pager-more{min-height:40px}.jfss-open,.jfss-play{min-width:40px;min-height:40px}}
+@media (forced-colors:active){.jfss-segment[aria-pressed="true"]{outline:2px solid Highlight;outline-offset:-2px}.jfss-chip,.jfss-suggestion,.jfss-segments{border:1px solid ButtonText}}
+/* The tabs, a saved query open on the Search tab, the Saved queries tab and the dialogs' forms. */
+.jfss-tabs{display:flex;gap:.2em;border-bottom:1px solid var(--jfss-divider);margin-bottom:.8em;overflow-x:auto}
+.jfss-tab{background:none;border:0;border-bottom:3px solid transparent;color:inherit;font:inherit;padding:.6em 1em;cursor:pointer;white-space:nowrap;opacity:.8}
+.jfss-tab:hover{background:rgba(128,128,128,.15)}
+.jfss-tab[aria-selected="true"]{border-bottom-color:var(--jfss-accent);opacity:1;font-weight:600}
+.jfss-tab:focus-visible,.jfss-share-toggle:focus-visible,.jfss-filter:focus-visible{outline:2px solid var(--jfss-accent);outline-offset:2px}
+.jfss-saved-header{margin:0 0 .8em}
+.jfss-saved-name{margin:.1em 0 .3em;font-size:1.3em;overflow-wrap:anywhere}
+.jfss-saved-meta{display:flex;flex-wrap:wrap;align-items:center;gap:.3em .9em;font-size:.9em;opacity:.85}
+.jfss-saved-description{margin:.3em 0;opacity:.85;overflow-wrap:anywhere;white-space:pre-line}
+.jfss-badge{display:inline-block;border:1px solid var(--jfss-divider);border-radius:1em;padding:.05em .65em;font-size:.9em}
+.jfss-badge-shared{border-color:var(--jfss-accent)}
+.jfss-badge-unavailable,.jfss-badge-newer,.jfss-badge-errors{border-color:var(--jfss-warning)}
+.jfss-share-toggle{border:1px solid var(--jfss-divider);border-radius:.3em}
+.jfss-saved-tools{display:flex;flex-wrap:wrap;align-items:flex-end;gap:.4em 1.4em}
+.jfss-saved-tools .jfss-field{margin-bottom:.6em}
+.jfss-find{min-width:14em}
+.jfss-saved-list{display:flex;flex-direction:column}
+.jfss-saved-row{display:flex;align-items:center;gap:.4em 1em;padding:.6em 0;border-bottom:1px solid var(--jfss-divider)}
+.jfss-saved-info{flex:1 1 auto;min-width:0}
+.jfss-saved-title{font-size:1.05em;overflow-wrap:anywhere}
+.jfss-saved-open{color:inherit;font-weight:600;padding:0;margin:0;text-align:start}
+.jfss-saved-row .jfss-saved-description{margin:.2em 0 0;font-size:.9em;white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.jfss-saved-actions{display:flex;flex-wrap:wrap;flex:0 0 auto;gap:.1em}
+.jfss-form .jfss-field{margin-bottom:.8em}
+.jfss-form .jfss-name-input,.jfss-form .jfss-description-input{width:100%;box-sizing:border-box}
+.jfss-share-row{margin:.2em 0 .8em}
+.jfss-share-note,.jfss-duplicate-note{margin:.3em 0 0;font-size:.9em;opacity:.8}
+.jfss-link-input{width:100%;box-sizing:border-box}
+.jfss-auto-collections{margin:.3em 0 .8em;padding-inline-start:1.2em}
+.jfss-tv .jfss-tab{padding:.7em 1.3em}
+.jfss-tv .jfss-saved-open{display:inline-block;min-height:2.2em;line-height:2.2em;padding:0 .3em}
+@media (max-width:40em){.jfss-saved-row{flex-wrap:wrap}.jfss-saved-actions{flex-basis:100%}.jfss-find{min-width:0;width:100%}.jfss-saved-tools>.jfss-field{flex:1 1 100%}}
+@media (pointer:coarse){.jfss-tab,.jfss-share-toggle,.jfss-filter,.jfss-actions .jfss-save,.jfss-actions .jfss-save-as-new{min-height:40px}.jfss-saved-action{min-width:40px;min-height:40px}.jfss-saved-open{display:inline-block;min-height:40px;line-height:40px}}
+@media (forced-colors:active){.jfss-tab[aria-selected="true"]{border-bottom-color:Highlight}.jfss-share-toggle[aria-pressed="true"]{outline:2px solid Highlight;outline-offset:-2px}.jfss-badge{border:1px solid CanvasText}}
+/* Basic | Advanced, and the advanced form's rule tree: a group is a bordered box, its children indented by one step,
+   a rule one wrapping line of its field, condition, value and tools. */
+.jfss-mode-field{display:flex;flex-wrap:wrap;align-items:center;gap:.3em .8em;margin-bottom:.4em}
+.jfss-mode-field .jfss-label{margin:0}
+.jfss-mode-note{font-size:.9em;opacity:.8}
+.jfss-mode-note:empty{display:none}
+.jfss-segment:disabled{cursor:default;opacity:.5}
+.jfss-segment:disabled:hover{background:none}
+.jfss-advanced{margin-bottom:.6em;min-width:0}
+.jfss-group{border:1px solid var(--jfss-divider);border-inline-start:3px solid var(--jfss-accent);border-radius:.3em;padding:.5em .6em;min-width:0}
+.jfss-group-root{border-inline-start-width:1px}
+.jfss-group-head,.jfss-group-add,.jfss-rule-line{display:flex;flex-wrap:wrap;align-items:center;gap:.4em .6em}
+.jfss-children{display:flex;flex-direction:column;gap:.45em;margin:.5em 0;margin-inline-start:1.2em;min-width:0}
+.jfss-child{min-width:0}
+.jfss-group-empty{margin:.5em 0;font-size:.9em;opacity:.75}
+.jfss-group-add{margin-top:.2em}
+.jfss-rule{padding:.35em 0;border-bottom:1px dashed var(--jfss-divider);min-width:0}
+.jfss-child:last-child>.jfss-rule{border-bottom:0}
+.jfss-rule-field{min-width:11em;max-width:100%}
+.jfss-rule-op{min-width:8em;max-width:100%}
+.jfss-rule-editor{display:flex;flex-wrap:wrap;align-items:center;gap:.4em;flex:1 1 14em;min-width:0}
+.jfss-rule-input{min-width:0;width:12em;max-width:100%}
+.jfss-rule-input[type="number"]{width:8em}
+.jfss-rule-amount{width:6em}
+.jfss-picker{flex:1 1 14em;min-width:0}
+.jfss-picker-row{display:flex;flex-wrap:wrap;align-items:center;gap:.4em}
+.jfss-picker-input{min-width:0;flex:1 1 10em;max-width:20em}
+.jfss-chip bdi,.jfss-suggestion bdi,.jfss-choice bdi{overflow-wrap:anywhere}
+.jfss-rule-option{margin:0}
+.jfss-node-tools{display:inline-flex;margin-inline-start:auto}
+.jfss-rule-note{margin:.3em 0 0;font-size:.85em;opacity:.75}
+.jfss-node-error:empty{display:none}
+.jfss-node-error{margin:.3em 0 0}
+.jfss-rule-locked .jfss-rule-field,.jfss-rule-locked .jfss-rule-op{opacity:.8}
+[aria-invalid="true"].jfss-rule-input,[aria-invalid="true"].jfss-picker-input,.jfss-advanced select[aria-invalid="true"]{outline:2px solid var(--jfss-warning);outline-offset:1px}
+.jfss-node-action:focus-visible,.jfss-add-rule:focus-visible,.jfss-add-group:focus-visible{outline:2px solid var(--jfss-accent);outline-offset:2px}
+.jfss-tv .jfss-rule-line{flex-direction:column;align-items:stretch}
+.jfss-tv .jfss-rule-field,.jfss-tv .jfss-rule-op,.jfss-tv .jfss-rule-input,.jfss-tv .jfss-picker-input{width:100%;max-width:none}
+.jfss-tv .jfss-node-tools{margin-inline-start:0}
+.jfss-tv .jfss-children{margin-inline-start:1.6em}
+@media (max-width:40em){.jfss-children{margin-inline-start:.5em}.jfss-group{padding:.4em}.jfss-rule-line{align-items:stretch}.jfss-rule-field,.jfss-rule-op{flex:1 1 100%;min-width:0;width:100%}.jfss-rule-editor{flex-basis:100%}.jfss-rule-input,.jfss-rule-input[type="number"]{flex:1 1 0;width:auto}.jfss-node-tools{margin-inline-start:0}}
+@media (pointer:coarse){.jfss-node-action,.jfss-choice{min-width:40px;min-height:40px}.jfss-add-rule,.jfss-add-group,.jfss-picker-add{min-height:40px}}
+@media (forced-colors:active){.jfss-group{border:1px solid CanvasText}[aria-invalid="true"].jfss-rule-input,[aria-invalid="true"].jfss-picker-input,.jfss-advanced select[aria-invalid="true"]{outline:2px solid Mark}}
+/* The Auto-collections tab: rows like the saved tab's, a status chip, panels for what needs a manager; the editor a
+   wide dialog (the whole screen on a phone) of sections, with the preview's posters in rows that scroll sideways. */
+.jfss-ac-tools{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:.4em 1.4em;margin-bottom:.4em}
+.jfss-ac-list{display:flex;flex-direction:column}
+.jfss-ac-row{display:flex;align-items:flex-start;gap:.4em 1em;padding:.7em 0;border-bottom:1px solid var(--jfss-divider)}
+.jfss-ac-open{font-weight:600}
+.jfss-ac-meta{display:flex;flex-wrap:wrap;align-items:center;gap:.2em .9em;margin-top:.25em;font-size:.9em}
+.jfss-ac-meta>span{opacity:.85}
+.jfss-ac-meta>.jfss-ac-status{opacity:1}
+.jfss-ac-status{display:inline-block;padding:.1em .6em;border:1px solid var(--jfss-divider);border-radius:1em;font-weight:600;white-space:nowrap}
+.jfss-ac-status-ok{border-color:var(--jfss-accent)}
+.jfss-ac-status-busy{border-style:dashed;border-color:var(--jfss-accent)}
+.jfss-ac-status-review,.jfss-ac-status-error{border-color:var(--jfss-warning);color:var(--jfss-warning)}
+.jfss-ac-status-off{opacity:.75}
+.jfss-ac-panel{margin-top:.5em;padding:.5em .7em;border-inline-start:3px solid var(--jfss-warning);background:rgba(128,128,128,.1);border-radius:.2em}
+.jfss-ac-panel p{margin:.2em 0}
+.jfss-ac-lock-note,.jfss-ac-sort-note{margin-bottom:.6em}
+.jfss-ac-panel .jfss-actions{margin-top:.4em}
+.jfss-ac-error,.jfss-ac-guard-locations{overflow-wrap:anywhere}
+.jfss-ac-guard-reason{font-size:.9em;opacity:.85}
+.jfss-ac-editor{width:min(52em,96vw);max-width:96vw}
+.jfss-ac-form .jfss-ac-name,.jfss-ac-form select,.jfss-ac-overview,.jfss-ac-threshold{width:100%;box-sizing:border-box}
+.jfss-ac-threshold{max-width:8em}
+.jfss-ac-section{padding:.4em 0 .6em;border-bottom:1px solid var(--jfss-divider)}
+.jfss-ac-section:last-of-type{border-bottom:0}
+.jfss-ac-name-state{min-height:1.3em;margin-top:.3em;font-size:.9em}
+.jfss-ac-name-taken{color:var(--jfss-warning)}
+.jfss-ac-suggestion{margin:.15em .3em .15em 0}
+.jfss-ac-open-query{display:inline-block;margin-top:.3em}
+.jfss-ac-items{margin-top:.6em}
+.jfss-ac-item-list{list-style:none;margin:0;padding:0}
+.jfss-ac-item-list li{display:flex;align-items:center;justify-content:space-between;gap:.6em;padding:.1em 0;border-bottom:1px dashed var(--jfss-divider)}
+.jfss-ac-item-hidden{font-style:italic;opacity:.75}
+.jfss-ac-preview-state{font-weight:600}
+.jfss-ac-preview-guard{margin:.4em 0;padding:.4em .6em;border-inline-start:3px solid var(--jfss-warning)}
+.jfss-ac-samples{margin-top:.6em}
+.jfss-ac-sample-row{display:flex;gap:.6em;overflow-x:auto;padding-bottom:.3em}
+.jfss-ac-sample-row>*{flex:0 0 7.5em;width:7.5em}
+.jfss-ac-history{margin:.5em 0;padding-inline-start:1.4em}
+.jfss-ac-history li{padding:.25em 0}
+.jfss-ac-history-more{font-size:.9em;opacity:.8}
+.jfss-ac-history-removed{margin-top:.6em;padding-top:.4em;border-top:1px solid var(--jfss-divider)}
+.jfss-ac-delete-choice{display:flex;flex-direction:column;gap:.3em;margin:.6em 0}
+.jfss-tv .jfss-ac-open{display:inline-block;min-height:2.2em;line-height:2.2em;padding:0 .3em}
+.jfss-tv .jfss-ac-sample-row>*{flex-basis:9em;width:9em}
+@media (max-width:40em){.jfss-ac-row{flex-wrap:wrap}.jfss-ac-actions{flex-basis:100%}.jfss-ac-editor{width:100vw;max-width:100vw;height:100%;max-height:100%;border-radius:0}.jfss-ac-tools>*{flex:1 1 100%}}
+@media (pointer:coarse){.jfss-ac-action,.jfss-ac-item-remove{min-width:40px;min-height:40px}.jfss-ac-open{display:inline-block;min-height:40px;line-height:40px}.jfss-ac-suggestion{min-height:40px}}
+@media (forced-colors:active){.jfss-ac-status,.jfss-ac-panel,.jfss-ac-preview-guard{border:1px solid CanvasText}.jfss-ac-status-review,.jfss-ac-status-error{border-width:2px}}
+.jfss-ac-note{display:flex;flex-wrap:wrap;align-items:center;gap:.5em .8em;margin:0 0 1em;padding:.5em .8em;border-radius:.3em;background:rgba(127,127,127,.12)}
+.jfss-ac-note .material-icons{flex:none;font-size:1.3em;opacity:.8}
+.jfss-ac-note-text{flex:1 1 10em;min-width:0}
+.jfss-ac-note-actions{display:flex;flex-wrap:wrap;gap:.5em}
+.jfss-ac-note-edit{text-decoration:none}
+@media (pointer:coarse){.jfss-ac-note-actions>*{min-height:40px}}
+@media (forced-colors:active){.jfss-ac-note{border:1px solid CanvasText}}

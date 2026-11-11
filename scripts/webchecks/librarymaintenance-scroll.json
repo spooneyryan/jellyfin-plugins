@@ -1,0 +1,203 @@
+{
+  "description": "Scale: the Duplicates tab with 250 groups, on the 'scale' sandbox (10,019 movies, 463 groups in Title + Year): Load more from the keyboard four times after the first 50, each page adding 50 cards within 2 s with the focus moved to the first new card's Open and in view; the index's 2 s poll leaves the 250 cards and the focus alone; scrolling 120 frames down and up keeps a median frame under 50 ms; the DOM grows by under 60 elements a card; the JS heap and the element counts are saved for each page. Changes nothing on the server; this browser's kept choices are removed at the end.",
+  "timeout": 30000,
+  "steps": [
+    {
+      "name": "sign in as admin",
+      "login": "admin"
+    },
+    {
+      "name": "the web client is ready",
+      "waitFor": "!!window.ApiClient && !!ApiClient.getCurrentUserId()"
+    },
+    {
+      "name": "no kept choices in this browser",
+      "eval": "(localStorage.removeItem('jflm:duplicates.view'), localStorage.removeItem('layout'), true)"
+    },
+    {
+      "name": "the check's helpers",
+      "script": "window.__lms = { page: () => document.querySelector('#LibraryMaintenanceConfigPage:not(.hide)'), q: (s) => (__lms.page() || document).querySelector(s), qa: (s) => [...(__lms.page() || document).querySelectorAll(s)], cards: () => __lms.page() ? __lms.qa('#LibraryMaintenanceGroupsList article') : [], summary: () => (__lms.q('#LibraryMaintenanceGroupsSummary') || {}).textContent || '' }; return true;"
+    },
+    {
+      "name": "the server's groups: at least 250 in Title + Year",
+      "eval": "(async () => { const r = await fetch(ApiClient.getUrl('LibraryMaintenance/Duplicates/Groups', { limit: 1 }), { headers: { Authorization: 'MediaBrowser Token=\"' + ApiClient.accessToken() + '\"', Accept: 'application/json' } }); const b = await r.json(); return { status: r.status, total: b.TotalRecordCount, movies: b.TotalMovies }; })()",
+      "save": "server",
+      "full": true
+    },
+    {
+      "name": "enough groups for five pages",
+      "assert": "__vars.server.status === 200 && __vars.server.total >= 250",
+      "message": "this check needs 250 groups or more (the 'scale' sandbox has 463)"
+    },
+    {
+      "name": "the page",
+      "goto": "/web/index.html#/configurationpage?name=LibraryMaintenance"
+    },
+    {
+      "name": "the first 50 groups",
+      "waitFor": "__lms.page() && __lms.cards().length === 50 && !__lms.q('#LibraryMaintenanceGroupsMore').hidden",
+      "timeout": 30000
+    },
+    {
+      "sleep": 1000
+    },
+    {
+      "name": "page 1",
+      "eval": "(() => { const cards = __lms.cards(); const a = document.activeElement; const r = a && a.getBoundingClientRect ? a.getBoundingClientRect() : null; return { cards: cards.length, entries: __lms.qa('#LibraryMaintenanceGroupsList li').length, nodes: document.getElementsByTagName('*').length, pageNodes: __lms.page().getElementsByTagName('*').length, images: __lms.qa('#LibraryMaintenanceGroupsList img').length, heapMB: performance.memory ? Math.round(performance.memory.usedJSHeapSize / 1048576 * 10) / 10 : null, scrollY: Math.round(scrollY), scrollHeight: document.documentElement.scrollHeight, focus: a ? { tag: a.tagName, open: a.classList.contains('jflm-page-open'), card: a.closest('article') ? cards.indexOf(a.closest('article')) : -1, inView: !!r && r.top >= 0 && r.bottom <= innerHeight } : null, more: !__lms.q('#LibraryMaintenanceGroupsMore').closest('.hide') && !__lms.q('#LibraryMaintenanceGroupsMore').hidden, summary: __lms.summary() }; })()",
+      "save": "p1",
+      "full": true
+    },
+    {
+      "name": "Load more (page 2), from the keyboard",
+      "script": "const b = document.querySelector('#LibraryMaintenanceConfigPage:not(.hide) #LibraryMaintenanceGroupsMore'); b.scrollIntoView({ block: 'center' }); b.focus(); window.__lmsAsked = performance.now(); return document.activeElement === b;"
+    },
+    {
+      "name": "Enter on Load more (page 2)",
+      "key": "Enter"
+    },
+    {
+      "name": "100 groups",
+      "waitFor": "__lms.cards().length === 100",
+      "timeout": 30000
+    },
+    {
+      "name": "the time to page 2",
+      "eval": "(Math.round(performance.now() - window.__lmsAsked))",
+      "save": "t2"
+    },
+    {
+      "sleep": 600
+    },
+    {
+      "name": "page 2",
+      "eval": "(() => { const cards = __lms.cards(); const a = document.activeElement; const r = a && a.getBoundingClientRect ? a.getBoundingClientRect() : null; return { cards: cards.length, entries: __lms.qa('#LibraryMaintenanceGroupsList li').length, nodes: document.getElementsByTagName('*').length, pageNodes: __lms.page().getElementsByTagName('*').length, images: __lms.qa('#LibraryMaintenanceGroupsList img').length, heapMB: performance.memory ? Math.round(performance.memory.usedJSHeapSize / 1048576 * 10) / 10 : null, scrollY: Math.round(scrollY), scrollHeight: document.documentElement.scrollHeight, focus: a ? { tag: a.tagName, open: a.classList.contains('jflm-page-open'), card: a.closest('article') ? cards.indexOf(a.closest('article')) : -1, inView: !!r && r.top >= 0 && r.bottom <= innerHeight } : null, more: !__lms.q('#LibraryMaintenanceGroupsMore').closest('.hide') && !__lms.q('#LibraryMaintenanceGroupsMore').hidden, summary: __lms.summary() }; })()",
+      "save": "p2",
+      "full": true
+    },
+    {
+      "name": "Load more (page 3), from the keyboard",
+      "script": "const b = document.querySelector('#LibraryMaintenanceConfigPage:not(.hide) #LibraryMaintenanceGroupsMore'); b.scrollIntoView({ block: 'center' }); b.focus(); window.__lmsAsked = performance.now(); return document.activeElement === b;"
+    },
+    {
+      "name": "Enter on Load more (page 3)",
+      "key": "Enter"
+    },
+    {
+      "name": "150 groups",
+      "waitFor": "__lms.cards().length === 150",
+      "timeout": 30000
+    },
+    {
+      "name": "the time to page 3",
+      "eval": "(Math.round(performance.now() - window.__lmsAsked))",
+      "save": "t3"
+    },
+    {
+      "sleep": 600
+    },
+    {
+      "name": "page 3",
+      "eval": "(() => { const cards = __lms.cards(); const a = document.activeElement; const r = a && a.getBoundingClientRect ? a.getBoundingClientRect() : null; return { cards: cards.length, entries: __lms.qa('#LibraryMaintenanceGroupsList li').length, nodes: document.getElementsByTagName('*').length, pageNodes: __lms.page().getElementsByTagName('*').length, images: __lms.qa('#LibraryMaintenanceGroupsList img').length, heapMB: performance.memory ? Math.round(performance.memory.usedJSHeapSize / 1048576 * 10) / 10 : null, scrollY: Math.round(scrollY), scrollHeight: document.documentElement.scrollHeight, focus: a ? { tag: a.tagName, open: a.classList.contains('jflm-page-open'), card: a.closest('article') ? cards.indexOf(a.closest('article')) : -1, inView: !!r && r.top >= 0 && r.bottom <= innerHeight } : null, more: !__lms.q('#LibraryMaintenanceGroupsMore').closest('.hide') && !__lms.q('#LibraryMaintenanceGroupsMore').hidden, summary: __lms.summary() }; })()",
+      "save": "p3",
+      "full": true
+    },
+    {
+      "name": "Load more (page 4), from the keyboard",
+      "script": "const b = document.querySelector('#LibraryMaintenanceConfigPage:not(.hide) #LibraryMaintenanceGroupsMore'); b.scrollIntoView({ block: 'center' }); b.focus(); window.__lmsAsked = performance.now(); return document.activeElement === b;"
+    },
+    {
+      "name": "Enter on Load more (page 4)",
+      "key": "Enter"
+    },
+    {
+      "name": "200 groups",
+      "waitFor": "__lms.cards().length === 200",
+      "timeout": 30000
+    },
+    {
+      "name": "the time to page 4",
+      "eval": "(Math.round(performance.now() - window.__lmsAsked))",
+      "save": "t4"
+    },
+    {
+      "sleep": 600
+    },
+    {
+      "name": "page 4",
+      "eval": "(() => { const cards = __lms.cards(); const a = document.activeElement; const r = a && a.getBoundingClientRect ? a.getBoundingClientRect() : null; return { cards: cards.length, entries: __lms.qa('#LibraryMaintenanceGroupsList li').length, nodes: document.getElementsByTagName('*').length, pageNodes: __lms.page().getElementsByTagName('*').length, images: __lms.qa('#LibraryMaintenanceGroupsList img').length, heapMB: performance.memory ? Math.round(performance.memory.usedJSHeapSize / 1048576 * 10) / 10 : null, scrollY: Math.round(scrollY), scrollHeight: document.documentElement.scrollHeight, focus: a ? { tag: a.tagName, open: a.classList.contains('jflm-page-open'), card: a.closest('article') ? cards.indexOf(a.closest('article')) : -1, inView: !!r && r.top >= 0 && r.bottom <= innerHeight } : null, more: !__lms.q('#LibraryMaintenanceGroupsMore').closest('.hide') && !__lms.q('#LibraryMaintenanceGroupsMore').hidden, summary: __lms.summary() }; })()",
+      "save": "p4",
+      "full": true
+    },
+    {
+      "name": "Load more (page 5), from the keyboard",
+      "script": "const b = document.querySelector('#LibraryMaintenanceConfigPage:not(.hide) #LibraryMaintenanceGroupsMore'); b.scrollIntoView({ block: 'center' }); b.focus(); window.__lmsAsked = performance.now(); return document.activeElement === b;"
+    },
+    {
+      "name": "Enter on Load more (page 5)",
+      "key": "Enter"
+    },
+    {
+      "name": "250 groups",
+      "waitFor": "__lms.cards().length === 250",
+      "timeout": 30000
+    },
+    {
+      "name": "the time to page 5",
+      "eval": "(Math.round(performance.now() - window.__lmsAsked))",
+      "save": "t5"
+    },
+    {
+      "sleep": 600
+    },
+    {
+      "name": "page 5",
+      "eval": "(() => { const cards = __lms.cards(); const a = document.activeElement; const r = a && a.getBoundingClientRect ? a.getBoundingClientRect() : null; return { cards: cards.length, entries: __lms.qa('#LibraryMaintenanceGroupsList li').length, nodes: document.getElementsByTagName('*').length, pageNodes: __lms.page().getElementsByTagName('*').length, images: __lms.qa('#LibraryMaintenanceGroupsList img').length, heapMB: performance.memory ? Math.round(performance.memory.usedJSHeapSize / 1048576 * 10) / 10 : null, scrollY: Math.round(scrollY), scrollHeight: document.documentElement.scrollHeight, focus: a ? { tag: a.tagName, open: a.classList.contains('jflm-page-open'), card: a.closest('article') ? cards.indexOf(a.closest('article')) : -1, inView: !!r && r.top >= 0 && r.bottom <= innerHeight } : null, more: !__lms.q('#LibraryMaintenanceGroupsMore').closest('.hide') && !__lms.q('#LibraryMaintenanceGroupsMore').hidden, summary: __lms.summary() }; })()",
+      "save": "p5",
+      "full": true
+    },
+    {
+      "name": "the index's 2 s poll, twice",
+      "sleep": 4500
+    },
+    {
+      "name": "after the polls",
+      "eval": "(() => { const cards = __lms.cards(); const a = document.activeElement; const r = a && a.getBoundingClientRect ? a.getBoundingClientRect() : null; return { cards: cards.length, entries: __lms.qa('#LibraryMaintenanceGroupsList li').length, nodes: document.getElementsByTagName('*').length, pageNodes: __lms.page().getElementsByTagName('*').length, images: __lms.qa('#LibraryMaintenanceGroupsList img').length, heapMB: performance.memory ? Math.round(performance.memory.usedJSHeapSize / 1048576 * 10) / 10 : null, scrollY: Math.round(scrollY), scrollHeight: document.documentElement.scrollHeight, focus: a ? { tag: a.tagName, open: a.classList.contains('jflm-page-open'), card: a.closest('article') ? cards.indexOf(a.closest('article')) : -1, inView: !!r && r.top >= 0 && r.bottom <= innerHeight } : null, more: !__lms.q('#LibraryMaintenanceGroupsMore').closest('.hide') && !__lms.q('#LibraryMaintenanceGroupsMore').hidden, summary: __lms.summary() }; })()",
+      "save": "polled",
+      "full": true
+    },
+    {
+      "name": "scrolling the 250 groups: 120 frames of 300 px down, then back up",
+      "eval": "(async () => { scrollTo(0, 0); await new Promise(r => requestAnimationFrame(r)); const deltas = []; let last = performance.now(); for (let i = 0; i < 120; i++) { scrollBy(0, i < 60 ? 300 : -300); await new Promise(r => requestAnimationFrame(r)); const t = performance.now(); deltas.push(t - last); last = t; } deltas.sort((a, b) => a - b); return { median: Math.round(deltas[60] * 10) / 10, p95: Math.round(deltas[113] * 10) / 10, max: Math.round(deltas[119] * 10) / 10, endY: Math.round(scrollY) }; })()",
+      "save": "scroll",
+      "full": true
+    },
+    {
+      "name": "the last card in view, then the end of the page",
+      "eval": "(() => { const c = __lms.cards(); c[c.length - 1].scrollIntoView({ block: 'center' }); const r = c[c.length - 1].getBoundingClientRect(); return { lastInView: r.top < innerHeight && r.bottom > 0, scrollY: Math.round(scrollY) }; })()",
+      "save": "end",
+      "full": true
+    },
+    {
+      "screenshot": "librarymaintenance-scroll-250.png"
+    },
+    {
+      "name": "this browser's kept choices removed",
+      "eval": "(localStorage.removeItem('jflm:duplicates.view'), true)"
+    },
+    {
+      "name": "five pages: 50 more cards each, the focus on the first new card's Open and in view each time, Load more still offered",
+      "assert": "[__vars.p2, __vars.p3, __vars.p4, __vars.p5].every((p, i) => p.cards === (i + 2) * 50 && !!p.focus && p.focus.open && p.focus.card === (i + 1) * 50 && p.focus.inView && p.more) && __vars.p1.cards === 50",
+      "message": "a page did not add 50 cards, or the focus was not on its first new card"
+    },
+    {
+      "name": "the polls leave the 250 cards and the focus alone",
+      "assert": "__vars.polled.cards === 250 && !!__vars.polled.focus && __vars.polled.focus.open && __vars.polled.focus.card === 200 && __vars.polled.nodes === __vars.p5.nodes",
+      "message": "the poll re-rendered the cards or took the focus"
+    },
+    {
+      "name": "the DOM grows with the cards only (under 60 elements a card), each page within 2 s, and the scroll keeps up (median frame under 50 ms)",
+      "assert": "(__vars.p5.pageNodes - __vars.p1.pageNodes) / 200 < 60 && [__vars.t2, __vars.t3, __vars.t4, __vars.t5].every(t => Number(t) < 2000) && __vars.scroll.median < 50 && __vars.end.lastInView",
+      "message": "too many elements a card, a slow page, or a janky scroll (see the saved values)"
+    }
+  ]
+}

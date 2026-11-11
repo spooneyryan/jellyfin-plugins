@@ -1,0 +1,210 @@
+{
+  "description": "Bookmarks' settings page, the settings round trip in a sandbox, run by bookmarks-settings-probe.mjs (which starts from the sandbox's settings and puts them back in a finally). The tabs Settings | Data | Diagnostics under the banners, Settings shown; every setting on the page shows the server's value; the Clip folder help keeps clips out of libraries (a Home Videos library of their own, never a Movies or TV library); every field set on the page to a value that isn't its default (the shortcut typed, its check under the field) and saved with the Save button: the server has exactly those values, the developer settings untouched; after a reload the page shows them again, with no Jellyfin Enhanced banner (its setting off); the shortcut field checks as it is typed (M taken by the video player, Shift+ not a combination, refused by Save without a change); the settings put back.",
+  "timeout": 30000,
+  "steps": [
+    {
+      "name": "sign in as admin",
+      "login": "admin"
+    },
+    {
+      "name": "the web client is ready",
+      "waitFor": "!!window.ApiClient && !!ApiClient.getCurrentUserId()"
+    },
+    {
+      "name": "the settings before",
+      "eval": "await ApiClient.getPluginConfiguration('d0ee1b2a-7f71-4654-8ff2-163a81441b03')",
+      "save": "original",
+      "full": true
+    },
+    {
+      "name": "a clip folder inside the sandbox that doesn't exist (from the probe's work folder)",
+      "eval": "(await ApiClient.getJSON(ApiClient.getUrl('Bookmarks/Admin/Diagnostics'))).Store.File.replace(/[\\\\/]data[\\\\/]data[\\\\/]bookmarks[\\\\/]bookmarks\\.json$/i, '\\\\bookmarks-settings-probe\\\\roundtrip-clips-never-created')",
+      "save": "clipFolder"
+    },
+    {
+      "name": "the clip folder is in the sandbox",
+      "assert": "/[\\\\/]\\.sandbox[\\\\/][a-z0-9-]+[\\\\/]bookmarks-settings-probe[\\\\/]roundtrip-clips-never-created$/i.test(__vars.clipFolder)"
+    },
+    {
+      "name": "open Bookmarks' settings page",
+      "goto": "/web/index.html#/configurationpage?name=Bookmarks"
+    },
+    {
+      "name": "the page is loaded: the settings, Diagnostics and the shortcut's check",
+      "waitFor": "(() => { const p = document.querySelector('#BookmarksConfigPage:not(.hide)'); return !!p && p.querySelector('#BookmarkNowShortcut').value === String(__vars.original.BookmarkNowShortcut || '') && p.querySelector('#BookmarksDiagnosticsSummary').textContent.length > 0 && p.querySelector('#BookmarksShortcutCheck').textContent.length > 0; })()",
+      "timeout": 20000
+    },
+    {
+      "name": "the tabs",
+      "eval": "(() => { const p = document.querySelector('#BookmarksConfigPage:not(.hide)'); const tabs = Array.from(p.querySelectorAll('#BookmarksTabs [role=tab]')); return { list: p.querySelector('#BookmarksTabs').getAttribute('role'), names: tabs.map(t => t.textContent.trim()), selected: tabs.map(t => t.getAttribute('aria-selected')), panels: ['BookmarksConfigForm', 'BookmarksData', 'BookmarksDiagnostics'].map(id => !p.querySelector('#' + id).classList.contains('hide')), bannersFirst: p.querySelector('#BookmarksBanners').nextElementSibling.id }; })()",
+      "save": "tabs",
+      "full": true
+    },
+    {
+      "name": "Settings | Data | Diagnostics under the banners, Settings shown",
+      "assert": "JSON.stringify(__vars.tabs) === JSON.stringify({ list: 'tablist', names: ['Settings', 'Data', 'Diagnostics'], selected: ['true', 'false', 'false'], panels: [true, false, false], bannersFirst: 'BookmarksTabs' })"
+    },
+    {
+      "name": "what the page shows",
+      "eval": "(() => { const p = document.querySelector('#BookmarksConfigPage:not(.hide)'); const o = {}; [\"EnableWebUi\", \"ReportWebAnchorProblems\", \"EnableBookmarksPage\", \"EnableClipsPage\", \"PageHostMode\", \"RegisterPluginPages\", \"ShowFallbackNav\", \"ShowPlayerButtons\", \"BookmarkNowShortcut\", \"AskForNameDefault\", \"SuggestChapterNames\", \"ShowJellyfinEnhancedBanner\", \"DeletedUserPolicy\", \"DetachedRetentionDays\", \"SnapshotsToKeep\", \"EnableClips\", \"AdminsCanManageAllClips\", \"ClipOutputPath\", \"MinFreeSpaceMegabytes\", \"OrganizeClipsByUser\", \"DefaultClipMode\", \"MaxClipDurationSeconds\", \"MaxConcurrentClips\", \"MissingClipRetentionDays\", \"CleanUpPartialFilesOnStartup\", \"VideoPreset\", \"VideoCrf\", \"MaxVideoHeight\", \"AudioBitrateKbps\", \"AudioChannels\"].forEach(n => { const e = p.querySelector('#' + n); o[n] = e.type === 'checkbox' ? e.checked : e.value; }); return o; })()",
+      "save": "shown",
+      "full": true
+    },
+    {
+      "name": "every setting shows the server's value",
+      "assert": "((a, b) => [\"EnableWebUi\", \"ReportWebAnchorProblems\", \"EnableBookmarksPage\", \"EnableClipsPage\", \"PageHostMode\", \"RegisterPluginPages\", \"ShowFallbackNav\", \"ShowPlayerButtons\", \"BookmarkNowShortcut\", \"AskForNameDefault\", \"SuggestChapterNames\", \"ShowJellyfinEnhancedBanner\", \"DeletedUserPolicy\", \"DetachedRetentionDays\", \"SnapshotsToKeep\", \"EnableClips\", \"AdminsCanManageAllClips\", \"ClipOutputPath\", \"MinFreeSpaceMegabytes\", \"OrganizeClipsByUser\", \"DefaultClipMode\", \"MaxClipDurationSeconds\", \"MaxConcurrentClips\", \"MissingClipRetentionDays\", \"CleanUpPartialFilesOnStartup\", \"VideoPreset\", \"VideoCrf\", \"MaxVideoHeight\", \"AudioBitrateKbps\", \"AudioChannels\"].every(n => typeof b[n] === 'boolean' ? a[n] === b[n] : String(a[n]) === String(b[n] === null || b[n] === undefined ? '' : b[n])))(__vars.shown, __vars.original)"
+    },
+    {
+      "name": "the Clip folder help: the default folder, else a Home Videos library of its own; never a Movies or TV library",
+      "eval": "(() => { const c = document.querySelector('#BookmarksConfigPage:not(.hide)').querySelector('#ClipOutputPath').closest('.inputContainer'); return Array.from(c.querySelectorAll('.fieldDescription')).map(d => d.textContent).join(' '); })()",
+      "save": "help",
+      "full": true
+    },
+    {
+      "name": "the help says so, and nothing suggests a library folder without the warnings",
+      "assert": "/outside every library: the right choice unless clips should be browsable in Jellyfin/.test(__vars.help) && /a library of type Home Videos and Photos for exactly that folder/.test(__vars.help) && /Never use a Movies or TV library, or a folder inside any library/.test(__vars.help) && !/Point it at a folder inside a library/.test(__vars.help)"
+    },
+    {
+      "sleep": 300
+    },
+    {
+      "screenshot": "settings-roundtrip-top.png"
+    },
+    {
+      "name": "set every field but the shortcut to a value that isn't its default",
+      "script": "const p = document.querySelector('#BookmarksConfigPage:not(.hide)'); const want = {\"EnableWebUi\": false, \"ReportWebAnchorProblems\": false, \"EnableBookmarksPage\": false, \"EnableClipsPage\": false, \"PageHostMode\": \"Auto\", \"RegisterPluginPages\": false, \"ShowFallbackNav\": false, \"ShowPlayerButtons\": false, \"BookmarkNowShortcut\": \"Ctrl+Alt+K\", \"AskForNameDefault\": true, \"SuggestChapterNames\": false, \"ShowJellyfinEnhancedBanner\": false, \"DeletedUserPolicy\": \"Delete\", \"DetachedRetentionDays\": 120, \"SnapshotsToKeep\": 14, \"EnableClips\": false, \"AdminsCanManageAllClips\": false, \"ClipOutputPath\": __vars.clipFolder, \"MinFreeSpaceMegabytes\": 4096, \"OrganizeClipsByUser\": false, \"DefaultClipMode\": \"Fast\", \"MaxClipDurationSeconds\": 900, \"MaxConcurrentClips\": 2, \"MissingClipRetentionDays\": 45, \"CleanUpPartialFilesOnStartup\": false, \"VideoPreset\": \"slow\", \"VideoCrf\": 18, \"MaxVideoHeight\": 1080, \"AudioBitrateKbps\": 256, \"AudioChannels\": 6}; Object.keys(want).filter(n => n !== 'BookmarkNowShortcut').forEach(n => { const e = p.querySelector('#' + n); if (e.type === 'checkbox') { e.checked = want[n]; } else { e.value = String(want[n]); } e.dispatchEvent(new Event('change', { bubbles: true })); }); return true;"
+    },
+    {
+      "name": "type the shortcut",
+      "type": "ctrl+alt+k",
+      "selector": "#BookmarksConfigPage:not(.hide) #BookmarkNowShortcut",
+      "clear": true
+    },
+    {
+      "name": "its check under the field: free, saved as Ctrl+Alt+K",
+      "waitFor": "document.querySelector('#BookmarksConfigPage:not(.hide)').querySelector('#BookmarksShortcutCheck').textContent === 'Ctrl+Alt+K is free: neither the video player nor Jellyfin Enhanced takes it. Saving writes it as Ctrl+Alt+K.'",
+      "timeout": 10000
+    },
+    {
+      "name": "Save",
+      "click": "#BookmarksConfigPage:not(.hide) #BookmarksConfigForm .button-submit"
+    },
+    {
+      "name": "saved",
+      "waitFor": "(await ApiClient.getPluginConfiguration('d0ee1b2a-7f71-4654-8ff2-163a81441b03')).BookmarkNowShortcut === 'Ctrl+Alt+K'",
+      "timeout": 15000
+    },
+    {
+      "name": "the settings after",
+      "eval": "await ApiClient.getPluginConfiguration('d0ee1b2a-7f71-4654-8ff2-163a81441b03')",
+      "save": "saved",
+      "full": true
+    },
+    {
+      "name": "the server has exactly what was set, with its types; the developer settings untouched",
+      "assert": "(() => { const want = {\"EnableWebUi\": false, \"ReportWebAnchorProblems\": false, \"EnableBookmarksPage\": false, \"EnableClipsPage\": false, \"PageHostMode\": \"Auto\", \"RegisterPluginPages\": false, \"ShowFallbackNav\": false, \"ShowPlayerButtons\": false, \"BookmarkNowShortcut\": \"Ctrl+Alt+K\", \"AskForNameDefault\": true, \"SuggestChapterNames\": false, \"ShowJellyfinEnhancedBanner\": false, \"DeletedUserPolicy\": \"Delete\", \"DetachedRetentionDays\": 120, \"SnapshotsToKeep\": 14, \"EnableClips\": false, \"AdminsCanManageAllClips\": false, \"ClipOutputPath\": __vars.clipFolder, \"MinFreeSpaceMegabytes\": 4096, \"OrganizeClipsByUser\": false, \"DefaultClipMode\": \"Fast\", \"MaxClipDurationSeconds\": 900, \"MaxConcurrentClips\": 2, \"MissingClipRetentionDays\": 45, \"CleanUpPartialFilesOnStartup\": false, \"VideoPreset\": \"slow\", \"VideoCrf\": 18, \"MaxVideoHeight\": 1080, \"AudioBitrateKbps\": 256, \"AudioChannels\": 6}; return Object.keys(want).every(n => __vars.saved[n] === want[n]) && [\"EnablePageDemo\", \"EnableDemoPageB\", \"EnableIdentityDemo\", \"EnableUserDataDemo\", \"EnableLibraryChangeDemo\", \"EnableLibraryDemo\", \"DeveloperClockOffsetDays\"].every(n => __vars.saved[n] === __vars.original[n]); })()"
+    },
+    {
+      "name": "reload the page",
+      "goto": "/web/index.html#/home"
+    },
+    {
+      "name": "home",
+      "waitFor": "location.hash.indexOf('#/home') === 0"
+    },
+    {
+      "reload": true
+    },
+    {
+      "name": "the web client is ready again",
+      "waitFor": "!!window.ApiClient && !!ApiClient.getCurrentUserId()",
+      "timeout": 20000
+    },
+    {
+      "name": "open the settings page again",
+      "goto": "/web/index.html#/configurationpage?name=Bookmarks"
+    },
+    {
+      "name": "the page is loaded with the saved settings",
+      "waitFor": "(() => { const p = document.querySelector('#BookmarksConfigPage:not(.hide)'); return !!p && p.querySelector('#BookmarkNowShortcut').value === 'Ctrl+Alt+K' && p.querySelector('#BookmarksDiagnosticsSummary').textContent.length > 0 && p.querySelector('#BookmarksShortcutCheck').textContent.length > 0; })()",
+      "timeout": 20000
+    },
+    {
+      "name": "what the page shows now",
+      "eval": "(() => { const p = document.querySelector('#BookmarksConfigPage:not(.hide)'); const o = {}; [\"EnableWebUi\", \"ReportWebAnchorProblems\", \"EnableBookmarksPage\", \"EnableClipsPage\", \"PageHostMode\", \"RegisterPluginPages\", \"ShowFallbackNav\", \"ShowPlayerButtons\", \"BookmarkNowShortcut\", \"AskForNameDefault\", \"SuggestChapterNames\", \"ShowJellyfinEnhancedBanner\", \"DeletedUserPolicy\", \"DetachedRetentionDays\", \"SnapshotsToKeep\", \"EnableClips\", \"AdminsCanManageAllClips\", \"ClipOutputPath\", \"MinFreeSpaceMegabytes\", \"OrganizeClipsByUser\", \"DefaultClipMode\", \"MaxClipDurationSeconds\", \"MaxConcurrentClips\", \"MissingClipRetentionDays\", \"CleanUpPartialFilesOnStartup\", \"VideoPreset\", \"VideoCrf\", \"MaxVideoHeight\", \"AudioBitrateKbps\", \"AudioChannels\"].forEach(n => { const e = p.querySelector('#' + n); o[n] = e.type === 'checkbox' ? e.checked : e.value; }); return o; })()",
+      "save": "shownAfter",
+      "full": true
+    },
+    {
+      "name": "every field shows what was saved",
+      "assert": "((a, b) => [\"EnableWebUi\", \"ReportWebAnchorProblems\", \"EnableBookmarksPage\", \"EnableClipsPage\", \"PageHostMode\", \"RegisterPluginPages\", \"ShowFallbackNav\", \"ShowPlayerButtons\", \"BookmarkNowShortcut\", \"AskForNameDefault\", \"SuggestChapterNames\", \"ShowJellyfinEnhancedBanner\", \"DeletedUserPolicy\", \"DetachedRetentionDays\", \"SnapshotsToKeep\", \"EnableClips\", \"AdminsCanManageAllClips\", \"ClipOutputPath\", \"MinFreeSpaceMegabytes\", \"OrganizeClipsByUser\", \"DefaultClipMode\", \"MaxClipDurationSeconds\", \"MaxConcurrentClips\", \"MissingClipRetentionDays\", \"CleanUpPartialFilesOnStartup\", \"VideoPreset\", \"VideoCrf\", \"MaxVideoHeight\", \"AudioBitrateKbps\", \"AudioChannels\"].every(n => typeof b[n] === 'boolean' ? a[n] === b[n] : String(a[n]) === String(b[n] === null || b[n] === undefined ? '' : b[n])))(__vars.shownAfter, __vars.saved)"
+    },
+    {
+      "name": "Diagnostics' Jellyfin Enhanced entry with the banner setting off",
+      "eval": "(e => e && e.Overlap ? { on: e.Overlap.On, banner: e.Overlap.Banner, hidden: e.Overlap.BannerHidden, installed: e.Installed } : null)((await ApiClient.getJSON(ApiClient.getUrl('Bookmarks/Admin/Diagnostics'))).JellyfinEnhanced)",
+      "save": "je",
+      "full": true
+    },
+    {
+      "name": "no Jellyfin Enhanced banner (ShowJellyfinEnhancedBanner off: the server leaves it out, and says so while JE's Bookmarks is on)",
+      "assert": "!!__vars.je && __vars.je.banner === null && __vars.je.hidden === (__vars.je.installed && __vars.je.on) && document.querySelector('#BookmarksConfigPage:not(.hide)').querySelectorAll('#BookmarksBanners .bookmarksJeBanner').length === 0"
+    },
+    {
+      "name": "type a key the video player takes",
+      "type": "m",
+      "selector": "#BookmarksConfigPage:not(.hide) #BookmarkNowShortcut",
+      "clear": true
+    },
+    {
+      "name": "the warning under the field, the server's sentence",
+      "waitFor": "(w => !!w && w.textContent === \"M is taken by jellyfin-web's video player, so Bookmark this moment won't work with it. Choose another key.\" && w.getAttribute('data-valid') === 'true' && w.children.length === 0)(document.querySelector('#BookmarksConfigPage:not(.hide)').querySelector('#BookmarksShortcutCheck .bookmarksShortcutWarning'))",
+      "timeout": 10000
+    },
+    {
+      "name": "bring the field into view",
+      "script": "document.querySelector('#BookmarksConfigPage:not(.hide)').querySelector('#BookmarkNowShortcut').scrollIntoView({ block: 'center' }); return true;"
+    },
+    {
+      "sleep": 300
+    },
+    {
+      "screenshot": "settings-roundtrip-shortcut.png"
+    },
+    {
+      "name": "type text that isn't a key combination",
+      "type": "Shift+",
+      "selector": "#BookmarksConfigPage:not(.hide) #BookmarkNowShortcut",
+      "clear": true
+    },
+    {
+      "name": "its reason under the field",
+      "waitFor": "(w => !!w && w.getAttribute('data-valid') === 'false' && w.textContent === '\"Shift+\" isn\\'t a key combination; use a key with optional modifiers, such as Shift+B.')(document.querySelector('#BookmarksConfigPage:not(.hide)').querySelector('#BookmarksShortcutCheck .bookmarksShortcutWarning'))",
+      "timeout": 10000
+    },
+    {
+      "name": "Save",
+      "click": "#BookmarksConfigPage:not(.hide) #BookmarksConfigForm .button-submit"
+    },
+    {
+      "sleep": 2000
+    },
+    {
+      "name": "nothing was saved, and the field has the focus",
+      "assert": "(await ApiClient.getPluginConfiguration('d0ee1b2a-7f71-4654-8ff2-163a81441b03')).BookmarkNowShortcut === 'Ctrl+Alt+K' && document.activeElement && document.activeElement.id === 'BookmarkNowShortcut'"
+    },
+    {
+      "name": "put the settings back",
+      "eval": "(await ApiClient.updatePluginConfiguration('d0ee1b2a-7f71-4654-8ff2-163a81441b03', __vars.original), JSON.stringify(await ApiClient.getPluginConfiguration('d0ee1b2a-7f71-4654-8ff2-163a81441b03')) === JSON.stringify(__vars.original))",
+      "save": "restored"
+    },
+    {
+      "name": "the settings are as they were",
+      "assert": "__vars.restored === true"
+    },
+    {
+      "name": "no uncaught exceptions (the stale CustomRatings tag, and jellyfin-web's Home tab pausing its slider while JE's Custom Tabs sync runs, excepted)",
+      "noExceptions": true,
+      "ignore": "/CustomRatings/script|^TypeError: t\\.value\\.pause is not a function"
+    }
+  ]
+}

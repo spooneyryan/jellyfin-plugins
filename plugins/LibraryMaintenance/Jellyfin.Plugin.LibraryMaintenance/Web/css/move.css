@@ -1,0 +1,84 @@
+/* The Move dialog, appended to the kit's KIT_CSS in the ClientScript. Layout only:
+   colours inherit or are neutral, the accent and the status colours are the kit's variables (kit/web/kit.css); never
+   --jf-palette-background-*, -text-* or -primary-contrastText. Long paths wrap anywhere, so a 375 px phone never scrolls
+   sideways. */
+.jflm-move-dialog .jflm-native-dialog-body{padding-bottom:1em;line-height:1.4;overflow-wrap:anywhere}
+.jflm-move-intro{margin:.4em 0 .6em}
+.jflm-move-intro-text{opacity:.8}
+/* A bidi control in a name, shown as what it is (50-move-dialog.js). */
+.jflm-move-bidi-control{font-family:monospace;font-size:.85em;padding:0 .15em;border:1px solid var(--jflm-divider);border-radius:.2em}
+.jflm-move-preview-only-lead{display:block;font-weight:600;margin:0 0 .2em}
+.jflm-move-status:empty{display:none}
+.jflm-move-section{margin:0 0 1.2em}
+.jflm-move-heading{font-size:1.05em;font-weight:500;margin:1em 0 .45em}
+.jflm-move-item{display:flex;flex-wrap:wrap;align-items:center;gap:.3em .6em;margin:.2em 0}
+.jflm-move-item-title{font-weight:600}
+.jflm-move-chip,.jflm-move-badge{display:inline-block;font-size:.75em;line-height:1.5;padding:0 .55em;border:1px solid currentColor;border-radius:1em;white-space:nowrap;opacity:.85}
+.jflm-move-where,.jflm-move-location-path,.jflm-move-count{font-size:.9em;opacity:.75;margin:.2em 0}
+.jflm-move-retargeted{margin:.3em 0;padding:.35em .6em;border-left:3px solid var(--jflm-accent)}
+.jflm-move-summary{margin:.4em 0}
+.jflm-move-list{margin:.4em 0}
+.jflm-move-list-label,.jflm-move-issues-label{margin:.3em 0 .15em;font-weight:500}
+.jflm-move-names{margin:.1em 0 .3em;padding-left:1.3em;font-size:.9em}
+.jflm-move-names li{margin:.05em 0}
+.jflm-move-files summary{cursor:pointer;padding:.2em 0}
+.jflm-move-files summary:focus-visible,.jflm-move-folder:focus-visible,.jflm-move-crumb:focus-visible{outline:2px solid var(--jflm-accent);outline-offset:1px}
+.jflm-move-location-note .jflm-notice{margin:.4em 0}
+.jflm-move-crumbs{display:flex;flex-wrap:wrap;align-items:center;gap:.1em;list-style:none;margin:.5em 0;padding:0}
+.jflm-move-crumbs li{display:flex;align-items:center}
+.jflm-move-crumbs li+li::before{content:"\203A";margin:0 .25em;opacity:.6}
+.jflm-move-crumb.jflm-button{padding:.2em .5em;min-width:0;margin:0}
+.jflm-move-crumb[aria-current]{font-weight:600}
+.jflm-move-dialog .jflm-searchbox{width:100%;margin:.2em 0}
+.jflm-move-folders{list-style:none;margin:.3em 0;padding:0;max-height:22em;overflow-y:auto;border:1px solid var(--jflm-divider);border-radius:.3em}
+.jflm-move-folders:empty{display:none}
+.jflm-move-folder-row{border-bottom:1px solid var(--jflm-divider)}
+.jflm-move-folder-row:last-child{border-bottom:0}
+.jflm-move-folder{display:flex;align-items:center;gap:.5em;width:100%;padding:.45em .6em;background:none;border:0;color:inherit;font:inherit;text-align:left;cursor:pointer}
+.jflm-move-folder:hover{background:rgba(128,128,128,.18)}
+.jflm-move-folder-disabled{cursor:default;opacity:.6}
+.jflm-move-folder-disabled:hover{background:none}
+.jflm-move-folder-name{flex:1;min-width:0}
+.jflm-move-folder-icon{font-size:1.2em;opacity:.8}
+.jflm-move-folder-reason{display:block;padding:0 .6em .45em 2.3em;font-size:.82em;opacity:.75}
+.jflm-move-field-error:empty{display:none}
+.jflm-move-wrap-group{margin:.6em 0}
+.jflm-move-wrap-label{display:inline-flex;align-items:center;gap:.45em;cursor:pointer}
+.jflm-move-wrap-state{display:block;font-size:.85em;opacity:.7;margin:.15em 0 .3em}
+.jflm-move-wrap-state:empty{display:none}
+.jflm-move-preview-status{font-weight:500;margin:.3em 0}
+.jflm-move-preview-output[aria-busy="true"]{opacity:.55}
+.jflm-move-stale{opacity:.55}
+.jflm-move-issues{margin:.5em 0}
+.jflm-move-issue-list{list-style:none;margin:0;padding:0}
+.jflm-move-blocker,.jflm-move-warning{display:flex;gap:.5em;align-items:flex-start;margin:.3em 0;padding:.4em .6em;border-radius:.3em;border-left:3px solid;background:rgba(128,128,128,.1)}
+.jflm-move-blocker{border-left-color:var(--jflm-danger)}
+.jflm-move-warning{border-left-color:var(--jflm-warning)}
+.jflm-move-blocker .jflm-move-issue-icon,.jflm-move-blocker .jflm-move-issue-title{color:var(--jflm-danger)}
+.jflm-move-warning .jflm-move-issue-icon,.jflm-move-warning .jflm-move-issue-title{color:var(--jflm-warning)}
+.jflm-move-issue-text{flex:1;min-width:0}
+.jflm-move-issue-title{margin:0;font-weight:600}
+.jflm-move-issue-message{margin:.1em 0 0}
+.jflm-move-issue-icon{font-size:1.2em}
+.jflm-move-facts{display:grid;grid-template-columns:max-content 1fr;gap:.25em .8em;margin:.6em 0}
+.jflm-move-facts dt{opacity:.7}
+.jflm-move-facts dd{margin:0;min-width:0}
+.jflm-move-preview-actions{margin:.4em 0}
+.jflm-move-error{margin:.5em 0;padding:.5em .7em;border-left:3px solid var(--jflm-danger);background:rgba(128,128,128,.1)}
+.jflm-move-error-title{margin:0;font-weight:600;color:var(--jflm-danger)}
+.jflm-move-error-detail{margin:.15em 0 .3em}
+/* The footer is the dialog's last row, below the scrolling content (50-move-dialog.js), so it never scrolls away. */
+/* Its sides as jellyfin-web's .dialogContentInner (1em, 1.5em from 50em, 2em from 80em), or kit.dialog's body in its
+   fallback panel (also a column). */
+.jflm-move-footer{flex-shrink:0;border-top:1px solid var(--jflm-divider);padding:.7em 1em;overflow-wrap:anywhere}
+.jflm-panel>.jflm-move-footer{padding:.7em 1.1em}
+.jflm-move-preview-only{margin:0 0 .6em;font-size:.9em;font-weight:500}
+.jflm-move-footer-buttons{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:.5em}
+@media (min-width:50em){.jflm-native-dialog>.jflm-move-footer{padding-left:1.5em;padding-right:1.5em}}
+@media (min-width:80em){.jflm-native-dialog>.jflm-move-footer{padding-left:2em;padding-right:2em}}
+@media (max-width:600px){
+.jflm-move-facts{grid-template-columns:1fr;gap:0}
+.jflm-move-facts dd{margin:0 0 .4em}
+.jflm-move-folders{max-height:16em}
+.jflm-move-footer-buttons .jflm-button{flex:1 1 auto}
+}

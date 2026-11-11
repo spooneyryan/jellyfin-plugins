@@ -1,0 +1,4 @@
+{
+  "comment": "The jellyfin-web anchors Tag Cloud uses: none. Its page and its full-screen overlay are its own markup in the kit's page host, and its nav link is the kit's.",
+  "anchors": []
+}

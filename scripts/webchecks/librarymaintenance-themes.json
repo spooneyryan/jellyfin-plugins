@@ -1,0 +1,171 @@
+{
+  "description": "Library Maintenance's Duplicates tab in the dashboard themes Dark, Light, Apple TV and Purple Haze, as admin, in Title only (so every confidence shows): each chip kind (Confirmed, Likely, Possible, Conflict, the warnings, the reasons and flags, an edition), the Suggested keep badge, a fallback poster's initials and the page's own text are at least 4.5:1 against what is behind them (WCAG AA; the text's colour with its opacity, over the composited background colours; probes/librarymaintenance-contrast-probe.js). The page follows the dashboard theme, which jellyfin-web keeps in the user's display preferences (CustomPrefs.dashboardTheme): the check sets it through ApiClient, reloads, and puts the admin's own value back before any assertion; every theme step is optional so the restore always runs. Needs a fallback poster and a Conflict group (the default media and the LM Duplicates libraries have both). This browser's kept choices are removed at the end.",
+  "timeout": 30000,
+  "steps": [
+    {
+      "name": "contrast probe in every document",
+      "initScript": {
+        "file": "probes/librarymaintenance-contrast-probe.js"
+      }
+    },
+    {
+      "name": "sign in as admin",
+      "login": "admin"
+    },
+    {
+      "name": "the web client is ready",
+      "waitFor": "!!window.ApiClient && !!ApiClient.getCurrentUserId()"
+    },
+    {
+      "name": "the admin's dashboard theme as it was",
+      "eval": "(async () => { const p = await ApiClient.getDisplayPreferences('usersettings', ApiClient.getCurrentUserId(), 'emby'); const c = p.CustomPrefs || {}; return { had: Object.prototype.hasOwnProperty.call(c, 'dashboardTheme'), value: c.dashboardTheme === undefined ? null : c.dashboardTheme }; })()",
+      "save": "original",
+      "full": true
+    },
+    {
+      "name": "Title only in this browser, so every confidence shows",
+      "eval": "(localStorage.setItem('jflm:duplicates.view', JSON.stringify({ mode: 'Title' })), true)"
+    },
+    {
+      "name": "dashboard theme Dark",
+      "eval": "(async () => { const id = ApiClient.getCurrentUserId(); const p = await ApiClient.getDisplayPreferences('usersettings', id, 'emby'); p.CustomPrefs = p.CustomPrefs || {}; p.CustomPrefs.dashboardTheme = 'dark'; await ApiClient.updateDisplayPreferences('usersettings', p, id, 'emby'); return 'dark'; })()",
+      "optional": true
+    },
+    {
+      "name": "the page (Dark)",
+      "goto": "/web/index.html#/configurationpage?name=LibraryMaintenance",
+      "optional": true
+    },
+    {
+      "name": "the groups, a Conflict chip and a fallback poster (Dark)",
+      "waitFor": "document.documentElement.getAttribute('data-theme') === 'dark' && [...document.querySelectorAll('link[href*=\"themes/dark/theme.css\"]')].some(l => !!l.sheet) && !!document.querySelector('#LibraryMaintenanceConfigPage:not(.hide) .jflm-page-chip-confidence-conflict') && !!document.querySelector('#LibraryMaintenanceConfigPage:not(.hide) .jflm-page-poster-none')",
+      "timeout": 20000,
+      "optional": true
+    },
+    {
+      "sleep": 1000
+    },
+    {
+      "name": "Dark: the contrast",
+      "eval": "__lmContrast()",
+      "save": "dark",
+      "full": true,
+      "optional": true
+    },
+    {
+      "screenshot": "librarymaintenance-theme-dark.png"
+    },
+    {
+      "name": "dashboard theme Light",
+      "eval": "(async () => { const id = ApiClient.getCurrentUserId(); const p = await ApiClient.getDisplayPreferences('usersettings', id, 'emby'); p.CustomPrefs = p.CustomPrefs || {}; p.CustomPrefs.dashboardTheme = 'light'; await ApiClient.updateDisplayPreferences('usersettings', p, id, 'emby'); return 'light'; })()",
+      "optional": true
+    },
+    {
+      "name": "reload (Light)",
+      "reload": true,
+      "optional": true
+    },
+    {
+      "name": "the groups, a Conflict chip and a fallback poster (Light)",
+      "waitFor": "document.documentElement.getAttribute('data-theme') === 'light' && [...document.querySelectorAll('link[href*=\"themes/light/theme.css\"]')].some(l => !!l.sheet) && !!document.querySelector('#LibraryMaintenanceConfigPage:not(.hide) .jflm-page-chip-confidence-conflict') && !!document.querySelector('#LibraryMaintenanceConfigPage:not(.hide) .jflm-page-poster-none')",
+      "timeout": 20000,
+      "optional": true
+    },
+    {
+      "sleep": 1000
+    },
+    {
+      "name": "Light: the contrast",
+      "eval": "__lmContrast()",
+      "save": "light",
+      "full": true,
+      "optional": true
+    },
+    {
+      "screenshot": "librarymaintenance-theme-light.png"
+    },
+    {
+      "name": "dashboard theme Apple TV",
+      "eval": "(async () => { const id = ApiClient.getCurrentUserId(); const p = await ApiClient.getDisplayPreferences('usersettings', id, 'emby'); p.CustomPrefs = p.CustomPrefs || {}; p.CustomPrefs.dashboardTheme = 'appletv'; await ApiClient.updateDisplayPreferences('usersettings', p, id, 'emby'); return 'appletv'; })()",
+      "optional": true
+    },
+    {
+      "name": "reload (Apple TV)",
+      "reload": true,
+      "optional": true
+    },
+    {
+      "name": "the groups, a Conflict chip and a fallback poster (Apple TV)",
+      "waitFor": "document.documentElement.getAttribute('data-theme') === 'appletv' && [...document.querySelectorAll('link[href*=\"themes/appletv/theme.css\"]')].some(l => !!l.sheet) && !!document.querySelector('#LibraryMaintenanceConfigPage:not(.hide) .jflm-page-chip-confidence-conflict') && !!document.querySelector('#LibraryMaintenanceConfigPage:not(.hide) .jflm-page-poster-none')",
+      "timeout": 20000,
+      "optional": true
+    },
+    {
+      "sleep": 1000
+    },
+    {
+      "name": "Apple TV: the contrast",
+      "eval": "__lmContrast()",
+      "save": "appletv",
+      "full": true,
+      "optional": true
+    },
+    {
+      "screenshot": "librarymaintenance-theme-appletv.png"
+    },
+    {
+      "name": "dashboard theme Purple Haze",
+      "eval": "(async () => { const id = ApiClient.getCurrentUserId(); const p = await ApiClient.getDisplayPreferences('usersettings', id, 'emby'); p.CustomPrefs = p.CustomPrefs || {}; p.CustomPrefs.dashboardTheme = 'purplehaze'; await ApiClient.updateDisplayPreferences('usersettings', p, id, 'emby'); return 'purplehaze'; })()",
+      "optional": true
+    },
+    {
+      "name": "reload (Purple Haze)",
+      "reload": true,
+      "optional": true
+    },
+    {
+      "name": "the groups, a Conflict chip and a fallback poster (Purple Haze)",
+      "waitFor": "document.documentElement.getAttribute('data-theme') === 'purplehaze' && [...document.querySelectorAll('link[href*=\"themes/purplehaze/theme.css\"]')].some(l => !!l.sheet) && !!document.querySelector('#LibraryMaintenanceConfigPage:not(.hide) .jflm-page-chip-confidence-conflict') && !!document.querySelector('#LibraryMaintenanceConfigPage:not(.hide) .jflm-page-poster-none')",
+      "timeout": 20000,
+      "optional": true
+    },
+    {
+      "sleep": 1000
+    },
+    {
+      "name": "Purple Haze: the contrast",
+      "eval": "__lmContrast()",
+      "save": "purplehaze",
+      "full": true,
+      "optional": true
+    },
+    {
+      "screenshot": "librarymaintenance-theme-purplehaze.png"
+    },
+    {
+      "name": "the admin's dashboard theme put back",
+      "eval": "(async () => { const id = ApiClient.getCurrentUserId(); const p = await ApiClient.getDisplayPreferences('usersettings', id, 'emby'); p.CustomPrefs = p.CustomPrefs || {}; if (__vars.original && __vars.original.had) { p.CustomPrefs.dashboardTheme = __vars.original.value; } else { delete p.CustomPrefs.dashboardTheme; } await ApiClient.updateDisplayPreferences('usersettings', p, id, 'emby'); const after = await ApiClient.getDisplayPreferences('usersettings', id, 'emby'); const c = after.CustomPrefs || {}; return { had: Object.prototype.hasOwnProperty.call(c, 'dashboardTheme') && c.dashboardTheme !== null, value: c.dashboardTheme === undefined ? null : c.dashboardTheme }; })()",
+      "save": "restored",
+      "full": true
+    },
+    {
+      "name": "this browser's kept choices removed",
+      "eval": "(localStorage.removeItem('jflm:duplicates.view'), true)"
+    },
+    {
+      "name": "the admin's dashboard theme is as it was",
+      "assert": "!!__vars.original && !!__vars.restored && __vars.restored.value === __vars.original.value",
+      "message": "the admin's dashboard theme wasn't put back"
+    },
+    {
+      "name": "each theme was the page's own, and Light's background differs from Dark's",
+      "assert": "!!__vars.dark && !!__vars.light && !!__vars.appletv && !!__vars.purplehaze && __vars.dark.theme === 'dark' && __vars.light.theme === 'light' && __vars.appletv.theme === 'appletv' && __vars.purplehaze.theme === 'purplehaze' && __vars.light.background !== __vars.dark.background",
+      "message": "a theme did not apply to the page"
+    },
+    {
+      "name": "in every theme each chip kind, the suggested-keep badge, the fallback poster's initials, the page's text and the kit's danger red are at least 4.5:1 against what is behind them",
+      "assert": "[__vars.dark, __vars.light, __vars.appletv, __vars.purplehaze].every(t => t.items.filter(x => !x.missing).length >= 10 && t.items.some(x => x.kind === 'danger' && !x.missing) && t.items.every(x => x.missing ? ['possible', 'edition', 'warning'].indexOf(x.kind) >= 0 : x.ratio >= 4.5))",
+      "message": "a chip, the badge or the fallback poster is below 4.5:1 in a theme (see the saved values)"
+    }
+  ]
+}

@@ -1,0 +1,68 @@
+/*
+ * Shared kit styles. EmbeddedScript replaces __PFX__ with the plugin's prefix and appends the plugin's own
+ * Web/css files; kit.start() puts the result into <style id="<prefix>-styles">.
+ *
+ * Layout only. Text colour inherits. Surfaces come from the native classes the kit's helpers add (dialog, emby-input,
+ * emby-textarea, emby-select-withcolor, button-submit), so they follow the theme, or are neutral rgba(128,128,128,...).
+ * Dividers use --jf-palette-divider and the accent --jf-palette-primary-main, both with fallbacks: they are empty until
+ * React mounts. Never --jf-palette-background-*, --jf-palette-text-* or --jf-palette-primary-contrastText,
+ * which follow MUI's palettes rather than the theme our nodes sit in. Class selectors here are all the
+ * kit's own.
+ */
+:root{--__PFX__-accent:var(--jf-palette-primary-main,#00a4dc);--__PFX__-divider:var(--jf-palette-divider,rgba(128,128,128,.3));--__PFX__-danger:#ff8a80;--__PFX__-warning:#ffb74d;--__PFX__-success:#8be3ae}
+html[data-theme="light"],html[data-theme="appletv"]{--__PFX__-danger:#c62828;--__PFX__-warning:#a15c00;--__PFX__-success:#2e7d32}
+/* Apple TV's background (rgb(213,233,242)) gives #c62828 4.48:1; #b71c1c is 5.25:1, above the 4.5:1 of WCAG AA. */
+html[data-theme="appletv"]{--__PFX__-danger:#b71c1c}
+.__PFX__-backdrop{position:fixed;top:0;right:0;bottom:0;left:0;z-index:100000;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:1em;box-sizing:border-box;cursor:default}
+.__PFX__-panel{color:inherit;border-radius:.5em;box-shadow:0 8px 32px rgba(0,0,0,.6);width:34em;max-width:100%;max-height:90vh;display:flex;flex-direction:column;font-size:1rem}
+.__PFX__-panel-header{display:flex;align-items:center;justify-content:space-between;padding:.6em .6em .6em 1.1em;border-bottom:1px solid var(--__PFX__-divider)}
+.__PFX__-panel-header h3{margin:0;font-size:1.15em;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.__PFX__-panel-body{padding:1em 1.1em 1.1em;overflow-y:auto}
+.__PFX__-field{margin-bottom:.9em}
+.__PFX__-field label{display:block;margin-bottom:.3em;font-size:.9em;opacity:.75}
+.__PFX__-field-row{display:flex;gap:.3em;align-items:center}
+/* max-width: a select is as wide as its longest option unless held, and on a 375 px phone one went past the screen. */
+.__PFX__-input,.__PFX__-textarea,.__PFX__-select{box-sizing:border-box;max-width:100%;border-radius:.25em;padding:.55em .65em;font:inherit;color:inherit}
+.__PFX__-input,.__PFX__-textarea{flex:1;min-width:0;width:100%}
+.__PFX__-textarea{display:block;margin:0;min-height:4.6em;resize:vertical}
+select.__PFX__-select{-webkit-appearance:menulist;appearance:auto}
+.__PFX__-select:focus{outline:2px solid var(--__PFX__-accent);outline-offset:-1px}
+.__PFX__-hint{font-size:.85em;opacity:.65;margin:-.4em 0 .9em}
+.__PFX__-hint-warning{color:var(--__PFX__-warning);opacity:1}
+.__PFX__-error{color:var(--__PFX__-danger);min-height:1.2em;font-size:.9em;margin-bottom:.4em}
+.__PFX__-actions{display:flex;flex-wrap:wrap;gap:.5em;justify-content:flex-end;align-items:center;margin-top:.6em}
+.__PFX__-button{display:inline-flex;align-items:center;gap:.35em;background:rgba(128,128,128,.25);color:inherit;border:0;border-radius:.25em;padding:.55em 1em;font:inherit;cursor:pointer}
+.__PFX__-button:hover{background:rgba(128,128,128,.35)}
+.__PFX__-button-primary{background:var(--__PFX__-accent);color:#fff}
+.__PFX__-button-primary:hover{background:var(--__PFX__-accent);filter:brightness(1.12)}
+.__PFX__-button-danger{color:var(--__PFX__-danger);margin-right:auto}
+.__PFX__-button:disabled{opacity:.5;cursor:default}
+.__PFX__-icon-button{display:inline-flex;align-items:center;justify-content:center;background:none;border:0;color:inherit;padding:.35em;border-radius:50%;cursor:pointer}
+.__PFX__-icon-button:hover{background:rgba(128,128,128,.25)}
+.__PFX__-checkbox{display:flex;gap:.5em;align-items:center;margin:.5em 0}
+.__PFX__-toasts{position:fixed;left:50%;bottom:2em;transform:translateX(-50%);z-index:100001;display:flex;flex-direction:column;gap:.5em;align-items:center;pointer-events:none}
+.__PFX__-toasts-player{bottom:7em}
+.__PFX__-toast{background:rgba(48,48,48,.96);color:rgba(255,255,255,.87);padding:.7em 1.1em;border-radius:.35em;box-shadow:0 4px 16px rgba(0,0,0,.5);display:flex;gap:1.2em;align-items:center;pointer-events:auto;max-width:90vw}
+.__PFX__-toast-action{background:none;border:0;color:var(--__PFX__-accent);font:inherit;font-weight:600;cursor:pointer;text-transform:uppercase;padding:0;text-decoration:none}
+.__PFX__-toast .__PFX__-toast-action{flex:0 0 auto;margin:0;white-space:nowrap}
+.__PFX__-link{background:none;border:0;padding:0;color:var(--__PFX__-accent);font:inherit;cursor:pointer;text-decoration:none}
+.__PFX__-link:hover{text-decoration:underline}
+.__PFX__-card-image{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;border-radius:inherit}
+.__PFX__-card-actions{display:flex;justify-content:center;gap:.2em;padding:.2em 0}
+.__PFX__-listitem-image{position:relative;width:3.4em;height:5.1em;flex-shrink:0;display:flex;align-items:center;justify-content:center;overflow:hidden;border-radius:.2em;background:rgba(128,128,128,.12);color:inherit}
+.__PFX__-listitem-img{width:100%;height:100%;object-fit:cover}
+.__PFX__-listitem-link{color:inherit;text-decoration:none}
+.__PFX__-listitem-link:hover{text-decoration:underline}
+.__PFX__-listitem-actions{display:flex;gap:.1em;flex-shrink:0}
+[data-__PFX__-mounted]>.__PFX__-shell-note{display:none}
+.__PFX__-page-note{opacity:.85}
+.__PFX__-confirm-note{margin-top:0;font-size:.9em;opacity:.85}
+.__PFX__-searchbox{max-width:22em}
+.__PFX__-pager{display:flex;align-items:center;justify-content:center;gap:1em;padding:1em 0;min-height:2.6em}
+.__PFX__-pager-status{opacity:.7}
+.__PFX__-notice{display:flex;flex-wrap:wrap;align-items:center;gap:.6em 1.2em;padding:.8em 1em;border-radius:.3em;background:rgba(128,128,128,.12);margin:.5em 0}
+.__PFX__-notice-error{color:var(--__PFX__-danger)}
+.__PFX__-notice-error .__PFX__-notice-action{color:inherit}
+@media (max-width:40em){.__PFX__-backdrop{align-items:flex-end;padding:0}.__PFX__-panel{width:100%;max-height:85vh;border-radius:.5em .5em 0 0}}
+@media (pointer:coarse){.__PFX__-icon-button{min-width:40px;min-height:40px}}
+@media (forced-colors:active){.__PFX__-button,.__PFX__-icon-button,.__PFX__-toast{border:1px solid ButtonText}.__PFX__-panel{border:1px solid CanvasText}}

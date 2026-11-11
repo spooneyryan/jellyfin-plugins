@@ -1,0 +1,561 @@
+{
+  "name": "Focus trapped in a dialog and restored on close: the My Clips page's row dialogs take the focus and give it back, as admin over five Fast clips it seeds (focus-check A to E). Desktop: Enter on a row's Delete clip opens the dialog with the focus on Cancel, Escape gives it back to that button; Preview's dialog on its Close; the preview of a clip deleted elsewhere says \"This clip isn't available any more.\" without Download (the route asked for a byte), its row read again and gone, the focus then on the next row; the bulk dialog on Cancel and back on the bar's Delete…; a delete confirmed with the keyboard (Tab, Enter) passes the focus to the next row's action. TV layout: Enter on Delete clip, the D-pad's ArrowDown to Delete, Enter confirms, exactly one dialog all along and the focus on the next row; the bulk delete with the remote, the focus on the toolbar once no row is left; My Bookmarks' delete confirmation the same way, the focus on the group drawn again. It deletes every bookmark and clip it made. By hand.",
+  "failOnException": false,
+  "timeout": 30000,
+  "steps": [
+    {
+      "name": "sign in as admin",
+      "login": "admin"
+    },
+    {
+      "name": "the Bookmarks script ran",
+      "waitFor": "!!window.__jfkit && !!window.__jfkit.jfbm && !!window.ApiClient && !!ApiClient.getCurrentUserId()"
+    },
+    {
+      "name": "the default layout for this browser",
+      "eval": "(localStorage.removeItem('layout'), true)"
+    },
+    {
+      "name": "the capabilities offer My Clips; clips may be made and downloaded",
+      "assert": "((c) => c.Pages.Clips === true && c.CanCreateClips === true && c.CanDownloadClips === true)(await ApiClient.getJSON(ApiClient.getUrl('Bookmarks/Capabilities')))"
+    },
+    {
+      "name": "find Long Test Movie",
+      "eval": "(await ApiClient.getItems(ApiClient.getCurrentUserId(), { IncludeItemTypes: 'Movie', Recursive: true, SearchTerm: 'Long Test Movie', Limit: 1 })).Items[0].Id",
+      "save": "movieId"
+    },
+    {
+      "name": "the 'focus-check' bookmarks of an earlier run deleted, with their clips",
+      "script": "const r = await ApiClient.getJSON(ApiClient.getUrl('Bookmarks/Query', { searchTerm: 'focus-check', limit: 200 })); const ids = r.Items.map(b => b.Id); if (ids.length) { await ApiClient.ajax({ type: 'POST', url: ApiClient.getUrl('Bookmarks/BulkDelete'), data: JSON.stringify({ Ids: ids, DeleteClips: true }), contentType: 'application/json', dataType: 'json' }); } const kept = await ApiClient.getJSON(ApiClient.getUrl('Bookmarks/Clips', { searchTerm: 'focus-check', limit: 200 })); for (const c of kept.Items) { await ApiClient.ajax({ type: 'DELETE', url: ApiClient.getUrl('Bookmarks/' + c.Id + '/Clip') }); } return ids.length + kept.Items.length;"
+    },
+    {
+      "name": "seed: five named ranges of Long Test Movie (A to E), each with a Fast clip, followed until each is ready",
+      "script": "const T = 10000000; const post = (body) => ApiClient.ajax({ type: 'POST', url: ApiClient.getUrl('Bookmarks'), data: JSON.stringify(body), contentType: 'application/json', dataType: 'json' }); const ids = []; for (const [n, s] of [['A', 10], ['B', 20], ['C', 30], ['D', 40], ['E', 50]]) { const b = await post({ ItemId: __vars.movieId, StartTicks: s * T, EndTicks: (s + 2) * T, Name: 'focus-check ' + n }); ids.push(b.Id); } for (const id of ids) { await ApiClient.ajax({ type: 'POST', url: ApiClient.getUrl('Bookmarks/' + id + '/Clip'), data: JSON.stringify({ Mode: 'Fast' }), contentType: 'application/json', dataType: 'json' }); } for (const id of ids) { let done = false; for (let i = 0; i < 240 && !done; i++) { const x = await ApiClient.getJSON(ApiClient.getUrl('Bookmarks/' + id)); if (x.Clip && x.Clip.Status === 'Completed' && x.Clip.FileName) { done = true; break; } if (x.Clip && x.Clip.Status === 'Failed') throw new Error('the clip failed: ' + x.Clip.Error); await new Promise(r => setTimeout(r, 500)); } if (!done) throw new Error('the clip did not complete'); } return ids;",
+      "save": "ids",
+      "timeout": 150000
+    },
+    {
+      "name": "A's id",
+      "eval": "__vars.ids[0]",
+      "save": "a"
+    },
+    {
+      "name": "B's id",
+      "eval": "__vars.ids[1]",
+      "save": "b"
+    },
+    {
+      "name": "C's id",
+      "eval": "__vars.ids[2]",
+      "save": "c"
+    },
+    {
+      "name": "D's id",
+      "eval": "__vars.ids[3]",
+      "save": "d"
+    },
+    {
+      "name": "E's id",
+      "eval": "__vars.ids[4]",
+      "save": "e"
+    },
+    {
+      "name": "My Clips with the seeded clips",
+      "goto": "/web/index.html#/jfbm-clips?q=focus-check"
+    },
+    {
+      "name": "the five rows",
+      "waitFor": "(() => { const r = document.querySelector('#fallbackPage > [data-jfbm-page=\"clips\"]'); if (!r || r.getAttribute('data-jfbm-state') !== 'on') return false; const c = r.querySelector('.jfbm-clips-content'); if (!c || c.hasAttribute('aria-busy')) return false; const k = (id) => String(id || '').replace(/-/g, '').toLowerCase(); return __vars.ids.every(id => !!c.querySelector('.jfbm-clips-row[data-jfbm-clip=\"' + k(id) + '\"]')); })()",
+      "timeout": 20000
+    },
+    {
+      "name": "helpers",
+      "eval": "window.__c4f = (() => { const k = (id) => String(id || '').replace(/-/g, '').toLowerCase(); const root = () => document.querySelector('#fallbackPage > [data-jfbm-page=\"clips\"]'); const row = (id) => { const r = root(); return r && id ? r.querySelector('.jfbm-clips-row[data-jfbm-clip=\"' + k(id) + '\"]') : null; }; const btn = (scope, title) => scope ? [...scope.querySelectorAll('button')].find(b => b.getAttribute('title') === title) || null : null; const panels = () => [...document.querySelectorAll('.jfbm-backdrop .jfbm-panel')]; const panel = (title) => panels().find(p => p.querySelector('h3').textContent === title) || null; const action = (p, label) => p ? [...p.querySelectorAll('.jfbm-actions button')].find(b => b.textContent === label) || null : null; const where = () => { const a = document.activeElement; const p = a && a.closest ? a.closest('.jfbm-panel') : null; const r = a && a.closest ? a.closest('.jfbm-clips-row') : null; return { body: a === document.body, inPanel: !!p, panel: p ? p.querySelector('h3').textContent : null, text: a ? (a.textContent || '').trim() : null, title: a && a.getAttribute ? a.getAttribute('title') : null, row: r ? r.getAttribute('data-jfbm-clip') : null, toolbar: !!(a && a.closest && a.closest('.jfbm-clips-toolbar')), bar: !!(a && a.closest && a.closest('.jfbm-bulk-bar')), dialogs: panels().length }; }; const order = () => [...root().querySelectorAll('.jfbm-clips-row')].map(r => r.getAttribute('data-jfbm-clip')); return { k, root, row, btn, panels, panel, action, where, order }; })(), true"
+    },
+    {
+      "name": "desktop: A's Delete clip focused",
+      "script": "const b = __c4f.btn(__c4f.row(__vars.a), 'Delete clip'); b.focus(); return document.activeElement === b;",
+      "save": "focused"
+    },
+    {
+      "name": "as expected",
+      "assert": "__vars.focused === true"
+    },
+    {
+      "name": "count the dialogs from here",
+      "script": "window.__c4max = document.querySelectorAll('.jfbm-backdrop').length; if (window.__c4obs) window.__c4obs.disconnect(); window.__c4obs = new MutationObserver(() => { window.__c4max = Math.max(window.__c4max, document.querySelectorAll('.jfbm-backdrop').length); }); window.__c4obs.observe(document.body, { childList: true }); return window.__c4max;"
+    },
+    {
+      "name": "Enter on it",
+      "key": "Enter"
+    },
+    {
+      "name": "the Delete clip? dialog",
+      "waitFor": "!!__c4f.panel('Delete clip?')"
+    },
+    {
+      "name": "where the focus is",
+      "eval": "__c4f.where()",
+      "save": "d1",
+      "full": true
+    },
+    {
+      "name": "desktop: the focus in the dialog, on Cancel (regression: was inPanel false), one dialog",
+      "assert": "__vars.d1.inPanel && __vars.d1.text === 'Cancel' && __vars.d1.dialogs === 1"
+    },
+    {
+      "name": "Escape",
+      "key": "Escape"
+    },
+    {
+      "name": "closed",
+      "waitFor": "__c4f.panels().length === 0"
+    },
+    {
+      "name": "the focus back on A's Delete clip, never more than one dialog",
+      "assert": "((w) => w.row === __c4f.k(__vars.a) && w.title === 'Delete clip' && window.__c4max === 1)(__c4f.where())"
+    },
+    {
+      "name": "desktop: A's Preview focused",
+      "script": "const b = __c4f.btn(__c4f.row(__vars.a), 'Preview'); b.focus(); return document.activeElement === b;",
+      "save": "focused"
+    },
+    {
+      "name": "Enter on it",
+      "key": "Enter"
+    },
+    {
+      "name": "the preview",
+      "waitFor": "!!__c4f.panel('focus-check A') && !!__c4f.panel('focus-check A').querySelector('video')"
+    },
+    {
+      "name": "where the focus is",
+      "eval": "__c4f.where()",
+      "save": "p1",
+      "full": true
+    },
+    {
+      "name": "desktop: the preview's focus on its Close (an earlier build had inPanel false)",
+      "assert": "__vars.p1.inPanel && __vars.p1.text === 'Close' && __vars.p1.dialogs === 1"
+    },
+    {
+      "name": "the video plays: no failure sentence",
+      "waitFor": "((p) => { const v = p && p.querySelector('video'); return !!v && v.readyState >= 2 && p.querySelector('.jfbm-preview-message').classList.contains('hide'); })(__c4f.panel('focus-check A'))",
+      "timeout": 15000
+    },
+    {
+      "name": "Escape",
+      "key": "Escape"
+    },
+    {
+      "name": "closed",
+      "waitFor": "__c4f.panels().length === 0"
+    },
+    {
+      "name": "the focus back on A's Preview",
+      "assert": "((w) => w.row === __c4f.k(__vars.a) && w.title === 'Preview')(__c4f.where())"
+    },
+    {
+      "name": "E's clip deleted elsewhere (another tab: through the API), the page not told",
+      "script": "await ApiClient.ajax({ type: 'DELETE', url: ApiClient.getUrl('Bookmarks/' + __vars.e + '/Clip') }); return !!__c4f.row(__vars.e) && !!__c4f.btn(__c4f.row(__vars.e), 'Preview');",
+      "save": "eShown"
+    },
+    {
+      "name": "as expected: E's row still offers Preview",
+      "assert": "__vars.eShown === true"
+    },
+    {
+      "name": "the rows' order and E's neighbour",
+      "eval": "((o) => { const i = o.indexOf(__c4f.k(__vars.e)); return o[i + 1] || o[i - 1]; })(__c4f.order())",
+      "save": "eNext"
+    },
+    {
+      "name": "desktop: E's Preview focused",
+      "script": "const b = __c4f.btn(__c4f.row(__vars.e), 'Preview'); b.focus(); return document.activeElement === b;",
+      "save": "focused"
+    },
+    {
+      "name": "Enter on it",
+      "key": "Enter"
+    },
+    {
+      "name": "the preview says the clip isn't available any more",
+      "waitFor": "((p) => !!p && !p.querySelector('.jfbm-preview-message').classList.contains('hide'))(__c4f.panel('focus-check E'))",
+      "timeout": 15000
+    },
+    {
+      "name": "what it says and offers",
+      "eval": "((p) => ({ message: p.querySelector('.jfbm-preview-message').textContent, video: !!p.querySelector('video'), download: !!p.querySelector('.jfbm-preview-download'), where: __c4f.where() }))(__c4f.panel('focus-check E'))",
+      "save": "gone",
+      "full": true
+    },
+    {
+      "name": "finding 3: the route's refusal, not the codec sentence; no Download; the focus on Close",
+      "assert": "/^This clip isn.t available any more\\.$/.test(__vars.gone.message) && !__vars.gone.video && !__vars.gone.download && __vars.gone.where.inPanel && __vars.gone.where.text === 'Close'"
+    },
+    {
+      "name": "the row read again: E (its bookmark without a clip now) gone from the list",
+      "waitFor": "!__c4f.row(__vars.e)",
+      "timeout": 10000
+    },
+    {
+      "name": "Escape",
+      "key": "Escape"
+    },
+    {
+      "name": "closed",
+      "waitFor": "__c4f.panels().length === 0"
+    },
+    {
+      "name": "where the focus is (after the refused preview)",
+      "eval": "__c4f.where()",
+      "save": "e2",
+      "full": true
+    },
+    {
+      "name": "the focus on the row after E's (its own row is gone), not the page's body",
+      "assert": "!__vars.e2.body && __vars.e2.row === __vars.eNext"
+    },
+    {
+      "name": "A and B ticked",
+      "script": "for (const id of [__vars.a, __vars.b]) { const box = __c4f.row(id).querySelector('.jfbm-row-select-box'); box.click(); } return [...__c4f.root().querySelectorAll('.jfbm-row-select-box')].filter(b => b.checked).length;",
+      "save": "ticked"
+    },
+    {
+      "name": "the bar's Delete… focused",
+      "script": "const b = __c4f.root().querySelector('.jfbm-bulk-delete'); b.focus(); return document.activeElement === b && __vars.ticked === 2;",
+      "save": "focused"
+    },
+    {
+      "name": "as expected",
+      "assert": "__vars.focused === true"
+    },
+    {
+      "name": "Enter on it",
+      "key": "Enter"
+    },
+    {
+      "name": "the Delete 2 clips? dialog",
+      "waitFor": "!!__c4f.panel('Delete 2 clips?')"
+    },
+    {
+      "name": "where the focus is",
+      "eval": "__c4f.where()",
+      "save": "b1",
+      "full": true
+    },
+    {
+      "name": "desktop: the bulk dialog's focus on Cancel (regression: was inPanel false)",
+      "assert": "__vars.b1.inPanel && __vars.b1.text === 'Cancel' && __vars.b1.dialogs === 1"
+    },
+    {
+      "name": "Escape",
+      "key": "Escape"
+    },
+    {
+      "name": "closed",
+      "waitFor": "__c4f.panels().length === 0"
+    },
+    {
+      "name": "the focus back on the bar's Delete…",
+      "assert": "__c4f.where().bar && document.activeElement.textContent === 'Delete…'"
+    },
+    {
+      "name": "the selection cleared",
+      "script": "__c4f.root().querySelector('.jfbm-bulk-clear').click(); return __c4f.root().querySelectorAll('.jfbm-row-select-box:checked').length;"
+    },
+    {
+      "name": "the rows' order and D's neighbour (the next row, else the previous)",
+      "eval": "((o) => { const i = o.indexOf(__c4f.k(__vars.d)); return o[i + 1] || o[i - 1]; })(__c4f.order())",
+      "save": "dNext"
+    },
+    {
+      "name": "desktop: D's Delete clip focused",
+      "script": "const b = __c4f.btn(__c4f.row(__vars.d), 'Delete clip'); b.focus(); return document.activeElement === b;",
+      "save": "focused"
+    },
+    {
+      "name": "Enter on it",
+      "key": "Enter"
+    },
+    {
+      "name": "the Delete clip? dialog",
+      "waitFor": "!!__c4f.panel('Delete clip?') && __c4f.where().text === 'Cancel'"
+    },
+    {
+      "name": "Tab to Delete",
+      "key": "Tab"
+    },
+    {
+      "name": "on Delete",
+      "assert": "((w) => w.inPanel && w.text === 'Delete')(__c4f.where())"
+    },
+    {
+      "name": "Enter confirms",
+      "key": "Enter"
+    },
+    {
+      "name": "deleted: the dialog gone, D's row gone",
+      "waitFor": "__c4f.panels().length === 0 && !__c4f.row(__vars.d)",
+      "timeout": 15000
+    },
+    {
+      "name": "where the focus is",
+      "eval": "__c4f.where()",
+      "save": "d2",
+      "full": true
+    },
+    {
+      "name": "desktop: the focus on the next row's action, not the page's body (regression: was BODY)",
+      "assert": "!__vars.d2.body && __vars.d2.row === __vars.dNext"
+    },
+    {
+      "name": "TV layout for this browser",
+      "eval": "(localStorage.setItem('layout', 'tv'), true)"
+    },
+    {
+      "name": "reload (TV)",
+      "reload": true
+    },
+    {
+      "name": "TV layout applied",
+      "waitFor": "document.documentElement.classList.contains('layout-tv') && !!window.__jfkit && !!window.__jfkit.jfbm && !!ApiClient.getCurrentUserId()"
+    },
+    {
+      "name": "My Clips with the seeded clips (TV)",
+      "goto": "/web/index.html#/jfbm-clips?q=focus-check"
+    },
+    {
+      "name": "the three rows left",
+      "waitFor": "(() => { const r = document.querySelector('#fallbackPage > [data-jfbm-page=\"clips\"]'); if (!r || r.getAttribute('data-jfbm-state') !== 'on') return false; const c = r.querySelector('.jfbm-clips-content'); if (!c || c.hasAttribute('aria-busy')) return false; const k = (id) => String(id || '').replace(/-/g, '').toLowerCase(); return __vars.ids.slice(0, 3).every(id => !!c.querySelector('.jfbm-clips-row[data-jfbm-clip=\"' + k(id) + '\"]')); })()",
+      "timeout": 20000
+    },
+    {
+      "name": "helpers (TV)",
+      "eval": "window.__c4f = (() => { const k = (id) => String(id || '').replace(/-/g, '').toLowerCase(); const root = () => document.querySelector('#fallbackPage > [data-jfbm-page=\"clips\"]'); const row = (id) => { const r = root(); return r && id ? r.querySelector('.jfbm-clips-row[data-jfbm-clip=\"' + k(id) + '\"]') : null; }; const btn = (scope, title) => scope ? [...scope.querySelectorAll('button')].find(b => b.getAttribute('title') === title) || null : null; const panels = () => [...document.querySelectorAll('.jfbm-backdrop .jfbm-panel')]; const panel = (title) => panels().find(p => p.querySelector('h3').textContent === title) || null; const action = (p, label) => p ? [...p.querySelectorAll('.jfbm-actions button')].find(b => b.textContent === label) || null : null; const where = () => { const a = document.activeElement; const p = a && a.closest ? a.closest('.jfbm-panel') : null; const r = a && a.closest ? a.closest('.jfbm-clips-row') : null; return { body: a === document.body, inPanel: !!p, panel: p ? p.querySelector('h3').textContent : null, text: a ? (a.textContent || '').trim() : null, title: a && a.getAttribute ? a.getAttribute('title') : null, row: r ? r.getAttribute('data-jfbm-clip') : null, toolbar: !!(a && a.closest && a.closest('.jfbm-clips-toolbar')), bar: !!(a && a.closest && a.closest('.jfbm-bulk-bar')), dialogs: panels().length }; }; const order = () => [...root().querySelectorAll('.jfbm-clips-row')].map(r => r.getAttribute('data-jfbm-clip')); return { k, root, row, btn, panels, panel, action, where, order }; })(), true"
+    },
+    {
+      "name": "the rows' order and C's neighbour",
+      "eval": "((o) => { const i = o.indexOf(__c4f.k(__vars.c)); return o[i + 1] || o[i - 1]; })(__c4f.order())",
+      "save": "cNext"
+    },
+    {
+      "name": "TV: C's Delete clip focused",
+      "script": "const b = __c4f.btn(__c4f.row(__vars.c), 'Delete clip'); b.focus(); return document.activeElement === b;",
+      "save": "focused"
+    },
+    {
+      "name": "as expected",
+      "assert": "__vars.focused === true"
+    },
+    {
+      "name": "count the dialogs from here (TV)",
+      "script": "window.__c4max = document.querySelectorAll('.jfbm-backdrop').length; if (window.__c4obs) window.__c4obs.disconnect(); window.__c4obs = new MutationObserver(() => { window.__c4max = Math.max(window.__c4max, document.querySelectorAll('.jfbm-backdrop').length); }); window.__c4obs.observe(document.body, { childList: true }); return window.__c4max;"
+    },
+    {
+      "name": "TV: Enter (the remote's OK)",
+      "key": "Enter"
+    },
+    {
+      "name": "the Delete clip? dialog (TV)",
+      "waitFor": "!!__c4f.panel('Delete clip?')"
+    },
+    {
+      "name": "where the focus is (TV)",
+      "eval": "__c4f.where()",
+      "save": "t1",
+      "full": true
+    },
+    {
+      "name": "TV: the focus in the dialog, on Cancel; one dialog",
+      "assert": "__vars.t1.inPanel && __vars.t1.text === 'Cancel' && __vars.t1.dialogs === 1"
+    },
+    {
+      "name": "TV: ArrowDown (the D-pad)",
+      "key": "ArrowDown"
+    },
+    {
+      "name": "where the focus is after the D-pad",
+      "eval": "__c4f.where()",
+      "save": "t2",
+      "full": true
+    },
+    {
+      "name": "TV: the D-pad reached the dialog: on Delete, still one dialog",
+      "assert": "__vars.t2.inPanel && __vars.t2.text === 'Delete' && __vars.t2.dialogs === 1"
+    },
+    {
+      "name": "TV: Enter confirms",
+      "key": "Enter"
+    },
+    {
+      "name": "deleted (TV): the dialog gone, C's row gone",
+      "waitFor": "__c4f.panels().length === 0 && !__c4f.row(__vars.c)",
+      "timeout": 15000
+    },
+    {
+      "name": "where the focus is (TV, after the delete)",
+      "eval": "Object.assign(__c4f.where(), { maxDialogs: window.__c4max })",
+      "save": "t3",
+      "full": true
+    },
+    {
+      "name": "TV: exactly one dialog all along, the focus on the next row's action (not BODY)",
+      "assert": "__vars.t3.maxDialogs === 1 && !__vars.t3.body && __vars.t3.row === __vars.cNext"
+    },
+    {
+      "name": "TV: the Select toggle on",
+      "script": "const b = __c4f.root().querySelector('.jfbm-page-select-button'); b.click(); return b.getAttribute('aria-pressed');",
+      "save": "pressed"
+    },
+    {
+      "name": "A and B ticked (TV)",
+      "script": "for (const id of [__vars.a, __vars.b]) { __c4f.row(id).querySelector('.jfbm-row-select-box').click(); } const b = __c4f.root().querySelector('.jfbm-bulk-delete'); b.focus(); return document.activeElement === b && __c4f.root().querySelectorAll('.jfbm-row-select-box:checked').length === 2 && __vars.pressed === 'true';",
+      "save": "focused"
+    },
+    {
+      "name": "as expected",
+      "assert": "__vars.focused === true"
+    },
+    {
+      "name": "count the dialogs from here (TV bulk)",
+      "script": "window.__c4max = document.querySelectorAll('.jfbm-backdrop').length; if (window.__c4obs) window.__c4obs.disconnect(); window.__c4obs = new MutationObserver(() => { window.__c4max = Math.max(window.__c4max, document.querySelectorAll('.jfbm-backdrop').length); }); window.__c4obs.observe(document.body, { childList: true }); return window.__c4max;"
+    },
+    {
+      "name": "TV: Enter on Delete…",
+      "key": "Enter"
+    },
+    {
+      "name": "the Delete 2 clips? dialog (TV)",
+      "waitFor": "!!__c4f.panel('Delete 2 clips?')"
+    },
+    {
+      "name": "where the focus is (TV bulk)",
+      "eval": "__c4f.where()",
+      "save": "t4",
+      "full": true
+    },
+    {
+      "name": "TV: the bulk dialog's focus on Cancel",
+      "assert": "__vars.t4.inPanel && __vars.t4.text === 'Cancel' && __vars.t4.dialogs === 1"
+    },
+    {
+      "name": "TV: ArrowDown",
+      "key": "ArrowDown"
+    },
+    {
+      "name": "on Delete (TV bulk)",
+      "assert": "((w) => w.inPanel && w.text === 'Delete')(__c4f.where())"
+    },
+    {
+      "name": "TV: Enter confirms the bulk delete",
+      "key": "Enter"
+    },
+    {
+      "name": "deleted (TV bulk): the dialog gone, A's and B's rows gone",
+      "waitFor": "__c4f.panels().length === 0 && !__c4f.row(__vars.a) && !__c4f.row(__vars.b)",
+      "timeout": 15000
+    },
+    {
+      "name": "where the focus is (TV, after the bulk delete)",
+      "eval": "Object.assign(__c4f.where(), { maxDialogs: window.__c4max })",
+      "save": "t5",
+      "full": true
+    },
+    {
+      "name": "TV: one dialog, the focus off the hidden bar onto the toolbar (no row left), not BODY",
+      "assert": "__vars.t5.maxDialogs === 1 && !__vars.t5.body && __vars.t5.toolbar"
+    },
+    {
+      "sleep": 300
+    },
+    {
+      "screenshot": "page-clips-focus-tv.png"
+    },
+    {
+      "name": "My Bookmarks with the seeded bookmarks (TV)",
+      "goto": "/web/index.html#/jfbm-bookmarks?q=focus-check"
+    },
+    {
+      "name": "the five bookmark rows",
+      "waitFor": "(() => { const r = document.querySelector('#fallbackPage > [data-jfbm-page=\"bookmarks\"][data-jfbm-state=\"on\"]'); if (!r) return false; const c = r.querySelector('.jfbm-page-content'); return !!c && !c.hasAttribute('aria-busy') && __vars.ids.every(id => !!c.querySelector('.jfbm-row[data-id=\"' + id + '\"]')); })()",
+      "timeout": 20000
+    },
+    {
+      "name": "TV: A's Delete focused on My Bookmarks",
+      "script": "const r = document.querySelector('#fallbackPage > [data-jfbm-page=\"bookmarks\"]'); window.__bmRow = (id) => r.querySelector('.jfbm-row[data-id=\"' + id + '\"]'); const b = [...__bmRow(__vars.a).querySelectorAll('button')].find(x => x.getAttribute('title') === 'Delete'); b.focus(); return document.activeElement === b;",
+      "save": "focused"
+    },
+    {
+      "name": "as expected",
+      "assert": "__vars.focused === true"
+    },
+    {
+      "name": "count the dialogs from here (My Bookmarks)",
+      "script": "window.__c4max = document.querySelectorAll('.jfbm-backdrop').length; if (window.__c4obs) window.__c4obs.disconnect(); window.__c4obs = new MutationObserver(() => { window.__c4max = Math.max(window.__c4max, document.querySelectorAll('.jfbm-backdrop').length); }); window.__c4obs.observe(document.body, { childList: true }); return window.__c4max;"
+    },
+    {
+      "name": "TV: Enter on Delete (My Bookmarks)",
+      "key": "Enter"
+    },
+    {
+      "name": "the Delete bookmark? dialog",
+      "waitFor": "!!__c4f.panel('Delete bookmark?')"
+    },
+    {
+      "name": "where the focus is (My Bookmarks)",
+      "eval": "__c4f.where()",
+      "save": "m1",
+      "full": true
+    },
+    {
+      "name": "TV: My Bookmarks' dialog has the focus, on Cancel",
+      "assert": "__vars.m1.inPanel && __vars.m1.text === 'Cancel' && __vars.m1.dialogs === 1"
+    },
+    {
+      "name": "TV: ArrowDown (My Bookmarks)",
+      "key": "ArrowDown"
+    },
+    {
+      "name": "on Delete (My Bookmarks)",
+      "assert": "((w) => w.inPanel && w.text === 'Delete')(__c4f.where())"
+    },
+    {
+      "name": "TV: Enter confirms (My Bookmarks)",
+      "key": "Enter"
+    },
+    {
+      "name": "deleted: the dialog gone, A's row gone",
+      "waitFor": "__c4f.panels().length === 0 && !__bmRow(__vars.a)",
+      "timeout": 15000
+    },
+    {
+      "name": "where the focus is (My Bookmarks, after the delete)",
+      "eval": "((a) => ({ body: a === document.body, row: a && a.closest && a.closest('.jfbm-row') ? a.closest('.jfbm-row').getAttribute('data-id') : null, title: a && a.getAttribute ? a.getAttribute('title') : null, maxDialogs: window.__c4max }))(document.activeElement)",
+      "save": "m2",
+      "full": true
+    },
+    {
+      "name": "TV: one dialog, the focus on a row of the video's group drawn again (keepFocus), not BODY",
+      "assert": "__vars.m2.maxDialogs === 1 && !__vars.m2.body && !!__vars.m2.row && __vars.m2.row !== __vars.a"
+    },
+    {
+      "name": "the default layout again",
+      "eval": "(localStorage.removeItem('layout'), true)"
+    },
+    {
+      "name": "the seeded bookmarks deleted (their clips are gone already)",
+      "script": "const r = await ApiClient.getJSON(ApiClient.getUrl('Bookmarks/Query', { searchTerm: 'focus-check', limit: 200 })); const ids = r.Items.map(b => b.Id); if (ids.length) { await ApiClient.ajax({ type: 'POST', url: ApiClient.getUrl('Bookmarks/BulkDelete'), data: JSON.stringify({ Ids: ids, DeleteClips: true }), contentType: 'application/json', dataType: 'json' }); } const left = await ApiClient.getJSON(ApiClient.getUrl('Bookmarks/Clips', { searchTerm: 'focus-check', limit: 200 })); return { bookmarks: ids.length, clipsLeft: left.TotalRecordCount };",
+      "save": "cleanup"
+    },
+    {
+      "name": "nothing left",
+      "assert": "__vars.cleanup.clipsLeft === 0"
+    },
+    {
+      "name": "no uncaught exception of ours",
+      "noExceptions": true,
+      "ignore": "/CustomRatings/script|^Error: player cannot be null"
+    }
+  ]
+}

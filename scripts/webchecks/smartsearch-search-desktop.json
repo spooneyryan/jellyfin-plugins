@@ -1,0 +1,359 @@
+{
+  "name": "Smart Search's Advanced Search page searches, on a desktop (1366x900) in the default FallbackOnly mode. As admin it first gives two movies genres (Blade Runner: Science Fiction and Thriller; Test Pattern: Documentary; sandbox data, the same every run), then as viewer: the page opens with Movies and Shows pressed, all libraries, and the focus in the title field; a title search ('blade') finds what /Items finds for that title and writes the search into the hash; a year range (Movies only, 2001) finds what /Items finds for Years=2001; the library Movies 2 finds what /Items finds under it; the genre field suggests the seeded genre for 'sci' (from the value index, after the edit) and a genre search finds Blade Runner; the list view shows a row with its facts; Sort by Year descending orders the cards by year; Open goes to the item's details page and Back renders the search again from the hash; Play starts the item in this browser; a link with tab and query (a saved query's link) runs its search, a second such link replaces it without a reload, and Back shows the first again; a too-early year shows its error under the field and sends nothing; no uncaught exception of ours. Screenshots smartsearch-search-*.png. Needs a sandbox seeded by Initialize-Sandbox.ps1.",
+  "failOnException": false,
+  "timeout": 30000,
+  "steps": [
+    {
+      "name": "a desktop screen",
+      "emulate": "desktop"
+    },
+    {
+      "name": "sign in as admin",
+      "login": "admin"
+    },
+    {
+      "name": "the Smart Search script ran (admin)",
+      "waitFor": "!!window.__jfkit && !!window.__jfkit.jfss && !!window.ApiClient && !!ApiClient.getCurrentUserId()",
+      "timeout": 20000
+    },
+    {
+      "name": "seed: genres on two movies of the Movies library (Blade Runner: Science Fiction, Thriller; Test Pattern: Documentary), sandbox data, the same every run",
+      "script": "const uid = ApiClient.getCurrentUserId(); const want = { 'Blade Runner': ['Science Fiction', 'Thriller'], 'Test Pattern': ['Documentary'] }; const out = {}; for (const name of Object.keys(want)) { const found = (await ApiClient.getItems(uid, { IncludeItemTypes: 'Movie', Recursive: true, SearchTerm: name, Limit: 5 })).Items.filter(i => i.Name === name); for (const f of found) { const item = await ApiClient.getItem(uid, f.Id); if ((item.Genres || []).join() !== want[name].join()) { item.Genres = want[name]; item.GenreItems = want[name].map(g => ({ Name: g })); await ApiClient.ajax({ type: 'POST', url: ApiClient.getUrl('Items/' + f.Id), data: JSON.stringify(item), contentType: 'application/json' }); } out[name] = (out[name] || 0) + 1; } } return out;",
+      "save": "seeded",
+      "full": true
+    },
+    {
+      "name": "both movies found",
+      "assert": "__vars.seeded['Blade Runner'] >= 1 && __vars.seeded['Test Pattern'] >= 1"
+    },
+    {
+      "name": "viewer, in a browser of its own",
+      "context": "viewer"
+    },
+    {
+      "name": "a desktop screen (viewer)",
+      "emulate": "desktop"
+    },
+    {
+      "name": "page helpers (viewer)",
+      "initScript": "\nwindow.__ss = {\n  root: () => [...document.querySelectorAll('[data-jfss-page=\"search\"][data-jfss-mounted] .jfss-search')].find(x => x.getClientRects().length > 0) || null,\n  q: (s) => { const r = window.__ss.root(); return r ? r.querySelector(s) : null; },\n  all: (s) => { const r = window.__ss.root(); return r ? [...r.querySelectorAll(s)] : []; },\n  set: (s, v) => { const e = window.__ss.q(s); e.value = v; e.dispatchEvent(new Event('input', { bubbles: true })); e.dispatchEvent(new Event('change', { bubbles: true })); return true; },\n  ready: () => !!window.__ss.q('.jfss-scope') && !!window.__ss.q('.jfss-search-button'),\n  done: () => { const c = window.__ss.q('.jfss-count'); const n = window.__ss.q('.jfss-notices'); if (c && c.textContent && !/Searching/.test(c.textContent)) return c.textContent; if (n && n.textContent) return n.textContent; return false; },\n  ids: () => window.__ss.all('.jfss-card, .jfss-row').map(x => x.getAttribute('data-id')),\n  names: () => window.__ss.all('.jfss-card, .jfss-row').map(x => (x.querySelector('bdi') || x).textContent.trim()),\n  pressed: (s) => window.__ss.all(s).filter(b => b.getAttribute('aria-pressed') === 'true').map(b => b.textContent),\n  norm: (ids) => ids.map(i => String(i).replace(/-/g, '').toLowerCase()).sort().join(),\n  server: async (q) => window.__ss.norm((await ApiClient.getItems(ApiClient.getCurrentUserId(), Object.assign({ Recursive: true }, q))).Items.map(i => i.Id)),\n  noHScroll: () => document.documentElement.scrollWidth <= innerWidth && window.__ss.root().scrollWidth <= window.__ss.root().clientWidth + 1,\n  box: (e) => { const r = e.getBoundingClientRect(); return [Math.round(r.width), Math.round(r.height)]; }\n};\n"
+    },
+    {
+      "name": "sign in as viewer",
+      "login": "viewer"
+    },
+    {
+      "name": "the Smart Search script ran",
+      "waitFor": "!!window.__jfkit && !!window.__jfkit.jfss && !!window.ApiClient && !!ApiClient.getCurrentUserId()",
+      "timeout": 20000
+    },
+    {
+      "goto": "/web/index.html#/jfss-search"
+    },
+    {
+      "name": "the page's form",
+      "waitFor": "!!window.__ss && __ss.ready()",
+      "timeout": 20000
+    },
+    {
+      "name": "the opening state",
+      "eval": "({ kinds: __ss.all('.jfss-kind').map(b => b.textContent), pressed: __ss.pressed('.jfss-kind'), library: __ss.q('.jfss-library').value, libraries: __ss.all('.jfss-library option').length, focus: document.activeElement === __ss.q('.jfss-title'), missingHidden: __ss.q('.jfss-missing').classList.contains('hide'), resultsHidden: __ss.q('.jfss-results-bar').classList.contains('hide'), noHScroll: __ss.noHScroll() })",
+      "save": "opening",
+      "full": true
+    },
+    {
+      "name": "the six kinds, Movies and Shows pressed, all libraries, the title focused, no results yet",
+      "assert": "__vars.opening.kinds.join() === 'Movies,Shows,Episodes,Music videos,Home videos,Collections' && __vars.opening.pressed.join() === 'Movies,Shows' && __vars.opening.library === '' && __vars.opening.libraries >= 3 && __vars.opening.focus && __vars.opening.missingHidden && __vars.opening.resultsHidden && __vars.opening.noHScroll"
+    },
+    {
+      "screenshot": "smartsearch-search-empty.png"
+    },
+    {
+      "name": "title 'blade', Enter",
+      "type": "blade",
+      "selector": "[data-jfss-page=\"search\"] .jfss-title",
+      "clear": true
+    },
+    {
+      "key": "Enter"
+    },
+    {
+      "name": "the title search answered",
+      "waitFor": "__ss.done()",
+      "timeout": 20000,
+      "save": "titleCount"
+    },
+    {
+      "name": "the title search's results and hash",
+      "eval": "(async () => ({ mine: __ss.norm(__ss.ids()), server: await __ss.server({ IncludeItemTypes: 'Movie,Series', SearchTerm: 'blade' }), names: __ss.names(), hash: location.hash }))()",
+      "save": "title",
+      "full": true
+    },
+    {
+      "name": "what /Items finds, Blade Runner among them; the hash holds the search",
+      "assert": "__vars.title.mine === __vars.title.server && __vars.title.names.includes('Blade Runner') && /^#\\/jfss-search\\?kinds=Movie%2CSeries&q=blade&run=1$/.test(__vars.title.hash) && /^\\d+ results? · \\d+\\.\\d\\d s$/.test(__vars.titleCount)"
+    },
+    {
+      "screenshot": "smartsearch-search-title.png"
+    },
+    {
+      "name": "Shows off, title cleared, years 2001 to 2001",
+      "script": "__ss.all('.jfss-kind')[1].click(); __ss.set('.jfss-title', ''); __ss.set('.jfss-year-from', '2001'); __ss.set('.jfss-year-to', '2001'); __ss.q('.jfss-search-button').click(); return true;"
+    },
+    {
+      "name": "the year search answered",
+      "waitFor": "__ss.done()",
+      "timeout": 20000
+    },
+    {
+      "name": "the year search's results",
+      "eval": "(async () => ({ mine: __ss.norm(__ss.ids()), server: await __ss.server({ IncludeItemTypes: 'Movie', Years: '2001' }), count: __ss.ids().length, hash: location.hash }))()",
+      "save": "year",
+      "full": true
+    },
+    {
+      "name": "what /Items finds for 2001; the hash has from and to",
+      "assert": "__vars.year.count > 0 && __vars.year.mine === __vars.year.server && /kinds=Movie&from=2001&to=2001&run=1$/.test(__vars.year.hash)"
+    },
+    {
+      "name": "a year before 1800: the error under the field, nothing sent",
+      "script": "window.__ssBefore = performance.getEntriesByType('resource').filter(e => /SmartSearch\\/Search/.test(e.name)).length; __ss.set('.jfss-year-from', '1700'); __ss.q('.jfss-search-button').click(); return true;"
+    },
+    {
+      "name": "the year error",
+      "waitFor": "(() => { const e = __ss.q('[data-jfss-error=\"years\"]'); return !!e && e.textContent === 'A year is a whole number from 1800 to 2100.' && e.getClientRects().length > 0; })()"
+    },
+    {
+      "name": "no request for it",
+      "assert": "performance.getEntriesByType('resource').filter(e => /SmartSearch\\/Search/.test(e.name)).length === window.__ssBefore"
+    },
+    {
+      "screenshot": "smartsearch-search-year-error.png"
+    },
+    {
+      "name": "years cleared; the library Movies 2",
+      "script": "__ss.set('.jfss-year-from', ''); __ss.set('.jfss-year-to', ''); const o = __ss.all('.jfss-library option').find(x => x.textContent === 'Movies 2'); __ss.set('.jfss-library', o.value); __ss.q('.jfss-search-button').click(); return o.value;",
+      "save": "movies2"
+    },
+    {
+      "name": "the library search answered",
+      "waitFor": "__ss.done()",
+      "timeout": 20000
+    },
+    {
+      "name": "the library search's results",
+      "eval": "(async () => ({ mine: __ss.norm(__ss.ids()), server: await __ss.server({ IncludeItemTypes: 'Movie', ParentId: __vars.movies2 }), count: __ss.ids().length, all: (await ApiClient.getItems(ApiClient.getCurrentUserId(), { IncludeItemTypes: 'Movie', Recursive: true, Limit: 0 })).TotalRecordCount, hash: location.hash }))()",
+      "save": "library",
+      "full": true
+    },
+    {
+      "name": "what /Items finds under Movies 2, fewer than all movies; the hash has lib",
+      "assert": "__vars.library.count > 0 && __vars.library.count < __vars.library.all && __vars.library.mine === __vars.library.server && __vars.library.hash.indexOf('lib=' + __vars.movies2) > 0"
+    },
+    {
+      "name": "all libraries again",
+      "script": "__ss.set('.jfss-library', ''); return true;"
+    },
+    {
+      "name": "years cleared; type 'sci' in the genre field",
+      "script": "__ss.set('.jfss-year-from', ''); __ss.set('.jfss-year-to', ''); const g = __ss.q('.jfss-genre-input'); g.focus(); __ss.set('.jfss-genre-input', 'sci'); return true;"
+    },
+    {
+      "name": "the seeded genre is suggested",
+      "waitFor": "__ss.all('.jfss-suggestion').map(b => b.getAttribute('data-jfss-genre')).includes('Science Fiction')",
+      "timeout": 15000
+    },
+    {
+      "name": "pick it",
+      "script": "__ss.all('.jfss-suggestion').find(b => b.getAttribute('data-jfss-genre') === 'Science Fiction').click(); return __ss.all('.jfss-chip').map(c => c.textContent.trim());",
+      "save": "chips"
+    },
+    {
+      "screenshot": "smartsearch-search-genre.png"
+    },
+    {
+      "name": "Search",
+      "script": "__ss.q('.jfss-search-button').click(); return true;"
+    },
+    {
+      "name": "the genre search answered",
+      "waitFor": "__ss.done()",
+      "timeout": 20000
+    },
+    {
+      "name": "the genre search's results",
+      "eval": "(async () => ({ mine: __ss.norm(__ss.ids()), server: await __ss.server({ IncludeItemTypes: 'Movie', Genres: 'Science Fiction' }), names: __ss.names(), hash: location.hash }))()",
+      "save": "genre",
+      "full": true
+    },
+    {
+      "name": "what /Items finds for the genre: Blade Runner",
+      "assert": "__vars.genre.mine === __vars.genre.server && __vars.genre.names.includes('Blade Runner') && /genres=Science%2520Fiction/.test(__vars.genre.hash)"
+    },
+    {
+      "name": "back to all movies: the chip removed, Sort by Year, Descending, then the list view",
+      "script": "__ss.all('.jfss-chip').forEach(c => c.click()); __ss.q('.jfss-search-button').click(); return true;"
+    },
+    {
+      "name": "all movies answered",
+      "waitFor": "__ss.done()",
+      "timeout": 20000
+    },
+    {
+      "name": "Sort by Year, Descending",
+      "script": "__ss.set('.jfss-sort', 'ProductionYear'); return true;"
+    },
+    {
+      "name": "sorted by year",
+      "waitFor": "__ss.done()",
+      "timeout": 20000
+    },
+    {
+      "name": "Descending",
+      "script": "__ss.set('.jfss-order', 'desc'); return true;"
+    },
+    {
+      "name": "descending",
+      "waitFor": "__ss.done()",
+      "timeout": 20000
+    },
+    {
+      "name": "the cards' years, in order",
+      "eval": "(async () => { const ids = __ss.ids(); const items = (await ApiClient.getItems(ApiClient.getCurrentUserId(), { Ids: ids.join(','), Fields: 'ProductionYear' })).Items; const year = Object.fromEntries(items.map(i => [i.Id.replace(/-/g, ''), i.ProductionYear || 0])); return { years: ids.map(i => year[i.replace(/-/g, '')]), hash: location.hash, total: ids.length, server: (await ApiClient.getItems(ApiClient.getCurrentUserId(), { IncludeItemTypes: 'Movie', Recursive: true, Limit: 0 })).TotalRecordCount }; })()",
+      "save": "sorted",
+      "full": true
+    },
+    {
+      "name": "newest first; every movie; sort and order in the hash",
+      "assert": "__vars.sorted.total === __vars.sorted.server && __vars.sorted.years.every((y, i, a) => i === 0 || a[i - 1] >= y) && /sort=ProductionYear&order=desc&run=1$/.test(__vars.sorted.hash)"
+    },
+    {
+      "screenshot": "smartsearch-search-grid.png"
+    },
+    {
+      "name": "the list view",
+      "script": "__ss.all('.jfss-view')[1].click(); return true;"
+    },
+    {
+      "name": "rows with their facts",
+      "waitFor": "(() => { const rows = __ss.all('.jfss-row'); if (!rows.length) return false; const f = rows[0].querySelector('.jfss-facts'); const b = rows[0].querySelector('.jfss-open'); return { rows: rows.length, facts: f && f.textContent, open: !!b && b.getAttribute('aria-label'), view: __ss.pressed('.jfss-view').join(), noHScroll: __ss.noHScroll() }; })()",
+      "save": "list",
+      "full": true
+    },
+    {
+      "name": "every movie as a row; facts: the kind, the runtime, the rating when the first movie has one (the differential probe gives some movies one) and the date added",
+      "assert": "__vars.list.rows === __vars.sorted.total && /^Movie · \\d+ (h \\d+ )?min · (★ \\d+(\\.\\d)? · )?Added /.test(__vars.list.facts) && /^Open /.test(__vars.list.open) && __vars.list.view === 'List' && __vars.list.noHScroll"
+    },
+    {
+      "screenshot": "smartsearch-search-list.png"
+    },
+    {
+      "name": "the grid view again",
+      "script": "__ss.all('.jfss-view')[0].click(); return __ss.all('.jfss-card').length;"
+    },
+    {
+      "name": "remember this search's hash",
+      "eval": "location.hash",
+      "save": "sortedHash"
+    },
+    {
+      "name": "Open the first card",
+      "script": "window.__ssOpened = __ss.all('.jfss-card')[0].getAttribute('data-id'); __ss.all('.jfss-card')[0].querySelector('.jfss-open').click(); return window.__ssOpened;",
+      "save": "openedId"
+    },
+    {
+      "name": "its details page",
+      "waitFor": "location.hash.indexOf('#/details?id=' + __vars.openedId) === 0 && !!document.querySelector('#itemDetailPage:not(.hide)')",
+      "timeout": 20000
+    },
+    {
+      "name": "Back",
+      "script": "history.back(); return true;"
+    },
+    {
+      "name": "the page's form after Back",
+      "waitFor": "!!window.__ss && __ss.ready()",
+      "timeout": 20000
+    },
+    {
+      "name": "the search ran again from the hash after Back",
+      "waitFor": "__ss.done()",
+      "timeout": 20000
+    },
+    {
+      "name": "the same search: the hash, the sort and the view",
+      "assert": "location.hash === __vars.sortedHash && __ss.q('.jfss-sort').value === 'ProductionYear' && __ss.q('.jfss-order').value === 'desc' && __ss.all('.jfss-card').length === __vars.sorted.total"
+    },
+    {
+      "name": "a saved query's link (tab, query, a search)",
+      "goto": "/web/index.html#/jfss-search?tab=search&query=00000000000000000000000000000aaa&kinds=Movie&q=blade&run=1"
+    },
+    {
+      "name": "the page's form (first link)",
+      "waitFor": "!!window.__ss && __ss.ready()",
+      "timeout": 20000
+    },
+    {
+      "name": "the first link's search",
+      "waitFor": "__ss.done()",
+      "timeout": 20000
+    },
+    {
+      "name": "the first link's page",
+      "eval": "({ title: __ss.q('.jfss-title').value, names: __ss.names(), hash: location.hash })",
+      "save": "linkA",
+      "full": true
+    },
+    {
+      "name": "another saved query's link, the hash only",
+      "goto": "/web/index.html#/jfss-search?tab=search&query=00000000000000000000000000000bbb&kinds=Movie&q=remake&run=1"
+    },
+    {
+      "name": "the page renders the second link's search without a reload",
+      "waitFor": "!!__ss.root() && __ss.q('.jfss-title').value === 'remake' && __ss.done() && __ss.names().length > 0 && __ss.names().every(n => /remake/i.test(n))",
+      "timeout": 20000
+    },
+    {
+      "name": "the second link's hash keeps tab and query",
+      "assert": "/^#\\/jfss-search\\?tab=search&query=0{29}bbb&/.test(location.hash) && __vars.linkA.title === 'blade' && __vars.linkA.names.includes('Blade Runner')"
+    },
+    {
+      "screenshot": "smartsearch-search-link.png"
+    },
+    {
+      "name": "Back to the first link",
+      "script": "history.back(); return true;"
+    },
+    {
+      "name": "the first link's search again",
+      "waitFor": "!!__ss.root() && __ss.q('.jfss-title').value === 'blade' && __ss.done() && __ss.names().includes('Blade Runner') && /query=0{29}aaa/.test(location.hash)",
+      "timeout": 20000
+    },
+    {
+      "name": "a hard reload of a search link renders it",
+      "reload": true
+    },
+    {
+      "name": "after the reload",
+      "waitFor": "!!window.__ss && !!__ss.root() && __ss.q('.jfss-title').value === 'blade' && __ss.done() && __ss.names().includes('Blade Runner')",
+      "timeout": 25000
+    },
+    {
+      "name": "Play the first card",
+      "script": "__ss.all('.jfss-card')[0].querySelector('.jfss-play').click(); return true;"
+    },
+    {
+      "name": "this browser plays it",
+      "waitFor": "location.hash.indexOf('#/video') === 0 && !!document.querySelector('.videoPlayerContainer')",
+      "timeout": 20000
+    },
+    {
+      "screenshot": "smartsearch-search-play.png"
+    },
+    {
+      "name": "no uncaught exception (the stale CustomRatings tag and leaving the player are known noise)",
+      "noExceptions": true,
+      "ignore": "CustomRatings|player cannot be null"
+    }
+  ]
+}

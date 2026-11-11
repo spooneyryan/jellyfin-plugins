@@ -1,0 +1,300 @@
+{
+  "name": "The My Bookmarks page, as admin (who may make the clip; viewer has no download permission): the My Bookmarks page on its fallback route. The capabilities offer the page; the admin's page-probe bookmarks of an earlier run are deleted, then the webcheck makes its own through the API: one on every video it can see (movies and episodes, up to 30), more on the first two movies so there are over 50 (names, notes, unnamed ones, ranges) and one Fast clip of a short range. 'Library tools' links My Bookmarks (#/jfbm-bookmarks) above User; the page renders grouped (the count line, one group per video with the poster of a video the viewer can open, Open title, its rows by position), the sort list of each view, Flat (one history entry, no kit render, 50 rows and Load more, which appends and counts the page in the hash in place), Title A-Z kept across the views, Most bookmarks reset to the flat default, Recently created and Position in title against the API's order, the type, the four filters (Not in library against availability=Missing: the probe seeds a detached bookmark by holding a movie folder out of the sandbox media; alone, the webcheck accepts none) and the search (one history entry) with counts equal to the API's, a hard reload of a deep link, Back and Forward, See all from a video's page (item=) and Show every video, Open title and Back (the group marked and scrolled to, group= dropped from the hash in place), the shell endpoint and an unknown key; the bookmarks are deleted at the end. Run by bookmarks-page-probe.mjs in the default, bare and baseurl sandboxes.",
+  "failOnException": false,
+  "timeout": 30000,
+  "steps": [
+    { "name": "sign in as admin", "login": "admin" },
+    { "name": "the Bookmarks script ran", "waitFor": "!!window.__jfkit && !!window.__jfkit.jfbm && !!window.ApiClient && !!ApiClient.getCurrentUserId()" },
+    {
+      "name": "the capabilities offer the page (Pages.Bookmarks true) and My Clips",
+      "assert": "((c) => !!c.Pages && c.Pages.Bookmarks === true && c.Pages.Clips === true)(await ApiClient.getJSON(ApiClient.getUrl('Bookmarks/Capabilities')))"
+    },
+    {
+      "name": "the admin's page-probe bookmarks of an earlier run deleted, with their clips (the probe's own 'page-probe detached' seed is left to the probe)",
+      "script": "const r = await ApiClient.getJSON(ApiClient.getUrl('Bookmarks/Query', { searchTerm: 'page-probe', limit: 200 })); const ids = r.Items.filter(b => (/^page-probe/.test(b.Name || '') || /^page-probe/.test(b.Note || '')) && b.Name !== 'page-probe detached').map(b => b.Id); if (ids.length) await ApiClient.ajax({ type: 'POST', url: ApiClient.getUrl('Bookmarks/BulkDelete'), data: JSON.stringify({ Ids: ids, DeleteClips: true }), contentType: 'application/json', dataType: 'json' }); return ids.length;"
+    },
+    {
+      "name": "the videos the viewer can see: movies and episodes, up to 30",
+      "script": "const r = await ApiClient.getItems(ApiClient.getCurrentUserId(), { IncludeItemTypes: 'Movie,Episode', Recursive: true, Limit: 30, SortBy: 'SortName', EnableImages: false }); return r.Items.map(i => ({ id: i.Id, name: i.Name, type: i.Type }));",
+      "save": "videos",
+      "full": true
+    },
+    { "name": "at least four videos, among them a movie and an episode", "assert": "__vars.videos.length >= 4 && __vars.videos.some(v => v.type === 'Movie') && __vars.videos.some(v => v.type === 'Episode')" },
+    {
+      "name": "seed: one bookmark per video, then names, notes, unnamed ones and ranges on the first two movies until there are 56, and a 0:01-0:03 range for a clip",
+      "script": "const post = (body) => ApiClient.ajax({ type: 'POST', url: ApiClient.getUrl('Bookmarks'), data: JSON.stringify(body), contentType: 'application/json', dataType: 'json' }); const made = []; const T = 10000000; for (const v of __vars.videos) { made.push((await post({ ItemId: v.id, StartTicks: 5 * T, Name: 'page-probe ' + v.name.slice(0, 40) })).Id); } const movies = __vars.videos.filter(v => v.type === 'Movie'); let k = 0; while (made.length < 56) { const m = movies[k % 2]; const kind = k % 4; const body = { ItemId: m.id, StartTicks: (10 + k) * T }; if (kind === 0) body.Name = 'page-probe extra ' + k; else if (kind === 1) { body.Note = 'page-probe note ' + k; } else if (kind === 2) { body.EndTicks = (12 + k) * T; body.Name = 'page-probe range ' + k; } else { body.EndTicks = (11 + k) * T; body.Note = 'page-probe unnamed range ' + k; } made.push((await post(body)).Id); k++; } const clip = await post({ ItemId: movies[0].id, StartTicks: 1 * T, EndTicks: 3 * T, Name: 'page-probe clipped' }); made.push(clip.Id); return { ids: made, clipId: clip.Id, movieId: movies[0].id, movieName: movies[0].name };",
+      "save": "seed",
+      "full": true,
+      "timeout": 120000
+    },
+    {
+      "name": "a Fast clip of the short range, through the API, completed",
+      "script": "await ApiClient.ajax({ type: 'POST', url: ApiClient.getUrl('Bookmarks/' + __vars.seed.clipId + '/Clip'), data: JSON.stringify({ Mode: 'Fast' }), contentType: 'application/json', dataType: 'json' }); for (let i = 0; i < 240; i++) { const b = await ApiClient.getJSON(ApiClient.getUrl('Bookmarks/' + __vars.seed.clipId)); if (b.Clip && b.Clip.Status === 'Completed' && b.Clip.FileName) return b.Clip.FileName; if (b.Clip && b.Clip.Status === 'Failed') throw new Error('the clip failed: ' + b.Clip.Error); await new Promise(r => setTimeout(r, 500)); } throw new Error('the clip did not complete');",
+      "timeout": 150000,
+      "save": "clipFile"
+    },
+    {
+      "name": "what the API counts: all, episodes, ranges, clips, unnamed, 'page-probe extra', the groups, the detached",
+      "script": "const q = (p) => ApiClient.getJSON(ApiClient.getUrl('Bookmarks/Query', Object.assign({ limit: 1 }, p))).then(r => r.TotalRecordCount); const g = (p) => ApiClient.getJSON(ApiClient.getUrl('Bookmarks/Groups', Object.assign({ limit: 1 }, p))).then(r => r.TotalRecordCount); return { all: await q({}), titles: await g({}), episodes: await q({ itemTypes: 'Episode' }), ranges: await q({ hasRange: true }), clips: await q({ hasClip: true }), unnamedRanges: await q({ hasRange: true, named: false }), extra: await q({ searchTerm: 'page-probe extra' }), extraMovieNamedRanges: await q({ searchTerm: 'page-probe', itemTypes: 'Movie', hasRange: true, named: true }), missing: await q({ availability: 'Missing' }) };",
+      "save": "counts",
+      "full": true
+    },
+    { "name": "over 50 bookmarks on at least 4 titles, one with a clip", "assert": "__vars.counts.all >= 57 && __vars.counts.titles >= 4 && __vars.counts.clips >= 1 && __vars.counts.episodes >= 1" },
+
+    { "name": "open the drawer", "click": ".skinHeader .mainDrawerButton" },
+    { "name": "drawer open", "waitFor": "(() => { const a = document.querySelector('.mainDrawer .userMenuOptions'); if (!a) return false; const r = a.getBoundingClientRect(); return r.width > 0 && r.height > 0; })()" },
+    {
+      "name": "'Library tools' right before User, with My Bookmarks (#/jfbm-bookmarks) and no demo link",
+      "waitFor": "(() => { const s = document.querySelector('.mainDrawer-scrollContainer > .jfkit-nav'); const a = s && s.querySelector('a[data-jfbm-nav=\"bookmarks\"]'); if (!a) return false; const r = a.getBoundingClientRect(); if (!(r.width > 0 && r.height > 0 && r.left >= 0 && r.right <= innerWidth && r.top >= 0 && getComputedStyle(a).visibility !== 'hidden')) return false; return { header: s.querySelector('.sidebarHeader').textContent, next: s.nextElementSibling && s.nextElementSibling.className, href: a.getAttribute('href'), text: a.textContent.trim(), icon: !!a.querySelector('.collections_bookmark'), upgraded: a.classList.contains('emby-button'), first: s.querySelector('a').getAttribute('data-jfbm-nav'), demo: s.querySelectorAll('a[data-jfbm-nav^=\"demo\"]').length }; })()",
+      "save": "drawer",
+      "full": true
+    },
+    { "name": "the link as the kit's page hosting has it, first in the section (the demo's links only while the developer demo is on)", "assert": "__vars.drawer.header === 'Library tools' && __vars.drawer.next === 'userMenuOptions' && __vars.drawer.href === '#/jfbm-bookmarks' && __vars.drawer.text === 'My Bookmarks' && __vars.drawer.icon && __vars.drawer.upgraded && __vars.drawer.first === 'bookmarks'" },
+    { "name": "history length before the page", "eval": "history.length", "save": "historyBefore" },
+    { "name": "the resource timings cleared and widened (the seeds and jellyfin-web's own requests can fill the browser's buffer of 250, so a poster request went unrecorded), the clock before the page", "script": "performance.setResourceTimingBufferSize(5000); performance.clearResourceTimings(); return performance.now();", "save": "t0" },
+    { "name": "the drawer's slide-in done", "sleep": 400 },
+    { "name": "click My Bookmarks in Library tools", "click": ".mainDrawer .jfkit-nav a[data-jfbm-nav=\"bookmarks\"]" },
+    {
+      "name": "the page renders grouped on its route: the title, no 'Page not found', the toolbar, the count line, the groups",
+      "waitFor": "(() => { const r = document.querySelector('#fallbackPage > [data-jfbm-page=\"bookmarks\"][data-jfbm-mounted][data-jfbm-state=\"on\"]'); if (!r || location.hash !== '#/jfbm-bookmarks') return false; const c = r.querySelector('.jfbm-page-content'); if (!c || c.hasAttribute('aria-busy') || !c.querySelector('.jfbm-group')) return false; const nf = [...document.querySelectorAll('#fallbackPage > :not([data-jfbm-page]) h1')].some(h => h.getClientRects().length > 0); const title = (document.querySelector('.skinHeader .pageTitle') || { textContent: '' }).textContent.trim(); if (title !== 'My Bookmarks') return false; return { notFound: nf, title, count: r.querySelector('.jfbm-page-count').textContent, groups: c.querySelectorAll('.jfbm-group').length, sorts: [...r.querySelectorAll('.jfbm-page-sort option')].map(o => o.textContent), sort: r.querySelector('.jfbm-page-sort').value, view: r.querySelector('[data-jfbm-view][aria-pressed=\"true\"]').getAttribute('data-jfbm-view'), type: r.querySelector('[data-jfbm-type][aria-pressed=\"true\"]').getAttribute('data-jfbm-type'), pager: !r.querySelector('.jfbm-pager').classList.contains('hide'), renders: __jfkit.jfbm.instance.pages.state().renders.bookmarks }; })()",
+      "timeout": 20000,
+      "save": "grouped",
+      "full": true
+    },
+    { "name": "grouped by default, Recently changed, All, the count line as the API counts, 25 groups a page", "assert": "!__vars.grouped.notFound && __vars.grouped.view === 'grouped' && __vars.grouped.type === '' && __vars.grouped.sort === 'LatestUpdated' && JSON.stringify(__vars.grouped.sorts) === JSON.stringify(['Recently changed', 'Title A–Z', 'Most bookmarks']) && __vars.grouped.count === __vars.counts.all + ' bookmarks on ' + __vars.counts.titles + ' titles' && __vars.grouped.groups === Math.min(25, __vars.counts.titles) && __vars.grouped.pager === (__vars.counts.titles > 25) && __vars.grouped.renders === 1" },
+    {
+      "name": "the first group: the kit's row markup with the video's id, its poster (fillHeight=120&quality=90), Open title, its rows by position with time buttons, titles and actions",
+      "eval": "(() => { const g = document.querySelector('#fallbackPage [data-jfbm-page=\"bookmarks\"] .jfbm-group'); const h = g.querySelector('.jfbm-group-header'); const img = h.querySelector('img'); const rows = [...g.querySelectorAll('.jfbm-row')]; return { id: h.getAttribute('data-id'), group: g.getAttribute('data-jfbm-group'), type: h.getAttribute('data-type'), title: h.querySelector('.listItemBodyText').textContent, poster: img ? img.getAttribute('src') : null, placeholder: !!h.querySelector('.jfbm-listitem-image .material-icons'), posterRequested: performance.getEntriesByType('resource').some(e => e.name.includes('/Items/' + h.getAttribute('data-id') + '/Images/Primary?fillHeight=120&quality=90')), open: !!h.querySelector('.jfbm-open-title'), rows: rows.length, times: rows.slice(0, 3).map(r => r.querySelector('.jfbm-time-button').textContent), titles: rows.slice(0, 3).map(r => r.querySelector('.jfbm-row-title').textContent), actions: [...rows[0].querySelectorAll('.jfbm-row-actions button')].map(b => b.title), noItemLine: !g.querySelector('.jfbm-row-item') }; })()",
+      "save": "firstGroup",
+      "full": true
+    },
+    { "name": "as expected (the poster was requested for a video the viewer can open; the sandbox's libraries have no images, so a 404 leaves the placeholder icon)", "assert": "__vars.firstGroup.id === __vars.firstGroup.group && /^[0-9a-f]{32}$/.test(__vars.firstGroup.id) && __vars.firstGroup.posterRequested && (__vars.firstGroup.poster ? __vars.firstGroup.poster.includes('/Items/' + __vars.firstGroup.id + '/Images/Primary?fillHeight=120&quality=90') : __vars.firstGroup.placeholder) && __vars.firstGroup.open && __vars.firstGroup.rows >= 1 && __vars.firstGroup.actions.includes('Edit') && __vars.firstGroup.actions.includes('Delete') && __vars.firstGroup.noItemLine" },
+    { "name": "no core items request from the page: since the link was clicked, only Bookmarks' endpoints and posters", "assert": "performance.getEntriesByType('resource').filter(e => e.startTime > __vars.t0).map(e => e.name).every(n => !/\\/Items(\\?|\\/Latest)/.test(n)) && performance.getEntriesByType('resource').filter(e => e.startTime > __vars.t0).some(n => /\\/Bookmarks\\/Groups\\?/.test(n.name))" },
+    { "sleep": 300 },
+    { "screenshot": "page-bookmarks-grouped.png" },
+
+    { "name": "Flat", "click": "#fallbackPage [data-jfbm-page=\"bookmarks\"] [data-jfbm-view=\"flat\"]" },
+    {
+      "name": "the flat view: 50 rows with the video named under each title, Load more, the flat sort list, one history entry, no kit render",
+      "waitFor": "(() => { const r = document.querySelector('#fallbackPage > [data-jfbm-page=\"bookmarks\"]'); const c = r.querySelector('.jfbm-page-content'); if (location.hash !== '#/jfbm-bookmarks?view=flat' || c.hasAttribute('aria-busy') || c.querySelectorAll('.jfbm-row').length < 50) return false; return { rows: c.querySelectorAll('.jfbm-row').length, groups: c.querySelectorAll('.jfbm-group').length, itemLines: c.querySelectorAll('.jfbm-row .jfbm-row-item').length, sorts: [...r.querySelectorAll('.jfbm-page-sort option')].map(o => o.textContent), sort: r.querySelector('.jfbm-page-sort').value, pager: !r.querySelector('.jfbm-pager').classList.contains('hide'), more: r.querySelector('.jfbm-pager button').textContent, count: r.querySelector('.jfbm-page-count').textContent, history: history.length, renders: __jfkit.jfbm.instance.pages.state().renders.bookmarks }; })()",
+      "timeout": 15000,
+      "save": "flat",
+      "full": true
+    },
+    { "name": "as expected", "assert": "__vars.flat.rows === 50 && __vars.flat.groups === 0 && __vars.flat.itemLines === 50 && JSON.stringify(__vars.flat.sorts) === JSON.stringify(['Recently changed', 'Recently created', 'Name A–Z', 'Title A–Z', 'Position in title']) && __vars.flat.sort === 'UpdatedAt' && __vars.flat.pager && __vars.flat.more === 'Load more' && __vars.flat.count === __vars.counts.all + ' bookmarks on ' + __vars.counts.titles + ' titles' && __vars.flat.history === __vars.historyBefore + 2 && __vars.flat.renders === 1" },
+    { "sleep": 300 },
+    { "screenshot": "page-bookmarks-flat.png" },
+    { "name": "Load more", "click": "#fallbackPage [data-jfbm-page=\"bookmarks\"] .jfbm-pager button", "js": true },
+    {
+      "name": "the next page appended, page=2 in the hash in place",
+      "waitFor": "(() => { const r = document.querySelector('#fallbackPage > [data-jfbm-page=\"bookmarks\"]'); const n = r.querySelectorAll('.jfbm-page-content .jfbm-row').length; if (n <= 50 || location.hash !== '#/jfbm-bookmarks?view=flat&page=2') return false; return { rows: n, history: history.length, pager: !r.querySelector('.jfbm-pager').classList.contains('hide') }; })()",
+      "timeout": 15000,
+      "save": "more",
+      "full": true
+    },
+    { "name": "every bookmark shown, the pager gone, the entry replaced", "assert": "__vars.more.rows === __vars.counts.all && !__vars.more.pager && __vars.more.history === __vars.historyBefore + 2" },
+
+    { "name": "Title A-Z in the flat view", "script": "const s = document.querySelector('#fallbackPage [data-jfbm-page=\"bookmarks\"] .jfbm-page-sort'); s.value = 'ItemName'; s.dispatchEvent(new Event('change', { bubbles: true })); return s.value;" },
+    {
+      "name": "sorted by the video's name, the first page again",
+      "waitFor": "(() => { const r = document.querySelector('#fallbackPage > [data-jfbm-page=\"bookmarks\"]'); const c = r.querySelector('.jfbm-page-content'); if (location.hash !== '#/jfbm-bookmarks?view=flat&sort=ItemName' || c.hasAttribute('aria-busy') || c.querySelectorAll('.jfbm-row').length !== 50) return false; const names = [...c.querySelectorAll('.jfbm-row .jfbm-row-item')].map(e => e.textContent.toLowerCase()); return { rows: names.length, sorted: names.every((n, i) => i === 0 || names[i - 1].localeCompare(n, 'en') <= 0) }; })()",
+      "timeout": 15000,
+      "save": "byTitle",
+      "full": true
+    },
+    { "name": "non-decreasing titles", "assert": "__vars.byTitle.sorted" },
+    { "name": "Grouped", "click": "#fallbackPage [data-jfbm-page=\"bookmarks\"] [data-jfbm-view=\"grouped\"]" },
+    {
+      "name": "Title A-Z kept across the views (both have it): the groups by name",
+      "waitFor": "(() => { const r = document.querySelector('#fallbackPage > [data-jfbm-page=\"bookmarks\"]'); const c = r.querySelector('.jfbm-page-content'); if (location.hash !== '#/jfbm-bookmarks?sort=ItemName' || c.hasAttribute('aria-busy') || !c.querySelector('.jfbm-group')) return false; const names = [...c.querySelectorAll('.jfbm-group-header .listItemBodyText')].filter(e => !e.classList.contains('secondary')).map(e => e.textContent.toLowerCase()); return { sort: r.querySelector('.jfbm-page-sort').value, sorted: names.every((n, i) => i === 0 || names[i - 1].localeCompare(n, 'en') <= 0), groups: names.length }; })()",
+      "timeout": 15000,
+      "save": "groupedByTitle",
+      "full": true
+    },
+    { "name": "as expected", "assert": "__vars.groupedByTitle.sort === 'ItemName' && __vars.groupedByTitle.sorted && __vars.groupedByTitle.groups >= 4" },
+    { "name": "Most bookmarks", "script": "const s = document.querySelector('#fallbackPage [data-jfbm-page=\"bookmarks\"] .jfbm-page-sort'); s.value = 'Count'; s.dispatchEvent(new Event('change', { bubbles: true })); return s.value;" },
+    {
+      "name": "the groups by count, most first",
+      "waitFor": "(() => { const r = document.querySelector('#fallbackPage > [data-jfbm-page=\"bookmarks\"]'); const c = r.querySelector('.jfbm-page-content'); if (location.hash !== '#/jfbm-bookmarks?sort=Count' || c.hasAttribute('aria-busy') || !c.querySelector('.jfbm-group')) return false; const counts = [...c.querySelectorAll('.jfbm-group-header .listItemBodyText.secondary')].map(e => Number(/^(\\d+) bookmark/.exec(e.textContent)[1])); return { counts: counts.slice(0, 4), sorted: counts.every((n, i) => i === 0 || counts[i - 1] >= n) }; })()",
+      "timeout": 15000,
+      "save": "byCount",
+      "full": true
+    },
+    { "name": "as expected", "assert": "__vars.byCount.sorted && __vars.byCount.counts[0] >= 2" },
+    { "name": "Flat again", "click": "#fallbackPage [data-jfbm-page=\"bookmarks\"] [data-jfbm-view=\"flat\"]" },
+    {
+      "name": "a grouped-only sort goes back to the flat default (Recently changed)",
+      "waitFor": "location.hash === '#/jfbm-bookmarks?view=flat' && document.querySelector('#fallbackPage [data-jfbm-page=\"bookmarks\"] .jfbm-page-sort').value === 'UpdatedAt' && !document.querySelector('#fallbackPage [data-jfbm-page=\"bookmarks\"] .jfbm-page-content').hasAttribute('aria-busy')",
+      "timeout": 15000
+    },
+    { "name": "Recently created", "script": "const s = document.querySelector('#fallbackPage [data-jfbm-page=\"bookmarks\"] .jfbm-page-sort'); s.value = 'CreatedAt'; s.dispatchEvent(new Event('change', { bubbles: true })); return s.value;" },
+    {
+      "name": "sort=CreatedAt: the first page of rows",
+      "waitFor": "(() => { const r = document.querySelector('#fallbackPage > [data-jfbm-page=\"bookmarks\"]'); const c = r.querySelector('.jfbm-page-content'); if (location.hash !== '#/jfbm-bookmarks?view=flat&sort=CreatedAt' || c.hasAttribute('aria-busy') || c.querySelectorAll('.jfbm-row').length !== 50) return false; return [...c.querySelectorAll('.jfbm-row')].map(e => e.getAttribute('data-id')); })()",
+      "timeout": 15000,
+      "save": "byCreated",
+      "full": true
+    },
+    {
+      "name": "in the API's order for sortBy=CreatedAt, each created no later than the one before it",
+      "script": "const r = await ApiClient.getJSON(ApiClient.getUrl('Bookmarks/Query', { sortBy: 'CreatedAt', limit: 50 })); const ids = r.Items.map(i => i.Id); const times = r.Items.map(i => Date.parse(i.CreatedAt)); return { same: JSON.stringify(ids) === JSON.stringify(__vars.byCreated), ordered: times.every((t, i) => i === 0 || times[i - 1] >= t), rows: ids.length, first: times[0], last: times[times.length - 1] };",
+      "save": "created",
+      "full": true
+    },
+    { "name": "as expected", "assert": "__vars.created.same && __vars.created.ordered && __vars.created.rows === 50 && __vars.created.first > __vars.created.last" },
+    { "name": "Position in title", "script": "const s = document.querySelector('#fallbackPage [data-jfbm-page=\"bookmarks\"] .jfbm-page-sort'); s.value = 'Position'; s.dispatchEvent(new Event('change', { bubbles: true })); return s.value;" },
+    {
+      "name": "sort=Position: the first page of rows, each with its video and its time",
+      "waitFor": "(() => { const r = document.querySelector('#fallbackPage > [data-jfbm-page=\"bookmarks\"]'); const c = r.querySelector('.jfbm-page-content'); if (location.hash !== '#/jfbm-bookmarks?view=flat&sort=Position' || c.hasAttribute('aria-busy') || c.querySelectorAll('.jfbm-row').length !== 50) return false; return [...c.querySelectorAll('.jfbm-row')].map(e => ({ id: e.getAttribute('data-id'), item: e.getAttribute('data-jfbm-item'), time: e.querySelector('.jfbm-time-button').textContent.trim() })); })()",
+      "timeout": 15000,
+      "save": "byPosition",
+      "full": true
+    },
+    {
+      "name": "in the API's order for sortBy=Position; within a title the positions don't decrease, in the API's items and on the rows",
+      "script": "const r = await ApiClient.getJSON(ApiClient.getUrl('Bookmarks/Query', { sortBy: 'Position', limit: 50 })); const ids = r.Items.map(i => i.Id); const seconds = (t) => t.split(' ')[0].split(':').reduce((a, p) => a * 60 + Number(p), 0); const rows = __vars.byPosition; return { same: JSON.stringify(ids) === JSON.stringify(rows.map(x => x.id)), ordered: r.Items.every((b, i) => i === 0 || r.Items[i - 1].ItemId !== b.ItemId || r.Items[i - 1].StartTicks <= b.StartTicks), rowsOrdered: rows.every((x, i) => i === 0 || rows[i - 1].item !== x.item || seconds(rows[i - 1].time) <= seconds(x.time)), titles: new Set(rows.map(x => x.item)).size };",
+      "save": "position",
+      "full": true
+    },
+    { "name": "as expected (two movies hold the extra bookmarks, so a title's rows run on)", "assert": "__vars.position.same && __vars.position.ordered && __vars.position.rowsOrdered && __vars.position.titles >= 2" },
+    { "name": "Recently changed again", "script": "const s = document.querySelector('#fallbackPage [data-jfbm-page=\"bookmarks\"] .jfbm-page-sort'); s.value = 'UpdatedAt'; s.dispatchEvent(new Event('change', { bubbles: true })); return s.value;" },
+    { "name": "the flat default again", "waitFor": "location.hash === '#/jfbm-bookmarks?view=flat' && !document.querySelector('#fallbackPage [data-jfbm-page=\"bookmarks\"] .jfbm-page-content').hasAttribute('aria-busy')", "timeout": 15000 },
+
+    { "name": "Episodes", "click": "#fallbackPage [data-jfbm-page=\"bookmarks\"] [data-jfbm-type=\"Episode\"]" },
+    {
+      "name": "only episodes: the count as the API's",
+      "waitFor": "(() => { const r = document.querySelector('#fallbackPage > [data-jfbm-page=\"bookmarks\"]'); if (location.hash !== '#/jfbm-bookmarks?view=flat&type=Episode' || r.querySelector('.jfbm-page-content').hasAttribute('aria-busy')) return false; return r.querySelector('.jfbm-page-count').textContent; })()",
+      "timeout": 15000,
+      "save": "episodeCount"
+    },
+    { "name": "as expected", "assert": "__vars.episodeCount.startsWith(__vars.counts.episodes + ' bookmark')" },
+    { "name": "All", "click": "#fallbackPage [data-jfbm-page=\"bookmarks\"] [data-jfbm-type=\"\"]" },
+    { "name": "every type again", "waitFor": "location.hash === '#/jfbm-bookmarks?view=flat' && !document.querySelector('#fallbackPage [data-jfbm-page=\"bookmarks\"] .jfbm-page-content').hasAttribute('aria-busy')", "timeout": 15000 },
+    { "name": "Filters", "click": "#fallbackPage [data-jfbm-page=\"bookmarks\"] .jfbm-page-filters-button" },
+    { "name": "the four filters shown", "waitFor": "(() => { const f = document.querySelector('#fallbackPage [data-jfbm-page=\"bookmarks\"] .jfbm-page-filters'); return !!f && !f.classList.contains('hide') && f.getClientRects().length > 0 && [...f.querySelectorAll('label span')].map(s => s.textContent).join(',') === 'Has range,Has clip,Needs a name,Not in library'; })()" },
+    { "name": "Has range", "click": "#fallbackPage [data-jfbm-page=\"bookmarks\"] [data-jfbm-filter=\"range\"]" },
+    {
+      "name": "range=1: the count as the API's, Filters (1)",
+      "waitFor": "(() => { const r = document.querySelector('#fallbackPage > [data-jfbm-page=\"bookmarks\"]'); if (location.hash !== '#/jfbm-bookmarks?view=flat&range=1' || r.querySelector('.jfbm-page-content').hasAttribute('aria-busy')) return false; return { count: r.querySelector('.jfbm-page-count').textContent, button: r.querySelector('.jfbm-page-filters-button').textContent }; })()",
+      "timeout": 15000,
+      "save": "ranges",
+      "full": true
+    },
+    { "name": "as expected", "assert": "__vars.ranges.count.startsWith(__vars.counts.ranges + ' bookmark') && __vars.ranges.button === 'Filters (1)'" },
+    { "name": "Needs a name", "click": "#fallbackPage [data-jfbm-page=\"bookmarks\"] [data-jfbm-filter=\"unnamed\"]" },
+    {
+      "name": "range=1&unnamed=1: the unnamed ranges",
+      "waitFor": "(() => { const r = document.querySelector('#fallbackPage > [data-jfbm-page=\"bookmarks\"]'); if (location.hash !== '#/jfbm-bookmarks?view=flat&range=1&unnamed=1' || r.querySelector('.jfbm-page-content').hasAttribute('aria-busy')) return false; return r.querySelector('.jfbm-page-count').textContent; })()",
+      "timeout": 15000,
+      "save": "unnamedRanges"
+    },
+    { "name": "as expected", "assert": "__vars.unnamedRanges.startsWith(__vars.counts.unnamedRanges + ' bookmark')" },
+    { "name": "Has range off, Needs a name off, Has clip on", "script": "const r = document.querySelector('#fallbackPage [data-jfbm-page=\"bookmarks\"]'); for (const k of ['range', 'unnamed', 'clip']) { r.querySelector('[data-jfbm-filter=\"' + k + '\"]').click(); await new Promise(x => setTimeout(x, 400)); } return location.hash;" },
+    {
+      "name": "clip=1: the clipped bookmark, its row with the clip ready",
+      "waitFor": "(() => { const r = document.querySelector('#fallbackPage > [data-jfbm-page=\"bookmarks\"]'); const c = r.querySelector('.jfbm-page-content'); if (location.hash !== '#/jfbm-bookmarks?view=flat&clip=1' || c.hasAttribute('aria-busy')) return false; return { count: r.querySelector('.jfbm-page-count').textContent, rows: c.querySelectorAll('.jfbm-row').length, ready: !!c.querySelector('.jfbm-row .jfbm-clip-ready'), title: c.querySelector('.jfbm-row .jfbm-row-title').textContent }; })()",
+      "timeout": 15000,
+      "save": "clipped",
+      "full": true
+    },
+    { "name": "as expected", "assert": "__vars.clipped.count.startsWith(__vars.counts.clips + ' bookmark') && __vars.clipped.rows === __vars.counts.clips && __vars.clipped.ready && __vars.clipped.title === 'page-probe clipped'" },
+    { "name": "Has clip off", "click": "#fallbackPage [data-jfbm-page=\"bookmarks\"] [data-jfbm-filter=\"clip\"]" },
+    { "name": "no filter", "waitFor": "location.hash === '#/jfbm-bookmarks?view=flat' && !document.querySelector('#fallbackPage [data-jfbm-page=\"bookmarks\"] .jfbm-page-content').hasAttribute('aria-busy')", "timeout": 15000 },
+    { "name": "Not in library", "click": "#fallbackPage [data-jfbm-page=\"bookmarks\"] [data-jfbm-filter=\"missing\"]" },
+    {
+      "name": "missing=1: the detached bookmarks, each greyed with its badge, unplayable, its video not linked; the count line and Filters (1)",
+      "waitFor": "(() => { const r = document.querySelector('#fallbackPage > [data-jfbm-page=\"bookmarks\"]'); const c = r.querySelector('.jfbm-page-content'); if (location.hash !== '#/jfbm-bookmarks?view=flat&missing=1' || c.hasAttribute('aria-busy')) return false; const rows = [...c.querySelectorAll('.jfbm-row')]; return { count: r.querySelector('.jfbm-page-count').textContent, button: r.querySelector('.jfbm-page-filters-button').textContent, rows: rows.length, detached: rows.filter(x => x.classList.contains('jfbm-row-detached')).length, badges: rows.filter(x => [...x.querySelectorAll('.jfbm-badge')].some(b => b.textContent === 'Not in library')).length, playable: rows.filter(x => !x.querySelector('.jfbm-time-button').disabled).length, links: c.querySelectorAll('.jfbm-row-item a').length, titles: rows.map(x => x.querySelector('.jfbm-row-title').textContent), notice: (c.querySelector('.jfbm-notice-text') || { textContent: '' }).textContent }; })()",
+      "timeout": 15000,
+      "save": "missing",
+      "full": true
+    },
+    {
+      "name": "as the API counts (availability=Missing): every row detached, badged, unplayable, its video unlinked; with none, the no-match notice",
+      "script": "const n = (await ApiClient.getJSON(ApiClient.getUrl('Bookmarks/Query', { availability: 'Missing', limit: 1 }))).TotalRecordCount; const m = __vars.missing; return { api: n, seeded: m.titles.includes('page-probe detached'), ok: m.count.startsWith(n + ' bookmark') && m.rows === Math.min(n, 50) && m.detached === m.rows && m.badges === m.rows && m.playable === 0 && m.links === 0 && m.button === 'Filters (1)' && (n > 0 || m.notice === 'No bookmarks match these filters.') };",
+      "save": "missingCheck",
+      "full": true
+    },
+    { "name": "as expected", "assert": "__vars.missingCheck.ok && __vars.missingCheck.api === __vars.counts.missing" },
+    { "name": "Not in library off", "click": "#fallbackPage [data-jfbm-page=\"bookmarks\"] [data-jfbm-filter=\"missing\"]" },
+    { "name": "no filter again", "waitFor": "location.hash === '#/jfbm-bookmarks?view=flat' && !document.querySelector('#fallbackPage [data-jfbm-page=\"bookmarks\"] .jfbm-page-content').hasAttribute('aria-busy')", "timeout": 15000 },
+    { "name": "history length before the search", "eval": "history.length", "save": "historySearch" },
+    { "name": "type into the search box", "type": "page-probe extra", "selector": "#fallbackPage [data-jfbm-page=\"bookmarks\"] .jfbm-page-toolbar input[type=\"search\"]" },
+    {
+      "name": "q=page-probe+extra after the debounce, in the same history entry, the count as the API's, the field still focused",
+      "waitFor": "(() => { const r = document.querySelector('#fallbackPage > [data-jfbm-page=\"bookmarks\"]'); if (location.hash !== '#/jfbm-bookmarks?view=flat&q=page-probe+extra' || r.querySelector('.jfbm-page-content').hasAttribute('aria-busy')) return false; return { count: r.querySelector('.jfbm-page-count').textContent, history: history.length, focused: document.activeElement === r.querySelector('input[type=\"search\"]'), value: r.querySelector('input[type=\"search\"]').value }; })()",
+      "timeout": 15000,
+      "save": "searched",
+      "full": true
+    },
+    { "name": "as expected", "assert": "__vars.searched.count.startsWith(__vars.counts.extra + ' bookmark') && __vars.searched.history === __vars.historySearch && __vars.searched.focused && __vars.searched.value === 'page-probe extra'" },
+
+    { "name": "a deep link: flat, a search, Movies, Name A-Z, Has range", "goto": "/web/index.html#/jfbm-bookmarks?view=flat&q=page-probe&type=Movie&sort=Name&range=1" },
+    { "name": "the route taken", "waitFor": "location.hash === '#/jfbm-bookmarks?view=flat&q=page-probe&type=Movie&sort=Name&range=1'" },
+    { "name": "hard reload", "reload": true },
+    {
+      "name": "after the reload: the toolbar and the list as the hash says",
+      "waitFor": "(() => { const r = document.querySelector('#fallbackPage > [data-jfbm-page=\"bookmarks\"][data-jfbm-mounted][data-jfbm-state=\"on\"]'); if (!r || location.hash !== '#/jfbm-bookmarks?view=flat&q=page-probe&type=Movie&sort=Name&range=1') return false; const c = r.querySelector('.jfbm-page-content'); if (c.hasAttribute('aria-busy') || !c.querySelector('.jfbm-row')) return false; return { view: r.querySelector('[data-jfbm-view][aria-pressed=\"true\"]').getAttribute('data-jfbm-view'), type: r.querySelector('[data-jfbm-type][aria-pressed=\"true\"]').getAttribute('data-jfbm-type'), sort: r.querySelector('.jfbm-page-sort').value, q: r.querySelector('input[type=\"search\"]').value, range: r.querySelector('[data-jfbm-filter=\"range\"]').checked, button: r.querySelector('.jfbm-page-filters-button').textContent, count: r.querySelector('.jfbm-page-count').textContent, title: (document.querySelector('.skinHeader .pageTitle') || { textContent: '' }).textContent.trim() }; })()",
+      "timeout": 20000,
+      "save": "reloaded",
+      "full": true
+    },
+    { "name": "as expected", "assert": "__vars.reloaded.view === 'flat' && __vars.reloaded.type === 'Movie' && __vars.reloaded.sort === 'Name' && __vars.reloaded.q === 'page-probe' && __vars.reloaded.range && __vars.reloaded.button === 'Filters (1)' && __vars.reloaded.title === 'My Bookmarks'" },
+    { "name": "the count equals the API's for the same filters", "assert": "((n) => __vars.reloaded.count.startsWith(n + ' bookmark'))((await ApiClient.getJSON(ApiClient.getUrl('Bookmarks/Query', { searchTerm: 'page-probe', itemTypes: 'Movie', hasRange: true, limit: 1 }))).TotalRecordCount)" },
+    { "name": "Grouped", "click": "#fallbackPage [data-jfbm-page=\"bookmarks\"] [data-jfbm-view=\"grouped\"]" },
+    { "name": "grouped with the rest kept (Name A-Z is flat-only, so the grouped default)", "waitFor": "location.hash === '#/jfbm-bookmarks?q=page-probe&type=Movie&range=1' && !document.querySelector('#fallbackPage [data-jfbm-page=\"bookmarks\"] .jfbm-page-content').hasAttribute('aria-busy')", "timeout": 15000 },
+    { "name": "renders before Back", "eval": "__jfkit.jfbm.instance.pages.state().renders.bookmarks", "save": "rendersBeforeBack" },
+    { "name": "Back", "script": "history.back(); return true;" },
+    {
+      "name": "the flat state again, rendered by the kit from the hash (one render)",
+      "waitFor": "(() => { const r = document.querySelector('#fallbackPage > [data-jfbm-page=\"bookmarks\"]'); if (!r || location.hash !== '#/jfbm-bookmarks?view=flat&q=page-probe&type=Movie&sort=Name&range=1' || r.querySelector('.jfbm-page-content').hasAttribute('aria-busy') || !r.querySelector('.jfbm-row')) return false; return { view: r.querySelector('[data-jfbm-view][aria-pressed=\"true\"]').getAttribute('data-jfbm-view'), sort: r.querySelector('.jfbm-page-sort').value, renders: __jfkit.jfbm.instance.pages.state().renders.bookmarks }; })()",
+      "timeout": 15000,
+      "save": "back",
+      "full": true
+    },
+    { "name": "as expected", "assert": "__vars.back.view === 'flat' && __vars.back.sort === 'Name' && __vars.back.renders === __vars.rendersBeforeBack + 1" },
+    { "name": "Forward", "script": "history.forward(); return true;" },
+    { "name": "grouped again", "waitFor": "location.hash === '#/jfbm-bookmarks?q=page-probe&type=Movie&range=1' && document.querySelector('#fallbackPage [data-jfbm-page=\"bookmarks\"] [data-jfbm-view][aria-pressed=\"true\"]').getAttribute('data-jfbm-view') === 'grouped' && !document.querySelector('#fallbackPage [data-jfbm-page=\"bookmarks\"] .jfbm-page-content').hasAttribute('aria-busy')", "timeout": 15000 },
+
+    { "name": "the first movie's id", "eval": "__vars.seed.movieId", "save": "movieId" },
+    { "name": "the first movie's page", "goto": "/web/index.html#/details?id=${movieId}" },
+    {
+      "name": "'My bookmarks (n)' with See all",
+      "waitFor": "(() => { const s = document.querySelector('#itemDetailPage:not(.hide) .jfbm-section'); const a = s && s.querySelector('.jfbm-section-links a[data-jfbm-link=\"bookmarks\"]'); if (!a || a.getClientRects().length === 0) return false; return { text: a.textContent.trim(), href: a.getAttribute('href') }; })()",
+      "timeout": 20000,
+      "save": "seeAll",
+      "full": true
+    },
+    { "name": "See all links the page filtered to this video", "assert": "__vars.seeAll.text === 'See all' && __vars.seeAll.href === '#/jfbm-bookmarks?item=' + __vars.seed.movieId" },
+    { "name": "click See all", "click": "#itemDetailPage:not(.hide) .jfbm-section-links a[data-jfbm-link=\"bookmarks\"]" },
+    {
+      "name": "one group, this movie's, with Show every video",
+      "waitFor": "(() => { const r = document.querySelector('#fallbackPage > [data-jfbm-page=\"bookmarks\"][data-jfbm-state=\"on\"]'); if (!r || location.hash !== '#/jfbm-bookmarks?item=' + __vars.seed.movieId) return false; const c = r.querySelector('.jfbm-page-content'); if (c.hasAttribute('aria-busy') || !c.querySelector('.jfbm-group')) return false; return { groups: c.querySelectorAll('.jfbm-group').length, id: c.querySelector('.jfbm-group').getAttribute('data-jfbm-group'), count: r.querySelector('.jfbm-page-count').textContent, link: (r.querySelector('.jfbm-page-all-videos') || { textContent: '' }).textContent }; })()",
+      "timeout": 20000,
+      "save": "seeAllPage",
+      "full": true
+    },
+    { "name": "as expected (the count line's text ends with the link's)", "assert": "__vars.seeAllPage.groups === 1 && __vars.seeAllPage.id === __vars.seed.movieId.replace(/-/g, '').toLowerCase() && /on 1 title Show every video$/.test(__vars.seeAllPage.count) && __vars.seeAllPage.link === 'Show every video'" },
+    { "name": "Show every video", "click": "#fallbackPage [data-jfbm-page=\"bookmarks\"] .jfbm-page-all-videos" },
+    { "name": "every video again", "waitFor": "location.hash === '#/jfbm-bookmarks' && document.querySelectorAll('#fallbackPage [data-jfbm-page=\"bookmarks\"] .jfbm-group').length > 1", "timeout": 15000 },
+    { "name": "the second group's video", "eval": "document.querySelectorAll('#fallbackPage [data-jfbm-page=\"bookmarks\"] .jfbm-group')[1].getAttribute('data-jfbm-group')", "save": "secondGroup" },
+    { "name": "history length before Open title", "eval": "history.length", "save": "historyOpen" },
+    { "name": "Open title on the second group", "click": "#fallbackPage [data-jfbm-page=\"bookmarks\"] .jfbm-group:nth-of-type(2) .jfbm-open-title", "js": true },
+    { "name": "the video's page", "waitFor": "location.hash.startsWith('#/details?id=' + __vars.secondGroup) && !!document.querySelector('#itemDetailPage:not(.hide)')", "timeout": 20000 },
+    { "name": "Back", "script": "history.back(); return true;" },
+    {
+      "name": "back on the page: that group marked and scrolled to, group= dropped from the hash in place (one landing)",
+      "waitFor": "(() => { const r = document.querySelector('#fallbackPage > [data-jfbm-page=\"bookmarks\"]'); if (!r || location.hash !== '#/jfbm-bookmarks') return false; const g = r.querySelector('.jfbm-page-highlight'); if (!g || g.getAttribute('data-jfbm-group') !== __vars.secondGroup) return false; const b = g.getBoundingClientRect(); return { history: history.length, top: Math.round(b.top), bottom: Math.round(b.bottom), height: innerHeight }; })()",
+      "timeout": 20000,
+      "save": "landed",
+      "full": true
+    },
+    { "name": "the entry replaced, not pushed (Open title pushed one); the group in view", "assert": "__vars.landed.history === __vars.historyOpen + 1 && __vars.landed.top > -40 && __vars.landed.top < __vars.landed.height / 2" },
+
+    { "name": "the shell endpoint: 200 text/html with the page marker; an unknown key 404", "script": "const h = { Authorization: 'MediaBrowser Token=\"' + ApiClient.accessToken() + '\"' }; const a = await fetch(ApiClient.getUrl('Bookmarks/Pages/bookmarks'), { headers: h }); const t = await a.text(); const b = await fetch(ApiClient.getUrl('Bookmarks/Pages/nope'), { headers: h }); return { status: a.status, type: a.headers.get('content-type'), marker: t.includes('data-jfbm-page=\"bookmarks\"'), unknown: b.status };", "save": "shell", "full": true },
+    { "name": "as expected", "assert": "__vars.shell.status === 200 && __vars.shell.type.startsWith('text/html') && __vars.shell.marker && __vars.shell.unknown === 404" },
+    { "name": "no uncaught exception of ours", "noExceptions": true, "ignore": "/CustomRatings/script|^Error: player cannot be null" },
+
+    { "name": "clean-up: the seeded bookmarks deleted with their clip", "script": "const r = await ApiClient.ajax({ type: 'POST', url: ApiClient.getUrl('Bookmarks/BulkDelete'), data: JSON.stringify({ Ids: __vars.seed.ids, DeleteClips: true }), contentType: 'application/json', dataType: 'json' }); return { deleted: r.Deleted.length, tombstoned: r.Tombstoned.length, notFound: r.NotFound.length, inUse: r.InUse.length, failed: r.Failed.length };", "save": "cleanup", "full": true },
+    { "name": "all deleted", "assert": "__vars.cleanup.deleted === __vars.seed.ids.length && __vars.cleanup.inUse === 0 && __vars.cleanup.failed === 0" }
+  ]
+}

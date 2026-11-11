@@ -1,0 +1,564 @@
+{
+  "name": "User Ratings 1.0.2.0, the Data tab: in the default sandbox as admin, with viewer in their own window, the desktop layout: the settings page's Data tab read with GETs only (and the page's own Detached/Seen), no select; before a file Dry run and Import are off; Export runs as a job (POST 202, polled), its file fetched with the session's authorization (no token in any query) and handed to a blob: download link, which the run keeps in the page (a[download] clicks prevented, so no file is written): the kit's export envelope of User Ratings 1.0.2.0 with the users' ids in the \"N\" format, every table and viewer's row; Download again gives the same name and bytes; that file in the file field: Import stays off until a Merge dry run by id (the file sent as it is, every row Unchanged, the report as text); viewer changes their review: Import asks first, then the job's 409 Changed shows in the tab's words, nothing is imported and Import is off again; the dry run again (viewer's row kept as newer here) and Import: the report names the import's snapshot, listed as \"Before an import\"; viewer changes their review again; Restore… of the import's snapshot asks first (Cancel focused), then restores it: viewer's review as before the import, the restore's own snapshot named and listed. Then viewer rates Tagged Movie (its folder's TMDb id) 4.5 stars with a review, and Export for Jellyfin Enhanced fetches JE 12.14's reviews.json with one GET (its only query leaveOutRestricted=true, the default choice since 0.3.24) and saves it the same way: only Reviews, its keys sorted, each <userIdN>:<movie|tv>:<tmdbKey> with JE's seven fields in order, TmdbId the whole key; viewer's Tagged Movie in it with 4.5 and the text as it is; Long Test Movie counted as no TMDb id when the film has none; the status counting the reviews. Every rating on Long Test Movie and Tagged Movie removed at the end.",
+  "failOnException": false,
+  "timeout": 30000,
+  "steps": [
+    {
+      "context": "viewer"
+    },
+    {
+      "name": "the details probe in every document (its request log and server())",
+      "initScript": {
+        "file": "probes/userratings-details-probe.js"
+      }
+    },
+    {
+      "name": "sign in as viewer",
+      "login": "viewer"
+    },
+    {
+      "name": "desktop layout",
+      "eval": "(localStorage.removeItem('layout'), true)"
+    },
+    {
+      "name": "reload",
+      "reload": true
+    },
+    {
+      "name": "viewer: User Ratings 1.0.2.0 started",
+      "waitFor": "!!window.ApiClient && !!ApiClient.getCurrentUserId() && !!(window.__jfkit && window.__jfkit.jfur)",
+      "timeout": 40000
+    },
+    {
+      "name": "the served script is 1.0.2.0",
+      "assert": "window.__jfkit.jfur.version === '1.0.2.0'",
+      "message": "User Ratings 1.0.2.0 is not the script the page loaded"
+    },
+    {
+      "context": "main"
+    },
+    {
+      "name": "the details probe in every document (its request log and server())",
+      "initScript": {
+        "file": "probes/userratings-details-probe.js"
+      }
+    },
+    {
+      "name": "sign in as admin",
+      "login": "admin"
+    },
+    {
+      "name": "desktop layout",
+      "eval": "(localStorage.removeItem('layout'), true)"
+    },
+    {
+      "name": "reload",
+      "reload": true
+    },
+    {
+      "name": "admin: User Ratings 1.0.2.0 started",
+      "waitFor": "!!window.ApiClient && !!ApiClient.getCurrentUserId() && !!(window.__jfkit && window.__jfkit.jfur)",
+      "timeout": 40000
+    },
+    {
+      "name": "the served script is 1.0.2.0",
+      "assert": "window.__jfkit.jfur.version === '1.0.2.0'",
+      "message": "User Ratings 1.0.2.0 is not the script the page loaded"
+    },
+    {
+      "name": "the users' ids",
+      "script": "const norm = (v) => String(v === null || v === undefined ? '' : v).replace(/-/g, '').toLowerCase(); const u = await ApiClient.getUsers(); const id = (n) => { const x = u.find(y => y.Name === n); return x ? norm(x.Id) : null; }; const r = { admin: id('admin'), viewer: id('viewer'), viewer2: id('viewer2') }; if (!r.viewer || !r.viewer2) { throw new Error('the sandbox needs viewer and viewer2'); } return r;",
+      "save": "ids",
+      "full": true
+    },
+    {
+      "name": "Long Test Movie",
+      "eval": "(await ApiClient.getItems(ApiClient.getCurrentUserId(), { IncludeItemTypes: 'Movie', Recursive: true, SearchTerm: \"Long Test Movie\", Limit: 1 })).Items[0].Id",
+      "save": "movieId"
+    },
+    {
+      "name": "clean: before the run: every rating on Long Test Movie removed through the moderation API",
+      "script": "const page = await __jfurDetails.server('GET', 'UserRatings/Admin/Reviews?itemId=' + __vars.movieId + '&limit=200'); if (page.status !== 200) { throw new Error('list ' + page.status); } const removed = []; for (const row of page.json.Items) { const p = 'UserRatings/Admin/Reviews/' + row.RatingId + '?textOnly=false'; const dry = await __jfurDetails.server('DELETE', p); const done = await __jfurDetails.server('DELETE', p + '&dryRun=false&ifPreview=' + dry.json.PreviewToken); removed.push(done.status); } return removed;"
+    },
+    {
+      "context": "viewer"
+    },
+    {
+      "name": "viewer: Long Test Movie",
+      "eval": "(await ApiClient.getItems(ApiClient.getCurrentUserId(), { IncludeItemTypes: 'Movie', Recursive: true, SearchTerm: \"Long Test Movie\", Limit: 1 })).Items[0].Id",
+      "save": "movieId"
+    },
+    {
+      "name": "viewer: stars and a review through the API",
+      "script": "const a = await __jfurDetails.server('PUT', 'UserRatings/Items/' + __vars.movieId + '/Mine/Rating', { Stars: 4 }); const b = await __jfurDetails.server('PUT', 'UserRatings/Items/' + __vars.movieId + '/Mine/Review', { Text: \"data webcheck review: the lighthouse <b>stays plain</b> & lit.\", IsSpoiler: false }); if (a.status !== 200 || b.status !== 200) { throw new Error('rating ' + a.status + ', review ' + b.status); } return true;"
+    },
+    {
+      "context": "main"
+    },
+    {
+      "name": "mark",
+      "script": "window.__mark = __jfurDetails.requests.length; return true;"
+    },
+    {
+      "name": "open User Ratings' settings page",
+      "goto": "/web/index.html#/configurationpage?name=UserRatings"
+    },
+    {
+      "name": "the page and its tabs",
+      "waitFor": "!!document.querySelector('#UserRatingsConfigPage:not(.hide) #UserRatingsTabs')",
+      "timeout": 30000
+    },
+    {
+      "name": "the Data tab",
+      "click": "#UserRatingsTabData"
+    },
+    {
+      "name": "the Data tab mounted: the snapshots, the users and the jobs read, and the detached list",
+      "waitFor": "(() => { const r = __jfurDetails.requests.slice(window.__mark); const got = (p) => r.some(x => x.method === 'GET' && x.path === p && x.status === 200); return !document.querySelector('#UserRatingsData').classList.contains('hide') && !!document.querySelector('#UserRatingsDataRoot .jfur-data-export') && !!document.querySelector('#UserRatingsDetachedListRoot .jfur-det') && got('/UserRatings/Admin/Snapshots') && got('/UserRatings/Admin/Diagnostics') && got('/UserRatings/Admin/Jobs') && got('/UserRatings/Admin/Detached'); })()",
+      "timeout": 30000
+    },
+    {
+      "name": "the time the lists take to draw",
+      "sleep": 500
+    },
+    {
+      "name": "its requests so far",
+      "eval": "__jfurDetails.requests.slice(window.__mark).map(r => r.method + ' ' + r.path + ' ' + r.status)",
+      "save": "firstRequests",
+      "full": true
+    },
+    {
+      "name": "GETs only (and the page's own Detached/Seen): opening the tab writes nothing",
+      "assert": "__vars.firstRequests.every(r => r.indexOf('GET ') === 0 || r.indexOf('POST /UserRatings/Admin/Detached/Seen ') === 0)"
+    },
+    {
+      "name": "no select in the Data tab or the detached list (the TV layout's D-pad and OK work on every control)",
+      "assert": "document.querySelectorAll('#UserRatingsDataRoot select, #UserRatingsDetachedListRoot select').length === 0"
+    },
+    {
+      "name": "before a file: Dry run and Import off, the hint asks for a file; Download again hidden",
+      "assert": "document.querySelector('#UserRatingsDataRoot .jfur-data-dryrun').disabled && document.querySelector('#UserRatingsDataRoot .jfur-data-import').disabled && document.querySelector('#UserRatingsDataRoot .jfur-data-hint').textContent === \"Choose an export file, then run the dry run.\" && !(document.querySelector('#UserRatingsDataRoot .jfur-data-download').getClientRects().length > 0)"
+    },
+    {
+      "name": "screenshot: the Data tab",
+      "screenshot": "userratings-data-desktop.png"
+    },
+    {
+      "name": "export: the download kept in the page: a[download] clicks prevented, so no file is written",
+      "script": "window.__jfurDownloads = []; document.addEventListener('click', function (e) { const a = e.target && e.target.closest ? e.target.closest('a[download]') : null; if (!a) { return; } e.preventDefault(); const entry = { name: a.getAttribute('download'), scheme: a.href.split(':')[0], text: null }; window.__jfurDownloads.push(entry); fetch(a.href).then(r => r.text()).then(t => { entry.text = t; }); }, true); return true;"
+    },
+    {
+      "name": "export: mark",
+      "script": "window.__mark = __jfurDetails.requests.length; return true;"
+    },
+    {
+      "name": "export: Export",
+      "click": "#UserRatingsDataRoot .jfur-data-export"
+    },
+    {
+      "name": "export: done: the file handed to a download link and read, the status says so",
+      "waitFor": "window.__jfurDownloads.length === 1 && window.__jfurDownloads[0].text !== null && document.querySelector('#UserRatingsDataRoot .jfur-data-export-status').textContent.indexOf('Exported ') === 0 && !document.querySelector('#UserRatingsDataRoot .jfur-data-export').disabled",
+      "timeout": 60000
+    },
+    {
+      "name": "export: the file",
+      "eval": "(() => { const norm = (v) => String(v === null || v === undefined ? '' : v).replace(/-/g, '').toLowerCase(); const d = window.__jfurDownloads[0]; let j = null; try { j = JSON.parse(d.text); } catch (e) { return { parsed: false }; } const row = ((j.Data && j.Data.Ratings) || []).find(r => norm(r.UserId) === __vars.ids.viewer && norm(r.ItemId) === norm(__vars.movieId)); return { parsed: true, name: d.name, scheme: d.scheme, format: j.Format, version: j.PluginVersion, users: (j.Users || []).map(u => ({ id: u.Id, deleted: Object.prototype.hasOwnProperty.call(u, 'Deleted') })), tables: Object.keys(j.Data || {}).sort(), viewerText: row ? row.ReviewText : null, viewerStars: row ? row.Stars : null, status: document.querySelector('#UserRatingsDataRoot .jfur-data-export-status').textContent, again: (document.querySelector('#UserRatingsDataRoot .jfur-data-download').getClientRects().length > 0) }; })()",
+      "save": "exportFile",
+      "full": true
+    },
+    {
+      "name": "export: the kit's export envelope of User Ratings 1.0.2.0 (the users' ids in the \"N\" format, Deleted only when true), with every table and viewer's row as they rated; a blob: link named userratings-export-<time>.json, the status naming it; Download again shown",
+      "assert": "(() => { const f = __vars.exportFile; return f.parsed && f.format === 'jellyfin-plugin-export/1' && f.version === '1.0.2.0' && f.users.every(u => /^[0-9a-f]{32}$/.test(u.id) && !u.deleted) && f.users.some(u => u.id === __vars.ids.viewer) && ['FormerUsers', 'ImportLedger', 'ModerationLog', 'Ratings', 'Tombstones'].every(t => f.tables.indexOf(t) >= 0) && f.viewerText === \"data webcheck review: the lighthouse <b>stays plain</b> & lit.\" && f.viewerStars === 4 && f.scheme === 'blob' && /^userratings-export-[0-9]{8}-[0-9]{6}[.]json$/.test(f.name) && f.status.endsWith(' as ' + f.name + '.') && f.again; })()"
+    },
+    {
+      "name": "export: the tab's requests since the mark",
+      "eval": "__jfurDetails.requests.slice(window.__mark).map(r => ({ method: r.method, path: r.path, query: r.query, status: r.status }))",
+      "save": "exportRequests",
+      "full": true
+    },
+    {
+      "name": "export: a POST answered 202, the job polled, its file fetched with the session's authorization: no token in any query",
+      "assert": "(() => { const r = __vars.exportRequests; const post = r.find(x => x.method === 'POST' && x.path === '/UserRatings/Admin/Export'); const file = r.filter(x => /^\\/UserRatings\\/Admin\\/Jobs\\/[0-9a-f-]+\\/File$/i.test(x.path)); return !!post && post.status === 202 && r.some(x => /^\\/UserRatings\\/Admin\\/Jobs\\/[0-9a-f-]+$/i.test(x.path) && x.status === 200) && file.length === 1 && file[0].status === 200 && file[0].query === '' && r.every(x => !/api_key|token/i.test(x.query || '')); })()"
+    },
+    {
+      "name": "export: Download the export again",
+      "click": "#UserRatingsDataRoot .jfur-data-download"
+    },
+    {
+      "name": "export: the same file again",
+      "waitFor": "window.__jfurDownloads.length === 2 && window.__jfurDownloads[1].text !== null",
+      "timeout": 30000
+    },
+    {
+      "name": "export: its name and its bytes the same",
+      "assert": "window.__jfurDownloads[1].name === window.__jfurDownloads[0].name && window.__jfurDownloads[1].text === window.__jfurDownloads[0].text"
+    },
+    {
+      "name": "import: the exported file put in the file field",
+      "script": "const input = document.querySelector('#UserRatingsDataRoot .jfur-data-file'); const dt = new DataTransfer(); dt.items.add(new File([window.__jfurDownloads[0].text], window.__jfurDownloads[0].name, { type: 'application/json' })); input.files = dt.files; input.dispatchEvent(new Event('change', { bubbles: true })); return input.files.length;"
+    },
+    {
+      "name": "import: Dry run on, Import still off, the hint asks for the dry run; Merge and By id chosen",
+      "assert": "!document.querySelector('#UserRatingsDataRoot .jfur-data-dryrun').disabled && document.querySelector('#UserRatingsDataRoot .jfur-data-import').disabled && document.querySelector('#UserRatingsDataRoot .jfur-data-hint').textContent === \"Run the dry run of this file and these options first; Import then does what it showed.\" && document.querySelector('#UserRatingsDataRoot [role=radio][data-jfur-value=\"Merge\"]').getAttribute('aria-checked') === 'true' && document.querySelector('#UserRatingsDataRoot [role=radio][data-jfur-value=\"Id\"]').getAttribute('aria-checked') === 'true'"
+    },
+    {
+      "name": "dry run: mark",
+      "script": "window.__mark = __jfurDetails.requests.length; return true;"
+    },
+    {
+      "name": "dry run: Dry run",
+      "click": "#UserRatingsDataRoot .jfur-data-dryrun"
+    },
+    {
+      "name": "dry run: its report, Import on",
+      "waitFor": "!!document.querySelector('#UserRatingsDataRoot .jfur-data-import-section .jfur-data-report').querySelector('.jfur-data-summary') && document.querySelector('#UserRatingsDataRoot .jfur-data-import-section .jfur-data-report').querySelector('.jfur-data-summary').textContent.indexOf('Dry run, nothing was changed.') === 0 && !document.querySelector('#UserRatingsDataRoot .jfur-data-import').disabled",
+      "timeout": 60000
+    },
+    {
+      "name": "dry run: the report",
+      "eval": "({ summary: document.querySelector('#UserRatingsDataRoot .jfur-data-import-section .jfur-data-report').querySelector('.jfur-data-summary').textContent, outcomes: Array.from(document.querySelector('#UserRatingsDataRoot .jfur-data-import-section .jfur-data-report').querySelectorAll('[data-jfur-outcome]')).map(li => ({ key: li.getAttribute('data-jfur-outcome'), text: li.textContent })), markup: document.querySelector('#UserRatingsDataRoot .jfur-data-import-section .jfur-data-report').querySelectorAll('b, i').length, hint: document.querySelector('#UserRatingsDataRoot .jfur-data-hint').textContent })",
+      "save": "dry1",
+      "full": true
+    },
+    {
+      "name": "dry run: the file named (User Ratings 1.0.2.0), every row Unchanged, none added or updated; text only; no hint",
+      "assert": "__vars.dry1.summary.indexOf('The file is an export of User Ratings 1.0.2.0 from ') > 0 && __vars.dry1.outcomes.some(o => o.key === 'Unchanged') && !__vars.dry1.outcomes.some(o => o.key === 'Added' || o.key === 'Updated' || o.key === 'StoredDetached') && __vars.dry1.markup === 0 && __vars.dry1.hint === ''"
+    },
+    {
+      "name": "dry run: the requests",
+      "eval": "await Promise.all(__jfurDetails.requests.slice(window.__mark).filter(r => r.method === 'POST').map(async r => ({ path: r.path, query: r.query, status: r.status, sent: r.body && r.body.blob, same: !!r.blob && (await r.blob.text()) === window.__jfurDownloads[0].text })))",
+      "save": "dryPosts",
+      "full": true
+    },
+    {
+      "name": "dry run: one POST of the file to Import, sent as it is (the File, its bytes the export's): Merge, by id, dryRun=true, no plan; 202",
+      "assert": "__vars.dryPosts.length === 1 && __vars.dryPosts[0].path === '/UserRatings/Admin/Import' && /[?&]mode=Merge(&|$)/.test(__vars.dryPosts[0].query) && /[?&]dryRun=true(&|$)/.test(__vars.dryPosts[0].query) && /[?&]mapUsersBy=Id(&|$)/.test(__vars.dryPosts[0].query) && __vars.dryPosts[0].query.indexOf('ifPlan') < 0 && __vars.dryPosts[0].status === 202 && __vars.dryPosts[0].sent === 'File' && __vars.dryPosts[0].same"
+    },
+    {
+      "context": "viewer"
+    },
+    {
+      "name": "changed: viewer changes their review after the dry run",
+      "script": "const b = await __jfurDetails.server('PUT', 'UserRatings/Items/' + __vars.movieId + '/Mine/Review', { Text: \"data webcheck review, changed after the dry run: the tide <i>turns</i>.\", IsSpoiler: false }); return b.status;",
+      "save": "v2"
+    },
+    {
+      "context": "main"
+    },
+    {
+      "name": "changed: mark",
+      "script": "window.__mark = __jfurDetails.requests.length; return true;"
+    },
+    {
+      "name": "changed: Import",
+      "click": "#UserRatingsDataRoot .jfur-data-import"
+    },
+    {
+      "name": "changed: the question, the focus on Cancel",
+      "waitFor": "!!document.querySelector('.jfur-panel[role=\"dialog\"][aria-modal=\"true\"]') && document.activeElement === document.querySelector('.jfur-panel[role=\"dialog\"][aria-modal=\"true\"]').querySelector('.jfur-data-cancel')",
+      "timeout": 15000
+    },
+    {
+      "name": "changed: what the question says",
+      "eval": "({ text: document.querySelector('.jfur-panel[role=\"dialog\"][aria-modal=\"true\"]').textContent, markup: document.querySelector('.jfur-panel[role=\"dialog\"][aria-modal=\"true\"]').querySelectorAll('b, i').length })",
+      "save": "mergeQuestion",
+      "full": true
+    },
+    {
+      "name": "changed: the question names the snapshot taken first, as text",
+      "assert": "__vars.mergeQuestion.text.indexOf('Import the file\\'s ratings as the dry run showed? A snapshot of the ratings as they are now is taken first.') >= 0 && __vars.mergeQuestion.markup === 0"
+    },
+    {
+      "name": "changed: screenshot of the question",
+      "screenshot": "userratings-data-import-question.png"
+    },
+    {
+      "name": "changed: the question's button",
+      "click": ".jfur-panel[role=\"dialog\"] .jfur-data-confirm"
+    },
+    {
+      "name": "changed: the 409 in the tab's words; Import off again, the hint asks for the dry run",
+      "waitFor": "!document.querySelector('.jfur-panel[role=\"dialog\"][aria-modal=\"true\"]') && !!document.querySelector('#UserRatingsDataRoot .jfur-data-import-section .jfur-data-message').querySelector('.jfur-notice-text') && document.querySelector('#UserRatingsDataRoot .jfur-data-import-section .jfur-data-message').querySelector('.jfur-notice-text').textContent === \"The ratings changed after the dry run, so nothing was imported. Run the dry run again to see what Import does now.\" && document.querySelector('#UserRatingsDataRoot .jfur-data-import').disabled && document.querySelector('#UserRatingsDataRoot .jfur-data-hint').textContent === \"Run the dry run of this file and these options first; Import then does what it showed.\"",
+      "timeout": 60000
+    },
+    {
+      "name": "changed: the tab's requests since the mark",
+      "eval": "__jfurDetails.requests.slice(window.__mark).map(r => ({ method: r.method, path: r.path, query: r.query, status: r.status }))",
+      "save": "changedRequests",
+      "full": true
+    },
+    {
+      "name": "changed: one POST to Import with dryRun=false and the dry run's 32-digit plan; 202",
+      "assert": "(() => { const p = __vars.changedRequests.filter(x => x.method === 'POST'); return __vars.v2 === 200 && p.length === 1 && p[0].path === '/UserRatings/Admin/Import' && /[?&]dryRun=false(&|$)/.test(p[0].query) && /[?&]ifPlan=[0-9a-f]{32}(&|$)/i.test(p[0].query) && p[0].status === 202; })()"
+    },
+    {
+      "name": "the job the tab followed, as the server holds it",
+      "script": "const polled = __jfurDetails.requests.slice(window.__mark).map(r => r.path).filter(p => /^\\/UserRatings\\/Admin\\/Jobs\\/[0-9a-f-]+$/i.test(p)); if (polled.length === 0) { throw new Error('no job polled'); } const id = polled[polled.length - 1].split('/').pop(); const j = await __jfurDetails.server('GET', 'UserRatings/Admin/Jobs/' + id); return { status: j.status, kind: j.json.Kind, state: j.json.State, dryRun: j.json.DryRun, code: j.json.ErrorCode || null, errorStatus: j.json.ErrorStatus || null };",
+      "save": "changedJob",
+      "full": true
+    },
+    {
+      "name": "changed: the job failed with 409 Changed",
+      "assert": "__vars.changedJob.kind === 'Import' && __vars.changedJob.state === 'Failed' && __vars.changedJob.code === 'Changed' && __vars.changedJob.errorStatus === 409 && __vars.changedJob.dryRun === false"
+    },
+    {
+      "name": "changed: viewer's row as the server holds it",
+      "script": "const p = await __jfurDetails.server('GET', 'UserRatings/Admin/Reviews?itemId=' + __vars.movieId); const row = p.json.Items.find(x => x.UserName === 'viewer'); return row ? { stars: row.Stars, text: row.Text } : null;",
+      "save": "afterChanged",
+      "full": true
+    },
+    {
+      "name": "changed: nothing imported: viewer's review as they changed it",
+      "assert": "__vars.afterChanged.text === \"data webcheck review, changed after the dry run: the tide <i>turns</i>.\" && __vars.afterChanged.stars === 4"
+    },
+    {
+      "name": "import: mark",
+      "script": "window.__mark = __jfurDetails.requests.length; return true;"
+    },
+    {
+      "name": "import: Dry run again",
+      "click": "#UserRatingsDataRoot .jfur-data-dryrun"
+    },
+    {
+      "name": "import: its report, Import on",
+      "waitFor": "!!document.querySelector('#UserRatingsDataRoot .jfur-data-import-section .jfur-data-report').querySelector('.jfur-data-summary') && document.querySelector('#UserRatingsDataRoot .jfur-data-import-section .jfur-data-report').querySelector('.jfur-data-summary').textContent.indexOf('Dry run, nothing was changed.') === 0 && !document.querySelector('#UserRatingsDataRoot .jfur-data-import').disabled && !document.querySelector('#UserRatingsDataRoot .jfur-data-import-section .jfur-data-message').querySelector('.jfur-notice')",
+      "timeout": 60000
+    },
+    {
+      "name": "import: the report",
+      "eval": "Array.from(document.querySelector('#UserRatingsDataRoot .jfur-data-import-section .jfur-data-report').querySelectorAll('[data-jfur-outcome]')).map(li => ({ key: li.getAttribute('data-jfur-outcome'), text: li.textContent }))",
+      "save": "dry2",
+      "full": true
+    },
+    {
+      "name": "import: viewer's row now kept as it is here (newer here)",
+      "assert": "__vars.dry2.some(o => o.key === 'KeptNewer' && o.text === 'Kept as they are here (newer here): 1')"
+    },
+    {
+      "name": "import: Import",
+      "click": "#UserRatingsDataRoot .jfur-data-import"
+    },
+    {
+      "name": "import: the question, the focus on Cancel",
+      "waitFor": "!!document.querySelector('.jfur-panel[role=\"dialog\"][aria-modal=\"true\"]') && document.activeElement === document.querySelector('.jfur-panel[role=\"dialog\"][aria-modal=\"true\"]').querySelector('.jfur-data-cancel')",
+      "timeout": 15000
+    },
+    {
+      "name": "import: the question's button",
+      "click": ".jfur-panel[role=\"dialog\"] .jfur-data-confirm"
+    },
+    {
+      "name": "import: imported: the report says so and names the snapshot taken first",
+      "waitFor": "!document.querySelector('.jfur-panel[role=\"dialog\"][aria-modal=\"true\"]') && !!document.querySelector('#UserRatingsDataRoot .jfur-data-import-section .jfur-data-report').querySelector('.jfur-data-summary') && document.querySelector('#UserRatingsDataRoot .jfur-data-import-section .jfur-data-report').querySelector('.jfur-data-summary').textContent.indexOf('Imported. ') === 0 && Array.from(document.querySelector('#UserRatingsDataRoot .jfur-data-import-section .jfur-data-report').querySelectorAll('.jfur-data-intro')).some(p => p.textContent.indexOf('The ratings from just before were kept as ') === 0)",
+      "timeout": 60000
+    },
+    {
+      "name": "import: the import's snapshot",
+      "eval": "(() => { const p = Array.from(document.querySelector('#UserRatingsDataRoot .jfur-data-import-section .jfur-data-report').querySelectorAll('.jfur-data-intro')).find(x => x.textContent.indexOf('The ratings from just before were kept as ') === 0).textContent; return p.slice('The ratings from just before were kept as '.length, p.indexOf(' (Snapshots, below).')); })()",
+      "save": "importSnap"
+    },
+    {
+      "name": "the job the tab followed, as the server holds it",
+      "script": "const polled = __jfurDetails.requests.slice(window.__mark).map(r => r.path).filter(p => /^\\/UserRatings\\/Admin\\/Jobs\\/[0-9a-f-]+$/i.test(p)); if (polled.length === 0) { throw new Error('no job polled'); } const id = polled[polled.length - 1].split('/').pop(); const j = await __jfurDetails.server('GET', 'UserRatings/Admin/Jobs/' + id); return { status: j.status, kind: j.json.Kind, state: j.json.State, dryRun: j.json.DryRun, code: j.json.ErrorCode || null, errorStatus: j.json.ErrorStatus || null };",
+      "save": "importJob",
+      "full": true
+    },
+    {
+      "name": "import: the job succeeded, not a dry run",
+      "assert": "__vars.importJob.kind === 'Import' && __vars.importJob.state === 'Succeeded' && __vars.importJob.dryRun === false"
+    },
+    {
+      "name": "import: the snapshots read again: the import's listed as \"Before an import\", with Restore…",
+      "waitFor": "(() => { const b = document.querySelector('#UserRatingsDataRoot .jfur-data-restore[data-jfur-name=\"' + __vars.importSnap + '\"]'); return !!b && b.closest('.jfur-data-snapshot').querySelector('.jfur-data-snapshot-meta').textContent.indexOf('Before an import · ') === 0; })()",
+      "timeout": 15000
+    },
+    {
+      "name": "import: viewer's row as the server holds it",
+      "script": "const p = await __jfurDetails.server('GET', 'UserRatings/Admin/Reviews?itemId=' + __vars.movieId); const row = p.json.Items.find(x => x.UserName === 'viewer'); return row ? { stars: row.Stars, text: row.Text } : null;",
+      "save": "afterImport",
+      "full": true
+    },
+    {
+      "name": "import: Merge kept viewer's newer review",
+      "assert": "__vars.afterImport.text === \"data webcheck review, changed after the dry run: the tide <i>turns</i>.\""
+    },
+    {
+      "name": "import: screenshot",
+      "screenshot": "userratings-data-imported.png"
+    },
+    {
+      "context": "viewer"
+    },
+    {
+      "name": "restore: viewer changes their review again, after the import",
+      "script": "const b = await __jfurDetails.server('PUT', 'UserRatings/Items/' + __vars.movieId + '/Mine/Review', { Text: \"data webcheck review, changed after the import: the gulls & the gale.\", IsSpoiler: false }); return b.status;",
+      "save": "v3"
+    },
+    {
+      "context": "main"
+    },
+    {
+      "name": "restore: mark",
+      "script": "window.__mark = __jfurDetails.requests.length; return true;"
+    },
+    {
+      "name": "restore: Restore… on the import's snapshot",
+      "click": "#UserRatingsDataRoot .jfur-data-restore[data-jfur-name=\"${importSnap}\"]"
+    },
+    {
+      "name": "restore: the question, the focus on Cancel",
+      "waitFor": "!!document.querySelector('.jfur-panel[role=\"dialog\"][aria-modal=\"true\"]') && document.activeElement === document.querySelector('.jfur-panel[role=\"dialog\"][aria-modal=\"true\"]').querySelector('.jfur-data-cancel')",
+      "timeout": 15000
+    },
+    {
+      "name": "restore: what the question says",
+      "eval": "({ text: document.querySelector('.jfur-panel[role=\"dialog\"][aria-modal=\"true\"]').textContent, markup: document.querySelector('.jfur-panel[role=\"dialog\"][aria-modal=\"true\"]').querySelectorAll('b, i').length })",
+      "save": "restoreQuestion",
+      "full": true
+    },
+    {
+      "name": "restore: the question names the snapshot, says what is undone and the snapshot taken first",
+      "assert": "__vars.restoreQuestion.text.indexOf('Put ' + __vars.importSnap + ' from ') >= 0 && __vars.restoreQuestion.text.indexOf(' back? Every change made since is undone, imports with their deletions too, except deletions made on this server, which stay deleted. A snapshot of the ratings as they are now is taken first.') > 0 && __vars.restoreQuestion.markup === 0"
+    },
+    {
+      "name": "restore: screenshot of the question",
+      "screenshot": "userratings-data-restore-question.png"
+    },
+    {
+      "name": "restore: the question's button",
+      "click": ".jfur-panel[role=\"dialog\"] .jfur-data-confirm"
+    },
+    {
+      "name": "restore: restored: the report and the toast",
+      "waitFor": "!document.querySelector('.jfur-panel[role=\"dialog\"][aria-modal=\"true\"]') && !!document.querySelector('#UserRatingsDataRoot .jfur-data-snapshots-section .jfur-data-report').querySelector('.jfur-data-summary') && document.querySelector('#UserRatingsDataRoot .jfur-data-snapshots-section .jfur-data-report').querySelector('.jfur-data-summary').textContent === 'Restored ' + __vars.importSnap + '.' && Array.from(document.querySelectorAll('.jfur-toast')).some(t => t.textContent === 'Restored ' + __vars.importSnap + '.')",
+      "timeout": 60000
+    },
+    {
+      "name": "restore: the report",
+      "eval": "Array.from(document.querySelector('#UserRatingsDataRoot .jfur-data-snapshots-section .jfur-data-report').children).map(p => p.textContent)",
+      "save": "restored",
+      "full": true
+    },
+    {
+      "name": "restore: the restore's own snapshot named",
+      "assert": "__vars.restored.some(t => t.indexOf('The ratings from just before were kept as ') === 0)"
+    },
+    {
+      "name": "restore: the restore's snapshot",
+      "eval": "(() => { const t = __vars.restored.find(x => x.indexOf('The ratings from just before were kept as ') === 0); return t.slice('The ratings from just before were kept as '.length, t.indexOf(' (Snapshots, below).')); })()",
+      "save": "restoreSnap"
+    },
+    {
+      "name": "restore: the tab's requests since the mark",
+      "eval": "__jfurDetails.requests.slice(window.__mark).map(r => ({ method: r.method, path: r.path, query: r.query, status: r.status }))",
+      "save": "restoreRequests",
+      "full": true
+    },
+    {
+      "name": "restore: one POST to Snapshots/Restore with the snapshot's name; 200",
+      "assert": "(() => { const p = __vars.restoreRequests.filter(x => x.method === 'POST'); return __vars.v3 === 200 && p.length === 1 && p[0].path === '/UserRatings/Admin/Snapshots/Restore' && decodeURIComponent(p[0].query) === '?name=' + __vars.importSnap && p[0].status === 200; })()"
+    },
+    {
+      "name": "restore: viewer's row as the server holds it",
+      "script": "const p = await __jfurDetails.server('GET', 'UserRatings/Admin/Reviews?itemId=' + __vars.movieId); const row = p.json.Items.find(x => x.UserName === 'viewer'); return row ? { stars: row.Stars, text: row.Text } : null;",
+      "save": "afterRestore",
+      "full": true
+    },
+    {
+      "name": "restore: viewer's review as it was before the import (the change after it undone)",
+      "assert": "__vars.afterRestore.text === \"data webcheck review, changed after the dry run: the tide <i>turns</i>.\" && __vars.afterRestore.stars === 4"
+    },
+    {
+      "name": "restore: the snapshots read again: the restore's listed as \"Before a restore\"",
+      "waitFor": "(() => { const b = document.querySelector('#UserRatingsDataRoot .jfur-data-restore[data-jfur-name=\"' + __vars.restoreSnap + '\"]'); return !!b && b.closest('.jfur-data-snapshot').querySelector('.jfur-data-snapshot-meta').textContent.indexOf('Before a restore · ') === 0; })()",
+      "timeout": 15000
+    },
+    {
+      "name": "restore: the focus not lost to the page's body",
+      "assert": "!!document.activeElement && document.activeElement !== document.body && document.activeElement.isConnected"
+    },
+    {
+      "name": "restore: screenshot",
+      "screenshot": "userratings-data-restored.png"
+    },
+    {
+      "context": "viewer"
+    },
+    {
+      "name": "je export: viewer: Tagged Movie",
+      "eval": "(await ApiClient.getItems(ApiClient.getCurrentUserId(), { IncludeItemTypes: 'Movie', Recursive: true, SearchTerm: \"Tagged Movie\", Limit: 1 })).Items[0].Id",
+      "save": "taggedId"
+    },
+    {
+      "name": "je export: viewer: 4.5 stars and a review of Tagged Movie through the API",
+      "script": "const a = await __jfurDetails.server('PUT', 'UserRatings/Items/' + __vars.taggedId + '/Mine/Rating', { Stars: 4.5 }); const b = await __jfurDetails.server('PUT', 'UserRatings/Items/' + __vars.taggedId + '/Mine/Review', { Text: \"jeexp webcheck review: \\\"quoted\\\", <b>plain</b> & whole.\", IsSpoiler: false }); if (a.status !== 200 || b.status !== 200) { throw new Error('rating ' + a.status + ', review ' + b.status); } return true;"
+    },
+    {
+      "context": "main"
+    },
+    {
+      "name": "je export: both films' TMDb ids as the library holds them",
+      "script": "const tmdb = async (id) => { const i = await ApiClient.getItem(ApiClient.getCurrentUserId(), id); const ids = i.ProviderIds || {}; const k = Object.keys(ids).find(x => x.toLowerCase() === 'tmdb'); const v = k ? String(ids[k]).trim() : ''; return /^[0-9]{1,9}$/.test(v) ? v : null; }; return { movie: await tmdb(__vars.movieId), tagged: await tmdb(__vars.taggedId) };",
+      "save": "tmdb",
+      "full": true
+    },
+    {
+      "name": "je export: mark",
+      "script": "window.__mark = __jfurDetails.requests.length; return true;"
+    },
+    {
+      "name": "je export: Export for Jellyfin Enhanced",
+      "click": "#UserRatingsDataRoot .jfur-data-je-export"
+    },
+    {
+      "name": "je export: done: reviews.json handed to a download link and read, the status says so",
+      "waitFor": "window.__jfurDownloads.length === 3 && window.__jfurDownloads[2].text !== null && document.querySelector('#UserRatingsDataRoot .jfur-data-je-export-status').textContent.indexOf('Saved reviews.json: ') === 0 && !document.querySelector('#UserRatingsDataRoot .jfur-data-je-export').disabled",
+      "timeout": 60000
+    },
+    {
+      "name": "je export: the file",
+      "eval": "(() => { const d = window.__jfurDownloads[2]; let j = null; try { j = JSON.parse(d.text); } catch (e) { return { parsed: false }; } const reviews = j && j.Reviews && typeof j.Reviews === 'object' && !Array.isArray(j.Reviews) ? j.Reviews : null; if (!reviews) { return { parsed: true, reviews: false }; } const keys = Object.keys(reviews); const time = (v) => typeof v === 'string' && /^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}[.][0-9]{7}Z$/.test(v); const bad = keys.filter(k => { const e = reviews[k]; const p = k.split(':'); return !/^[0-9a-f]{32}:(movie|tv):[0-9]{1,9}(:s[0-9]+(:e[0-9]+)?)?$/.test(k) || (p[1] === 'movie' && p.length !== 3) || Object.keys(e).join(',') !== 'UserId,TmdbId,MediaType,Content,Rating,CreatedAt,UpdatedAt' || e.UserId !== p[0] || e.MediaType !== p[1] || e.TmdbId !== p.slice(2).join(':') || typeof e.Content !== 'string' || !(e.Rating === null || (typeof e.Rating === 'number' && e.Rating >= 0.5 && e.Rating <= 5)) || !time(e.CreatedAt) || !time(e.UpdatedAt); }); const entry = (tmdb) => { const e = tmdb ? reviews[__vars.ids.viewer + ':movie:' + tmdb] : null; return e ? { rating: e.Rating, content: e.Content, tmdbId: e.TmdbId, type: e.MediaType } : null; }; return { parsed: true, reviews: true, name: d.name, scheme: d.scheme, top: Object.keys(j), count: keys.length, sorted: keys.every((k, i) => i === 0 || keys[i - 1] < k), bad: bad, tagged: entry(__vars.tmdb.tagged), movie: entry(__vars.tmdb.movie), status: document.querySelector('#UserRatingsDataRoot .jfur-data-je-export-status').textContent, message: document.querySelector('#UserRatingsDataRoot .jfur-data-je-export-message').textContent }; })()",
+      "save": "jeFile",
+      "full": true
+    },
+    {
+      "name": "je export: {\"Reviews\":{...}} only, its keys sorted, each <userIdN>:<movie|tv>:<tmdbKey> with UserId, TmdbId (the whole TMDb key), MediaType, Content, Rating, CreatedAt, UpdatedAt in that order and as JE writes them; viewer's Tagged Movie in it as <viewerN>:movie:<its TMDb id> with 4.5 and the review's text as it is (quotes, markup and & kept); Long Test Movie in it with its stars and text when it has a TMDb id, else counted as no TMDb id; a blob: link named reviews.json, the status counting the reviews, no problem shown",
+      "assert": "(() => { const f = __vars.jeFile; if (!f.parsed || !f.reviews || !__vars.tmdb.tagged) { return false; } const saved = 'Saved reviews.json: ' + (f.count === 1 ? '1 review.' : f.count + ' reviews.'); return f.name === 'reviews.json' && f.scheme === 'blob' && f.top.join(',') === 'Reviews' && f.count >= 1 && f.sorted && f.bad.length === 0 && f.status.indexOf(saved) === 0 && f.message === '' && f.tagged !== null && f.tagged.rating === 4.5 && f.tagged.content === \"jeexp webcheck review: \\\"quoted\\\", <b>plain</b> & whole.\" && f.tagged.tmdbId === __vars.tmdb.tagged && f.tagged.type === 'movie' && (__vars.tmdb.movie ? f.movie !== null && f.movie.rating === 4 && f.movie.content === \"data webcheck review, changed after the dry run: the tide <i>turns</i>.\" : f.movie === null && f.status.indexOf('no TMDb id (') > 0); })()"
+    },
+    {
+      "name": "je export: the tab's requests since the mark",
+      "eval": "__jfurDetails.requests.slice(window.__mark).map(r => ({ method: r.method, path: r.path, query: r.query, status: r.status }))",
+      "save": "jeRequests",
+      "full": true
+    },
+    {
+      "name": "je export: one GET of Admin/Export/JellyfinEnhanced answered 200, its only query leaveOutRestricted=true, the tab's default (0.3.24; the session's authorization, never a token in a link); nothing else of User Ratings asked, nothing written",
+      "assert": "(() => { const r = __vars.jeRequests.filter(x => x.path.indexOf('/UserRatings/') === 0); const je = r.filter(x => x.path === '/UserRatings/Admin/Export/JellyfinEnhanced'); return je.length === 1 && je[0].method === 'GET' && je[0].status === 200 && je[0].query === '?leaveOutRestricted=true' && r.length === 1 && __vars.jeRequests.every(x => x.method === 'GET'); })()"
+    },
+    {
+      "name": "je export: screenshot",
+      "screenshot": "userratings-data-je-export.png"
+    },
+    {
+      "name": "no uncaught exception",
+      "noExceptions": true,
+      "ignore": "/CustomRatings/script|^Error: player cannot be null"
+    },
+    {
+      "name": "clean: at the end: every rating on Long Test Movie removed through the moderation API",
+      "script": "const page = await __jfurDetails.server('GET', 'UserRatings/Admin/Reviews?itemId=' + __vars.movieId + '&limit=200'); if (page.status !== 200) { throw new Error('list ' + page.status); } const removed = []; for (const row of page.json.Items) { const p = 'UserRatings/Admin/Reviews/' + row.RatingId + '?textOnly=false'; const dry = await __jfurDetails.server('DELETE', p); const done = await __jfurDetails.server('DELETE', p + '&dryRun=false&ifPreview=' + dry.json.PreviewToken); removed.push(done.status); } return removed;"
+    },
+    {
+      "name": "clean: Long Test Movie has no rating left",
+      "script": "const page = await __jfurDetails.server('GET', 'UserRatings/Admin/Reviews?itemId=' + __vars.movieId); if (page.status !== 200 || page.json.TotalRecordCount !== 0) { throw new Error('left: ' + page.status + ' ' + (page.json && page.json.TotalRecordCount)); } return true;"
+    },
+    {
+      "name": "clean: at the end: every rating on Tagged Movie removed through the moderation API",
+      "script": "const page = await __jfurDetails.server('GET', 'UserRatings/Admin/Reviews?itemId=' + __vars.taggedId + '&limit=200'); if (page.status !== 200) { throw new Error('list ' + page.status); } const removed = []; for (const row of page.json.Items) { const p = 'UserRatings/Admin/Reviews/' + row.RatingId + '?textOnly=false'; const dry = await __jfurDetails.server('DELETE', p); const done = await __jfurDetails.server('DELETE', p + '&dryRun=false&ifPreview=' + dry.json.PreviewToken); removed.push(done.status); } return removed;"
+    },
+    {
+      "name": "clean: Tagged Movie has no rating left",
+      "script": "const page = await __jfurDetails.server('GET', 'UserRatings/Admin/Reviews?itemId=' + __vars.taggedId); if (page.status !== 200 || page.json.TotalRecordCount !== 0) { throw new Error('left: ' + page.status + ' ' + (page.json && page.json.TotalRecordCount)); } return true;"
+    }
+  ]
+}

@@ -1,0 +1,47 @@
+<Project>
+  <!--
+    Shared build settings for every project in the repository .
+    Plugin projects get the full analyzer set; test projects (name ending in ".Tests") get the
+    compiler settings only, as the Bookmarks test project always had. Test conventions such as
+    RollForward=Major live in kit/build/TestSupport.props.
+  -->
+
+  <PropertyGroup>
+    <RepoRoot>$(MSBuildThisFileDirectory)</RepoRoot>
+    <KitRoot>$(RepoRoot)kit\</KitRoot>
+  </PropertyGroup>
+
+  <!--
+    Jellyfin line to build for. Only 10.11 is wired up; the 12 line (net10.0,
+    Jellyfin.Controller 12.x, JELLYFIN_12) is added with the Jellyfin 12 port, and Directory.Build.targets rejects it until then.
+  -->
+  <PropertyGroup>
+    <JellyfinTarget Condition="'$(JellyfinTarget)' == ''">10.11</JellyfinTarget>
+    <TargetFramework Condition="'$(JellyfinTarget)' == '10.11'">net9.0</TargetFramework>
+    <TargetFramework Condition="'$(JellyfinTarget)' == '12'">net10.0</TargetFramework>
+    <DefineConstants Condition="'$(JellyfinTarget)' == '12'">$(DefineConstants);JELLYFIN_12</DefineConstants>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <IsTestProject Condition="'$(IsTestProject)' == '' and $(MSBuildProjectName.EndsWith('.Tests'))">true</IsTestProject>
+    <Nullable>enable</Nullable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(IsTestProject)' != 'true'">
+    <AnalysisMode>AllEnabledByDefault</AnalysisMode>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(IsTestProject)' != 'true'">
+    <PackageReference Include="SerilogAnalyzer" PrivateAssets="All" />
+    <PackageReference Include="StyleCop.Analyzers" PrivateAssets="All" />
+    <PackageReference Include="SmartAnalyzers.MultithreadingAnalyzer" PrivateAssets="All" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(IsTestProject)' != 'true'">
+    <InternalsVisibleTo Include="$(AssemblyName).Tests" />
+    <!-- Lets Moq proxy internal service interfaces in tests. -->
+    <InternalsVisibleTo Include="DynamicProxyGenAssembly2" />
+  </ItemGroup>
+</Project>

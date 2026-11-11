@@ -1,0 +1,180 @@
+{
+  "Description": "The synthetic library the 81-style Jellyfin Enhanced fixture refers to. Item ids are made up; the sandbox probe maps each item to the sandbox video of the same kind, name and year (or series and numbers) and rewrites the ids when it copies the files in.",
+  "Users": {
+    "00000000000000000000000000000081": "admin",
+    "00000000000000000000000000000082": "viewer"
+  },
+  "Series": {
+    "Name": "Test Series",
+    "Year": 2020,
+    "ProviderIds": {
+      "Tvdb": "900401"
+    }
+  },
+  "Items": [
+    {
+      "Key": "long",
+      "Id": "b1400000000000000000000000000001",
+      "Kind": "Movie",
+      "Name": "Long Test Movie",
+      "Year": 2021,
+      "RuntimeSeconds": 180,
+      "ProviderIds": {}
+    },
+    {
+      "Key": "chaptered",
+      "Id": "b1400000000000000000000000000002",
+      "Kind": "Movie",
+      "Name": "Chaptered Movie",
+      "Year": 2022,
+      "RuntimeSeconds": 60,
+      "ProviderIds": {}
+    },
+    {
+      "Key": "pattern",
+      "Id": "b1400000000000000000000000000003",
+      "Kind": "Movie",
+      "Name": "Test Pattern",
+      "Year": 2020,
+      "RuntimeSeconds": 60,
+      "ProviderIds": {}
+    },
+    {
+      "Key": "blade",
+      "Id": "b1400000000000000000000000000004",
+      "Kind": "Movie",
+      "Name": "Blade Runner",
+      "Year": 1982,
+      "RuntimeSeconds": 60,
+      "ProviderIds": {}
+    },
+    {
+      "Key": "buck",
+      "Id": "b1400000000000000000000000000005",
+      "Kind": "Movie",
+      "Name": "Big Buck Test",
+      "Year": 2008,
+      "RuntimeSeconds": 60,
+      "ProviderIds": {}
+    },
+    {
+      "Key": "remake1990",
+      "Id": "b1400000000000000000000000000006",
+      "Kind": "Movie",
+      "Name": "Remake Story",
+      "Year": 1990,
+      "RuntimeSeconds": 60,
+      "ProviderIds": {
+        "Tmdb": "900101"
+      }
+    },
+    {
+      "Key": "remake2015",
+      "Id": "b1400000000000000000000000000007",
+      "Kind": "Movie",
+      "Name": "Remake Story",
+      "Year": 2015,
+      "RuntimeSeconds": 60,
+      "ProviderIds": {
+        "Tmdb": "900102"
+      }
+    },
+    {
+      "Key": "versions",
+      "Id": "b1400000000000000000000000000008",
+      "Kind": "Movie",
+      "Name": "Versions Movie",
+      "Year": 2019,
+      "RuntimeSeconds": 30,
+      "ProviderIds": {}
+    },
+    {
+      "Key": "amelie",
+      "Id": "b1400000000000000000000000000009",
+      "Kind": "Movie",
+      "Name": "Amélie",
+      "Year": 2001,
+      "RuntimeSeconds": 60,
+      "ProviderIds": {}
+    },
+    {
+      "Key": "edition",
+      "Id": "b140000000000000000000000000000a",
+      "Kind": "Movie",
+      "Name": "Edition Movie",
+      "Year": 2001,
+      "RuntimeSeconds": 60,
+      "ProviderIds": {
+        "Tmdb": "900301"
+      }
+    },
+    {
+      "Key": "s01e01",
+      "Id": "b140000000000000000000000000000b",
+      "Kind": "Episode",
+      "Series": "Test Series",
+      "Season": 1,
+      "Episode": 1,
+      "RuntimeSeconds": 30
+    },
+    {
+      "Key": "s01e02",
+      "Id": "b140000000000000000000000000000c",
+      "Kind": "Episode",
+      "Series": "Test Series",
+      "Season": 1,
+      "Episode": 2,
+      "RuntimeSeconds": 30
+    },
+    {
+      "Key": "s02e01",
+      "Id": "b140000000000000000000000000000d",
+      "Kind": "Episode",
+      "Series": "Test Series",
+      "Season": 2,
+      "Episode": 1,
+      "RuntimeSeconds": 30
+    },
+    {
+      "Key": "tagged",
+      "Id": "b140000000000000000000000000000e",
+      "Kind": "Movie",
+      "Name": "Tagged Movie",
+      "Year": 2012,
+      "RuntimeSeconds": 60,
+      "ProviderIds": {
+        "Tmdb": "900001"
+      }
+    },
+    {
+      "Key": "sameid1999",
+      "Id": "b140000000000000000000000000000f",
+      "Kind": "Movie",
+      "Name": "Same Id Remake",
+      "Year": 1999,
+      "RuntimeSeconds": 60,
+      "ProviderIds": {
+        "Tmdb": "900201"
+      }
+    },
+    {
+      "Key": "sameid2005",
+      "Id": "b1400000000000000000000000000010",
+      "Kind": "Movie",
+      "Name": "Same Id Remake",
+      "Year": 2005,
+      "RuntimeSeconds": 60,
+      "ProviderIds": {
+        "Tmdb": "900201"
+      }
+    }
+  ],
+  "NativeBookmarks": [
+    {
+      "User": "00000000000000000000000000000082",
+      "Item": "chaptered",
+      "Seconds": 12.4,
+      "Name": "Bank job"
+    }
+  ]
+}

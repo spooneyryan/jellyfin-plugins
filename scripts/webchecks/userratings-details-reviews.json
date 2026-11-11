@@ -1,0 +1,288 @@
+{
+  "name": "User Ratings 1.0.2.0: run by scripts/userratings-details-probe.mjs after it seeded more than 20 synthetic members' ratings and reviews and viewer's own on Long Test Movie; as viewer2: the average with viewer's rating in it, the counts, the histogram and viewer's row (item 2a without the chip); every name and text isolated and as text; Show more on a long review; Load more past 20, each row once; the four orders as the server gives them; Load more's 403 shows \"Reviews are turned off on this server.\" and removes the list and the form, with no error.",
+  "failOnException": false,
+  "timeout": 30000,
+  "steps": [
+    {
+      "name": "the details probe in every document (it watches the section the served script mounts)",
+      "initScript": {
+        "file": "probes/userratings-details-probe.js"
+      }
+    },
+    {
+      "name": "sign in as viewer2",
+      "login": "viewer2"
+    },
+    {
+      "name": "desktop layout",
+      "eval": "(localStorage.removeItem('layout'), true)"
+    },
+    {
+      "name": "reload",
+      "reload": true
+    },
+    {
+      "name": "the layout applied, User Ratings 1.0.2.0 started",
+      "waitFor": "document.documentElement.classList.contains('layout-desktop') && !!window.ApiClient && !!ApiClient.getCurrentUserId() && !!(window.__jfkit && window.__jfkit.jfur)",
+      "timeout": 40000
+    },
+    {
+      "name": "the served script is 1.0.2.0",
+      "assert": "window.__jfkit.jfur.version === '1.0.2.0'",
+      "message": "User Ratings 1.0.2.0 is not the script the page loaded"
+    },
+    {
+      "name": "Long Test Movie",
+      "eval": "(await ApiClient.getItems(ApiClient.getCurrentUserId(), { IncludeItemTypes: 'Movie', Recursive: true, SearchTerm: \"Long Test Movie\", Limit: 1 })).Items[0].Id",
+      "save": "movieId"
+    },
+    {
+      "name": "the server: Long Test Movie, seeded",
+      "eval": "__jfurDetails.mine(__vars.movieId)",
+      "save": "seeded",
+      "full": true
+    },
+    {
+      "name": "the seed is there: more than 20 other members' rows (run through userratings-details-probe.mjs)",
+      "assert": "__vars.seeded.status === 200 && __vars.seeded.others > 20 && __vars.seeded.count > 20",
+      "message": "no seed: run node scripts/userratings-details-probe.mjs --sandbox default"
+    },
+    {
+      "name": "Long Test Movie: its details page",
+      "script": "location.hash = '#/details?id=' + __vars.movieId; return true;"
+    },
+    {
+      "name": "Long Test Movie: drawn",
+      "waitFor": "(() => { const p = document.querySelector('#itemDetailPage:not(.hide)'); return !!p && location.hash.indexOf(__vars.movieId) > 0 && !!p.querySelector('.mainDetailButtons .btnPlay:not(.hide)'); })()",
+      "timeout": 30000
+    },
+    {
+      "name": "Long Test Movie: the section mounted for it",
+      "waitFor": "(() => { const s = __jfurDetails.section(); return !!s && s.getAttribute('data-jfur-item') === __vars.movieId && !!s.querySelector('.jfur-summary[data-jfur-summary]'); })()",
+      "timeout": 15000
+    },
+    {
+      "sleep": 400
+    },
+    {
+      "name": "viewer2: the section",
+      "eval": "__jfurDetails.state()",
+      "save": "rvState",
+      "full": true
+    },
+    {
+      "name": "viewer2 sees the members' average with viewer's rating in it, the counts, the histogram, viewer's row in the list (without the chip)",
+      "assert": "(s => s.summaryKind === 'average' && s.average === 'Member average ' + (Math.round(__vars.seeded.average * 10) / 10).toFixed(1) + ' out of 5, ' + __vars.seeded.count + ' ratings' && s.histogram && /^How members rated: /.test(s.histogram.label) && s.histogram.shown && s.names.indexOf('viewer') >= 0 && s.reviews.length === 20 && s.pager && s.toolbar)(__vars.rvState)"
+    },
+    {
+      "name": "the counts as the server has them",
+      "assert": "__jfurDetails.state().summary.indexOf(__vars.seeded.count + ' ratings') >= 0"
+    },
+    {
+      "name": "Load more: mark",
+      "script": "window.__mark = __jfurDetails.requests.length; window.__keys = __jfurDetails.log.length; return true;"
+    },
+    {
+      "name": "Load more",
+      "click": "#itemDetailPage:not(.hide) .jfur-section .jfur-pager button"
+    },
+    {
+      "sleep": 800
+    },
+    {
+      "name": "Load more: the section's requests since",
+      "eval": "__jfurDetails.since(window.__mark)",
+      "save": "moreRequests",
+      "full": true
+    },
+    {
+      "name": "after Load more",
+      "eval": "__jfurDetails.state()",
+      "save": "afterMore",
+      "full": true
+    },
+    {
+      "name": "the next page's query",
+      "eval": "(() => { const q = new URLSearchParams(__jfurDetails.requests[__jfurDetails.requests.length - 1].query); return { startIndex: q.get('startIndex'), limit: q.get('limit'), sort: q.get('sort') }; })()",
+      "save": "moreQuery",
+      "full": true
+    },
+    {
+      "name": "the next page (startIndex 20), every row once, Load more gone at the end (paging past 20)",
+      "assert": "__vars.moreRequests.length === 1 && __vars.moreRequests[0] === 'GET /UserRatings/Items/' + __vars.movieId + '/Reviews 200' && __vars.moreQuery.startIndex === '20' && __vars.moreQuery.limit === '20' && __vars.moreQuery.sort === 'Newest' && __vars.afterMore.reviews.length === __vars.seeded.others && new Set(__vars.afterMore.reviews).size === __vars.afterMore.reviews.length && !__vars.afterMore.pager"
+    },
+    {
+      "name": "names and texts isolated, texts as text (an override left open stays in its element; \"<b>\" is text)",
+      "eval": "(() => { const st = __jfurDetails.styles(); const s = __jfurDetails.section(); return { isolated: st.isolated.filter(i => /jfur-review-(name|text)/.test(i.cls)), b: s.querySelectorAll('.jfur-review b').length, rlo: Array.prototype.filter.call(s.querySelectorAll('.jfur-review-text'), n => n.textContent.indexOf('\\u202E') >= 0).length, html: Array.prototype.filter.call(s.querySelectorAll('.jfur-review-text'), n => n.textContent.indexOf('<b>') >= 0).length, arabic: Array.prototype.filter.call(s.querySelectorAll('.jfur-review-name'), n => /[\\u0600-\\u06FF]/.test(n.textContent)).length }; })()",
+      "save": "bidi",
+      "full": true
+    },
+    {
+      "name": "every name and text dir=\"auto\" and unicode-bidi: isolate; the seeded override, Arabic name and \"<b>\" there, no HTML from a review",
+      "assert": "__vars.bidi.isolated.length > 20 && __vars.bidi.isolated.every(i => i.dir === 'auto' && i.unicodeBidi === 'isolate') && __vars.bidi.b === 0 && __vars.bidi.rlo === 1 && __vars.bidi.html === 1 && __vars.bidi.arabic === 1"
+    },
+    {
+      "name": "the long review: its Show more",
+      "eval": "(() => { const b = __jfurDetails.section().querySelector('.jfur-review-more'); const t = b.parentNode.querySelector('.jfur-review-text'); return { label: b.textContent, expanded: b.getAttribute('aria-expanded'), lines: t.textContent.split('\\n').length, ellipsis: /…$/.test(t.textContent) }; })()",
+      "save": "moreBefore",
+      "full": true
+    },
+    {
+      "name": "the start of it with \"…\" and Show more",
+      "assert": "__vars.moreBefore.label === 'Show more' && __vars.moreBefore.expanded === 'false' && __vars.moreBefore.ellipsis && __vars.moreBefore.lines <= 6"
+    },
+    {
+      "name": "Show more",
+      "click": "#itemDetailPage:not(.hide) .jfur-section .jfur-review-more"
+    },
+    {
+      "name": "all of it, Show less",
+      "eval": "(() => { const b = __jfurDetails.section().querySelector('.jfur-review-more'); const t = b.parentNode.querySelector('.jfur-review-text'); return { label: b.textContent, expanded: b.getAttribute('aria-expanded'), lines: t.textContent.split('\\n').length, ellipsis: /…$/.test(t.textContent) }; })()",
+      "save": "moreAfter",
+      "full": true
+    },
+    {
+      "name": "the whole review",
+      "assert": "__vars.moreAfter.label === 'Show less' && __vars.moreAfter.expanded === 'true' && !__vars.moreAfter.ellipsis && __vars.moreAfter.lines > 6"
+    },
+    {
+      "name": "the list in view",
+      "script": "__jfurDetails.section().querySelector('.jfur-review-more').scrollIntoView({ block: 'center' }); await new Promise(r => setTimeout(r, 400)); return true;"
+    },
+    {
+      "name": "screenshot (the list)",
+      "screenshot": "userratings-details-list.png"
+    },
+    {
+      "name": "order Oldest: the server's own first page in it",
+      "eval": "(async () => { const r = await __jfurDetails.server('GET', 'UserRatings/Items/' + __vars.movieId + '/Reviews?startIndex=0&limit=20&sort=Oldest'); return r.json.Items.map(i => i.Id.replace(/-/g, '')); })()",
+      "save": "orderOldest",
+      "full": true
+    },
+    {
+      "name": "order Oldest",
+      "script": "const s = __jfurDetails.section().querySelector('select.jfur-sort'); s.value = 'Oldest'; s.dispatchEvent(new Event('change', { bubbles: true })); return s.value;"
+    },
+    {
+      "sleep": 800
+    },
+    {
+      "name": "order Oldest: the rows",
+      "eval": "__jfurDetails.state().reviews",
+      "save": "shownOldest",
+      "full": true
+    },
+    {
+      "name": "order Oldest: the rows in the server's order (sorts)",
+      "assert": "JSON.stringify(__vars.shownOldest) === JSON.stringify(__vars.orderOldest) && __jfurDetails.state().pager"
+    },
+    {
+      "name": "order Highest: the server's own first page in it",
+      "eval": "(async () => { const r = await __jfurDetails.server('GET', 'UserRatings/Items/' + __vars.movieId + '/Reviews?startIndex=0&limit=20&sort=Highest'); return r.json.Items.map(i => i.Id.replace(/-/g, '')); })()",
+      "save": "orderHighest",
+      "full": true
+    },
+    {
+      "name": "order Highest",
+      "script": "const s = __jfurDetails.section().querySelector('select.jfur-sort'); s.value = 'Highest'; s.dispatchEvent(new Event('change', { bubbles: true })); return s.value;"
+    },
+    {
+      "sleep": 800
+    },
+    {
+      "name": "order Highest: the rows",
+      "eval": "__jfurDetails.state().reviews",
+      "save": "shownHighest",
+      "full": true
+    },
+    {
+      "name": "order Highest: the rows in the server's order (sorts)",
+      "assert": "JSON.stringify(__vars.shownHighest) === JSON.stringify(__vars.orderHighest) && __jfurDetails.state().pager"
+    },
+    {
+      "name": "order Lowest: the server's own first page in it",
+      "eval": "(async () => { const r = await __jfurDetails.server('GET', 'UserRatings/Items/' + __vars.movieId + '/Reviews?startIndex=0&limit=20&sort=Lowest'); return r.json.Items.map(i => i.Id.replace(/-/g, '')); })()",
+      "save": "orderLowest",
+      "full": true
+    },
+    {
+      "name": "order Lowest",
+      "script": "const s = __jfurDetails.section().querySelector('select.jfur-sort'); s.value = 'Lowest'; s.dispatchEvent(new Event('change', { bubbles: true })); return s.value;"
+    },
+    {
+      "sleep": 800
+    },
+    {
+      "name": "order Lowest: the rows",
+      "eval": "__jfurDetails.state().reviews",
+      "save": "shownLowest",
+      "full": true
+    },
+    {
+      "name": "order Lowest: the rows in the server's order (sorts)",
+      "assert": "JSON.stringify(__vars.shownLowest) === JSON.stringify(__vars.orderLowest) && __jfurDetails.state().pager"
+    },
+    {
+      "name": "order Newest: the server's own first page in it",
+      "eval": "(async () => { const r = await __jfurDetails.server('GET', 'UserRatings/Items/' + __vars.movieId + '/Reviews?startIndex=0&limit=20&sort=Newest'); return r.json.Items.map(i => i.Id.replace(/-/g, '')); })()",
+      "save": "orderNewest",
+      "full": true
+    },
+    {
+      "name": "order Newest",
+      "script": "const s = __jfurDetails.section().querySelector('select.jfur-sort'); s.value = 'Newest'; s.dispatchEvent(new Event('change', { bubbles: true })); return s.value;"
+    },
+    {
+      "sleep": 800
+    },
+    {
+      "name": "order Newest: the rows",
+      "eval": "__jfurDetails.state().reviews",
+      "save": "shownNewest",
+      "full": true
+    },
+    {
+      "name": "order Newest: the rows in the server's order (sorts)",
+      "assert": "JSON.stringify(__vars.shownNewest) === JSON.stringify(__vars.orderNewest) && __jfurDetails.state().pager"
+    },
+    {
+      "name": "Load more 403: mark",
+      "script": "window.__mark = __jfurDetails.requests.length; window.__keys = __jfurDetails.log.length; return true;"
+    },
+    {
+      "name": "the next GET Reviews answered 403 by the probe (reviews turned off since the page was read)",
+      "eval": "__jfurDetails.inject({ method: 'GET', path: '/Reviews$', mode: 'stub', status: 403, body: { title: 'Forbidden', status: 403, detail: 'Reviews are turned off on this server.' } })"
+    },
+    {
+      "name": "Load more (403)",
+      "click": "#itemDetailPage:not(.hide) .jfur-section .jfur-pager button"
+    },
+    {
+      "sleep": 500
+    },
+    {
+      "name": "after Load more's 403",
+      "eval": "__jfurDetails.state()",
+      "save": "reviewsOff",
+      "full": true
+    },
+    {
+      "name": "\"Reviews are turned off on this server.\", the list, Load more and Write a review gone, no error, no Retry; the slider and the summary stay",
+      "assert": "(s => s.reviewsOff && s.reviews.length === 0 && !s.pager && !s.toolbar && !s.write && s.notices.length === 0 && s.summaryKind === 'average')(__vars.reviewsOff) && Array.prototype.filter.call(document.querySelectorAll('.jfur-section [role=\"alert\"], .jfur-toast'), n => __jfurDetails.displayed(n)).length === 0 && __jfurDetails.displayed(__jfurDetails.slider())"
+    },
+    {
+      "name": "screenshot (reviews)",
+      "screenshot": "userratings-details-reviews.png"
+    },
+    {
+      "name": "no uncaught exception",
+      "noExceptions": true,
+      "ignore": "/CustomRatings/script|^Error: player cannot be null"
+    },
+    {
+      "name": "every request of the section",
+      "eval": "__jfurDetails.since(0)",
+      "full": true
+    }
+  ]
+}

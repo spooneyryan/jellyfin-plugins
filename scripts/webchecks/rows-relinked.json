@@ -1,0 +1,34 @@
+{
+  "name": "The Relinked row badge, as viewer: a bookmark the identity service moved onto another copy of its film by a provider-id match (Strong) shows 'Relinked, check position' with 'Looks right' in the My bookmarks section of the copy's details page; Looks right (the rename with the unchanged name) clears the mark, the name and the video stay. Run by bookmarks-rows-probe.mjs after it made the relink: viewer's bookmark named 'rows-probe Moved' on Same Id Remake (1999), the 1999 copy held out and scanned, put back and scanned.",
+  "failOnException": false,
+  "timeout": 30000,
+  "steps": [
+    { "name": "sign in as viewer", "login": "viewer" },
+    { "name": "the Bookmarks script ran", "waitFor": "!!window.__jfkit && !!window.__jfkit.jfbm && !!window.ApiClient && !!ApiClient.getCurrentUserId()" },
+    {
+      "name": "find the 2005 copy of Same Id Remake",
+      "eval": "(await ApiClient.getItems(ApiClient.getCurrentUserId(), { IncludeItemTypes: 'Movie', Recursive: true, SearchTerm: 'Same Id Remake', Fields: 'Path' })).Items.filter(i => /Same Id Remake \\(2005\\)/.test(i.Path || '')).map(i => i.Id)[0]",
+      "save": "copyId"
+    },
+    {
+      "name": "the relinked bookmark on it",
+      "eval": "((list) => { const b = list.find(x => x.Name === 'rows-probe Moved'); return b && b.Relinked === true && !b.Detached ? b.Id : null; })(await ApiClient.getJSON(ApiClient.getUrl('Bookmarks', { itemId: __vars.copyId })))",
+      "save": "bookmarkId"
+    },
+    { "name": "there is one", "assert": "!!__vars.copyId && !!__vars.bookmarkId", "message": "no relinked bookmark named 'rows-probe Moved' on the 2005 copy; run bookmarks-rows-probe.mjs" },
+    { "name": "open the copy's details page", "goto": "/web/index.html#/details?id=${copyId}" },
+    {
+      "name": "its row: the badge 'Relinked, check position' with Looks right; still playable",
+      "waitFor": "((r) => !!r && r.querySelector('.jfbm-row-title').textContent === 'rows-probe Moved' && [...r.querySelectorAll('.jfbm-badge')].map(b => b.textContent).join('|') === 'Relinked, check position' && !!r.querySelector('.jfbm-badge-relinked') && r.querySelector('.jfbm-looks-right').textContent === 'Looks right' && r.querySelector('.jfbm-time-button').disabled === false && !r.classList.contains('jfbm-row-detached'))(document.querySelector('#itemDetailPage:not(.hide) .jfbm-row[data-id=\"' + __vars.bookmarkId + '\"]'))",
+      "timeout": 20000
+    },
+    { "name": "the badge's colour (the kit's warning colour) and tooltip", "eval": "((b) => ({ color: getComputedStyle(b).color, title: b.getAttribute('title') }))(document.querySelector('#itemDetailPage:not(.hide) .jfbm-row[data-id=\"' + __vars.bookmarkId + '\"] .jfbm-badge-relinked'))", "save": "badge", "full": true },
+    { "sleep": 300 },
+    { "screenshot": "rows-relinked.png" },
+    { "name": "Looks right", "click": "#itemDetailPage:not(.hide) .jfbm-row[data-id=\"${bookmarkId}\"] .jfbm-looks-right" },
+    { "name": "the badge and Looks right are gone", "waitFor": "((r) => !!r && r.querySelectorAll('.jfbm-badge').length === 0 && !r.querySelector('.jfbm-looks-right') && r.querySelector('.jfbm-row-title').textContent === 'rows-probe Moved')(document.querySelector('#itemDetailPage:not(.hide) .jfbm-row[data-id=\"' + __vars.bookmarkId + '\"]'))" },
+    { "name": "the server: not relinked any more, the same name and video", "assert": "((b) => b.Relinked === false && b.Name === 'rows-probe Moved' && b.ItemId.replace(/-/g, '') === __vars.copyId.replace(/-/g, ''))(await ApiClient.getJSON(ApiClient.getUrl('Bookmarks/' + __vars.bookmarkId)))" },
+    { "screenshot": "rows-relinked-confirmed.png" },
+    { "name": "no uncaught exceptions (the stale CustomRatings tag excepted)", "noExceptions": true, "ignore": "/CustomRatings/script" }
+  ]
+}

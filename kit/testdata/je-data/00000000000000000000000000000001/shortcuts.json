@@ -1,0 +1,9 @@
+{
+  "Shortcuts": [
+    { "Name": "BookmarkCurrentTime", "Key": "Shift+Alt+B", "Label": "Bookmark Current Time", "Category": "Player" },
+    { "Name": "SubtitleMenu", "Key": "", "Label": "Subtitle Menu", "Category": "Player" },
+    { "Name": "OpenSearch", "Key": null, "Label": "Open Search", "Category": "Global" },
+    { "Name": "", "Key": "X" },
+    { "Name": "FrameStepBack", "Label": "Step Back One Frame" }
+  ]
+}

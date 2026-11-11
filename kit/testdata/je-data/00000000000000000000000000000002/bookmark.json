@@ -1,0 +1,64 @@
+{
+  "Bookmarks": {
+    "Bm_1772400000000_good01": {
+      "ItemId": "11111111111111111111111111111111",
+      "TmdbId": "550",
+      "TvdbId": "",
+      "MediaType": "movie",
+      "Name": "Long Test Movie (2021)",
+      "Timestamp": 30,
+      "Label": "Opening titles",
+      "CreatedAt": "2026-03-10T09:00:00.000Z",
+      "UpdatedAt": "2026-03-10T09:00:00.000Z",
+      "SyncedFrom": "",
+      "SeasonNumber": null,
+      "EpisodeNumber": null
+    },
+    "Bm_1772400100000_badts": {
+      "ItemId": "11111111111111111111111111111111",
+      "TmdbId": "550",
+      "MediaType": "movie",
+      "Name": "Long Test Movie (2021)",
+      "Timestamp": "1:02:03",
+      "Label": "Timestamp is text: left out"
+    },
+    "Bm_1772400200000_noitem": {
+      "TmdbId": "550",
+      "MediaType": "movie",
+      "Name": "Long Test Movie (2021)",
+      "Timestamp": 45,
+      "Label": "No ItemId: left out"
+    },
+    "Bm_1772400300000_negative": {
+      "ItemId": "11111111111111111111111111111111",
+      "TmdbId": "550",
+      "MediaType": "movie",
+      "Timestamp": -5,
+      "Label": "Negative: left out"
+    },
+    "Bm_1772400400000_twice": {
+      "ItemId": "11111111111111111111111111111111",
+      "TmdbId": "550",
+      "MediaType": "movie",
+      "Timestamp": 10,
+      "Label": "First of two with this key"
+    },
+    "Bm_1772400400000_twice": {
+      "ItemId": "11111111111111111111111111111111",
+      "TmdbId": "550",
+      "MediaType": "movie",
+      "Timestamp": 20,
+      "Label": "Second of two with this key: the one kept"
+    },
+    "Bm_1772400500000_synced": {
+      "ItemId": "33333333333333333333333333333333",
+      "TmdbId": "550",
+      "MediaType": "movie",
+      "Name": "Long Test Movie (2021) [4K]",
+      "Timestamp": 30,
+      "Label": "Opening titles",
+      "SyncedFrom": "11111111111111111111111111111111"
+    },
+    "Bm_1772400600000_list": [1, 2, 3]
+  }
+}

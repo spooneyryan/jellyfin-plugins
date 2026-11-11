@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Access Roles</title>
+</head>
+<body>
+    <div id="AccessRolesConfigPage" data-role="page" class="page type-interior pluginConfigurationPage" data-controller="__plugin/AccessRolesJs">
+        <!-- Inside the page element, which is all jellyfin-web keeps of this file. Since 0.9.8 the page is the kit's
+             AdminScript pattern: the data-controller module (the AccessRolesJs page) imports /AccessRoles/AdminScript, which
+             builds the tabs into #AccessRolesRoot: Overview (the status, Import current setup and the restore
+             hold of 0.9.1 to 0.9.7), Roles and Users. Libraries, Audit, Settings, Data and Diagnostics came with 0.9.11 and
+             later. This file holds no data and no script (translateHtml). -->
+        <style>
+            #AccessRolesConfigPage .accessRolesBanner {
+                margin: 0 0 1.2em;
+                padding: .8em 1em;
+                border-left: .3em solid #f0ad4e;
+                border-radius: .2em;
+                background: rgba(240, 173, 78, .16);
+                line-height: 1.4;
+            }
+
+            #AccessRolesConfigPage {
+                overflow-wrap: break-word;
+            }
+
+            @media (forced-colors: active) {
+                #AccessRolesConfigPage .accessRolesBanner {
+                    border: 1px solid CanvasText;
+                    border-left-width: .3em;
+                }
+            }
+        </style>
+        <div data-role="content">
+            <div class="content-primary">
+                <h2 class="sectionTitle">Access Roles</h2>
+                <p id="AccessRolesBuildNote" class="accessRolesBanner" role="status">Settings locks, the admin surfaces and the server-wide hardening are enforced, and library roles are written to users' library access.</p>
+                <p id="AccessRolesScriptNote">Loading the page…</p>
+                <div id="AccessRolesRoot"></div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

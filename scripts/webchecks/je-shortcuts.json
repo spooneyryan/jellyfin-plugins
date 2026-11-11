@@ -1,0 +1,52 @@
+{
+  "description": "The kit's shortcuts handler next to Jellyfin Enhanced's B key, in the je sandbox, next to Jellyfin Enhanced with BookmarkCurrentTime = B: on the video page the kit's shortcuts handler fires once for Shift+B (one bookmark, the event defaultPrevented afterwards, no JE modal), never for B (JE's capture listener stops it before the bubble phase; its modal opens; no bookmark), and skips an event that is already defaultPrevented. The probe's recorders are a window capture listener (first of all) and a window bubble listener (last of all), registered at page load, before JE's. Also records JE's OSD bookmark button and JE's active key. je-switchoff-probe.mjs runs it; on its own it needs the sandbox's fixture state (JE Bookmarks on, B).",
+  "timeout": 30000,
+  "steps": [
+    { "name": "install the key recorder before any page script", "initScript": "(function () { const events = []; function combo(e) { return (e.shiftKey ? 'Shift+' : '') + (e.metaKey ? 'Meta+' : '') + (e.ctrlKey ? 'Ctrl+' : '') + (e.altKey ? 'Alt+' : '') + (/^[a-zA-Z]$/.test(e.key) ? e.key.toUpperCase() : e.key); } const seen = new WeakMap(); window.addEventListener('keydown', function (e) { const r = { combo: combo(e), target: (e.target && e.target.tagName) || '', capturePrevented: e.defaultPrevented, bubbleReachedWindow: false, finalPrevented: null, synthetic: !e.isTrusted }; seen.set(e, r); events.push(r); }, true); window.addEventListener('keydown', function (e) { const r = seen.get(e); if (r) { r.bubbleReachedWindow = true; r.finalPrevented = e.defaultPrevented; } }, false); window.__shortcutKeys = { events: events, last: function (c) { for (let i = events.length - 1; i >= 0; i--) { if (events[i].combo === c) return events[i]; } return null; }, reset: function () { events.length = 0; } }; })();" },
+    { "name": "sign in as admin", "login": "admin" },
+    { "name": "the Bookmarks script ran and the kit holds its Shift+B binding", "waitFor": "!!window.__jfkit && !!window.__jfkit.jfbm && !!window.__shortcutKeys && window.__jfkit.jfbm.instance.shortcuts.bindings().indexOf('Shift+B') >= 0" },
+    { "name": "JE loaded with its key listener and its shortcuts initialised (activeShortcuts is filled after its config loads)", "waitFor": "!!window.JellyfinEnhanced && !!window.JellyfinEnhanced.keyListener && !!window.JellyfinEnhanced.state && !!window.JellyfinEnhanced.state.activeShortcuts && typeof window.JellyfinEnhanced.state.activeShortcuts.BookmarkCurrentTime === 'string'", "timeout": 60000 },
+    { "name": "JE's active keys", "eval": "({ bookmark: JellyfinEnhanced.state.activeShortcuts.BookmarkCurrentTime, bookmarksEnabled: !!(JellyfinEnhanced.pluginConfig && JellyfinEnhanced.pluginConfig.BookmarksEnabled), version: JellyfinEnhanced.pluginConfig && JellyfinEnhanced.pluginConfig.Version })", "save": "je", "full": true },
+    { "name": "the capabilities' shortcut and reserved list", "eval": "(c => ({ bookmarkNow: c.Shortcuts.BookmarkNow, reserved: c.ReservedShortcuts }))(await ApiClient.getJSON(ApiClient.getUrl('Bookmarks/Capabilities')))", "save": "caps", "full": true },
+    { "name": "Shift+B is ours and free; B and the player keys are reserved", "assert": "__vars.caps.bookmarkNow === 'Shift+B' && __vars.caps.reserved.indexOf('Shift+B') < 0 && __vars.caps.reserved.indexOf('K') >= 0 && (__vars.je.bookmark !== 'B' || __vars.caps.reserved.indexOf('B') >= 0)" },
+    { "name": "find Long Test Movie", "eval": "(await ApiClient.getItems(ApiClient.getCurrentUserId(), { IncludeItemTypes: 'Movie', Recursive: true, SearchTerm: 'Long Test Movie', Limit: 1 })).Items[0].Id", "save": "movieId" },
+    { "name": "bookmarks on the movie before", "eval": "(await ApiClient.getJSON(ApiClient.getUrl('Bookmarks', { itemId: __vars.movieId }))).length", "save": "before" },
+    { "name": "open the details page", "goto": "/web/index.html#/details?id=${movieId}" },
+    { "name": "details page with a Play button", "waitFor": "!!document.querySelector('#itemDetailPage:not(.hide) .mainDetailButtons .btnPlay:not(.hide)')", "timeout": 20000 },
+    { "name": "start playback", "click": "#itemDetailPage:not(.hide) .mainDetailButtons .btnPlay:not(.hide)" },
+    { "name": "video page, video playing", "waitFor": "location.hash.indexOf('#/video') === 0 && (v => !!v && !v.paused && v.currentTime > 1)(document.querySelector('.videoPlayerContainer video'))", "timeout": 60000 },
+    { "name": "our OSD buttons are there, with the tooltip of the combination", "waitFor": "!!document.querySelector('.videoOsdBottom .btnBookmarkAdd')", "timeout": 20000 },
+    { "name": "the OSD: our button's tooltip, JE's bookmark button", "eval": "({ tooltip: document.querySelector('.videoOsdBottom .btnBookmarkAdd').getAttribute('title'), jeButton: !!document.getElementById('jeBookmarkBtn') })", "save": "osd", "full": true },
+    { "name": "the tooltip names Shift+B", "assert": "__vars.osd.tooltip === 'Bookmark this moment (Shift+B)'" },
+    { "sleep": 1500 },
+    { "name": "reset the recorder", "eval": "__shortcutKeys.reset()" },
+
+    { "name": "press Shift, then Shift+B", "key": "Shift" },
+    { "key": "Shift+B" },
+    { "name": "exactly one bookmark was created", "waitFor": "(await ApiClient.getJSON(ApiClient.getUrl('Bookmarks', { itemId: __vars.movieId }))).length === Number(__vars.before) + 1", "timeout": 10000 },
+    { "name": "its toast", "waitFor": "Array.from(document.querySelectorAll('.jfbm-toast')).some(t => /^Bookmarked at /.test(t.textContent))", "timeout": 5000 },
+    { "sleep": 800 },
+    { "name": "what Shift+B reached", "eval": "__shortcutKeys.last('Shift+B')", "save": "shiftB", "full": true },
+    { "name": "Shift+B came through JE unprevented, reached the bubble phase, and left prevented by our handler; no JE modal", "assert": "!!__vars.shiftB && __vars.shiftB.capturePrevented === false && __vars.shiftB.bubbleReachedWindow === true && __vars.shiftB.finalPrevented === true && !document.querySelector('.je-bm-player-modal-overlay')" },
+    { "name": "still one bookmark (the handler fired once)", "assert": "(await ApiClient.getJSON(ApiClient.getUrl('Bookmarks', { itemId: __vars.movieId }))).length === Number(__vars.before) + 1" },
+    { "screenshot": "je-shortcuts-shift-b.png" },
+
+    { "name": "a Shift+B that another listener already handled is skipped", "script": "const e = new KeyboardEvent('keydown', { key: 'B', shiftKey: true, bubbles: true, cancelable: true }); e.preventDefault(); document.body.dispatchEvent(e); return __shortcutKeys.last('Shift+B');", "save": "handled", "full": true },
+    { "sleep": 800 },
+    { "name": "no bookmark for it", "assert": "__vars.handled.synthetic === true && __vars.handled.capturePrevented === true && (await ApiClient.getJSON(ApiClient.getUrl('Bookmarks', { itemId: __vars.movieId }))).length === Number(__vars.before) + 1" },
+
+    { "name": "press B", "key": "B" },
+    { "sleep": 1500 },
+    { "name": "what B reached", "eval": "__shortcutKeys.last('B')", "save": "b", "full": true },
+    { "name": "JE's modal, if its bookmarks are on", "eval": "!!document.querySelector('.je-bm-player-modal-overlay')", "save": "jeModal" },
+    { "name": "B never reached the bubble phase while JE's key is B (its capture listener stopped it): no bookmark of ours", "assert": "!!__vars.b && (__vars.je.bookmark !== 'B' || (__vars.b.bubbleReachedWindow === false && __vars.b.capturePrevented === false)) && (await ApiClient.getJSON(ApiClient.getUrl('Bookmarks', { itemId: __vars.movieId }))).length === Number(__vars.before) + 1" },
+    { "name": "JE's modal opened when its bookmarks are on", "assert": "__vars.jeModal === (__vars.je.bookmarksEnabled && __vars.je.bookmark === 'B')" },
+    { "screenshot": "je-shortcuts-b.png" },
+    { "name": "close JE's modal", "script": "const c = document.querySelector('.je-bm-player-modal-overlay .je-bookmark-btn-cancel'); if (c) c.click(); return true;" },
+    { "name": "no JE modal", "waitFor": "!document.querySelector('.je-bm-player-modal-overlay')", "timeout": 5000 },
+
+    { "name": "delete the bookmark this check made", "script": "const list = await ApiClient.getJSON(ApiClient.getUrl('Bookmarks', { itemId: __vars.movieId })); const mine = list.slice(Number(__vars.before)); for (const b of mine) { await ApiClient.ajax({ type: 'DELETE', url: ApiClient.getUrl('Bookmarks/' + b.Id) }); } return mine.length;" },
+    { "name": "all key events", "eval": "__shortcutKeys.events", "full": true },
+    { "name": "no uncaught exceptions (the stale CustomRatings tag and jellyfin-web's player teardown excepted)", "noExceptions": true, "ignore": "/CustomRatings/script|^Error: player cannot be null" }
+  ]
+}

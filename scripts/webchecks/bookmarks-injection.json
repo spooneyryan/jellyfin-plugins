@@ -1,0 +1,36 @@
+{
+  "name": "Bookmarks' script tag from the kit's index.html middleware: one tag, no File Transformation tag, the script runs, a hard reload keeps one tag, no uncaught exceptions. Works in every sandbox; the stale /CustomRatings/script tag's SyntaxError under a BaseUrl is ignored (scripts/README.md)",
+  "failOnException": false,
+  "timeout": 30000,
+  "steps": [
+    { "name": "sign in as admin through the login form", "login": "admin" },
+    { "name": "the home page is shown", "waitFor": "!!document.querySelector('.homePage:not(.hide)')" },
+    { "name": "the Bookmarks script ran", "waitFor": "document.querySelectorAll('#jfbm-styles').length === 1" },
+    {
+      "name": "the script tags in the live DOM",
+      "eval": "({ jfbm: [...document.querySelectorAll('script[data-jfbm-plugin]')].map(s => s.outerHTML), retiredFileTransformationTag: document.querySelectorAll('script[data-bookmarks-plugin]').length, pluginPages: document.querySelectorAll('script[plugin=\"PluginPages\"]').length, jellyfinEnhanced: document.querySelectorAll('script[src*=\"JellyfinEnhanced/script\"]').length, serverAddress: ApiClient.serverAddress(), bodyScripts: [...document.body.querySelectorAll(':scope > script')].map(s => s.getAttribute('src') || ('inline ' + s.textContent.length + ' chars')) })",
+      "full": true
+    },
+    {
+      "name": "exactly one Bookmarks tag, from the middleware; no File Transformation tag of Bookmarks; community tags at most once",
+      "assert": "document.querySelectorAll('script[data-jfbm-plugin]').length === 1 && document.querySelectorAll('script[data-bookmarks-plugin]').length === 0 && document.querySelectorAll('script[plugin=\"PluginPages\"]').length <= 1 && document.querySelectorAll('script[src*=\"JellyfinEnhanced/script\"]').length <= 1",
+      "message": "expected one data-jfbm-plugin tag and no data-bookmarks-plugin tag"
+    },
+    {
+      "name": "the tag's src resolves to <server address>/Bookmarks/ClientScript?v=<version>-<mvid8>, BaseUrl included",
+      "assert": "(() => { const s = document.querySelector('script[data-jfbm-plugin]'); const u = new URL(s.getAttribute('src'), location.href); const prefix = ApiClient.serverAddress() + '/Bookmarks/ClientScript?v=' + s.getAttribute('data-jfbm-plugin') + '-'; return u.href.startsWith(prefix) && /^[0-9a-f]{8}$/.test(u.href.slice(prefix.length)); })()",
+      "message": "the tag's src does not resolve to the ClientScript under the server address"
+    },
+    {
+      "name": "the browser loaded the ClientScript once",
+      "assert": "performance.getEntriesByType('resource').filter(e => e.name.includes('/Bookmarks/ClientScript')).length === 1"
+    },
+    { "screenshot": "bookmarks-injection-home.png" },
+    { "name": "a hard reload", "reload": true },
+    {
+      "name": "home page, one tag and the Bookmarks script again after the reload",
+      "waitFor": "!!document.querySelector('.homePage:not(.hide)') && document.querySelectorAll('script[data-jfbm-plugin]').length === 1 && document.querySelectorAll('#jfbm-styles').length === 1"
+    },
+    { "name": "no uncaught exceptions (the stale CustomRatings tag excepted)", "noExceptions": true, "ignore": "/CustomRatings/script" }
+  ]
+}

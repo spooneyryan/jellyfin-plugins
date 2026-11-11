@@ -1,0 +1,152 @@
+/* User Ratings' own styles, appended to the kit's KIT_CSS. Layout only: text
+   colour inherits, the stars' fill is the kit's accent (darker in the Light and Apple TV themes, where the accent on white
+   is under 3:1), outlines are currentColor, so they keep the text's contrast in every theme and in forced colours.
+   The star widget of 30-stars.js and the details page's section of 40-details.js.
+   Every class here is User Ratings' own (jfur-). */
+:root{--jfur-star-on:var(--jfur-accent)}
+html[data-theme="light"],html[data-theme="appletv"]{--jfur-star-on:#00739a}
+
+/* The member's own rating: [−] [stars] [+] value, note. 28 px stars, 40 px (20 px a half) on a touch screen and in the
+   mobile layout; the − / + buttons only at (pointer: coarse), never in the TV layout, so the slider
+   stays the only focusable control of its row there. */
+.jfur-rating{--jfur-star-size:28px;display:flex;flex-wrap:wrap;align-items:center;gap:.4em .7em}
+.jfur-rating-touch{--jfur-star-size:40px}
+.jfur-stars,.jfur-stars-display{display:inline-flex;flex:0 0 auto;line-height:0;vertical-align:middle}
+.jfur-stars{touch-action:pan-y pinch-zoom;cursor:pointer;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;border-radius:.25em;outline:0}
+.jfur-stars:focus-visible{outline:2px solid var(--jfur-accent);outline-offset:3px}
+.jfur-rating-tv .jfur-stars:focus{outline:3px solid var(--jfur-accent);outline-offset:4px}
+.jfur-rating-disabled .jfur-stars{cursor:default;opacity:.65}
+.jfur-star{position:relative;display:block;flex:0 0 auto;width:var(--jfur-star-size);height:var(--jfur-star-size)}
+.jfur-star svg{display:block;width:100%;height:100%;overflow:visible}
+/* The filled copy sits in a box as wide as the fill. left and right are both 0 and the width is set, so the box keeps to
+   the start edge: the left one left to right, the right one right to left (the over-constrained rule of CSS 2.1 §10.3.7),
+   and the star inside it the same way, so a half star is its start half in either direction. */
+.jfur-star-fill{position:absolute;top:0;bottom:0;left:0;right:0;width:0;overflow:hidden;transition:width .12s ease-out}
+.jfur-star-fill svg{position:absolute;top:0;left:0;right:0;width:var(--jfur-star-size);height:100%}
+.jfur-star polygon{stroke:currentColor;stroke-width:1.4;stroke-linejoin:round}
+.jfur-star-off polygon{fill:none}
+.jfur-star-on polygon{fill:var(--jfur-star-on)}
+.jfur-stars-value{min-width:4.6em;font-variant-numeric:tabular-nums}
+.jfur-rating-tv .jfur-stars-value{font-size:1.3em}
+.jfur-stars-note{flex:1 1 100%;font-size:.9em;opacity:.85}
+.jfur-stars-step{display:none;align-items:center;justify-content:center;min-width:40px;min-height:40px;padding:0;border:0;border-radius:50%;background:rgba(128,128,128,.2);color:inherit;font:inherit;cursor:pointer}
+.jfur-stars-step:disabled{opacity:.4;cursor:default}
+@media (pointer:coarse){.jfur-rating{--jfur-star-size:40px}.jfur-stars-step{display:inline-flex}}
+.jfur-rating-tv .jfur-stars-step{display:none}
+
+/* Read-only stars (a summary, another member's rating): the size of the text around them. */
+.jfur-stars-display{--jfur-star-size:1.15em;align-items:center;gap:.35em}
+.jfur-stars-display .jfur-star{display:block}
+.jfur-stars-display-value{line-height:normal;font-variant-numeric:tabular-nums}
+
+/* The details page's section (40-details.js), in jellyfin-web's section frame (kit.section). Its title is
+   a disclosure button styled as the title; on the TV layout it is no tab stop and the section stays open. */
+.jfur-section-toggle{display:inline-flex;align-items:center;gap:.25em;margin:0;padding:0;border:0;background:none;color:inherit;font:inherit;text-align:start;cursor:pointer}
+.jfur-section-tv .jfur-section-toggle{cursor:default}
+.jfur-section-tv .jfur-section-toggle-icon{display:none}
+.jfur-section-body{padding-bottom:.6em}
+.jfur-summary{display:flex;flex-wrap:wrap;align-items:center;gap:.4em 1.2em;margin:.2em 0 .8em}
+.jfur-summary-average{display:inline-flex;align-items:center;gap:.45em;font-size:1.25em}
+.jfur-summary-value{font-variant-numeric:tabular-nums;font-weight:600}
+.jfur-summary-counts{opacity:.8}
+/* The ten buckets, 0.5 to 5 stars from the start edge; hidden under 600 px. */
+.jfur-histogram{display:inline-flex;align-items:flex-end;gap:2px;height:1.8em}
+.jfur-histogram-bar{display:block;width:.55em;min-height:2px;border-radius:1px 1px 0 0;background:var(--jfur-star-on)}
+.jfur-histogram-zero{background:currentColor;opacity:.2}
+@media (max-width:599px){.jfur-histogram{display:none}}
+.jfur-copies{margin:-.3em 0 .8em}
+.jfur-copy{margin:.2em 0;opacity:.9}
+/* "Your rating" and the slider: alone in their row; Clear and Write a review on the next. */
+.jfur-mine{margin:.4em 0 .8em}
+.jfur-mine-row{display:flex;flex-wrap:wrap;align-items:center;gap:.4em 1em}
+.jfur-mine-label{font-weight:600}
+.jfur-mine-actions{display:flex;flex-wrap:wrap;gap:.6em;margin:.7em 0 .2em}
+.jfur-own-review,.jfur-review-form{margin:.8em 0;padding:.7em .9em;border-radius:.3em;background:rgba(128,128,128,.1)}
+.jfur-own-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:.2em .7em;margin-bottom:.3em}
+.jfur-own-title{font-weight:600}
+.jfur-own-actions{display:flex;flex-wrap:wrap;gap:.6em;margin-top:.6em}
+.jfur-review-counter{font-size:.85em;opacity:.75;text-align:end;font-variant-numeric:tabular-nums;margin-top:-.5em}
+.jfur-review-notice,.jfur-review-error{margin:.4em 0}
+/* A control while a clear or a delete is under way: aria-disabled (it keeps the focus), looked as disabled. */
+.jfur-section button[aria-disabled="true"]{opacity:.55;cursor:default}
+.jfur-review-input[readonly]{opacity:.85}
+/* NotARater's read-only stars and their note in the slider's place; the form's "Contains spoilers"; the text kept
+   beside the form after a Reload. */
+.jfur-mine-readonly{display:inline-flex;flex-wrap:wrap;align-items:center;gap:.3em .8em}
+.jfur-mine-note{font-size:.9em;opacity:.85}
+.jfur-review-spoiler-field{display:inline-flex;align-items:center;gap:.45em;margin:.5em 0;cursor:pointer}
+.jfur-review-spoiler{width:1.2em;height:1.2em;margin:0}
+.jfur-review-aside{margin:.6em 0;padding:.6em .8em;border-inline-start:3px solid var(--jfur-accent);background:rgba(128,128,128,.08)}
+.jfur-aside-label{font-weight:600;margin-bottom:.3em}
+.jfur-aside-text{white-space:pre-line;overflow-wrap:anywhere;max-height:16em;overflow:auto}
+/* The read-only stars take the focus when the slider turns read-only under it; the 409's panel
+   shows the review as it is now, read-only, before Overwrite. */
+.jfur-mine-readonly:focus{outline:2px solid var(--jfur-accent);outline-offset:3px}
+.jfur-section-tv .jfur-mine-readonly:focus{outline-width:3px;outline-offset:4px}
+.jfur-conflict-review{margin:.5em 0 0}
+.jfur-conflict-newer{padding:.6em .8em;border-inline-start:3px solid rgba(128,128,128,.6);background:rgba(128,128,128,.08)}
+.jfur-conflict-label{font-weight:600;margin:0 0 .3em}
+.jfur-conflict-text .jfur-review-text{max-height:16em;overflow:auto}
+.jfur-conflict-status{margin:.3em 0;opacity:.85}
+/* The other members' rows. */
+.jfur-reviews-toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:.6em;margin:1em 0 .3em}
+.jfur-review{display:flex;gap:.8em;padding:.75em 0;border-top:1px solid var(--jf-palette-divider,rgba(128,128,128,.25));outline-offset:2px}
+.jfur-review:focus{outline:2px solid var(--jfur-accent)}
+.jfur-avatar{flex:0 0 auto;width:2.4em;height:2.4em;border-radius:50%;object-fit:cover;background:rgba(128,128,128,.2)}
+.jfur-avatar-none{display:inline-flex;align-items:center;justify-content:center;font-size:1.6em;width:1.5em;height:1.5em;opacity:.7}
+.jfur-review-body{flex:1 1 auto;min-width:0}
+.jfur-review-head{display:flex;flex-wrap:wrap;align-items:center;gap:.2em .7em}
+.jfur-review-name{font-weight:600;overflow-wrap:anywhere}
+.jfur-review-meta{font-size:.9em;opacity:.7}
+.jfur-review-edited{margin-inline-start:.35em}
+.jfur-review-text{margin:.35em 0 0;white-space:pre-line;overflow-wrap:anywhere}
+.jfur-review-more,.jfur-spoiler-toggle{margin-top:.25em}
+.jfur-spoiler{display:flex;flex-wrap:wrap;align-items:center;gap:.2em .8em;margin-top:.35em}
+.jfur-spoiler-flag{font-style:italic;opacity:.8}
+/* A spoiler's place before it is shown: blurred bars, no text (the text isn't in the page until asked for). */
+.jfur-spoiler-blur{margin:.45em 0 0;filter:blur(3px);user-select:none;pointer-events:none}
+.jfur-spoiler-line{display:block;height:.75em;margin:.4em 0;border-radius:.4em;background:currentColor;opacity:.22}
+.jfur-reviews-off{opacity:.85}
+/* An admin's Remove… on another member's row and its dialog: the choices are whole-row labels, at
+   least 44 px high, so a finger or the TV's focus lands on them. */
+.jfur-review-remove{margin-top:.35em}
+@media (pointer:coarse){.jfur-review-remove{min-height:44px}}
+.jfur-moderate-by{margin:0 0 .6em}
+.jfur-moderate-what{margin:0 0 .8em;padding:0;border:0}
+.jfur-moderate-what legend{margin-bottom:.3em;font-weight:600}
+.jfur-moderate-choice{display:flex;align-items:flex-start;gap:.6em;min-height:44px;padding:.35em 0;cursor:pointer}
+.jfur-moderate-radio{flex:0 0 auto;width:1.2em;height:1.2em;margin:.15em 0 0}
+.jfur-moderate-choice-text{display:flex;flex-direction:column;gap:.15em}
+.jfur-moderate-choice-hint{font-size:.9em;opacity:.8}
+.jfur-moderate-reason-field{display:flex;flex-direction:column;gap:.3em;margin:0 0 .8em}
+.jfur-moderate-preview{min-height:1.4em;margin:.4em 0}
+.jfur-moderate-now{margin:.5em 0;padding:.4em .7em;border-inline-start:3px solid currentColor}
+.jfur-moderate-now-stars{margin:0 0 .3em;font-weight:600}
+.jfur-moderate-now-text{margin:0;white-space:pre-wrap;overflow-wrap:anywhere;max-height:12em;overflow:auto}
+
+/* 50-chip.js: the member-average chip at the end of the media-info row, spaced as the row's own items are; its word
+   is hidden under 600 px, the group icon and the value stay. */
+.jfur-chip{display:inline-flex;align-items:center;gap:.3em;margin-inline-end:1em;white-space:nowrap;font-variant-numeric:tabular-nums}
+.jfur-chip-icon{font-size:1.25em;line-height:1}
+@media (max-width:599px){.jfur-chip-word{display:none}}
+
+/* Text the widget shows is isolated: a note may carry a member's name, and an override it never closes must
+   stop at its element's end. So is every member's word on the details page and every library name. */
+.jfur-isolate{unicode-bidi:isolate}
+.jfur-sr-only{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+
+@media (prefers-reduced-motion:reduce){.jfur-star-fill{transition:none}}
+/* Forced colours: the theme's own colours, the fill solid and the outline drawn, so filled and empty differ in shape. */
+@media (forced-colors:active){
+.jfur-star{forced-color-adjust:none}
+.jfur-star polygon{stroke:CanvasText}
+.jfur-star-on polygon{fill:CanvasText}
+.jfur-rating-disabled .jfur-star polygon{stroke:GrayText}
+.jfur-rating-disabled .jfur-star-on polygon{fill:GrayText}
+.jfur-stars:focus-visible,.jfur-rating-tv .jfur-stars:focus{outline-color:Highlight}
+.jfur-stars-step{border:1px solid ButtonText}
+.jfur-histogram-bar{forced-color-adjust:none;background:CanvasText}
+.jfur-histogram-zero{background:GrayText}
+.jfur-review:focus,.jfur-mine-readonly:focus{outline-color:Highlight}
+.jfur-spoiler-line{forced-color-adjust:none;background:GrayText;opacity:1}
+}

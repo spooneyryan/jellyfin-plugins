@@ -1,0 +1,19 @@
+{
+  "description": "An administrator demoted on the stock Dashboard: credentials.json's admin makes accessroles-suite-probe.mjs's own administrator (suiteprobe-admin2, in a narrow library role) a non-admin on jellyfin-web's stock Dashboard page, as a person would (Access Roles has no demote action): Dashboard → Users, its card, 'Allow this user to manage the server' unticked, Save. The probe then checks that the user's token loses the plugins' admin features at the next request. Run by the probe only; it writes nothing else.",
+  "timeout": 30000,
+  "steps": [
+    { "name": "sign in as admin", "login": "admin" },
+    { "name": "the Dashboard's Users page", "goto": "/web/index.html#/dashboard/users" },
+    { "name": "the page lists the probe's administrator", "waitFor": "!!document.querySelector('.localUsers .card[data-username=\"suiteprobe-admin2\"] a.cardContent')", "timeout": 30000 },
+    { "name": "its user id, from its card", "eval": "document.querySelector('.localUsers .card[data-username=\"suiteprobe-admin2\"]').dataset.userid", "save": "target" },
+    { "name": "open its card", "click": ".localUsers .card[data-username=\"suiteprobe-admin2\"] a.cardContent" },
+    { "name": "its profile page, loaded, with 'Allow this user to manage the server' ticked", "waitFor": "location.hash.indexOf('#/dashboard/users/profile?userId=' + __vars.target) === 0 && (() => { const e = document.querySelector('#editUserPage:not(.hide) .chkIsAdmin'); return !!e && e.checked === true; })()", "timeout": 30000 },
+    { "sleep": 800 },
+    { "name": "untick 'Allow this user to manage the server'", "click": "#editUserPage:not(.hide) label:has(.chkIsAdmin)" },
+    { "name": "it is unticked", "assert": "document.querySelector('#editUserPage:not(.hide) .chkIsAdmin').checked === false" },
+    { "screenshot": "accessroles-suite-demote.png" },
+    { "name": "Save", "click": "#editUserPage:not(.hide) .editUserProfileForm .button-submit" },
+    { "name": "the server has the user as a non-admin", "waitFor": "(async () => { const u = await ApiClient.getUser(__vars.target); return !!u && !!u.Policy && u.Policy.IsAdministrator === false; })()", "timeout": 20000 },
+    { "name": "no uncaught exceptions (the stale CustomRatings tag and jellyfin-web's Home tab slider excepted)", "noExceptions": true, "ignore": "/CustomRatings/script|^TypeError: t\\.value\\.pause is not a function" }
+  ]
+}

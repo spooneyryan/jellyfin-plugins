@@ -1,0 +1,132 @@
+/* Access Roles' dashboard page: the tabs, the role and user lists, the per-user panel and
+   the preview, the Overview's chips and server-wide box, the libraries, the audit log and the settings form, under the
+   AdminScript's own classes (jfar-page-*; jfar-admin-banner is the web client's). Layout only, neutral surfaces and the
+   kit's accent, warning and danger colours (the kit's theming rule); never --jf-palette-background-*, -text-* or
+   -primary-contrastText. Dialogs sit outside the page, so their rules aren't scoped to it. A long unbroken name wraps
+   anywhere instead of pushing the page sideways, on the page and in its dialogs, and a name an
+   admin typed is isolated from the text around it (bdi, dir="auto"). */
+.jfar-page-app [hidden],.jfar-panel [hidden]{display:none!important}
+.jfar-page-app{line-height:1.4;overflow-wrap:anywhere}
+.jfar-panel-header h3,.jfar-panel-body{overflow-wrap:anywhere;min-width:0}
+.jfar-page-name,.jfar-page-role-name,.jfar-page-user-name,.jfar-page-check-text>span[dir]{unicode-bidi:isolate}
+.jfar-panel.jfar-page-wide{width:52em}
+.jfar-page-banners:empty{display:none}
+.jfar-page-banner{margin:0 0 .8em;padding:.8em 1em;border-radius:.3em;border-left:.3em solid var(--jfar-warning);background:rgba(255,183,77,.14);color:inherit}
+.jfar-page-banner-error{border-left-color:var(--jfar-danger);background:rgba(255,138,128,.14)}
+.jfar-page-tabs{display:flex;flex-wrap:wrap;gap:.3em;margin:0 0 1.2em;border-bottom:1px solid var(--jfar-divider)}
+.jfar-page-tab{background:none;border:0;border-bottom:.2em solid transparent;color:inherit;font:inherit;padding:.6em 1.1em;cursor:pointer;opacity:.75}
+.jfar-page-tab:hover{opacity:1}
+.jfar-page-tab[aria-selected="true"]{border-bottom-color:var(--jfar-accent);opacity:1;font-weight:600}
+.jfar-page-tab:focus-visible{outline:2px solid var(--jfar-accent);outline-offset:-2px}
+.jfar-page-section{margin:0 0 1.8em}
+.jfar-page-heading{margin:1.2em 0 .5em;font-weight:500}
+h3.jfar-page-heading{font-size:1.2em}
+h4.jfar-page-heading{font-size:1.05em}
+h5.jfar-page-heading{font-size:.95em;opacity:.85}
+.jfar-page-hint{font-size:.88em;opacity:.7;margin:.3em 0 .8em}
+.jfar-page-error{color:var(--jfar-danger);min-height:1.2em;margin:.5em 0}
+.jfar-page-error:empty{min-height:0;margin:0}
+.jfar-page-actions{display:flex;flex-wrap:wrap;gap:.5em;align-items:center;margin:.8em 0}
+.jfar-panel .jfar-page-actions{justify-content:flex-end}
+.jfar-page-list{margin:.3em 0 .8em;padding-left:1.4em}
+.jfar-page-table{border-collapse:collapse;margin:.3em 0 .8em;max-width:100%}
+.jfar-page-table th,.jfar-page-table td{text-align:left;vertical-align:top;padding:.3em .8em .3em 0}
+.jfar-page-table td{overflow-wrap:anywhere}
+.jfar-page-table th{font-weight:500;opacity:.8;white-space:nowrap}
+.jfar-page-badges{display:flex;flex-wrap:wrap;gap:.35em;margin:.3em 0}
+.jfar-page-badges:empty{display:none}
+.jfar-page-badge{display:inline-block;font-size:.8em;padding:.15em .55em;border-radius:1em;background:rgba(128,128,128,.2)}
+.jfar-page-badge-warning{color:var(--jfar-warning);box-shadow:inset 0 0 0 1px var(--jfar-warning);background:none}
+.jfar-page-check{display:flex;gap:.6em;align-items:flex-start;margin:.35em 0;cursor:pointer}
+.jfar-page-check-input{margin:.2em 0 0;flex-shrink:0;width:1.1em;height:1.1em;accent-color:var(--jfar-accent)}
+.jfar-page-check-input:focus-visible{outline:2px solid var(--jfar-accent);outline-offset:2px}
+.jfar-page-check-text{display:flex;flex-direction:column;min-width:0;overflow-wrap:anywhere}
+.jfar-page-check-hint{font-size:.85em;opacity:.65}
+.jfar-page-checks{display:grid;grid-template-columns:repeat(auto-fill,minmax(16em,1fr));gap:0 1.2em}
+.jfar-page-radios,.jfar-page-picker{border:1px solid var(--jfar-divider);border-radius:.3em;margin:.5em 0 .8em;padding:.5em .9em .6em}
+.jfar-page-radios legend,.jfar-page-picker legend{padding:0 .3em;font-size:.9em;opacity:.8}
+.jfar-page-overrides{display:grid;grid-template-columns:repeat(auto-fill,minmax(17em,1fr));gap:0 1.2em}
+.jfar-page-overrides .jfar-page-check-hint{display:block;margin-top:.25em}
+.jfar-page-dashboard-text{margin:.3em 0}
+.jfar-page-presets{display:grid;grid-template-columns:repeat(auto-fill,minmax(14em,1fr));gap:.8em;margin:.8em 0}
+.jfar-page-preset{display:flex;flex-direction:column;gap:.35em;width:100%;height:100%;text-align:left;padding:.9em 1em;border:1px solid var(--jfar-divider);border-radius:.4em;background:rgba(128,128,128,.08);color:inherit;font:inherit;cursor:pointer}
+.jfar-page-preset:hover,.jfar-page-preset:focus-visible{border-color:var(--jfar-accent);outline:none}
+.jfar-page-preset-name{font-weight:600}
+.jfar-page-preset-text{font-size:.88em;opacity:.75}
+.jfar-page-role-list,.jfar-page-user-list{display:flex;flex-direction:column;gap:.6em}
+.jfar-page-role,.jfar-page-user{padding:.8em 1em;border-radius:.4em;background:rgba(128,128,128,.08)}
+.jfar-page-role-head{display:flex;flex-wrap:wrap;gap:.6em;align-items:center}
+.jfar-page-role-name{margin:0;font-size:1.05em;font-weight:600;min-width:0;overflow-wrap:anywhere}
+.jfar-page-role-description,.jfar-page-role-line,.jfar-page-user-line{margin:.25em 0}
+.jfar-page-role .jfar-page-actions{margin-bottom:0}
+.jfar-page-bulk{display:flex;flex-wrap:wrap;gap:.4em 1.2em;align-items:center;margin:.6em 0 1em}
+.jfar-page-bulk .jfar-page-actions{margin:0}
+.jfar-page-count{opacity:.75}
+.jfar-page-user{display:flex;gap:.8em;align-items:flex-start}
+.jfar-page-user .jfar-page-select{margin:.15em 0 0}
+.jfar-page-select .jfar-page-check-text{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.jfar-page-user-main{flex:1;min-width:0}
+.jfar-page-user-name{background:none;border:0;padding:0;color:var(--jfar-accent);font:inherit;font-weight:600;cursor:pointer;text-align:left;max-width:100%;min-width:0;overflow-wrap:anywhere}
+.jfar-page-user-name:hover{text-decoration:underline}
+.jfar-page-user-name:focus-visible{outline:2px solid var(--jfar-accent);outline-offset:2px}
+.jfar-page-drift{margin:1em 0;padding:.6em 1em;border-left:.3em solid var(--jfar-warning);background:rgba(255,183,77,.1);border-radius:.3em}
+.jfar-page-effective{margin-top:1.2em;padding-top:.4em;border-top:1px solid var(--jfar-divider)}
+.jfar-page-preview-users{list-style:none;margin:.5em 0;padding:0}
+.jfar-page-preview-user{padding:.5em 0;border-bottom:1px solid var(--jfar-divider)}
+.jfar-page-preview-name{margin:0 0 .2em;font-weight:600}
+.jfar-page-preview-line{margin:.15em 0}
+.jfar-page-preview-warning{color:var(--jfar-warning)}
+.jfar-page-preview-blocking{color:var(--jfar-danger)}
+.jfar-page-stale{margin:.6em 0;padding:.6em 1em;border-left:.3em solid var(--jfar-warning);background:rgba(255,183,77,.12);border-radius:.3em}
+.jfar-page-stale-text{margin:0}
+.jfar-page-stale .jfar-page-actions{justify-content:flex-start;margin-bottom:0}
+.jfar-page-chips{list-style:none;display:flex;flex-wrap:wrap;gap:.45em;margin:.5em 0 .8em;padding:0}
+.jfar-page-chip{padding:.35em .8em;border-radius:1.2em;background:rgba(128,128,128,.14);border-left:.25em solid transparent;max-width:100%;min-width:0;overflow-wrap:anywhere}
+.jfar-page-chip-ok{border-left-color:var(--jfar-accent)}
+.jfar-page-chip-warning{border-left-color:var(--jfar-warning);background:rgba(255,183,77,.14)}
+.jfar-page-chip-error{border-left-color:var(--jfar-danger);background:rgba(255,138,128,.16);font-weight:600}
+.jfar-page-server-wide{padding:.6em 1em .2em;border-radius:.4em;background:rgba(128,128,128,.08)}
+.jfar-page-server-wide .jfar-page-heading{margin-top:.4em}
+.jfar-page-library-list,.jfar-page-audit-list{display:flex;flex-direction:column;gap:.6em}
+.jfar-page-library{padding:.8em 1em;border-radius:.4em;background:rgba(128,128,128,.08)}
+.jfar-page-library[data-state="Orphaned"]{border-left:.3em solid var(--jfar-warning)}
+.jfar-page-library-head{display:flex;flex-wrap:wrap;gap:.6em;align-items:center}
+.jfar-page-library-name{margin:0;font-size:1.05em;font-weight:600;min-width:0;overflow-wrap:anywhere}
+.jfar-page-library-line{margin:.25em 0}
+.jfar-page-library-warning{margin:.4em 0;padding:.4em .8em;border-left:.25em solid var(--jfar-warning);background:rgba(255,183,77,.1);border-radius:.3em}
+.jfar-page-library-warning-error{border-left-color:var(--jfar-danger);background:rgba(255,138,128,.12)}
+.jfar-page-library-none{color:var(--jfar-danger)}
+.jfar-page-library-mismatch{color:var(--jfar-warning)}
+.jfar-page-library:focus-visible,.jfar-page-audit-entry:focus-visible{outline:2px solid var(--jfar-accent);outline-offset:2px}
+.jfar-page-filters{display:grid;grid-template-columns:repeat(auto-fill,minmax(12em,1fr));gap:0 1em}
+.jfar-page-audit-list{list-style:none;margin:.5em 0;padding:0}
+.jfar-page-audit-entry{padding:.5em .8em;border-radius:.3em;background:rgba(128,128,128,.07)}
+.jfar-page-audit-head{margin:0}
+.jfar-page-audit-details{margin:.25em 0 0;font-size:.92em}
+.jfar-page-rule-part{font-family:inherit;padding:0 .3em;border-radius:.2em;background:rgba(128,128,128,.18);overflow-wrap:anywhere}
+.jfar-page-settings-group{border:1px solid var(--jfar-divider);border-radius:.3em;margin:0 0 1em;padding:.5em 1em .8em;min-width:0}
+.jfar-page-settings-group legend{padding:0 .3em;font-weight:500}
+/* A select is as wide as its longest option unless held: on a phone the settings' choices went past the screen. */
+.jfar-page-app .jfar-select,.jfar-panel .jfar-select,.jfar-page-app .jfar-input,.jfar-panel .jfar-input{max-width:100%}
+.jfar-page-raw{white-space:pre-wrap;overflow-wrap:anywhere;font-size:.85em;max-height:40em;overflow:auto;padding:.6em;border-radius:.3em;background:rgba(128,128,128,.08)}
+@media (max-width:40em){
+.jfar-page-tab{flex:1 1 auto;padding:.6em .5em}
+.jfar-page-table,.jfar-page-table tbody,.jfar-page-table tr{display:block}
+.jfar-page-table th,.jfar-page-table td{display:block;padding:.1em 0}
+.jfar-page-table td{padding-bottom:.5em}
+.jfar-page-table th{white-space:normal}
+.jfar-page-checks,.jfar-page-overrides,.jfar-page-presets,.jfar-page-filters{grid-template-columns:1fr}
+.jfar-page-rule-table thead{display:none}
+}
+@media (pointer:coarse){
+.jfar-page-tab,.jfar-page-user-name,.jfar-page-app .jfar-button,.jfar-panel .jfar-button,.jfar-page-app .jfar-select,.jfar-panel .jfar-select,.jfar-page-preset,.jfar-page-app .jfar-input,.jfar-panel .jfar-input{min-height:44px}
+.jfar-panel .jfar-icon-button{min-width:44px;min-height:44px}
+.jfar-page-check{min-height:44px;align-items:center}
+.jfar-page-check-input{margin:0;width:1.4em;height:1.4em}
+.jfar-page-user-name{padding:.4em 0}
+}
+@media (forced-colors:active){
+.jfar-page-banner,.jfar-page-drift,.jfar-page-stale,.jfar-page-library-warning,.jfar-page-chip{border:1px solid CanvasText;border-left-width:.3em}
+.jfar-page-tab[aria-selected="true"]{border-bottom-color:Highlight}
+.jfar-page-role,.jfar-page-user,.jfar-page-preset,.jfar-page-badge,.jfar-page-library,.jfar-page-audit-entry{border:1px solid CanvasText}
+}

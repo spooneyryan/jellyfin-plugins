@@ -1,0 +1,358 @@
+{
+  "description": "Library Maintenance's duplicate groups on the Duplicates tab, as admin, on the desktop (1366 px), on two phones (375 and 320 px) and on jellyfin-web's TV layout. The groups the page shows are the ones GET /LibraryMaintenance/Duplicates/Groups gives (the count, the first card, its suggested keep first, Open to its details page); each entry's poster is the movie's own image when the server has one (asked with no tag, through ApiClient.getUrl, so under the base URL) and its initials when it has none, in a 60 x 90 px box that never moves; Title only asks for them again and is kept over a reload (localStorage jflm:duplicates.view); the Conflict filter keeps only its groups; nothing scrolls sideways on a phone; on the TV the D-pad goes from the tabs to Rebuild, the groups' controls and a card's Open, never the drawer, and OK on Open opens the movie. Changes nothing on the server (the index is built once if the server has none); this browser's kept choices and layout are removed at the end.",
+  "timeout": 30000,
+  "steps": [
+    {
+      "name": "sign in as admin",
+      "login": "admin"
+    },
+    {
+      "name": "the web client is ready",
+      "waitFor": "!!window.ApiClient && !!ApiClient.getCurrentUserId()"
+    },
+    {
+      "name": "no kept choices in this browser",
+      "eval": "(localStorage.removeItem('jflm:duplicates.view'), localStorage.removeItem('layout'), true)"
+    },
+    {
+      "name": "the probe's helpers",
+      "script": "window.__lmg = {\n  page: () => document.querySelector('#LibraryMaintenanceConfigPage:not(.hide)'),\n  q: (s) => (__lmg.page() || document).querySelector(s),\n  qa: (s) => [...(__lmg.page() || document).querySelectorAll(s)],\n  summary: () => (__lmg.q('#LibraryMaintenanceGroupsSummary') || {}).textContent || '',\n  stateText: () => (__lmg.q('#LibraryMaintenanceGroupsState') || {}).textContent || '',\n  cards: () => __lmg.page() ? __lmg.qa('#LibraryMaintenanceGroupsList article') : [],\n  pressed: (id) => __lmg.qa('#' + id + ' button[aria-pressed=true]').map(b => b.getAttribute('data-value')),\n  hidden: (e) => !e || !!e.closest('.hide'),\n  groupsRequests: (part) => performance.getEntriesByType('resource').filter(e => e.name.indexOf('/Duplicates/Groups') >= 0 && (!part || e.name.indexOf(part) >= 0)).length,\n  api: async (method, path) => { const r = await fetch(ApiClient.getUrl(path), { method, headers: { Authorization: 'MediaBrowser Token=\"' + ApiClient.accessToken() + '\"', Accept: 'application/json' } }); return { status: r.status, body: r.status === 204 ? null : await r.json() }; },\n  where: () => { const a = document.activeElement; const panel = a && a.closest ? a.closest('[role=tabpanel]') : null; const card = a && a.closest ? a.closest('article') : null; return { id: (a && a.id) || null, tag: a ? a.tagName : null, text: a ? (a.textContent || '').trim().slice(0, 30) : null, value: a && a.getAttribute ? a.getAttribute('data-value') : null, body: !a || a === document.body, inApp: !!(a && a.closest && a.closest('.jflm-page-app')), panel: panel ? panel.id.replace('LibraryMaintenancePanel', '') : null, groups: !!(a && a.closest && a.closest('#LibraryMaintenanceGroups')), open: !!(a && a.classList && a.classList.contains('jflm-page-open')), card: card ? card.getAttribute('data-group-id') : null }; }\n};\nreturn true;"
+    },
+    {
+      "name": "an index to show: built once if the server has none yet",
+      "eval": "(async () => { let index = (await __lmg.api('GET', 'LibraryMaintenance/Duplicates/Index')).body; if (!index.Version) { await __lmg.api('POST', 'LibraryMaintenance/Duplicates/Index/Rebuild'); for (let i = 0; i < 300 && (!index.Version || index.Rebuilding); i++) { await new Promise(r => setTimeout(r, 100)); index = (await __lmg.api('GET', 'LibraryMaintenance/Duplicates/Index')).body; } } return { version: index.Version, movies: index.Movies, libraries: index.Libraries.length }; })()",
+      "save": "index",
+      "full": true
+    },
+    {
+      "name": "an index",
+      "assert": "__vars.index.version >= 1 && __vars.index.movies > 0"
+    },
+    {
+      "name": "the server's groups, in the settings' mode and in Title mode",
+      "eval": "(async () => { const a = (await __lmg.api('GET', 'LibraryMaintenance/Duplicates/Groups')).body; const t = (await __lmg.api('GET', 'LibraryMaintenance/Duplicates/Groups?mode=Title')).body; const f = a.Items[0]; return { mode: a.Mode, count: a.GroupCount, total: a.TotalRecordCount, titleCount: t.GroupCount, titleTotal: t.TotalRecordCount, titleConflict: t.Items.filter(g => g.Confidence === 'Conflict').length, first: f ? { id: f.GroupId, keep: String(f.SuggestedKeepId).replace(/-/g, '').toLowerCase(), entries: f.Entries.length, name: f.Entries[0].Name, confidence: f.Confidence } : null }; })()",
+      "save": "server",
+      "full": true
+    },
+    {
+      "name": "groups in Title + Year, more in Title mode",
+      "assert": "__vars.server.mode === 'TitleAndYear' && __vars.server.count >= 1 && !!__vars.server.first && __vars.server.titleCount > __vars.server.count"
+    },
+    {
+      "name": "the page",
+      "goto": "/web/index.html#/configurationpage?name=LibraryMaintenance"
+    },
+    {
+      "name": "the groups shown",
+      "waitFor": "__lmg.cards().length === Math.min(50, __vars.server.total) && __lmg.summary().indexOf(__vars.server.count + ' group') === 0 && /^Index: /.test((__lmg.q('#LibraryMaintenanceDuplicatesStatus') || {}).textContent || '')",
+      "timeout": 20000
+    },
+    {
+      "name": "what the groups show",
+      "eval": "(() => { const c = __lmg.cards(); const first = c[0]; const rows = first ? [...first.querySelectorAll('li')] : []; const open = rows[0] ? rows[0].querySelector('a') : null; return { summary: __lmg.summary(), mode: __lmg.pressed('LibraryMaintenanceGroupsMode'), hint: __lmg.q('#LibraryMaintenanceGroupsModeHint').textContent, unknownYearShown: !__lmg.hidden(__lmg.q('#LibraryMaintenanceGroupsUnknownYear')), libraries: __lmg.qa('#LibraryMaintenanceGroupsLibraries button').map(b => b.textContent), cards: c.length, id: first && first.getAttribute('data-group-id'), title: first && first.querySelector('h4').textContent, chips: first ? [...first.querySelectorAll('.jflm-page-group-header .jflm-page-chip')].map(x => x.textContent) : [], facts: first ? first.querySelector('.jflm-page-group-facts').textContent : null, rows: rows.length, keepFirst: !!rows[0] && rows[0].textContent.indexOf('Suggested keep') >= 0, keepId: rows[0] ? rows[0].getAttribute('data-item-id') : null, href: open && open.getAttribute('href'), label: open && open.getAttribute('aria-label'), state: __lmg.stateText(), more: !__lmg.hidden(__lmg.q('#LibraryMaintenanceGroupsMore')), requests: __lmg.groupsRequests() }; })()",
+      "save": "shown",
+      "full": true
+    },
+    {
+      "name": "the server's groups: the count, the mode, the first card with its suggested keep first and Open to its details page",
+      "assert": "__vars.shown.mode.join() === 'TitleAndYear' && __vars.shown.unknownYearShown && __vars.shown.id === __vars.server.first.id && __vars.shown.rows === __vars.server.first.entries && __vars.shown.keepFirst && __vars.shown.keepId === __vars.server.first.keep && __vars.shown.chips[0] === __vars.server.first.confidence && __vars.shown.href.indexOf('#/details?id=' + __vars.server.first.keep + '&serverId=') === 0 && __vars.shown.label.indexOf('Open ' + __vars.server.first.name) === 0 && !__vars.shown.state && __vars.shown.more === (__vars.server.total > 50) && __vars.shown.requests >= 1"
+    },
+    {
+      "screenshot": "librarymaintenance-groups-desktop.png"
+    },
+    {
+      "name": "the entries as first drawn (the posters may still be loading)",
+      "eval": "(() => __lmg.qa('#LibraryMaintenanceGroupsList li.jflm-page-entry').map(li => { const r = li.getBoundingClientRect(); const p = li.querySelector('.jflm-page-poster'); const b = p ? p.getBoundingClientRect() : null; return { id: li.getAttribute('data-item-id'), top: Math.round(r.top + scrollY), height: Math.round(r.height), poster: b ? [Math.round(b.width * 10) / 10, Math.round(b.height * 10) / 10] : null }; }))()",
+      "save": "postersBefore",
+      "full": true
+    },
+    {
+      "name": "the posters settle: an image loaded or the initials left (the first 8 entries, in view)",
+      "waitFor": "__lmg.qa('#LibraryMaintenanceGroupsList li.jflm-page-entry').slice(0, 8).every(li => { const img = li.querySelector('.jflm-page-poster img'); return !img ? li.querySelector('.jflm-page-poster').classList.contains('jflm-page-poster-none') : img.complete && img.naturalWidth > 0; })",
+      "timeout": 20000
+    },
+    {
+      "name": "the posters against the server: its image tags, the addresses, the sizes",
+      "eval": "(async () => { const lis = __lmg.qa('#LibraryMaintenanceGroupsList li.jflm-page-entry'); const ids = lis.slice(0, 8).map(li => li.getAttribute('data-item-id')); const items = (await __lmg.api('GET', 'Items?Ids=' + ids.join(',') + '&EnableImageTypes=Primary&EnableUserData=false')).body.Items; const tagged = {}; items.forEach(i => { tagged[i.Id.replace(/-/g, '').toLowerCase()] = !!(i.ImageTags && i.ImageTags.Primary); }); const prefix = ApiClient.getUrl('Items/'); const rows = lis.slice(0, 8).map(li => { const p = li.querySelector('.jflm-page-poster'); const img = p.querySelector('img'); const id = li.getAttribute('data-item-id'); return { id, first: li.firstElementChild === p, hidden: p.getAttribute('aria-hidden'), tagged: tagged[id], shown: !!img && img.naturalWidth > 0, none: p.classList.contains('jflm-page-poster-none'), initials: (p.querySelector('.jflm-page-poster-initials') || {}).textContent || '' }; }); const imgs = __lmg.qa('#LibraryMaintenanceGroupsList .jflm-page-poster img'); return { prefix, rows, images: imgs.length, addresses: imgs.every(i => i.src.indexOf(prefix) === 0 && /\\/Images\\/Primary\\?/.test(i.src) && /fillWidth=\\d+/.test(i.src) && !/[?&]tag=/i.test(i.src)), alts: imgs.every(i => i.getAttribute('alt') === '' && i.getAttribute('loading') === 'lazy'), firstSrc: imgs[0] ? imgs[0].src.slice(prefix.length - 6) : null, entries: lis.length, posters: __lmg.qa('#LibraryMaintenanceGroupsList li.jflm-page-entry > .jflm-page-poster').length }; })()",
+      "save": "posters",
+      "full": true
+    },
+    {
+      "name": "every entry has its poster box first; a movie with an image shows it, one without shows its initials; the addresses keep the base URL and ask no tag",
+      "assert": "__vars.posters.posters === __vars.posters.entries && __vars.posters.rows.length > 0 && __vars.posters.rows.every(r => r.first && r.hidden === 'true' && r.initials.length > 0 && (r.tagged ? r.shown && !r.none : !r.shown && r.none)) && __vars.posters.addresses && __vars.posters.alts",
+      "message": "a poster is missing, shows the wrong state, or its address is wrong"
+    },
+    {
+      "name": "the entries once the posters settled",
+      "eval": "(() => __lmg.qa('#LibraryMaintenanceGroupsList li.jflm-page-entry').map(li => { const r = li.getBoundingClientRect(); const p = li.querySelector('.jflm-page-poster'); const b = p ? p.getBoundingClientRect() : null; return { id: li.getAttribute('data-item-id'), top: Math.round(r.top + scrollY), height: Math.round(r.height), poster: b ? [Math.round(b.width * 10) / 10, Math.round(b.height * 10) / 10] : null }; }))()",
+      "save": "postersAfter",
+      "full": true
+    },
+    {
+      "name": "nothing moved: each entry's place and height, and every poster box 60 x 90 px loaded or not",
+      "assert": "__vars.postersAfter.length === __vars.postersBefore.length && __vars.postersAfter.every((r, i) => r.id === __vars.postersBefore[i].id && r.top === __vars.postersBefore[i].top && r.height === __vars.postersBefore[i].height && r.poster && r.poster[0] === 60 && r.poster[1] === 90)",
+      "message": "an entry moved or a poster box changed size"
+    },
+    {
+      "screenshot": "librarymaintenance-groups-posters.png"
+    },
+    {
+      "name": "Title only",
+      "click": "#LibraryMaintenanceConfigPage:not(.hide) #LibraryMaintenanceGroupsMode button[data-value=Title]"
+    },
+    {
+      "name": "the Title groups shown, the unknown-year option gone",
+      "waitFor": "__lmg.pressed('LibraryMaintenanceGroupsMode').join() === 'Title' && __lmg.cards().length === Math.min(50, __vars.server.titleTotal) && __lmg.summary().indexOf(__vars.server.titleCount + ' group') === 0 && __lmg.hidden(__lmg.q('#LibraryMaintenanceGroupsUnknownYear'))",
+      "timeout": 15000
+    },
+    {
+      "name": "the choice kept, asked for with mode=Title",
+      "eval": "(() => { let kept = null; try { kept = JSON.parse(localStorage.getItem('jflm:duplicates.view')); } catch (e) { kept = String(e); } return { kept, titleRequests: __lmg.groupsRequests('mode=Title'), hint: __lmg.q('#LibraryMaintenanceGroupsModeHint').textContent }; })()",
+      "save": "kept",
+      "full": true
+    },
+    {
+      "name": "localStorage holds mode Title; one request with it",
+      "assert": "!!__vars.kept.kept && __vars.kept.kept.mode === 'Title' && __vars.kept.titleRequests >= 1 && /Remakes will appear/.test(__vars.kept.hint)"
+    },
+    {
+      "screenshot": "librarymaintenance-groups-title.png"
+    },
+    {
+      "name": "reload",
+      "reload": true
+    },
+    {
+      "name": "the web client is ready again",
+      "waitFor": "!!window.ApiClient && !!ApiClient.getCurrentUserId()"
+    },
+    {
+      "name": "the probe's helpers again",
+      "script": "window.__lmg = {\n  page: () => document.querySelector('#LibraryMaintenanceConfigPage:not(.hide)'),\n  q: (s) => (__lmg.page() || document).querySelector(s),\n  qa: (s) => [...(__lmg.page() || document).querySelectorAll(s)],\n  summary: () => (__lmg.q('#LibraryMaintenanceGroupsSummary') || {}).textContent || '',\n  stateText: () => (__lmg.q('#LibraryMaintenanceGroupsState') || {}).textContent || '',\n  cards: () => __lmg.page() ? __lmg.qa('#LibraryMaintenanceGroupsList article') : [],\n  pressed: (id) => __lmg.qa('#' + id + ' button[aria-pressed=true]').map(b => b.getAttribute('data-value')),\n  hidden: (e) => !e || !!e.closest('.hide'),\n  groupsRequests: (part) => performance.getEntriesByType('resource').filter(e => e.name.indexOf('/Duplicates/Groups') >= 0 && (!part || e.name.indexOf(part) >= 0)).length\n};\nreturn true;"
+    },
+    {
+      "name": "after the reload: Title only still chosen, its groups asked for at once",
+      "waitFor": "__lmg.pressed('LibraryMaintenanceGroupsMode').join() === 'Title' && __lmg.cards().length === Math.min(50, __vars.server.titleTotal) && __lmg.groupsRequests('mode=Title') >= 1",
+      "timeout": 20000
+    },
+    {
+      "name": "the Conflict filter (by the element: Jellyfin Enhanced's late layout after a reload moved the button under a mouse click once, the third review)",
+      "click": "#LibraryMaintenanceConfigPage:not(.hide) #LibraryMaintenanceGroupsConfidence button[data-value=Conflict]",
+      "js": true
+    },
+    {
+      "name": "only the Conflict groups (or the filters' note)",
+      "waitFor": "__lmg.pressed('LibraryMaintenanceGroupsConfidence').join() === 'Conflict' && __lmg.groupsRequests('confidence=Conflict') >= 1 && (__vars.server.titleConflict ? __lmg.cards().length === Math.min(50, __vars.server.titleConflict) && __lmg.cards().every(c => c.querySelector('.jflm-page-chip').textContent === 'Conflict') && __lmg.summary().indexOf(' match the filters') > 0 : /No group matches the filters/.test(__lmg.stateText()))",
+      "timeout": 15000
+    },
+    {
+      "name": "the Conflict filter off again",
+      "click": "#LibraryMaintenanceConfigPage:not(.hide) #LibraryMaintenanceGroupsConfidence button[data-value=Conflict]",
+      "js": true
+    },
+    {
+      "name": "every Title group again",
+      "waitFor": "__lmg.pressed('LibraryMaintenanceGroupsConfidence').length === 0 && __lmg.cards().length === Math.min(50, __vars.server.titleTotal) && __lmg.summary().indexOf(' match the filters') < 0",
+      "timeout": 15000
+    },
+    {
+      "name": "the first card's first Open",
+      "script": "const a = __lmg.q('#LibraryMaintenanceGroupsList article li a.jflm-page-open'); window.__lmgOpen = a ? a.closest('li').getAttribute('data-item-id') : null; return window.__lmgOpen;",
+      "save": "openId"
+    },
+    {
+      "name": "Open",
+      "click": "#LibraryMaintenanceConfigPage:not(.hide) #LibraryMaintenanceGroupsList article li a.jflm-page-open"
+    },
+    {
+      "name": "the movie's details page",
+      "waitFor": "!!window.__lmgOpen && location.hash.indexOf('/details?id=' + window.__lmgOpen) >= 0 && !__lmg.page()",
+      "timeout": 15000
+    },
+    {
+      "name": "the page again",
+      "goto": "/web/index.html#/configurationpage?name=LibraryMaintenance"
+    },
+    {
+      "name": "the Title groups again",
+      "waitFor": "__lmg.pressed('LibraryMaintenanceGroupsMode').join() === 'Title' && __lmg.cards().length === Math.min(50, __vars.server.titleTotal)",
+      "timeout": 20000
+    },
+    {
+      "name": "Title + Year",
+      "click": "#LibraryMaintenanceConfigPage:not(.hide) #LibraryMaintenanceGroupsMode button[data-value=TitleAndYear]"
+    },
+    {
+      "name": "the Title + Year groups again",
+      "waitFor": "__lmg.pressed('LibraryMaintenanceGroupsMode').join() === 'TitleAndYear' && __lmg.cards().length === Math.min(50, __vars.server.total) && !__lmg.hidden(__lmg.q('#LibraryMaintenanceGroupsUnknownYear'))",
+      "timeout": 15000
+    },
+    {
+      "name": "a phone (375 px)",
+      "emulate": { "width": 375, "height": 812, "mobile": true, "touch": true }
+    },
+    {
+      "name": "the page on a phone",
+      "goto": "/web/index.html#/configurationpage?name=LibraryMaintenance"
+    },
+    {
+      "name": "the groups on a phone",
+      "waitFor": "__lmg.cards().length === Math.min(50, __vars.server.total) && __lmg.summary().indexOf(__vars.server.count + ' group') === 0",
+      "timeout": 20000
+    },
+    {
+      "name": "no sideways scrolling at 375 px",
+      "eval": "(() => { const w = document.documentElement.clientWidth; const right = (e) => Math.round(e.getBoundingClientRect().right); return { scrollWidth: document.documentElement.scrollWidth, clientWidth: w, cards: Math.max(...__lmg.qa('#LibraryMaintenanceGroupsList *').filter(e => e.getBoundingClientRect().width > 0).map(right)), toolbar: Math.max(...__lmg.qa('#LibraryMaintenanceGroups button, #LibraryMaintenanceGroups select, #LibraryMaintenanceGroups input, #LibraryMaintenanceGroups a').filter(e => !__lmg.hidden(e)).map(right)) }; })()",
+      "save": "phone",
+      "full": true
+    },
+    {
+      "name": "the page, everything in the cards and the controls fit 375 px",
+      "assert": "__vars.phone.scrollWidth <= __vars.phone.clientWidth + 1 && __vars.phone.cards <= __vars.phone.clientWidth + 1 && __vars.phone.toolbar <= __vars.phone.clientWidth + 1"
+    },
+    {
+      "screenshot": "librarymaintenance-groups-phone.png"
+    },
+    {
+      "name": "a narrow phone (320 px)",
+      "emulate": { "width": 320, "height": 640 }
+    },
+    {
+      "sleep": 500
+    },
+    {
+      "name": "no sideways scrolling at 320 px",
+      "eval": "(() => { const w = document.documentElement.clientWidth; const right = (e) => Math.round(e.getBoundingClientRect().right); return { scrollWidth: document.documentElement.scrollWidth, clientWidth: w, cards: Math.max(...__lmg.qa('#LibraryMaintenanceGroupsList *').filter(e => e.getBoundingClientRect().width > 0).map(right)), toolbar: Math.max(...__lmg.qa('#LibraryMaintenanceGroups button, #LibraryMaintenanceGroups select, #LibraryMaintenanceGroups input, #LibraryMaintenanceGroups a').filter(e => !__lmg.hidden(e)).map(right)) }; })()",
+      "save": "narrow",
+      "full": true
+    },
+    {
+      "name": "the page, everything in the cards and the controls fit 320 px",
+      "assert": "__vars.narrow.scrollWidth <= __vars.narrow.clientWidth + 1 && __vars.narrow.cards <= __vars.narrow.clientWidth + 1 && __vars.narrow.toolbar <= __vars.narrow.clientWidth + 1"
+    },
+    {
+      "screenshot": "librarymaintenance-groups-narrow.png"
+    },
+    {
+      "name": "the desktop again",
+      "emulate": "desktop"
+    },
+    {
+      "name": "TV layout for this browser",
+      "eval": "(localStorage.setItem('layout', 'tv'), true)"
+    },
+    {
+      "name": "reload (TV)",
+      "reload": true
+    },
+    {
+      "name": "TV layout applied",
+      "waitFor": "document.documentElement.classList.contains('layout-tv') && !!window.ApiClient && !!ApiClient.getCurrentUserId()"
+    },
+    {
+      "name": "the page (TV)",
+      "goto": "/web/index.html#/configurationpage?name=LibraryMaintenance"
+    },
+    {
+      "name": "the probe's helpers (TV)",
+      "script": "window.__lmg = {\n  page: () => document.querySelector('#LibraryMaintenanceConfigPage:not(.hide)'),\n  q: (s) => (__lmg.page() || document).querySelector(s),\n  qa: (s) => [...(__lmg.page() || document).querySelectorAll(s)],\n  summary: () => (__lmg.q('#LibraryMaintenanceGroupsSummary') || {}).textContent || '',\n  cards: () => __lmg.page() ? __lmg.qa('#LibraryMaintenanceGroupsList article') : [],\n  focusOn: (selector) => { const e = __lmg.q(selector); if (!e) { return false; } e.focus(); return document.activeElement === e; },\n  where: () => { const a = document.activeElement; const panel = a && a.closest ? a.closest('[role=tabpanel]') : null; const card = a && a.closest ? a.closest('article') : null; return { id: (a && a.id) || null, tag: a ? a.tagName : null, text: a ? (a.textContent || '').trim().slice(0, 30) : null, value: a && a.getAttribute ? a.getAttribute('data-value') : null, body: !a || a === document.body, inApp: !!(a && a.closest && a.closest('.jflm-page-app')), panel: panel ? panel.id.replace('LibraryMaintenancePanel', '') : null, groups: !!(a && a.closest && a.closest('#LibraryMaintenanceGroups')), open: !!(a && a.classList && a.classList.contains('jflm-page-open')), card: card ? card.getAttribute('data-group-id') : null, item: a && a.closest && a.closest('li') ? a.closest('li').getAttribute('data-item-id') : null }; },\n  path: []\n};\nreturn true;"
+    },
+    {
+      "name": "the groups on the TV",
+      "waitFor": "!!__lmg.q('#LibraryMaintenanceTabDuplicates') && __lmg.cards().length === Math.min(50, __vars.server.total)",
+      "timeout": 20000
+    },
+    {
+      "name": "TV: the Duplicates tab focused",
+      "assert": "__lmg.focusOn('#LibraryMaintenanceTabDuplicates')"
+    },
+    {
+      "name": "TV: Down from the tab",
+      "key": "ArrowDown"
+    },
+    {
+      "sleep": 300
+    },
+    {
+      "name": "where the focus is after Down from the tab",
+      "eval": "__lmg.where()",
+      "save": "tv1",
+      "full": true
+    },
+    {
+      "name": "on Rebuild",
+      "assert": "__vars.tv1.id === 'LibraryMaintenanceDuplicatesRebuild'"
+    },
+    {
+      "name": "TV: Down from Rebuild",
+      "key": "ArrowDown"
+    },
+    {
+      "sleep": 300
+    },
+    {
+      "name": "where the focus is after Down from Rebuild",
+      "eval": "(__lmg.path.push(__lmg.where()), __lmg.where())",
+      "save": "tv2",
+      "full": true
+    },
+    {
+      "name": "on the groups' controls (the match mode), in the Duplicates panel",
+      "assert": "__vars.tv2.inApp && __vars.tv2.panel === 'Duplicates' && __vars.tv2.groups && (__vars.tv2.value === 'TitleAndYear' || __vars.tv2.value === 'Title')"
+    },
+    { "name": "TV: Down (3)", "key": "ArrowDown" },
+    { "sleep": 300 },
+    { "name": "where (3)", "script": "__lmg.path.push(__lmg.where()); return __lmg.path.length;" },
+    { "name": "TV: Down (4)", "key": "ArrowDown" },
+    { "sleep": 300 },
+    { "name": "where (4)", "script": "__lmg.path.push(__lmg.where()); return __lmg.path.length;" },
+    { "name": "TV: Down (5)", "key": "ArrowDown" },
+    { "sleep": 300 },
+    { "name": "where (5)", "script": "__lmg.path.push(__lmg.where()); return __lmg.path.length;" },
+    { "name": "TV: Down (6)", "key": "ArrowDown" },
+    { "sleep": 300 },
+    { "name": "where (6)", "script": "__lmg.path.push(__lmg.where()); return __lmg.path.length;" },
+    { "name": "TV: Down (7)", "key": "ArrowDown" },
+    { "sleep": 300 },
+    { "name": "where (7)", "script": "__lmg.path.push(__lmg.where()); return __lmg.path.length;" },
+    { "name": "TV: Down (8)", "key": "ArrowDown" },
+    { "sleep": 300 },
+    { "name": "where (8)", "script": "__lmg.path.push(__lmg.where()); return __lmg.path.length;" },
+    {
+      "name": "the D-pad's path through the groups",
+      "eval": "__lmg.path.map(w => [w.tag, w.value || w.id || w.text, w.open ? 'open:' + w.card : (w.groups ? 'groups' : (w.panel || (w.inApp ? 'app' : 'outside')))].join(' '))",
+      "save": "tvPath",
+      "full": true
+    },
+    {
+      "name": "every step in the page (not the drawer, not the body), and a card's Open reached",
+      "assert": "(() => { const p = window.__lmg.path; return p.length === 7 && p.every(w => w.inApp && !w.body && w.panel === 'Duplicates') && p.some(w => w.open); })()"
+    },
+    {
+      "name": "TV: back up to the first Open reached",
+      "script": "const w = __lmg.path.find(x => x.open); const a = w ? __lmg.q('#LibraryMaintenanceGroupsList li[data-item-id=\"' + w.item + '\"] a.jflm-page-open') : null; if (a) { a.focus(); } window.__lmgOpen = w ? w.item : null; return !!a && document.activeElement === a;",
+      "save": "tvFocused"
+    },
+    {
+      "screenshot": "librarymaintenance-groups-tv.png"
+    },
+    {
+      "name": "TV: OK (Enter) on Open",
+      "key": "Enter"
+    },
+    {
+      "name": "the movie's details page (TV)",
+      "waitFor": "!!window.__lmgOpen && location.hash.indexOf('/details?id=' + window.__lmgOpen) >= 0",
+      "timeout": 15000
+    },
+    {
+      "name": "this browser back to the automatic layout, no kept choices",
+      "eval": "(localStorage.removeItem('layout'), localStorage.removeItem('jflm:duplicates.view'), true)"
+    },
+    {
+      "name": "no uncaught exception of ours",
+      "noExceptions": true,
+      "ignore": "/CustomRatings/script|^Error: player cannot be null"
+    }
+  ]
+}

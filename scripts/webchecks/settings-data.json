@@ -1,0 +1,293 @@
+{
+  "description": "Bookmarks' settings page, the Data and Diagnostics tabs in a sandbox, run by bookmarks-settings-probe.mjs. The Data tab lists the snapshots as the API does; Export downloads the server's envelope and says to keep it safe; the export imported back on the page (the file chosen, Merge, users by id): the dry run's report as text (nothing new), Import after the confirmation (nothing added, a snapshot first), the snapshot listed; Restore of that snapshot after its confirmation (the bookmarks as they were); Run the daily maintenance now queues it, and it runs; the users this server doesn't know shown exactly when Diagnostics lists any; the Diagnostics tab counts each user's bookmarks as the API does.",
+  "timeout": 30000,
+  "steps": [
+    {
+      "name": "sign in as admin",
+      "login": "admin"
+    },
+    {
+      "name": "the web client is ready",
+      "waitFor": "!!window.ApiClient && !!ApiClient.getCurrentUserId()"
+    },
+    {
+      "name": "Diagnostics before",
+      "eval": "await ApiClient.getJSON(ApiClient.getUrl('Bookmarks/Admin/Diagnostics'))",
+      "save": "diagnostics"
+    },
+    {
+      "name": "the snapshots, as the API lists them",
+      "eval": "await ApiClient.getJSON(ApiClient.getUrl('Bookmarks/Admin/Snapshots'))",
+      "save": "snapshots",
+      "full": true
+    },
+    {
+      "name": "open Bookmarks' settings page",
+      "goto": "/web/index.html#/configurationpage?name=Bookmarks"
+    },
+    {
+      "name": "the page is loaded",
+      "waitFor": "(() => { const p = document.querySelector('#BookmarksConfigPage:not(.hide)'); return !!p && p.querySelector('#BookmarksDiagnosticsSummary').textContent.length > 0; })()",
+      "timeout": 20000
+    },
+    {
+      "name": "open the Data tab",
+      "click": "#BookmarksConfigPage:not(.hide) #BookmarksTabData"
+    },
+    {
+      "name": "the snapshots are listed",
+      "waitFor": "(() => { const p = document.querySelector('#BookmarksConfigPage:not(.hide)'); return !p.querySelector('#BookmarksData').classList.contains('hide') && !!p.querySelector('#BookmarksSnapshots .bookmarksSnapshotsSummary'); })()",
+      "timeout": 20000
+    },
+    {
+      "name": "the list shown",
+      "eval": "(() => { const n = document.querySelector('#BookmarksConfigPage:not(.hide)').querySelector('#BookmarksSnapshots'); return { summary: n.querySelector('.bookmarksSnapshotsSummary').textContent, names: Array.from(n.querySelectorAll('button.bookmarksRestore')).map(b => b.getAttribute('data-name')) }; })()",
+      "save": "listed",
+      "full": true
+    },
+    {
+      "name": "the API's snapshots, newest first, a Restore button each",
+      "assert": "JSON.stringify(__vars.listed.names) === JSON.stringify(__vars.snapshots.Snapshots.map(s => s.Name))"
+    },
+    {
+      "name": "Export",
+      "click": "#BookmarksConfigPage:not(.hide) #BookmarksExport"
+    },
+    {
+      "name": "exported, with the file's name and the warning to keep it safe",
+      "waitFor": "/^Exported as bookmarks-export-\\d{8}-\\d{6}\\.json\\. It holds every user's bookmark names and notes: keep it safe\\.$/.test(document.querySelector('#BookmarksConfigPage:not(.hide)').querySelector('#BookmarksExportStatus').textContent)",
+      "timeout": 20000
+    },
+    {
+      "name": "the export, as the server gives it",
+      "eval": "await (await ApiClient.ajax({ type: 'GET', url: ApiClient.getUrl('Bookmarks/Admin/Export') })).text()",
+      "save": "exportText"
+    },
+    {
+      "name": "what is in it",
+      "eval": "(e => ({ format: e.Format, plugin: e.Plugin, version: e.PluginVersion, schema: e.SchemaVersion, records: e.Data.Bookmarks.length, users: e.Users.length, settings: !!e.Settings }))(JSON.parse(__vars.exportText))",
+      "save": "export",
+      "full": true
+    },
+    {
+      "name": "the kit's envelope of Bookmarks 1.2.2.0, schema 2, with the settings",
+      "assert": "__vars.export.format === 'jellyfin-plugin-export/1' && __vars.export.plugin === 'Bookmarks' && __vars.export.version === '1.2.2.0' && __vars.export.schema === 2 && __vars.export.settings === true"
+    },
+    {
+      "name": "choose the export as the file to import (Merge, users by id)",
+      "script": "const p = document.querySelector('#BookmarksConfigPage:not(.hide)'); const input = p.querySelector('#BookmarksImportFile'); const dt = new DataTransfer(); dt.items.add(new File([__vars.exportText], 'bookmarks-export.json', { type: 'application/json' })); input.files = dt.files; input.dispatchEvent(new Event('change', { bubbles: true })); p.querySelector('#BookmarksImportMode').value = 'Merge'; p.querySelector('#BookmarksImportUsers').value = 'Id'; return input.files.length;"
+    },
+    {
+      "name": "Dry run is offered, Import isn't yet",
+      "assert": "document.querySelector('#BookmarksConfigPage:not(.hide)').querySelector('#BookmarksImportDryRun').disabled === false && document.querySelector('#BookmarksConfigPage:not(.hide)').querySelector('#BookmarksImportApply').disabled === true"
+    },
+    {
+      "name": "Dry run",
+      "click": "#BookmarksConfigPage:not(.hide) #BookmarksImportDryRun"
+    },
+    {
+      "name": "the dry run's report",
+      "waitFor": "(s => !!s && s.textContent.indexOf('Dry run, nothing was changed.') === 0)(document.querySelector('#BookmarksConfigPage:not(.hide)').querySelector('#BookmarksImportReport .bookmarksImportSummary'))",
+      "timeout": 20000
+    },
+    {
+      "name": "what it says",
+      "eval": "(() => { const r = document.querySelector('#BookmarksConfigPage:not(.hide)').querySelector('#BookmarksImportReport'); return { summary: r.querySelector('.bookmarksImportSummary').textContent, users: Array.from(r.querySelectorAll('table.bookmarksImportUsers tr')).slice(1).map(tr => Array.from(tr.children).map(c => c.textContent)), html: r.querySelectorAll('b, i, a, img, script').length, applyDisabled: document.querySelector('#BookmarksConfigPage:not(.hide)').querySelector('#BookmarksImportApply').disabled }; })()",
+      "save": "dry",
+      "full": true
+    },
+    {
+      "name": "the export of this server's own bookmarks: nothing new, each one unchanged (or skipped: a user deleted here), users found; Import offered",
+      "assert": "(m => !!m && Number(m[1]) + Number(m[2]) === __vars.export.records)(/The import would add 0, update 0, leave (\\d+) unchanged, keep 0 newer here, remove 0, and skip (\\d+) /.exec(__vars.dry.summary)) && __vars.dry.summary.indexOf('The file is an export of Bookmarks 1.2.2.0 (schema 2) from ') > 0 && __vars.dry.users.some(u => u[1] === 'Found') && __vars.dry.html === 0 && __vars.dry.applyDisabled === false"
+    },
+    {
+      "name": "bring the import into view",
+      "script": "document.querySelector('#BookmarksConfigPage:not(.hide)').querySelector('#BookmarksExportImport').scrollIntoView({ block: 'start' }); return true;"
+    },
+    {
+      "sleep": 300
+    },
+    {
+      "screenshot": "settings-data-import.png"
+    },
+    {
+      "name": "Import",
+      "click": "#BookmarksConfigPage:not(.hide) #BookmarksImportApply"
+    },
+    {
+      "name": "the confirmation, open (its scale-up over: OK clicked while it runs is missed)",
+      "waitFor": "(d => !!d && !!d.querySelector('button[data-id=\"ok\"]') && d.getAnimations().every(a => a.playState !== 'running') && ['none', 'matrix(1, 0, 0, 1, 0, 0)'].indexOf(getComputedStyle(d).transform) >= 0)(document.querySelector('.dialogContainer .dialog'))",
+      "timeout": 10000
+    },
+    {
+      "name": "the confirmation's text",
+      "eval": "document.querySelector('.dialogContainer .dialog').textContent",
+      "save": "confirmText"
+    },
+    {
+      "name": "it says a snapshot comes first",
+      "assert": "__vars.confirmText.indexOf('A snapshot of the data as it is now is taken first.') >= 0"
+    },
+    {
+      "name": "the confirmation has settled: its OK in the same place over two frames, then a moment more (in 1 run of 22 in a Bookmarks 1.1.3 check, OK was clicked while the dialog was still opening, and the click was missed)",
+      "waitFor": "await (async () => { const box = () => { const b = document.querySelector('.dialogContainer button[data-id=\"ok\"]'); if (!b) { return null; } const r = b.getBoundingClientRect(); return r.width > 0 && r.height > 0 ? [r.x, r.y, r.width, r.height].join() : null; }; const first = box(); await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))); return !!first && first === box(); })()",
+      "timeout": 10000
+    },
+    {
+      "sleep": 300
+    },
+    {
+      "name": "OK",
+      "click": ".dialogContainer button[data-id=\"ok\"]"
+    },
+    {
+      "name": "the import's report",
+      "waitFor": "(s => !!s && s.textContent.indexOf('Imported. ') === 0)(document.querySelector('#BookmarksConfigPage:not(.hide)').querySelector('#BookmarksImportReport .bookmarksImportSummary'))",
+      "timeout": 30000
+    },
+    {
+      "name": "what the import did",
+      "eval": "(() => { const r = document.querySelector('#BookmarksConfigPage:not(.hide)').querySelector('#BookmarksImportReport'); return { summary: r.querySelector('.bookmarksImportSummary').textContent, snapshot: (/kept as (bookmarks-import-\\d{8}-\\d{6}\\.json)/.exec(r.textContent) || [])[1] || null }; })()",
+      "save": "applied",
+      "full": true
+    },
+    {
+      "name": "nothing added, a snapshot taken before",
+      "assert": "(m => !!m && Number(m[1]) + Number(m[2]) === __vars.export.records)(/Added 0, updated 0, left (\\d+) unchanged, kept 0 newer here, removed 0, and skipped (\\d+) /.exec(__vars.applied.summary)) && !!__vars.applied.snapshot"
+    },
+    {
+      "name": "the import's snapshot",
+      "eval": "__vars.applied.snapshot",
+      "save": "importSnapshot"
+    },
+    {
+      "name": "the snapshot is listed (the list read again)",
+      "waitFor": "!!document.querySelector('#BookmarksConfigPage:not(.hide)').querySelector('#BookmarksSnapshots button.bookmarksRestore[data-name=\"' + __vars.applied.snapshot + '\"]')",
+      "timeout": 20000
+    },
+    {
+      "name": "the bookmarks before the restore",
+      "eval": "(await ApiClient.getJSON(ApiClient.getUrl('Bookmarks/Admin/Diagnostics'))).BookmarkCounts.Total",
+      "save": "countsBefore",
+      "full": true
+    },
+    {
+      "name": "the import's confirmation is gone (jellyfin-web closes a dialog through the history, a moment after OK)",
+      "waitFor": "!document.querySelector('.dialogContainer')",
+      "timeout": 10000
+    },
+    {
+      "sleep": 1000
+    },
+    {
+      "name": "Restore the import's snapshot",
+      "click": "#BookmarksConfigPage:not(.hide) #BookmarksSnapshots button.bookmarksRestore[data-name=\"${importSnapshot}\"]"
+    },
+    {
+      "name": "the confirmation, open (its scale-up over: OK clicked while it runs is missed)",
+      "waitFor": "(d => !!d && !!d.querySelector('button[data-id=\"ok\"]') && d.getAnimations().every(a => a.playState !== 'running') && ['none', 'matrix(1, 0, 0, 1, 0, 0)'].indexOf(getComputedStyle(d).transform) >= 0)(document.querySelector('.dialogContainer .dialog'))",
+      "timeout": 10000
+    },
+    {
+      "name": "the confirmation has settled: its OK in the same place over two frames, then a moment more (in 1 run of 22 in a Bookmarks 1.1.3 check, OK was clicked while the dialog was still opening, and the click was missed)",
+      "waitFor": "await (async () => { const box = () => { const b = document.querySelector('.dialogContainer button[data-id=\"ok\"]'); if (!b) { return null; } const r = b.getBoundingClientRect(); return r.width > 0 && r.height > 0 ? [r.x, r.y, r.width, r.height].join() : null; }; const first = box(); await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))); return !!first && first === box(); })()",
+      "timeout": 10000
+    },
+    {
+      "sleep": 300
+    },
+    {
+      "name": "OK",
+      "click": ".dialogContainer button[data-id=\"ok\"]"
+    },
+    {
+      "name": "restored",
+      "waitFor": "(d => !!d && d.textContent.indexOf('Restored ' + __vars.applied.snapshot + ' (') === 0)(document.querySelector('#BookmarksConfigPage:not(.hide)').querySelector('#BookmarksRestoreReport .bookmarksRestoreDone'))",
+      "timeout": 30000
+    },
+    {
+      "name": "the restore's line",
+      "eval": "document.querySelector('#BookmarksConfigPage:not(.hide)').querySelector('#BookmarksRestoreReport').textContent",
+      "save": "restoreLine"
+    },
+    {
+      "name": "the bookmarks after the restore",
+      "eval": "(await ApiClient.getJSON(ApiClient.getUrl('Bookmarks/Admin/Diagnostics'))).BookmarkCounts.Total",
+      "save": "countsAfter",
+      "full": true
+    },
+    {
+      "name": "the same bookmarks (the snapshot was the data just before the import), and a snapshot of their own taken first",
+      "assert": "JSON.stringify(__vars.countsAfter) === JSON.stringify(__vars.countsBefore) && /The data from just before was kept as bookmarks-restore-\\d{8}-\\d{6}\\.json\\.$/.test(__vars.restoreLine)"
+    },
+    {
+      "sleep": 300
+    },
+    {
+      "screenshot": "settings-data-restored.png"
+    },
+    {
+      "name": "the maintenance's runs before",
+      "eval": "(await ApiClient.getJSON(ApiClient.getUrl('Bookmarks/Admin/Diagnostics'))).Maintenance.Runs",
+      "save": "runs"
+    },
+    {
+      "name": "Run the daily maintenance now",
+      "click": "#BookmarksConfigPage:not(.hide) #BookmarksRunMaintenance"
+    },
+    {
+      "name": "it says it runs",
+      "waitFor": "document.querySelector('#BookmarksConfigPage:not(.hide)').querySelector('#BookmarksMaintenanceStatus').textContent.indexOf('The daily maintenance runs now') === 0",
+      "timeout": 10000
+    },
+    {
+      "name": "and it ran",
+      "waitFor": "(await ApiClient.getJSON(ApiClient.getUrl('Bookmarks/Admin/Diagnostics'))).Maintenance.Runs > Number(__vars.runs)",
+      "timeout": 90000
+    },
+    {
+      "name": "the users this server doesn't know: shown exactly when Diagnostics lists any",
+      "assert": "(document.querySelector('#BookmarksConfigPage:not(.hide)').querySelector('#BookmarksUnknownUsers').classList.contains('hide')) === (((__vars.diagnostics.Users || {}).OrphanUsers || []).length === 0)"
+    },
+    {
+      "name": "open the Diagnostics tab",
+      "click": "#BookmarksConfigPage:not(.hide) #BookmarksTabDiagnostics"
+    },
+    {
+      "name": "the counts table",
+      "waitFor": "!!document.querySelector('#BookmarksConfigPage:not(.hide)').querySelector('#BookmarksCounts .bookmarksCountsSummary') && !document.querySelector('#BookmarksConfigPage:not(.hide)').querySelector('#BookmarksDiagnostics').classList.contains('hide')",
+      "timeout": 10000
+    },
+    {
+      "name": "the counts, as the server has them now",
+      "eval": "(await ApiClient.getJSON(ApiClient.getUrl('Bookmarks/Admin/Diagnostics'))).BookmarkCounts",
+      "save": "counts",
+      "full": true
+    },
+    {
+      "name": "the rows shown",
+      "eval": "Array.from(document.querySelector('#BookmarksConfigPage:not(.hide)').querySelectorAll('#BookmarksCounts table.bookmarksCountsTable tr')).slice(1).map(tr => Array.from(tr.children).map(c => c.textContent))",
+      "save": "rows",
+      "full": true
+    },
+    {
+      "name": "a row per user with the server's numbers, names only (no bookmark's text)",
+      "assert": "JSON.stringify(__vars.rows.map(r => [r[0], r[1], r[2], r[3], r[4], r[7]])) === JSON.stringify(__vars.counts.Users.map(u => [(u.UserName || u.UserId) + (u.Known === false ? ' (not on this server)' : ''), String(u.Bookmarks), String(u.Named), String(u.Ranges), String(u.Detached), String(u.Clips)]))"
+    },
+    {
+      "name": "bring the counts into view",
+      "script": "document.querySelector('#BookmarksConfigPage:not(.hide)').querySelector('#BookmarksCounts').scrollIntoView({ block: 'center' }); return true;"
+    },
+    {
+      "sleep": 300
+    },
+    {
+      "screenshot": "settings-diagnostics-counts.png"
+    },
+    {
+      "name": "no uncaught exceptions (the stale CustomRatings tag, and jellyfin-web's Home tab pausing its slider while JE's Custom Tabs sync runs, excepted)",
+      "noExceptions": true,
+      "ignore": "/CustomRatings/script|^TypeError: t\\.value\\.pause is not a function"
+    }
+  ]
+}

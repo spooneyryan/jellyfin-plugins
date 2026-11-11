@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- xunit v3, Moq, Jellyfin.Controller with runtime assets and RollForward=Major come from TestSupport.props. -->
+  <Import Project="$(KitRoot)build\TestSupport.props" />
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Jellyfin.Plugin.SmartSearch\Jellyfin.Plugin.SmartSearch.csproj" />
+  </ItemGroup>
+
+  <!-- The planner's database reads run on EF Core's SQLite provider (Planning/DatabasePushdownFactsTests.cs). -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" />
+  </ItemGroup>
+
+  <!-- The planner's live check, recorded against a 10.11.5 sandbox, replayed by Planning/LiveCheckTests.cs. -->
+  <ItemGroup>
+    <None Include="Planning\Live\*.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

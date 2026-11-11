@@ -1,0 +1,14 @@
+bin/
+obj/
+.vs/
+.idea/
+artifacts/
+*.user
+TestResults/
+node_modules/
+
+# Local sandbox Jellyfin instances, their media and credentials (never commit these)
+.sandbox/
+
+# An optional local folder of extra content-guard rules, probes and test data (the tests that use it skip without it)
+/private/*

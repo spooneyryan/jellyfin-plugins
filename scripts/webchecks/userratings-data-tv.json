@@ -1,0 +1,341 @@
+{
+  "name": "User Ratings 1.0.2.0, the Data tab in the TV layout: in the default sandbox as admin in jellyfin-web 10.11.5's TV layout: the Data tab and the detached list have no select; OK on a choice picks it (Replace, then Merge again); Down and Up walk the tab (Export, the file field, Merge and back, then the Data tab above it), and Down from the last Restore… stays in the tab, never the dashboard's drawer; OK on Restore… opens its question with the focus on Cancel; Down past the last control and Up past the first keep the focus inside it (no wrap, no way out); Back (keyCode 461) closes it with the focus back on that Restore… and the page where it was; OK on Cancel closes it the same way; OK on a reason of the detached list reads the list for it, and on \"Every reason\" again; nothing is written and the snapshots are as before the run.",
+  "failOnException": false,
+  "timeout": 30000,
+  "steps": [
+    {
+      "name": "the details probe in every document (its request log and server())",
+      "initScript": {
+        "file": "probes/userratings-details-probe.js"
+      }
+    },
+    {
+      "name": "sign in as admin",
+      "login": "admin"
+    },
+    {
+      "name": "tv layout",
+      "eval": "(localStorage.setItem('layout', 'tv'), true)"
+    },
+    {
+      "name": "reload",
+      "reload": true
+    },
+    {
+      "name": "admin: User Ratings 1.0.2.0 started",
+      "waitFor": "!!window.ApiClient && !!ApiClient.getCurrentUserId() && !!(window.__jfkit && window.__jfkit.jfur)",
+      "timeout": 40000
+    },
+    {
+      "name": "the served script is 1.0.2.0",
+      "assert": "window.__jfkit.jfur.version === '1.0.2.0'",
+      "message": "User Ratings 1.0.2.0 is not the script the page loaded"
+    },
+    {
+      "name": "the TV layout applied",
+      "assert": "document.documentElement.classList.contains('layout-tv')"
+    },
+    {
+      "name": "before the run: the snapshots as the server holds them",
+      "script": "const r = await __jfurDetails.server('GET', 'UserRatings/Admin/Snapshots'); if (r.status !== 200) { throw new Error('snapshots ' + r.status); } return r.json.Snapshots.map(s => s.Name).sort();",
+      "save": "snapsBefore",
+      "full": true
+    },
+    {
+      "name": "mark",
+      "script": "window.__mark = __jfurDetails.requests.length; return true;"
+    },
+    {
+      "name": "open User Ratings' settings page",
+      "goto": "/web/index.html#/configurationpage?name=UserRatings"
+    },
+    {
+      "name": "the page and its tabs",
+      "waitFor": "!!document.querySelector('#UserRatingsConfigPage:not(.hide) #UserRatingsTabs')",
+      "timeout": 30000
+    },
+    {
+      "name": "the Data tab",
+      "click": "#UserRatingsTabData"
+    },
+    {
+      "name": "the Data tab mounted: the snapshots, the users and the jobs read, and the detached list",
+      "waitFor": "(() => { const r = __jfurDetails.requests.slice(window.__mark); const got = (p) => r.some(x => x.method === 'GET' && x.path === p && x.status === 200); return !document.querySelector('#UserRatingsData').classList.contains('hide') && !!document.querySelector('#UserRatingsDataRoot .jfur-data-export') && !!document.querySelector('#UserRatingsDetachedListRoot .jfur-det') && got('/UserRatings/Admin/Snapshots') && got('/UserRatings/Admin/Diagnostics') && got('/UserRatings/Admin/Jobs') && got('/UserRatings/Admin/Detached'); })()",
+      "timeout": 30000
+    },
+    {
+      "name": "the time the lists take to draw",
+      "sleep": 500
+    },
+    {
+      "name": "its requests so far",
+      "eval": "__jfurDetails.requests.slice(window.__mark).map(r => r.method + ' ' + r.path + ' ' + r.status)",
+      "save": "firstRequests",
+      "full": true
+    },
+    {
+      "name": "GETs only (and the page's own Detached/Seen): opening the tab writes nothing",
+      "assert": "__vars.firstRequests.every(r => r.indexOf('GET ') === 0 || r.indexOf('POST /UserRatings/Admin/Detached/Seen ') === 0)"
+    },
+    {
+      "name": "no select in the Data tab or the detached list (the TV layout's D-pad and OK work on every control)",
+      "assert": "document.querySelectorAll('#UserRatingsDataRoot select, #UserRatingsDetachedListRoot select').length === 0"
+    },
+    {
+      "name": "the sandbox has a snapshot to offer Restore… on",
+      "assert": "document.querySelectorAll('#UserRatingsDataRoot .jfur-data-restore').length > 0",
+      "message": "no snapshot in the sandbox yet: run userratings-data-desktop.json (or any import) first"
+    },
+    {
+      "name": "tv: the Replace choice focused",
+      "script": "const b = document.querySelector('#UserRatingsDataRoot [role=radio][data-jfur-value=\"Replace\"]'); b.focus(); return document.activeElement === b;"
+    },
+    {
+      "name": "tv: OK",
+      "key": "Enter"
+    },
+    {
+      "name": "tv: OK chose Replace",
+      "waitFor": "document.querySelector('#UserRatingsDataRoot [role=radio][data-jfur-value=\"Replace\"]').getAttribute('aria-checked') === 'true' && document.querySelector('#UserRatingsDataRoot [role=radio][data-jfur-value=\"Merge\"]').getAttribute('aria-checked') === 'false'",
+      "timeout": 5000
+    },
+    {
+      "name": "tv: the Merge choice focused",
+      "script": "const b = document.querySelector('#UserRatingsDataRoot [role=radio][data-jfur-value=\"Merge\"]'); b.focus(); return document.activeElement === b;"
+    },
+    {
+      "name": "tv: OK again",
+      "key": "Enter"
+    },
+    {
+      "name": "tv: Merge again",
+      "waitFor": "document.querySelector('#UserRatingsDataRoot [role=radio][data-jfur-value=\"Merge\"]').getAttribute('aria-checked') === 'true'",
+      "timeout": 5000
+    },
+    {
+      "name": "tv: Export focused",
+      "script": "const b = document.querySelector('#UserRatingsDataRoot .jfur-data-export'); b.focus(); return document.activeElement === b;"
+    },
+    {
+      "name": "tv: Down",
+      "key": "ArrowDown"
+    },
+    {
+      "name": "tv: what has the focus after Down",
+      "eval": "(() => { const a = document.activeElement; return a ? { tag: a.tagName, cls: String(a.className), value: a.getAttribute('data-jfur-value'), id: a.id || null, inPanel: document.querySelector('#UserRatingsData').contains(a) } : null; })()",
+      "save": "afterDown",
+      "full": true
+    },
+    {
+      "name": "tv: on the file field (the next control below, past the import's heading and intro), not the drawer",
+      "assert": "document.activeElement === document.querySelector('#UserRatingsDataRoot .jfur-data-file')"
+    },
+    {
+      "name": "tv: Down again",
+      "key": "ArrowDown"
+    },
+    {
+      "name": "tv: on Merge",
+      "assert": "document.activeElement === document.querySelector('#UserRatingsDataRoot [role=radio][data-jfur-value=\"Merge\"]')"
+    },
+    {
+      "name": "tv: Up",
+      "key": "ArrowUp"
+    },
+    {
+      "name": "tv: on the file field again",
+      "assert": "document.activeElement === document.querySelector('#UserRatingsDataRoot .jfur-data-file')"
+    },
+    {
+      "name": "tv: Up again",
+      "key": "ArrowUp"
+    },
+    {
+      "name": "tv: on Export again",
+      "assert": "document.activeElement === document.querySelector('#UserRatingsDataRoot .jfur-data-export')"
+    },
+    {
+      "name": "tv: Up once more",
+      "key": "ArrowUp"
+    },
+    {
+      "name": "tv: on the Data tab, above the tab",
+      "assert": "document.activeElement === document.querySelector('#UserRatingsTabData')"
+    },
+    {
+      "name": "tv: the last Restore… focused",
+      "script": "const all = document.querySelectorAll('#UserRatingsDataRoot .jfur-data-restore'); const b = all[all.length - 1]; b.focus(); return document.activeElement === b;"
+    },
+    {
+      "name": "tv: Down ×3",
+      "key": "ArrowDown"
+    },
+    {
+      "key": "ArrowDown"
+    },
+    {
+      "key": "ArrowDown"
+    },
+    {
+      "name": "tv: what has the focus after them",
+      "eval": "(() => { const a = document.activeElement; return a ? { tag: a.tagName, cls: String(a.className), value: a.getAttribute('data-jfur-value'), id: a.id || null, inPanel: document.querySelector('#UserRatingsData').contains(a) } : null; })()",
+      "save": "afterDowns",
+      "full": true
+    },
+    {
+      "name": "tv: still in the Data tab (the users' controls or the detached list), never the drawer",
+      "assert": "document.querySelector('#UserRatingsData').contains(document.activeElement)"
+    },
+    {
+      "name": "tv: the first Restore… focused",
+      "script": "const b = document.querySelector('#UserRatingsDataRoot .jfur-data-restore'); b.focus(); return document.activeElement === b ? b.getAttribute('data-jfur-name') : null;",
+      "save": "snap"
+    },
+    {
+      "name": "tv: the hash before",
+      "eval": "location.hash",
+      "save": "hash"
+    },
+    {
+      "name": "tv: mark",
+      "script": "window.__mark = __jfurDetails.requests.length; return true;"
+    },
+    {
+      "name": "tv: OK on Restore…",
+      "key": "Enter"
+    },
+    {
+      "name": "tv: the question, the focus on Cancel",
+      "waitFor": "!!document.querySelector('.jfur-panel[role=\"dialog\"][aria-modal=\"true\"]') && document.activeElement === document.querySelector('.jfur-panel[role=\"dialog\"][aria-modal=\"true\"]').querySelector('.jfur-data-cancel')",
+      "timeout": 15000
+    },
+    {
+      "name": "tv: Down ×3 (past the last control)",
+      "key": "ArrowDown"
+    },
+    {
+      "key": "ArrowDown"
+    },
+    {
+      "key": "ArrowDown"
+    },
+    {
+      "name": "tv: the focus still in the question, on Restore (no wrap)",
+      "assert": "!!document.querySelector('.jfur-panel[role=\"dialog\"][aria-modal=\"true\"]') && document.querySelector('.jfur-panel[role=\"dialog\"][aria-modal=\"true\"]').contains(document.activeElement) && document.activeElement === document.querySelector('.jfur-panel[role=\"dialog\"][aria-modal=\"true\"]').querySelector('.jfur-data-confirm')"
+    },
+    {
+      "name": "tv: screenshot of the question",
+      "screenshot": "userratings-data-tv-question.png"
+    },
+    {
+      "name": "tv: Up ×4 (past the first control)",
+      "key": "ArrowUp"
+    },
+    {
+      "key": "ArrowUp"
+    },
+    {
+      "key": "ArrowUp"
+    },
+    {
+      "key": "ArrowUp"
+    },
+    {
+      "name": "tv: the focus still in the question (no way out by the D-pad)",
+      "assert": "!!document.querySelector('.jfur-panel[role=\"dialog\"][aria-modal=\"true\"]') && document.querySelector('.jfur-panel[role=\"dialog\"][aria-modal=\"true\"]').contains(document.activeElement)"
+    },
+    {
+      "name": "tv: Back (461, webOS)",
+      "cdp": "Input.dispatchKeyEvent",
+      "params": {
+        "type": "rawKeyDown",
+        "windowsVirtualKeyCode": 461,
+        "nativeVirtualKeyCode": 461,
+        "key": "Unidentified",
+        "code": ""
+      }
+    },
+    {
+      "cdp": "Input.dispatchKeyEvent",
+      "params": {
+        "type": "keyUp",
+        "windowsVirtualKeyCode": 461,
+        "nativeVirtualKeyCode": 461,
+        "key": "Unidentified",
+        "code": ""
+      }
+    },
+    {
+      "name": "tv: the question closed, the focus back on that Restore…, still on the settings page",
+      "waitFor": "!document.querySelector('.jfur-panel[role=\"dialog\"][aria-modal=\"true\"]') && !!document.activeElement && document.activeElement.getAttribute('data-jfur-name') === __vars.snap && location.hash === __vars.hash",
+      "timeout": 5000
+    },
+    {
+      "name": "tv: OK on Restore… again",
+      "key": "Enter"
+    },
+    {
+      "name": "tv: the question again, the focus on Cancel",
+      "waitFor": "!!document.querySelector('.jfur-panel[role=\"dialog\"][aria-modal=\"true\"]') && document.activeElement === document.querySelector('.jfur-panel[role=\"dialog\"][aria-modal=\"true\"]').querySelector('.jfur-data-cancel')",
+      "timeout": 15000
+    },
+    {
+      "name": "tv: OK on Cancel",
+      "key": "Enter"
+    },
+    {
+      "name": "tv: closed, the focus back on Restore…, never the page's body",
+      "waitFor": "!document.querySelector('.jfur-panel[role=\"dialog\"][aria-modal=\"true\"]') && !!document.activeElement && document.activeElement !== document.body && document.activeElement.isConnected && document.activeElement.getAttribute('data-jfur-name') === __vars.snap",
+      "timeout": 5000
+    },
+    {
+      "name": "tv: the detached list's \"removed from the library\" focused",
+      "script": "const b = document.querySelector('#UserRatingsDetachedListRoot [role=radio][data-jfur-value=\"Removed\"]'); b.focus(); return document.activeElement === b;"
+    },
+    {
+      "name": "tv: OK on it",
+      "key": "Enter"
+    },
+    {
+      "name": "tv: chosen, the list read for that reason",
+      "waitFor": "document.querySelector('#UserRatingsDetachedListRoot [role=radio][data-jfur-value=\"Removed\"]').getAttribute('aria-checked') === 'true' && __jfurDetails.requests.slice(window.__mark).some(r => r.method === 'GET' && r.path === '/UserRatings/Admin/Detached' && /[?&]reason=Removed(&|$)/.test(r.query) && r.status === 200)",
+      "timeout": 10000
+    },
+    {
+      "name": "tv: \"Every reason\" focused",
+      "script": "const b = document.querySelector('#UserRatingsDetachedListRoot [role=radio][data-jfur-value=\"\"]'); b.focus(); return document.activeElement === b;"
+    },
+    {
+      "name": "tv: OK on it too",
+      "key": "Enter"
+    },
+    {
+      "name": "tv: every reason again",
+      "waitFor": "document.querySelector('#UserRatingsDetachedListRoot [role=radio][data-jfur-value=\"\"]').getAttribute('aria-checked') === 'true'",
+      "timeout": 10000
+    },
+    {
+      "name": "tv: the tab's requests since the mark",
+      "eval": "__jfurDetails.requests.slice(window.__mark).map(r => ({ method: r.method, path: r.path, query: r.query, status: r.status }))",
+      "save": "tvRequests",
+      "full": true
+    },
+    {
+      "name": "tv: nothing written: no POST, PUT or DELETE",
+      "assert": "__vars.tvRequests.every(r => r.method === 'GET')"
+    },
+    {
+      "name": "tv: screenshot",
+      "screenshot": "userratings-data-tv.png"
+    },
+    {
+      "name": "no uncaught exception",
+      "noExceptions": true,
+      "ignore": "/CustomRatings/script|^Error: player cannot be null"
+    },
+    {
+      "name": "clean: the snapshots as before the run: nothing restored or imported",
+      "script": "const r = await __jfurDetails.server('GET', 'UserRatings/Admin/Snapshots'); const now = r.json.Snapshots.map(s => s.Name).sort(); if (JSON.stringify(now) !== JSON.stringify(__vars.snapsBefore)) { throw new Error('the snapshots changed: ' + JSON.stringify(now)); } return now.length;"
+    }
+  ]
+}

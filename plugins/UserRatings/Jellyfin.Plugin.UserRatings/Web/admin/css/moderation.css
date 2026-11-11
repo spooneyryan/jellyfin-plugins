@@ -1,0 +1,54 @@
+/* The settings page's Moderation tab, appended to the kit's styles in the AdminScript's own
+   <style id="jfur-admin-styles">. Layout only: text colour inherits, dividers are the theme's. A table on a wide screen;
+   under 600 px each row is a card whose cells carry their column's name, and every control is at least 44 px high, so a
+   phone at 375 px has no sideways scroll and every target takes a finger. Every class here is User Ratings' own (jfur-). */
+.jfur-isolate{unicode-bidi:isolate}
+.jfur-mod{margin:0 0 1.5em}
+.jfur-mod-intro{margin:.2em 0 1em;opacity:.85;line-height:1.4}
+.jfur-mod-filters{display:flex;flex-wrap:wrap;align-items:flex-end;gap:.6em 1em;margin:0 0 .8em}
+.jfur-mod-field{display:flex;flex-direction:column;gap:.3em;min-width:10em}
+.jfur-mod-search{flex:1 1 16em}
+.jfur-mod-chips{display:flex;flex-wrap:wrap;gap:.5em;margin:0 0 .8em}
+.jfur-mod-chip{gap:.4em}
+.jfur-mod-chip-icon{font-size:1.1em}
+.jfur-mod-status{min-height:1.4em;margin:.3em 0}
+.jfur-mod-scroll{overflow-x:auto}
+.jfur-mod-table{width:100%;border-collapse:collapse;text-align:start}
+.jfur-mod-table th{font-weight:600;text-align:start;padding:.5em .6em;border-bottom:1px solid var(--jf-palette-divider,rgba(128,128,128,.35))}
+.jfur-mod-table td{padding:.6em;vertical-align:top;border-bottom:1px solid var(--jf-palette-divider,rgba(128,128,128,.2))}
+.jfur-mod-name,.jfur-mod-title{font-weight:600;overflow-wrap:anywhere}
+.jfur-mod-flags,.jfur-mod-detached,.jfur-mod-none,.jfur-mod-spoiler{opacity:.8}
+.jfur-mod-text{margin-top:.25em;white-space:pre-line;overflow-wrap:anywhere;max-height:12em;overflow:auto}
+.jfur-mod-only{display:block;margin-top:.25em}
+.jfur-mod-actions{white-space:nowrap}
+.jfur-mod-pager{display:flex;flex-wrap:wrap;align-items:center;gap:.6em 1em;margin:.8em 0}
+.jfur-mod-count{font-variant-numeric:tabular-nums}
+.jfur-mod-log-title{margin:1.6em 0 .2em}
+.jfur-mod-details{font-variant-numeric:tabular-nums}
+/* The dialog of Remove…: whole-row choices, 44 px high. */
+.jfur-mod-by{margin:0 0 .6em}
+.jfur-mod-what{margin:0 0 .8em;padding:0;border:0}
+.jfur-mod-what legend{margin-bottom:.3em;font-weight:600}
+.jfur-mod-choice{display:flex;align-items:flex-start;gap:.6em;min-height:44px;padding:.35em 0;cursor:pointer}
+.jfur-mod-choice-disabled{opacity:.6;cursor:default}
+.jfur-mod-radio{flex:0 0 auto;width:1.2em;height:1.2em;margin:.15em 0 0}
+.jfur-mod-choice-text{display:flex;flex-direction:column;gap:.15em}
+.jfur-mod-choice-hint{font-size:.9em;opacity:.8}
+.jfur-mod-preview{min-height:1.4em;margin:.6em 0;line-height:1.4}
+.jfur-mod-now{margin:.6em 0;padding:.5em .75em;border-inline-start:3px solid currentColor;opacity:.95}
+.jfur-mod-now-stars{margin:0 0 .3em;font-weight:600}
+.jfur-mod-now-text{margin:0;white-space:pre-wrap;overflow-wrap:anywhere;max-height:12em;overflow:auto}
+@media (max-width:599px){
+.jfur-mod-field{min-width:0;flex:1 1 100%}
+.jfur-mod-table thead{display:none}
+.jfur-mod-table,.jfur-mod-table tbody,.jfur-mod-table tr,.jfur-mod-table td{display:block;width:auto}
+.jfur-mod-table tr{padding:.5em 0;border-bottom:1px solid var(--jf-palette-divider,rgba(128,128,128,.35))}
+.jfur-mod-table td{padding:.25em 0;border:0}
+.jfur-mod-table td::before{content:attr(data-label);display:block;font-size:.85em;opacity:.7}
+.jfur-mod button,.jfur-mod select,.jfur-mod input{min-height:44px}
+.jfur-mod-only,.jfur-mod-cancel,.jfur-mod-confirm,.jfur-mod-reason{min-height:44px}
+}
+@media (pointer:coarse){.jfur-mod button,.jfur-mod select,.jfur-mod input,.jfur-mod-cancel,.jfur-mod-confirm,.jfur-mod-reason{min-height:44px}}
+/* The dialog's Close (the kit's icon button, 40 px for a coarse pointer): 44 px on a phone or a touch screen. */
+@media (max-width:599px),(pointer:coarse){.jfur-panel .jfur-icon-button{min-width:44px;min-height:44px}}
+@media (forced-colors:active){.jfur-mod-table th,.jfur-mod-table td,.jfur-mod-table tr{border-color:CanvasText}}

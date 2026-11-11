@@ -1,0 +1,111 @@
+{
+  "name": "Smart Search's header button in the TV layout (localStorage 'layout' = 'tv'), as viewer at 1366x900: one button right before jellyfin-web's search button; the D-pad (arrow keys) moves from the search button to it and back, and Enter on it opens the page; still one after Back. Screenshot smartsearch-header-tv.png.",
+  "failOnException": false,
+  "timeout": 30000,
+  "steps": [
+    {
+      "name": "a desktop screen",
+      "emulate": "desktop"
+    },
+    {
+      "name": "header helpers",
+      "initScript": "\nwindow.__warns = [];\n(function () { const w = console.warn; console.warn = function () { try { window.__warns.push([].slice.call(arguments).map(String).join(' ')); } catch (e) {} return w.apply(this, arguments); }; })();\nwindow.__hb = {\n  ours: () => [...document.querySelectorAll('button[data-jfss-header]')],\n  shown: () => window.__hb.ours().filter(b => b.getClientRects().length > 0),\n  native: () => document.querySelector('.skinHeader .headerRight .headerSearchButton'),\n  visible: (e) => !!e && e.getClientRects().length > 0,\n  box: (e) => { const r = e.getBoundingClientRect(); return [Math.round(r.left), Math.round(r.top), Math.round(r.width), Math.round(r.height)]; },\n  state: () => { const o = window.__hb.ours(); const n = window.__hb.native(); const b = o[0]; return { count: o.length, shown: window.__hb.shown().length, nativeShown: window.__hb.visible(n), before: !!b && b.nextElementSibling === n, label: b ? b.getAttribute('aria-label') : null, icon: b ? (b.querySelector('.material-icons') || {}).className : null, hidden: b ? b.classList.contains('hide') : null, same: !!b && !!n && b.classList.contains('hide') === n.classList.contains('hide') }; },\n  anchorWarnings: () => window.__warns.filter(w => w.indexOf('web anchor') >= 0),\n  pageShown: () => { const r = [...document.querySelectorAll('#fallbackPage > [data-jfss-page=\"search\"][data-jfss-mounted]')].find(x => x.getClientRects().length > 0); return !!r && !!r.querySelector('.jfss-search .jfss-scope') && location.hash.indexOf('#/jfss-search') === 0; },\n  noHScroll: () => document.documentElement.scrollWidth <= innerWidth\n};\n"
+    },
+    {
+      "name": "sign in as viewer",
+      "login": "viewer"
+    },
+    {
+      "name": "the Smart Search script ran",
+      "waitFor": "!!window.__jfkit && !!window.__jfkit.jfss && !!window.ApiClient && !!ApiClient.getCurrentUserId()",
+      "timeout": 20000
+    },
+    {
+      "name": "TV layout for this browser",
+      "eval": "(localStorage.setItem('layout', 'tv'), true)"
+    },
+    {
+      "name": "reload (TV)",
+      "reload": true
+    },
+    {
+      "name": "TV layout applied",
+      "waitFor": "document.documentElement.classList.contains('layout-tv') && !!window.__jfkit && !!window.__jfkit.jfss && __jfkit.jfss.instance.layout.isTv()",
+      "timeout": 20000
+    },
+    {
+      "name": "one header button, shown right before jellyfin-web's search button (TV home)",
+      "waitFor": "(() => { const s = __hb.state(); return s.count === 1 && s.shown === 1 && s.nativeShown && s.before ? s : false; })()",
+      "timeout": 15000,
+      "save": "state",
+      "full": true
+    },
+    {
+      "name": "labelled 'Advanced search', the manage_search icon",
+      "assert": "__vars.state.label === 'Advanced search' && __vars.state.icon === 'material-icons manage_search'"
+    },
+    {
+      "screenshot": "smartsearch-header-tv.png"
+    },
+    {
+      "name": "focus the search button",
+      "script": "__hb.native().focus(); return document.activeElement === __hb.native();"
+    },
+    {
+      "key": "ArrowLeft"
+    },
+    {
+      "name": "ArrowLeft reaches the header button",
+      "waitFor": "document.activeElement === __hb.ours()[0]",
+      "timeout": 5000
+    },
+    {
+      "key": "ArrowRight"
+    },
+    {
+      "name": "ArrowRight goes back to the search button",
+      "waitFor": "document.activeElement === __hb.native()",
+      "timeout": 5000
+    },
+    {
+      "key": "ArrowLeft"
+    },
+    {
+      "name": "on the header button again",
+      "waitFor": "document.activeElement === __hb.ours()[0]",
+      "timeout": 5000
+    },
+    {
+      "key": "Enter"
+    },
+    {
+      "name": "the Advanced Search page opens (Enter on the TV layout)",
+      "waitFor": "__hb.pageShown()",
+      "timeout": 20000
+    },
+    {
+      "name": "Back",
+      "script": "history.back(); return true;"
+    },
+    {
+      "name": "one header button, shown right before jellyfin-web's search button (TV after Back)",
+      "waitFor": "(() => { const s = __hb.state(); return s.count === 1 && s.shown === 1 && s.nativeShown && s.before ? s : false; })()",
+      "timeout": 15000,
+      "save": "state",
+      "full": true
+    },
+    {
+      "name": "no anchor warning",
+      "assert": "__hb.anchorWarnings().length === 0"
+    },
+    {
+      "name": "the default layout again",
+      "eval": "(localStorage.removeItem('layout'), true)"
+    },
+    {
+      "name": "no uncaught exception (the stale CustomRatings tag of the sandbox's index.html is known noise)",
+      "noExceptions": true,
+      "ignore": "CustomRatings"
+    }
+  ]
+}

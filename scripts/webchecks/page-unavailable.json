@@ -1,0 +1,72 @@
+{
+  "name": "The Unavailable row badge on the My Bookmarks page: viewer's bookmark on a video of the 'Movies 2' library (seeded by bookmarks-page-probe.mjs as 'page-probe unavailable'); the admin takes 'Movies 2' out of viewer's libraries (the whole policy posted back with EnableAllFolders false), and viewer's page then shows the group as Unavailable with the placeholder instead of the poster (no Items/{id}/Images request), its name unlinked, the row's play disabled and no scissors, and the same row in the flat view; the admin gives the library back and the poster is requested again. The users change hands by signing out in the drawer and in again without a reload (as users-viewer.json does); viewer's policy is restored here and, whatever happens, by the probe's finally.",
+  "failOnException": false,
+  "timeout": 30000,
+  "steps": [
+    { "name": "sign in as admin", "login": "admin" },
+    { "name": "the Bookmarks script ran", "waitFor": "!!window.__jfkit && !!window.__jfkit.jfbm && !!window.ApiClient && !!ApiClient.getCurrentUserId()" },
+    { "name": "viewer, the libraries, and viewer's seeded bookmark", "script": "const users = await ApiClient.getUsers(); const viewer = users.find(u => u.Name === 'viewer'); const folders = await ApiClient.getVirtualFolders(); const movies2 = folders.find(f => f.Name === 'Movies 2'); if (!viewer || !movies2) throw new Error('no viewer or no Movies 2 library'); return { viewerId: viewer.Id, enableAll: viewer.Policy.EnableAllFolders, enabled: viewer.Policy.EnabledFolders, movies2: movies2.ItemId, others: folders.filter(f => f.Name !== 'Movies 2').map(f => f.ItemId) };", "save": "setup", "full": true },
+    { "name": "viewer can see every library to begin with", "assert": "__vars.setup.enableAll === true" },
+    { "name": "take Movies 2 out of viewer's libraries (the whole policy, EnableAllFolders false)", "script": "const user = await ApiClient.getUser(__vars.setup.viewerId); const policy = Object.assign({}, user.Policy, { EnableAllFolders: false, EnabledFolders: __vars.setup.others }); await ApiClient.updateUserPolicy(__vars.setup.viewerId, policy); const after = await ApiClient.getUser(__vars.setup.viewerId); return { enableAll: after.Policy.EnableAllFolders, enabled: after.Policy.EnabledFolders.length };", "save": "restricted", "full": true },
+    { "name": "restricted", "assert": "__vars.restricted.enableAll === false && __vars.restricted.enabled === __vars.setup.others.length" },
+
+    { "name": "open the drawer to sign out", "click": ".skinHeader .mainDrawerButton" },
+    { "name": "Sign out visible in the drawer", "waitFor": "(() => { const a = document.querySelector('.mainDrawer .btnLogout'); if (!a) return false; const r = a.getBoundingClientRect(); return r.width > 0 && r.height > 0; })()" },
+    { "name": "sign out from the drawer", "click": ".mainDrawer .btnLogout", "js": true },
+    { "name": "on the login page", "waitFor": "location.hash.startsWith('#/login') && !!document.querySelector('#txtManualName')" },
+    { "name": "sign in as viewer, in the same page load", "login": "viewer", "stay": true },
+    { "name": "viewer signed in", "waitFor": "!!window.ApiClient && !!ApiClient.getCurrentUserId() && !!document.querySelector('.homePage:not(.hide)')", "timeout": 20000 },
+    { "name": "viewer's seeded bookmark", "eval": "(await ApiClient.getJSON(ApiClient.getUrl('Bookmarks/Query', { searchTerm: 'page-probe unavailable', limit: 1 }))).Items[0]", "save": "seed", "full": true },
+    { "name": "it is there, attached, and not available to viewer now (the Query's per-viewer field)", "assert": "!!__vars.seed && __vars.seed.Detached === false && __vars.seed.ItemAvailable === false" },
+    { "name": "the video's id (webcheck substitutes top-level variables)", "eval": "__vars.seed.ItemId", "save": "itemId" },
+    { "name": "the clock before the page", "eval": "performance.now()", "save": "t0" },
+    { "name": "the page filtered to the video", "goto": "/web/index.html#/jfbm-bookmarks?item=${itemId}" },
+    {
+      "name": "the group: Unavailable with the placeholder, no poster request, the name unlinked, no Open title; the row: the badge, play disabled, no scissors, Rename and Edit and Delete",
+      "waitFor": "(() => { const r = document.querySelector('#fallbackPage > [data-jfbm-page=\"bookmarks\"][data-jfbm-state=\"on\"]'); if (!r) return false; const c = r.querySelector('.jfbm-page-content'); if (!c || c.hasAttribute('aria-busy') || !c.querySelector('.jfbm-group')) return false; const g = c.querySelector('.jfbm-group'); const h = g.querySelector('.jfbm-group-header'); const row = g.querySelector('.jfbm-row'); const key = __vars.seed.ItemId.replace(/-/g, '').toLowerCase(); return { badge: (h.querySelector('.jfbm-badge') || {}).textContent, poster: !!h.querySelector('img'), placeholder: !!h.querySelector('.jfbm-listitem-image .material-icons'), links: h.querySelectorAll('a').length, open: !!h.querySelector('.jfbm-open-title'), imageRequested: performance.getEntriesByType('resource').some(e => e.startTime > __vars.t0 && e.name.includes('/Items/' + key + '/Images/')), rowBadge: (row.querySelector('.jfbm-badge') || {}).textContent, playDisabled: row.querySelector('.jfbm-time-button').disabled, actions: [...row.querySelectorAll('.jfbm-row-actions button')].map(b => b.title), greyed: row.classList.contains('jfbm-row-detached'), count: r.querySelector('.jfbm-page-count').textContent }; })()",
+      "timeout": 20000,
+      "save": "unavailable",
+      "full": true
+    },
+    { "name": "as expected (Unavailable: attached, but the viewer can't open it; no poster request)", "assert": "__vars.unavailable.badge === 'Unavailable' && !__vars.unavailable.poster && __vars.unavailable.placeholder && __vars.unavailable.links === 0 && !__vars.unavailable.open && !__vars.unavailable.imageRequested && __vars.unavailable.rowBadge === 'Unavailable' && __vars.unavailable.playDisabled && JSON.stringify(__vars.unavailable.actions) === JSON.stringify(['Rename', 'Edit', 'Delete', 'More actions']) && !__vars.unavailable.greyed && /^1 bookmark on 1 title/.test(__vars.unavailable.count)" },
+    { "sleep": 300 },
+    { "screenshot": "page-unavailable-group.png" },
+    { "name": "Flat", "click": "#fallbackPage [data-jfbm-page=\"bookmarks\"] [data-jfbm-view=\"flat\"]" },
+    {
+      "name": "the flat row: the badge, the video named but not linked, play disabled",
+      "waitFor": "(() => { const r = document.querySelector('#fallbackPage > [data-jfbm-page=\"bookmarks\"]'); const c = r.querySelector('.jfbm-page-content'); if (!location.hash.includes('view=flat') || c.hasAttribute('aria-busy') || !c.querySelector('.jfbm-row')) return false; const row = c.querySelector('.jfbm-row'); return { badge: (row.querySelector('.jfbm-badge') || {}).textContent, link: !!row.querySelector('.jfbm-row-item a'), item: row.querySelector('.jfbm-row-item').textContent, playDisabled: row.querySelector('.jfbm-time-button').disabled }; })()",
+      "timeout": 15000,
+      "save": "flat",
+      "full": true
+    },
+    { "name": "as expected", "assert": "__vars.flat.badge === 'Unavailable' && !__vars.flat.link && __vars.flat.item === __vars.seed.ItemName && __vars.flat.playDisabled" },
+    { "name": "no core items request from the page", "assert": "performance.getEntriesByType('resource').filter(e => e.startTime > __vars.t0).map(e => e.name).every(n => !/\\/Items(\\?|\\/Latest)/.test(n))" },
+
+    { "name": "open the drawer to sign out", "click": ".skinHeader .mainDrawerButton" },
+    { "name": "Sign out visible in the drawer", "waitFor": "(() => { const a = document.querySelector('.mainDrawer .btnLogout'); if (!a) return false; const r = a.getBoundingClientRect(); return r.width > 0 && r.height > 0; })()" },
+    { "name": "sign out from the drawer", "click": ".mainDrawer .btnLogout", "js": true },
+    { "name": "on the login page", "waitFor": "location.hash.startsWith('#/login') && !!document.querySelector('#txtManualName')" },
+    { "name": "sign in as admin again, in the same page load", "login": "admin", "stay": true },
+    { "name": "admin signed in", "waitFor": "!!window.ApiClient && !!ApiClient.getCurrentUserId() && !!document.querySelector('.homePage:not(.hide)')", "timeout": 20000 },
+    { "name": "give viewer every library back (the policy as it was)", "script": "const user = await ApiClient.getUser(__vars.setup.viewerId); const policy = Object.assign({}, user.Policy, { EnableAllFolders: __vars.setup.enableAll, EnabledFolders: __vars.setup.enabled }); await ApiClient.updateUserPolicy(__vars.setup.viewerId, policy); const after = await ApiClient.getUser(__vars.setup.viewerId); return after.Policy.EnableAllFolders;", "save": "restored" },
+    { "name": "restored", "assert": "__vars.restored === true" },
+
+    { "name": "open the drawer to sign out", "click": ".skinHeader .mainDrawerButton" },
+    { "name": "Sign out visible in the drawer", "waitFor": "(() => { const a = document.querySelector('.mainDrawer .btnLogout'); if (!a) return false; const r = a.getBoundingClientRect(); return r.width > 0 && r.height > 0; })()" },
+    { "name": "sign out from the drawer", "click": ".mainDrawer .btnLogout", "js": true },
+    { "name": "on the login page", "waitFor": "location.hash.startsWith('#/login') && !!document.querySelector('#txtManualName')" },
+    { "name": "sign in as viewer once more", "login": "viewer", "stay": true },
+    { "name": "viewer signed in", "waitFor": "!!window.ApiClient && !!ApiClient.getCurrentUserId() && !!document.querySelector('.homePage:not(.hide)')", "timeout": 20000 },
+    { "name": "the clock before the page", "eval": "performance.now()", "save": "t1" },
+    { "name": "the page filtered to the video again", "goto": "/web/index.html#/jfbm-bookmarks?item=${itemId}" },
+    {
+      "name": "the group available again: no badge, the poster requested, Open title, the row playable",
+      "waitFor": "(() => { const r = document.querySelector('#fallbackPage > [data-jfbm-page=\"bookmarks\"][data-jfbm-state=\"on\"]'); if (!r) return false; const c = r.querySelector('.jfbm-page-content'); if (!c || c.hasAttribute('aria-busy') || !c.querySelector('.jfbm-group')) return false; const g = c.querySelector('.jfbm-group'); const h = g.querySelector('.jfbm-group-header'); const key = __vars.seed.ItemId.replace(/-/g, '').toLowerCase(); const requested = performance.getEntriesByType('resource').some(e => e.startTime > __vars.t1 && e.name.includes('/Items/' + key + '/Images/Primary?fillHeight=120&quality=90')); if (!requested) return false; return { badge: !!h.querySelector('.jfbm-badge'), open: !!h.querySelector('.jfbm-open-title'), playDisabled: g.querySelector('.jfbm-row .jfbm-time-button').disabled }; })()",
+      "timeout": 20000,
+      "save": "regained",
+      "full": true
+    },
+    { "name": "as expected", "assert": "!__vars.regained.badge && __vars.regained.open && !__vars.regained.playDisabled" },
+    { "name": "no uncaught exception of ours", "noExceptions": true, "ignore": "/CustomRatings/script|^Error: player cannot be null" }
+  ]
+}

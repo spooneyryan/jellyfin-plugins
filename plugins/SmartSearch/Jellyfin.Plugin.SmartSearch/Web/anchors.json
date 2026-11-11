@@ -1,0 +1,19 @@
+{
+  "comment": "The jellyfin-web anchors Smart Search uses, the one place their selectors are written. Kit.props embeds this file as Web.anchors.json: the kit's EmbeddedScript puts it into the ClientScript (kit.anchors.find, reached through Web/js/10-selectors.js), the server accepts only these names and views in ClientHealth reports, and scripts/Test-WebAnchors.ps1 looks for them in the installed jellyfin-web bundle. css is the primary selector, then the fallbacks, tried in order. The page itself is our own markup in the kit's page host, and its nav link is the kit's.",
+  "anchors": [
+    {
+      "name": "headerSearch",
+      "css": [".skinHeader .headerRight .headerSearchButton", ".headerRight .headerSearchButton"],
+      "required": false,
+      "views": ["header"],
+      "note": "jellyfin-web 10.11.5's own search button in the legacy header's right side (chunk 73233.*.chunk.js: rendered with the class hide inside .headerRight, shown once a local user is signed in, hidden again on sign-out). The Advanced search button goes right before it and copies its hide class. Absent in the experimental layout. Missing: no header button; the drawer link remains."
+    },
+    {
+      "name": "collectionNoteBefore",
+      "css": ["#itemDetailPage:not(.hide) .detailPagePrimaryContent .collectionItems", "#itemDetailPage:not(.hide) .collectionItems"],
+      "required": false,
+      "views": ["details"],
+      "note": "A collection's item list in the shown details view (itemDetails-index-html chunk; cached views stay in the DOM hidden). An auto-collection's note goes right before it, above Movies, Shows and the like; verified 2026-11-10 on a BoxSet page, desktop and phone. Missing: no note; the collection is unaffected."
+    }
+  ]
+}

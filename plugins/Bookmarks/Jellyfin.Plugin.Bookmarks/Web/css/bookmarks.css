@@ -1,0 +1,159 @@
+/* Bookmarks' own styles, appended to the kit's KIT_CSS. Layout only: colours inherit or are neutral, the
+   accent and the status colours are the kit's variables (kit/web/kit.css). */
+.btnBookmarkRange.jfbm-active{color:var(--jfbm-accent)}
+.jfbm-list{display:flex;flex-direction:column;gap:.3em}
+.jfbm-list-toolbar{margin-bottom:.8em}
+.jfbm-row{display:flex;align-items:center;gap:.6em;padding:.35em .5em;border-radius:.3em;background:rgba(128,128,128,.12)}
+.jfbm-row:hover{background:rgba(128,128,128,.2)}
+.jfbm-time-button{display:inline-flex;align-items:center;gap:.3em;min-width:9em;background:none;border:0;color:inherit;font:inherit;font-variant-numeric:tabular-nums;cursor:pointer;padding:.35em .4em;border-radius:.25em;text-align:left}
+.jfbm-time-button:hover{background:rgba(128,128,128,.25)}
+.jfbm-time-button:disabled{cursor:default;opacity:.55}
+.jfbm-time-button:disabled:hover{background:none}
+.jfbm-row-detached .jfbm-row-info{opacity:.6}
+.jfbm-row-info{flex:1;min-width:0}
+.jfbm-row-title-line{display:flex;flex-wrap:wrap;align-items:center;gap:.15em .6em;min-width:0}
+.jfbm-row-title{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;max-width:100%}
+.jfbm-row-title-line .jfbm-link{font-size:.85em}
+.jfbm-row-subtitle{font-size:.9em;opacity:.7;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.jfbm-badge{display:inline-block;font-size:.75em;line-height:1.5;padding:0 .55em;border:1px solid currentColor;border-radius:1em;white-space:nowrap;opacity:.85}
+.jfbm-badge-relinked{color:var(--jfbm-warning);opacity:1}
+.jfbm-row-actions{display:flex;gap:.1em}
+.jfbm-section-links{display:flex;flex-wrap:wrap;gap:1.2em;margin:-.4em 0 .6em}
+.jfbm-error-row{display:flex;flex-wrap:wrap;align-items:baseline;gap:0 .8em}
+.jfbm-error-row .jfbm-error{flex:1;min-width:10em}
+.jfbm-delete-hint{font-size:.9em;opacity:.8;margin:-.2em 0 .8em}
+.jfbm-clip{display:flex;flex-wrap:wrap;align-items:center;gap:.45em;font-size:.85em;opacity:.85;margin-top:.15em}
+.jfbm-clip .material-icons{font-size:1.15em}
+.jfbm-clip-ready{color:var(--jfbm-success)}
+.jfbm-clip-failed{color:var(--jfbm-danger)}
+.jfbm-progress{width:6em;height:.35em;background:rgba(128,128,128,.3);border-radius:.2em;overflow:hidden}
+.jfbm-progress>div{height:100%;background:var(--jfbm-accent)}
+.jfbm-empty{opacity:.7;padding:.4em 0}
+.jfbm-name-where{margin:0 0 .8em;font-size:.9em;opacity:.7}
+.jfbm-name-dialog .jfbm-always-ask{margin:.2em 0 .6em}
+.jfbm-name-dialog .jfbm-name-more{margin-right:auto}
+.jfbm-preview video{display:block;width:100%;max-height:65vh;background:#000;border-radius:.3em}
+.jfbm-list-toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:.6em 1.2em}
+/* The My Bookmarks page: the toolbar, the groups and the flat rows. */
+.jfbm-page-toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:.6em .9em;margin:.2em 0 .6em}
+.jfbm-page-toolbar .jfbm-searchbox{flex:1 1 14em;min-width:10em}
+.jfbm-page-toolbar .jfbm-page-sort{width:auto;min-width:11em}
+.jfbm-page-segments{display:inline-flex;border:1px solid var(--jfbm-divider);border-radius:.3em;overflow:hidden}
+.jfbm-page-segment{background:none;border:0;color:inherit;font:inherit;padding:.45em .8em;cursor:pointer;white-space:nowrap}
+.jfbm-page-segments .jfbm-page-segment+.jfbm-page-segment{border-left:1px solid var(--jfbm-divider)}
+.jfbm-page-segment:hover{background:rgba(128,128,128,.2)}
+.jfbm-page-segment[aria-pressed="true"]{background:var(--jfbm-accent);color:#fff}
+.jfbm-page-filters-button{border:1px solid var(--jfbm-divider);border-radius:.3em}
+.jfbm-page-filters{display:flex;flex-wrap:wrap;gap:0 1.4em;margin:-.2em 0 .4em}
+.jfbm-page-filters .jfbm-checkbox{margin:.2em 0}
+.jfbm-page-count{margin:.2em 0 .8em;opacity:.75}
+.jfbm-page-count .jfbm-link{margin-left:.6em}
+.jfbm-page-content{display:flex;flex-direction:column;gap:1em}
+.jfbm-group{border-radius:.4em;background:rgba(128,128,128,.08);padding:.4em .5em .5em}
+.jfbm-group-header{padding:.3em .2em .5em}
+.jfbm-group-rows{padding-left:3.9em}
+/* Jellyfin Enhanced's Hidden Content hides a group's header, which carries the video's id like a native row, with its
+   je-hidden class; the whole group goes with it, so no rows are left under no title (found in the 1.1.0 Jellyfin
+   Enhanced checks). */
+.jfbm-group:has(>.jfbm-group-header.je-hidden){display:none}
+.jfbm-page-truncated{padding:.3em .5em}
+.jfbm-row-item{font-size:.85em;opacity:.8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.jfbm-row-item-link{color:inherit;text-decoration:none}
+.jfbm-row-item-link:hover{text-decoration:underline}
+.jfbm-page-highlight{outline:2px solid var(--jfbm-accent);outline-offset:2px}
+/* The page's header (Player options, My Clips once offered), the read-only notice, the inline rename, the selection
+   column and the bulk bar, the row menu; the TV layout hides the checkboxes until Select, a narrow screen collapses
+   the row's actions into the More button. */
+.jfbm-page-header{display:flex;flex-wrap:wrap;justify-content:flex-end;align-items:center;gap:.4em 1em;margin:.2em 0 .4em}
+.jfbm-page-readonly{margin:.2em 0 .6em}
+.jfbm-rename{display:flex;align-items:center;gap:.2em;flex:1 1 14em;min-width:0}
+.jfbm-rename .jfbm-rename-input{flex:1;min-width:6em}
+.jfbm-rename-error{flex-basis:100%;margin:.2em 0 0}
+.jfbm-row-renaming .jfbm-row-title-line{flex-wrap:wrap}
+.jfbm-row-renaming .jfbm-row-actions{display:none}
+.jfbm-row-select{display:inline-flex;align-items:center;justify-content:center;min-width:40px;min-height:40px;margin:-.35em -.3em -.35em -.5em;cursor:pointer;flex-shrink:0}
+.jfbm-row-select input{margin:0;width:1.1em;height:1.1em;cursor:pointer}
+.jfbm-page-tv .jfbm-page-toolbar .jfbm-searchbox{flex-basis:8em;min-width:8em}
+.jfbm-page-tv .jfbm-row-select{display:none}
+.jfbm-page-tv.jfbm-page-selecting .jfbm-row-select{display:inline-flex}
+.jfbm-page-tv .jfbm-bulk-bar{display:none}
+.jfbm-page-tv.jfbm-page-selecting .jfbm-bulk-bar{display:flex}
+.jfbm-bulk-bar{position:sticky;bottom:0;display:flex;flex-wrap:wrap;align-items:center;gap:.5em 1em;padding:.6em .9em;margin:.6em 0 0;border-radius:.4em;background:rgba(128,128,128,.25);backdrop-filter:blur(6px)}
+.jfbm-bulk-bar .jfbm-bulk-count{margin-right:auto;font-weight:500}
+.jfbm-bulk-description{margin:0 0 .8em}
+.jfbm-row-more{display:none}
+.jfbm-row-menu{display:flex;flex-direction:column;gap:.2em}
+.jfbm-row-menu-item{display:flex;align-items:center;gap:.8em;width:100%;min-height:44px;padding:.5em .8em;background:none;border:0;border-radius:.3em;color:inherit;font:inherit;text-align:left;cursor:pointer}
+.jfbm-row-menu-item:hover,.jfbm-row-menu-item:focus{background:rgba(128,128,128,.2)}
+.jfbm-row-menu-item:disabled{opacity:.5;cursor:default}
+/* The player's Set end time: the row menu's items with the bookmark's title and, under it, the range it would get. */
+.jfbm-end-hint{margin:0 0 .6em}
+.jfbm-end-item-text{display:flex;flex-direction:column;min-width:0}
+.jfbm-end-item-title{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.jfbm-end-item-detail{font-size:.9em;opacity:.75}
+/* The player's timeline marks (41-timeline.js): a layer over the position slider, inset as its chapter marks are
+   (emby-slider's .54em), with amber ticks apart from the chapters' white and blue and a range's band on the track. The
+   player's controls are dark in every theme. Only the ticks take the pointer; the slider gets every other click. */
+.jfbm-timeline{position:absolute;left:0;right:0;top:0;bottom:0;margin:0 .54em;pointer-events:none;z-index:2}
+.jfbm-timeline-range{position:absolute;top:50%;height:5px;transform:translateY(-50%);border-radius:2px;background:rgba(255,193,7,.5)}
+.jfbm-timeline-mark{position:absolute;top:50%;width:14px;height:22px;margin-left:-7px;transform:translateY(-50%);pointer-events:auto;cursor:pointer}
+.jfbm-timeline-mark::before{content:"";position:absolute;left:5.5px;top:3px;bottom:3px;width:3px;border-radius:1.5px;background:#ffc107;box-shadow:0 0 0 1px rgba(0,0,0,.45)}
+.jfbm-timeline-mark:hover::before{top:0;bottom:0;background:#ffd54f}
+.jfbm-options .jfbm-field-row .jfbm-link{white-space:nowrap}
+.jfbm-options-shortcut-hint{margin:-.4em 0 .4em}
+.jfbm-options-shortcut-error{margin-bottom:.4em}
+.jfbm-options-loading{margin:0;opacity:.75}
+/* The My Clips page: the toolbar's selects and its checkbox, the summary line, the rows (the kit's list items with
+   a 16:9 box of ours, the state, the facts, the badges); the player's list links to both pages. */
+.jfbm-list-toolbar-links{display:inline-flex;flex-wrap:wrap;align-items:center;gap:.4em 1.2em}
+.jfbm-clips-notices .jfbm-notice{margin:.2em 0 .6em}
+.jfbm-clips-toolbar .jfbm-clips-filter{width:auto;min-width:9em}
+.jfbm-clips-toolbar .jfbm-checkbox{margin:0}
+/* The TV layout's box at a size seen from a sofa: 1.4 times the label's text (a native box keeps its own 13 px). */
+.jfbm-page-tv .jfbm-clips-deleted{font-size:inherit;width:1.4em;height:1.4em;margin:0}
+/* The totals and the matches each wrap whole (a phone put "n clips match these filters" half on the next line). */
+.jfbm-clips-summary{display:flex;flex-wrap:wrap;gap:0 1em;margin:.2em 0 .8em;opacity:.75}
+.jfbm-clips-content{display:flex;flex-direction:column;gap:.35em}
+.jfbm-clips-content .jfbm-clips-row{display:flex;align-items:flex-start;gap:.2em;padding:.4em .45em;border-width:0;border-radius:.4em;cursor:default;background:rgba(128,128,128,.08)}
+/* jellyfin-web's .listItem takes the outline away (outline:none !important), so a marked clip row is ringed with a shadow. */
+.jfbm-clips-content .jfbm-clips-row.jfbm-page-highlight{box-shadow:0 0 0 2px var(--jfbm-accent)}
+.jfbm-clip-thumb{position:relative;flex:0 0 auto;width:8.5em;height:4.78em;margin-top:.3em;display:flex;align-items:center;justify-content:center;overflow:hidden;border-radius:.3em;background:rgba(128,128,128,.15);color:inherit;text-decoration:none}
+.jfbm-clip-thumb img{width:100%;height:100%;object-fit:cover}
+.jfbm-clip-state{display:flex;flex-wrap:wrap;align-items:center;gap:.25em .45em;font-size:.9em;margin-top:.25em}
+.jfbm-clip-state .material-icons{font-size:1.15em}
+.jfbm-clips-row[data-jfbm-state="Ready"] .jfbm-clip-state{color:var(--jfbm-success)}
+.jfbm-clips-row[data-jfbm-state="Failed"] .jfbm-clip-state,.jfbm-clips-row[data-jfbm-state="Missing"] .jfbm-clip-state{color:var(--jfbm-danger)}
+.jfbm-clips-row[data-jfbm-state="FolderUnavailable"] .jfbm-clip-state{color:var(--jfbm-warning)}
+.jfbm-clip-facts{font-size:.9em;opacity:.8;margin-top:.25em;overflow:hidden;text-overflow:ellipsis}
+.jfbm-clip-item-link{color:inherit;text-decoration:none}
+.jfbm-clip-item-link:hover,.jfbm-clip-item-link:focus{text-decoration:underline}
+.jfbm-clip-badges{display:flex;flex-wrap:wrap;gap:.3em;margin-top:.35em}
+.jfbm-clip-error{font-size:.85em;color:var(--jfbm-danger);margin-top:.25em}
+/* The My Clips rows' actions (the More button alone on a narrow screen, a suggested remake in the accent colour),
+   the checkbox before the poster, why an offline row offers little, the preview's sentences, the dialogs' lines. */
+.jfbm-clips-row>.jfbm-row-select{margin:.25em -.1em 0 -.3em;align-self:flex-start}
+.jfbm-clips-row>.jfbm-row-select-none{cursor:default}
+.jfbm-clip-actions{flex-wrap:wrap;justify-content:flex-end;align-self:center}
+.jfbm-clip-action-suggested{color:var(--jfbm-accent)}
+.jfbm-clip-note{font-size:.85em;opacity:.8;margin-top:.25em}
+.jfbm-preview-message{margin:.2em 0 .6em}
+.jfbm-preview-hint{margin:.5em 0 0}
+.jfbm-clip-dialog-text{margin:0 0 .8em}
+/* The rename dialog's file box and its lines (on the TV layout the box at the label's size, as the toolbar's). */
+.jfbm-clip-rename .jfbm-clip-rename-file{margin:.4em 0 .2em}
+.jfbm-clip-rename .jfbm-clip-rename-current,.jfbm-clip-rename-library{margin:.2em 0 .4em;overflow-wrap:anywhere}
+html.layout-tv .jfbm-clip-rename-file-box{font-size:inherit;width:1.4em;height:1.4em;margin:0}
+/* The admins' "All users" scope: the switch, a row's owner (isolated for bidi text) and its file's path (monospace,
+   left to right, broken anywhere so a long path never widens the row), with Copy. */
+.jfbm-clips-scope-bar{display:flex;flex-wrap:wrap;align-items:center;gap:.6em .9em;margin:.2em 0 .6em}
+.jfbm-clips-scope-bar .jfbm-clips-owner-select{width:auto;min-width:12em}
+.jfbm-clip-owner{display:flex;align-items:center;gap:.3em;font-size:.9em;font-weight:600;margin-top:.15em}
+.jfbm-clip-owner .material-icons{font-size:1.1em;opacity:.8}
+.jfbm-clip-owner-deleted{font-style:italic;font-weight:400;opacity:.8}
+.jfbm-clip-path{display:flex;align-items:center;gap:.2em;margin-top:.25em;font-size:.8em;opacity:.8;min-width:0}
+.jfbm-clip-path-text{font-family:Consolas,"Cascadia Mono","DejaVu Sans Mono",monospace;overflow-wrap:anywhere;word-break:break-all;unicode-bidi:isolate}
+.jfbm-clip-path .jfbm-clip-path-copy{flex:0 0 auto}
+@media (max-width:40em){.jfbm-clips-toolbar .jfbm-clips-filter{flex:1 1 40%;min-width:0}.jfbm-clips-toolbar .jfbm-checkbox{flex-basis:100%}.jfbm-clip-thumb{width:5.6em;height:3.15em}}
+@media (pointer:coarse){.jfbm-clips-toolbar .jfbm-searchbox,.jfbm-clips-toolbar .jfbm-clips-filter,.jfbm-clips-toolbar .jfbm-checkbox,.jfbm-list-toolbar-links a,.jfbm-clips-header .jfbm-link{min-height:40px}.jfbm-clips-header .jfbm-link,.jfbm-list-toolbar-links a{display:inline-flex;align-items:center}}
+@media (max-width:40em){.jfbm-row{flex-wrap:wrap}.jfbm-row-actions{margin-left:auto}.jfbm-time-button{min-width:0}.jfbm-group-rows{padding-left:0}.jfbm-page-toolbar .jfbm-searchbox{flex-basis:100%}.jfbm-page-header{justify-content:flex-start}.jfbm-page-content .jfbm-row-actions>.jfbm-icon-button:not(.jfbm-row-more),.jfbm-clips-content .jfbm-row-actions>.jfbm-icon-button:not(.jfbm-row-more){display:none}.jfbm-page-content .jfbm-row-more,.jfbm-clips-content .jfbm-row-more{display:inline-flex}.jfbm-bulk-bar{border-radius:.4em .4em 0 0}}
+@media (pointer:coarse){.jfbm-rename .jfbm-icon-button,.jfbm-page-segment,.jfbm-bulk-bar .jfbm-button,.jfbm-page-options,.jfbm-page-count .jfbm-link{min-height:40px}}

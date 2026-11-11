@@ -1,0 +1,23 @@
+{
+  "description": "The stock user editor's banner (ShowManagedNoticeOnUserPages): the sandbox's admin while accessroles-web-guard-probe.mjs gives viewer the probe's Kid role and makes it the default role. The stock Library access tab of viewer shows Access Roles' banner (the role, the library rule, the locked sections) first in the page, as text; viewer2's profile tab (not managed) has none; Add user names the default role. The admin's own /Me locks nothing and the guard hides nothing. Reads only.",
+  "timeout": 30000,
+  "steps": [
+    { "name": "sign in as admin", "login": "admin" },
+    { "name": "the guard has the admin's /Me", "waitFor": "!!window.__jfkit && !!window.__jfkit.jfar && __jfkit.jfar.instance.accessRoles.rules().source === 'me'" },
+    { "name": "no lock class for an administrator", "assert": "!document.documentElement.className.split(' ').some((c) => c.indexOf('jfar-lock-') === 0) && __jfkit.jfar.instance.accessRoles.rules().locked.length === 0" },
+    { "name": "viewer's and viewer2's ids", "eval": "(async () => { const users = await ApiClient.getUsers(); const id = (n) => (users.find((u) => u.Name === n) || {}).Id; return { viewer: id('viewer'), viewer2: id('viewer2') }; })()", "save": "ids", "full": true },
+    { "name": "viewer's Library access tab", "script": "Dashboard.navigate('dashboard/users/access?userId=' + __vars.ids.viewer); await new Promise((r) => setTimeout(r, 3000)); return location.hash;", "save": "access" },
+    { "name": "the banner is first in the page", "waitFor": "(() => { const b = document.querySelector('#userLibraryAccessPage:not(.hide) .content-primary [data-jfar-banner]'); return !!b && b === b.parentNode.firstElementChild; })()" },
+    { "name": "its text", "eval": "[...document.querySelector('#userLibraryAccessPage:not(.hide) [data-jfar-banner]').children].map((p) => p.textContent)", "save": "banner", "full": true },
+    { "name": "the role, the library rule and the locked sections, as text", "assert": "/Guard probe Kid/.test(__vars.banner[0]) && __vars.banner.some((t) => /changes to it on this page are replaced/.test(t)) && __vars.banner.some((t) => /Profile/.test(t) && /Home screen/.test(t)) && [...document.querySelector('#userLibraryAccessPage:not(.hide) [data-jfar-banner]').querySelectorAll('*')].every((e) => e.tagName === 'P')" },
+    { "screenshot": "accessroles-web-guard-admin-access.png" },
+    { "name": "viewer2's profile tab (not managed)", "script": "Dashboard.navigate('dashboard/users/profile?userId=' + __vars.ids.viewer2); await new Promise((r) => setTimeout(r, 3000)); return location.hash;", "save": "profile" },
+    { "name": "the profile tab is shown", "waitFor": "!!document.querySelector('#editUserPage:not(.hide) .content-primary')" },
+    { "sleep": 1500 },
+    { "name": "no banner for an unmanaged user", "assert": "!document.querySelector('#editUserPage:not(.hide) [data-jfar-banner]')" },
+    { "name": "Add user", "script": "Dashboard.navigate('dashboard/users/add'); await new Promise((r) => setTimeout(r, 3000)); return location.hash;", "save": "add" },
+    { "name": "the default role's banner", "waitFor": "(() => { const b = document.querySelector('#newUserPage:not(.hide) .content-primary [data-jfar-banner]'); return !!b && /default roles: Guard probe Kid/.test(b.textContent); })()" },
+    { "screenshot": "accessroles-web-guard-admin-add.png" },
+    { "name": "no uncaught exceptions (the stale CustomRatings tag excepted)", "noExceptions": true, "ignore": "/CustomRatings/script" }
+  ]
+}

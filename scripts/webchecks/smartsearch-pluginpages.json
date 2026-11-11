@@ -1,0 +1,39 @@
+{
+  "name": "Smart Search's page as viewer in the Auto host mode (PageHostMode=Auto at startup, with Plugin Pages installed): GET /PluginPages/User lists Jellyfin.Plugin.SmartSearch.SearchPage with its shell URL and the title 'Advanced Search', the kit chose the Plugin Pages host, the link sits in Plugin Pages' drawer section and not in 'Library tools', the page renders in that host under its title, and a hard reload of its link renders it again. Needs a sandbox started in Auto mode (Set-SandboxPluginConfig PageHostMode=Auto, then a restart).",
+  "failOnException": false,
+  "timeout": 30000,
+  "steps": [
+    { "name": "open the login page", "goto": "/web/index.html#/login" },
+    { "name": "index.html carries Plugin Pages' tag (its startup task registers the File Transformation a few seconds after the server starts)", "waitFor": "fetch(new URL('index.html', location.href), { cache: 'no-store' }).then(r => r.text()).then(t => /<script plugin=\"PluginPages\"/.test(t))", "timeout": 90000 },
+    { "name": "reload, so the page has the tag", "reload": true },
+    { "name": "sign in as viewer", "login": "viewer" },
+    { "name": "the Smart Search script ran", "waitFor": "!!window.__jfkit && !!window.__jfkit.jfss && !!window.ApiClient && !!ApiClient.getCurrentUserId()", "timeout": 20000 },
+    { "name": "index.html: the head fragment in Auto mode, the page on", "eval": "fetch(new URL('index.html', location.href), { cache: 'no-store' }).then(r => r.text()).then(t => { const s = t.match(/<script type=\"application\\/json\" data-jfss-head data-jfss-pages>([^<]*)<\\/script>/); return { state: s ? JSON.parse(s[1]) : null, pluginPagesTag: /<script plugin=\"PluginPages\"/.test(t) }; })", "save": "head", "full": true },
+    { "name": "Auto, search known and on, Plugin Pages' tag there", "assert": "!!__vars.head.state && __vars.head.state.mode === 'Auto' && __vars.head.state.pages.includes('search') && !__vars.head.state.off.includes('search') && __vars.head.pluginPagesTag" },
+    { "name": "GET /PluginPages/User", "eval": "ApiClient.getJSON(ApiClient.getUrl('PluginPages/User'))", "save": "pluginPagesUser", "full": true },
+    { "name": "lists the page's Id, shell URL and title (registered at startup through Plugin Pages' DI manager)", "assert": "__vars.pluginPagesUser.Items.some(i => i.Id === 'Jellyfin.Plugin.SmartSearch.SearchPage' && i.Url === '/SmartSearch/Pages/search' && i.DisplayText === 'Advanced Search')" },
+    { "name": "the kit chose the Plugin Pages host", "waitFor": "__jfkit.jfss.instance.pages.state().hostsKnown && __jfkit.jfss.instance.pages.state().hosts.search === 'PluginPages' && __jfkit.jfss.instance.pages.href('search')", "save": "href" },
+    { "name": "its link", "assert": "__vars.href === '#/userpluginsettings.html?pageUrl=%2FSmartSearch%2FPages%2Fsearch'" },
+    { "name": "open the drawer", "click": ".skinHeader .mainDrawerButton" },
+    { "name": "the link in Plugin Pages' section", "waitFor": "(() => { const a = document.querySelector('.mainDrawer .pluginMenuOptions a[data-itemid=\"Jellyfin.Plugin.SmartSearch.SearchPage\"]'); if (!a) return false; const r = a.getBoundingClientRect(); return r.width > 0 && r.height > 0; })()", "timeout": 15000 },
+    { "sleep": 1500 },
+    { "name": "no 'Library tools' link of ours for it while Plugin Pages shows it", "assert": "![...document.querySelectorAll('.mainDrawer .jfkit-nav a')].some(a => a.getAttribute('href') === '#/jfss-search')" },
+    { "screenshot": "smartsearch-pp-drawer.png" },
+    { "name": "click it", "click": ".mainDrawer .pluginMenuOptions a[data-itemid=\"Jellyfin.Plugin.SmartSearch.SearchPage\"]" },
+    {
+      "name": "the page renders in Plugin Pages' host under its title",
+      "waitFor": "(() => { const r = [...document.querySelectorAll('.userPreferencesPage:not(.hide) [data-jfss-page=\"search\"][data-jfss-mounted][data-jfss-state=\"on\"]')].find(x => x.getClientRects().length > 0); if (!r) return false; const body = r.querySelector('.jfss-search'); if (!body) return false; return { host: r.getAttribute('data-jfss-host'), title: (document.querySelector('.skinHeader .pageTitle') || { textContent: '' }).textContent.trim(), hash: location.hash, text: body.textContent.trim() }; })()",
+      "timeout": 20000,
+      "save": "page",
+      "full": true
+    },
+    { "name": "as expected (Plugin Pages' own link leaves pageUrl unencoded; ours encode it)", "assert": "__vars.page.host === 'PluginPages' && __vars.page.title === 'Advanced Search' && decodeURIComponent(__vars.page.hash) === '#/userpluginsettings.html?pageUrl=/SmartSearch/Pages/search' && /Title contains/.test(__vars.page.text)" },
+    { "screenshot": "smartsearch-pp-page.png" },
+    { "name": "open our own link to it", "goto": "/web/index.html#/userpluginsettings.html?pageUrl=%2FSmartSearch%2FPages%2Fsearch" },
+    { "name": "hard reload", "reload": true },
+    { "name": "after the reload: the page in Plugin Pages' host", "waitFor": "(() => { const r = [...document.querySelectorAll('.userPreferencesPage:not(.hide) [data-jfss-page=\"search\"][data-jfss-mounted][data-jfss-state=\"on\"]')].find(x => x.getClientRects().length > 0); const body = r && r.querySelector('.jfss-search'); return !!body && r.getAttribute('data-jfss-host') === 'PluginPages' && /Title contains/.test(body.textContent); })()", "timeout": 20000 },
+    { "name": "the fallback address still works in Auto mode", "goto": "/web/index.html#/jfss-search" },
+    { "name": "it hands over to the Plugin Pages host or renders on its fallback host", "waitFor": "(() => { const r = [...document.querySelectorAll('[data-jfss-page=\"search\"][data-jfss-mounted]')].find(x => x.getClientRects().length > 0); const body = r && r.querySelector('.jfss-search'); return body && /Title contains/.test(body.textContent) ? { host: r.getAttribute('data-jfss-host'), hash: location.hash } : false; })()", "timeout": 20000, "save": "fallback", "full": true },
+    { "name": "no uncaught exception (the stale CustomRatings tag of the sandbox's index.html is known noise)", "noExceptions": true, "ignore": "CustomRatings" }
+  ]
+}

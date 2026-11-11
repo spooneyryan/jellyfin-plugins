@@ -1,0 +1,27 @@
+{
+  "name": "Jellyfin Enhanced's Bookmarks settings unticked and saved, in the je sandbox: as admin, Jellyfin Enhanced's own settings page with its four Bookmarks settings unticked (Enable Bookmarks Feature, Use Plugin Pages, Use Custom Tabs, Add the Custom Tabs entry for me) and saved the way an admin does it (its Save button). What the save did is read back afterwards: JE's settings, and Custom Tabs' tabs (JE's own sync removes the 'Bookmarks' tab it created, and only that one). bookmarks-je-web-probe.mjs runs it and checks the answers; on its own it changes JE's settings in the sandbox, which Initialize-Sandbox.ps1 -Name je then reports.",
+  "failOnException": false,
+  "timeout": 30000,
+  "steps": [
+    { "name": "sign in as admin", "login": "admin" },
+    { "name": "the web client is up", "waitFor": "!!window.ApiClient && !!ApiClient.getCurrentUserId()" },
+    { "name": "Jellyfin Enhanced's settings page", "eval": "(await ApiClient.getJSON(ApiClient.getUrl('web/ConfigurationPages'))).filter(p => String(p.PluginId || '').replace(/-/g, '').toLowerCase() === 'f69e946a4b3c4e9a8f0a8d7c1b2c4d9b').map(p => p.Name)", "save": "jePages", "full": true },
+    { "name": "its route", "eval": "'#/configurationpage?name=' + encodeURIComponent(__vars.jePages[0])", "save": "jeRoute" },
+    { "name": "Custom Tabs' tabs before", "eval": "(await ApiClient.getPluginConfiguration('fbacd0b6-fd46-4a05-b0a4-2045d6a135b0')).Tabs.map(t => ({ Title: t.Title, ContentHtml: t.ContentHtml }))", "save": "tabsBefore", "full": true },
+    { "name": "open it", "goto": "/web/index.html${jeRoute}" },
+    { "name": "the page has loaded JE's settings (the Bookmarks feature box reflects them) and found Custom Tabs installed and compatible (its probe of Custom Tabs' settings runs after the plugin detection, so the save syncs JE's tab only once it has passed)", "waitFor": "(async () => { const p = document.querySelector('#JellyfinEnhancedPage'); if (!p || !p.querySelector('#bookmarksEnabled')) return false; const c = await ApiClient.getPluginConfiguration('f69e946a-4b3c-4e9a-8f0a-8d7c1b2c4d9b'); if (p.querySelector('#bookmarksEnabled').checked !== (c.BookmarksEnabled !== false)) return false; return document.body.classList.contains('je-has-customtabs') && document.body.classList.contains('je-has-customtabs-compat') ? { compat: true } : false; })()", "timeout": 60000, "save": "loaded", "full": true },
+    { "sleep": 1000 },
+    { "name": "the four Bookmarks boxes as JE's settings have them", "eval": "['bookmarksEnabled', 'bookmarksUsePluginPages', 'bookmarksUseCustomTabs', 'bookmarksAutoCreateCustomTab'].map(id => [id, document.querySelector('#' + id).checked])", "save": "boxesBefore", "full": true },
+    { "name": "untick the four (as clicks on the boxes do: checked off, a change event)", "script": "for (const id of ['bookmarksAutoCreateCustomTab', 'bookmarksUseCustomTabs', 'bookmarksUsePluginPages', 'bookmarksEnabled']) { const b = document.querySelector('#' + id); if (b.checked) { b.checked = false; b.dispatchEvent(new Event('change', { bubbles: true })); } } return ['bookmarksEnabled', 'bookmarksUsePluginPages', 'bookmarksUseCustomTabs', 'bookmarksAutoCreateCustomTab'].map(id => [id, document.querySelector('#' + id).checked]);", "full": true },
+    { "sleep": 500 },
+    { "name": "JE's Save button", "click": "#JellyfinEnhancedPage .je-save-dock-btn" },
+    { "name": "saved: JE's settings say Bookmarks off", "waitFor": "(async () => { const c = await ApiClient.getPluginConfiguration('f69e946a-4b3c-4e9a-8f0a-8d7c1b2c4d9b'); return c.BookmarksEnabled === false && c.BookmarksUsePluginPages === false && c.BookmarksUseCustomTabs === false && c.BookmarksAutoCreateCustomTab === false; })()", "timeout": 30000 },
+    { "name": "the save's Custom Tabs sync has run (JE's save button enabled again)", "waitFor": "!document.querySelector('#JellyfinEnhancedPage .je-save-dock-btn').disabled", "timeout": 30000 },
+    { "sleep": 1500 },
+    { "name": "what the save left: JE's settings and Custom Tabs' tabs", "eval": "(async () => { const c = await ApiClient.getPluginConfiguration('f69e946a-4b3c-4e9a-8f0a-8d7c1b2c4d9b'); const t = await ApiClient.getPluginConfiguration('fbacd0b6-fd46-4a05-b0a4-2045d6a135b0'); return { je: { BookmarksEnabled: c.BookmarksEnabled, BookmarksUsePluginPages: c.BookmarksUsePluginPages, BookmarksUseCustomTabs: c.BookmarksUseCustomTabs, BookmarksAutoCreateCustomTab: c.BookmarksAutoCreateCustomTab, BookmarksCustomTabJeOwned: c.BookmarksCustomTabJeOwned, BookmarkCurrentTime: ((c.Shortcuts || []).find(s => s.Name === 'BookmarkCurrentTime') || {}).Key }, tabs: t.Tabs.map(x => ({ Title: x.Title, ContentHtml: x.ContentHtml })), alert: !!document.querySelector('.dialogContainer .dialog') && document.querySelector('.dialogContainer .dialog').textContent.slice(0, 300) }; })()", "save": "after", "full": true },
+    { "name": "an alert, if JE raised one (a sync problem)", "eval": "__vars.after.alert" },
+    { "sleep": 300 },
+    { "screenshot": "je-switchoff-saved.png" },
+    { "name": "no uncaught exceptions (the stale CustomRatings tag excepted)", "noExceptions": true, "ignore": "/CustomRatings/script|^TypeError: t\\.value\\.pause is not a function" }
+  ]
+}

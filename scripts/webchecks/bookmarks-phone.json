@@ -1,0 +1,90 @@
+{
+  "name": "Bookmarks' web UI at phone width: a 390x844 touch viewport, where kit.css's phone rules apply that Bookmarks 1.0 didn't have: dialogs as bottom sheets (max-width 40em), icon buttons of at least 40 px (pointer: coarse), and borders in forced-colors mode. Screenshots of the details section, the editor and the player's bookmarks list, with the measurements saved as evidence. Resets the admin's bookmarks on Long Test Movie to two known ones first (sandbox data only).",
+  "failOnException": false,
+  "timeout": 30000,
+  "steps": [
+    { "name": "a phone: 390x844, touch", "emulate": { "width": 390, "height": 844, "deviceScaleFactor": 1, "mobile": true, "touch": true } },
+    { "name": "sign in as admin", "login": "admin" },
+    { "name": "the Bookmarks script ran", "waitFor": "document.querySelectorAll('#jfbm-styles').length === 1" },
+    {
+      "name": "the page sees a narrow touch screen",
+      "assert": "innerWidth === 390 && matchMedia('(max-width: 40em)').matches && matchMedia('(pointer: coarse)').matches && !matchMedia('(forced-colors: active)').matches",
+      "message": "the emulated viewport is not a 390 px touch screen"
+    },
+    {
+      "name": "find Long Test Movie",
+      "eval": "(await ApiClient.getItems(ApiClient.getCurrentUserId(), { IncludeItemTypes: 'Movie', Recursive: true, SearchTerm: 'Long Test Movie', Limit: 1 })).Items[0].Id",
+      "save": "movieId"
+    },
+    {
+      "name": "reset the movie's bookmarks to a point at 0:15 ('webcheck') and a range 0:30-0:40 ('webcheck-ui range')",
+      "script": "const itemId = __vars.movieId; const url = (p, q) => ApiClient.getUrl(p, q); for (const b of await ApiClient.getJSON(url('Bookmarks', { itemId }))) { await ApiClient.ajax({ type: 'DELETE', url: url('Bookmarks/' + b.Id, { deleteClip: 'true' }) }); } for (const body of [{ ItemId: itemId, StartTicks: 150000000, Note: 'webcheck' }, { ItemId: itemId, StartTicks: 300000000, EndTicks: 400000000, Note: 'webcheck-ui range' }]) { await ApiClient.ajax({ type: 'POST', url: url('Bookmarks'), data: JSON.stringify(body), contentType: 'application/json', dataType: 'json' }); } return (await ApiClient.getJSON(url('Bookmarks', { itemId }))).length;"
+    },
+    { "name": "open the details page", "goto": "/web/index.html#/details?id=${movieId}" },
+    {
+      "name": "the Bookmarks section lists the two bookmarks",
+      "waitFor": "(() => { const s = document.querySelector('#itemDetailPage:not(.hide) .jfbm-section'); return !!s && !s.classList.contains('hide') && s.querySelectorAll('.jfbm-row').length === 2; })()"
+    },
+    {
+      "name": "the rows wrap at phone width and their icon buttons are touch-sized",
+      "script": "const rows = [...document.querySelectorAll('#itemDetailPage:not(.hide) .jfbm-section .jfbm-row')]; const buttons = rows.flatMap(r => [...r.querySelectorAll('.jfbm-icon-button')]); const sizes = buttons.map(b => { const r = b.getBoundingClientRect(); return [Math.round(r.width), Math.round(r.height)]; }); return { rowWrap: getComputedStyle(rows[0]).flexWrap, sizes, ok: getComputedStyle(rows[0]).flexWrap === 'wrap' && buttons.length >= 4 && sizes.every(([w, h]) => w >= 40 && h >= 40) };",
+      "save": "detailsRows",
+      "full": true
+    },
+    { "name": "details rows as expected", "assert": "__vars.detailsRows.ok", "message": "the details rows don't wrap or have icon buttons under 40 px" },
+    { "name": "scroll the section into view", "script": "document.querySelector('#itemDetailPage:not(.hide) .jfbm-section').scrollIntoView({ block: 'start' }); return true;" },
+    { "sleep": 300 },
+    { "screenshot": "bookmarks-phone-details.png" },
+
+    { "name": "open the editor with Add bookmark", "click": "#itemDetailPage:not(.hide) .mainDetailButtons .btnBookmarkItem", "js": true },
+    { "name": "the New bookmark editor", "waitFor": "(() => { const p = document.querySelector('.jfbm-backdrop .jfbm-panel'); return !!p && p.querySelector('h3').textContent === 'New bookmark'; })()" },
+    { "sleep": 300 },
+    {
+      "name": "the editor is a bottom sheet with touch-sized icon buttons",
+      "script": "const b = document.querySelector('.jfbm-backdrop'); const p = b.querySelector('.jfbm-panel'); const r = p.getBoundingClientRect(); const cs = getComputedStyle(p); const icons = [...p.querySelectorAll('.jfbm-icon-button')].filter(i => i.offsetParent !== null).map(i => { const q = i.getBoundingClientRect(); return [i.title, Math.round(q.width), Math.round(q.height)]; }); const m = { alignItems: getComputedStyle(b).alignItems, backdropPadding: getComputedStyle(b).padding, panel: [Math.round(r.left), Math.round(r.top), Math.round(r.right), Math.round(r.bottom)], viewport: [innerWidth, innerHeight], radius: [cs.borderTopLeftRadius, cs.borderTopRightRadius, cs.borderBottomLeftRadius, cs.borderBottomRightRadius], maxHeight: cs.maxHeight, icons }; m.ok = m.alignItems === 'flex-end' && m.backdropPadding === '0px' && m.panel[0] === 0 && m.panel[2] === innerWidth && Math.abs(m.panel[3] - innerHeight) <= 1 && m.radius[2] === '0px' && m.radius[3] === '0px' && m.radius[0] !== '0px' && icons.length >= 2 && icons.every(([, w, h]) => w >= 40 && h >= 40); return m;",
+      "save": "editorSheet",
+      "full": true
+    },
+    { "name": "editor bottom sheet as expected", "assert": "__vars.editorSheet.ok", "message": "the editor is not a full-width bottom sheet with 40 px icon buttons" },
+    { "screenshot": "bookmarks-phone-editor.png" },
+    { "name": "Escape closes it", "key": "Escape" },
+    { "name": "closed", "waitFor": "!document.querySelector('.jfbm-backdrop')" },
+
+    { "name": "details page with a Play button", "waitFor": "!!document.querySelector('#itemDetailPage:not(.hide) .mainDetailButtons .btnPlay:not(.hide)')", "timeout": 20000 },
+    { "name": "start playback", "click": "#itemDetailPage:not(.hide) .mainDetailButtons .btnPlay:not(.hide)", "js": true },
+    {
+      "name": "video page, video playing",
+      "waitFor": "location.hash.indexOf('#/video') === 0 && (v => !!v && !v.paused && v.currentTime > 1)(document.querySelector('.videoPlayerContainer video'))",
+      "timeout": 60000
+    },
+    { "name": "the three player buttons", "waitFor": "document.querySelectorAll('.videoOsdBottom .buttons .btnBookmarkAdd, .videoOsdBottom .buttons .btnBookmarkRange, .videoOsdBottom .buttons .btnBookmarkList').length === 3", "timeout": 20000 },
+    { "name": "open the player's bookmarks list", "click": ".videoOsdBottom .buttons .btnBookmarkList", "js": true },
+    { "name": "the list dialog with two rows", "waitFor": "(() => { const p = document.querySelector('.jfbm-backdrop .jfbm-panel'); return !!p && p.querySelector('h3').textContent === 'Bookmarks' && p.querySelectorAll('.jfbm-row').length === 2; })()" },
+    { "sleep": 300 },
+    {
+      "name": "the player list is a bottom sheet with touch-sized icon buttons",
+      "script": "const b = document.querySelector('.jfbm-backdrop'); const p = b.querySelector('.jfbm-panel'); const r = p.getBoundingClientRect(); const cs = getComputedStyle(p); const icons = [...p.querySelectorAll('.jfbm-icon-button')].filter(i => i.offsetParent !== null).map(i => { const q = i.getBoundingClientRect(); return [i.title, Math.round(q.width), Math.round(q.height)]; }); const m = { alignItems: getComputedStyle(b).alignItems, panel: [Math.round(r.left), Math.round(r.top), Math.round(r.right), Math.round(r.bottom)], viewport: [innerWidth, innerHeight], radius: [cs.borderTopLeftRadius, cs.borderBottomLeftRadius], rowWrap: getComputedStyle(p.querySelector('.jfbm-row')).flexWrap, icons }; m.ok = m.alignItems === 'flex-end' && m.panel[0] === 0 && m.panel[2] === innerWidth && Math.abs(m.panel[3] - innerHeight) <= 1 && m.radius[1] === '0px' && m.rowWrap === 'wrap' && icons.length >= 5 && icons.every(([, w, h]) => w >= 40 && h >= 40); return m;",
+      "save": "listSheet",
+      "full": true
+    },
+    { "name": "player list bottom sheet as expected", "assert": "__vars.listSheet.ok", "message": "the player list is not a full-width bottom sheet with 40 px icon buttons" },
+    { "screenshot": "bookmarks-phone-player-list.png" },
+
+    { "name": "forced colours on (Windows High Contrast)", "emulate": { "media": { "forced-colors": "active" } } },
+    {
+      "name": "the panel, its buttons and icon buttons have borders",
+      "script": "const p = document.querySelector('.jfbm-backdrop .jfbm-panel'); const width = (el) => getComputedStyle(el).borderTopWidth + ' ' + getComputedStyle(el).borderTopStyle; const m = { forced: matchMedia('(forced-colors: active)').matches, panel: width(p), iconButtons: [...new Set([...p.querySelectorAll('.jfbm-icon-button')].map(width))] }; m.ok = m.forced && m.panel === '1px solid' && m.iconButtons.length === 1 && m.iconButtons[0] === '1px solid'; return m;",
+      "save": "forcedColors",
+      "full": true
+    },
+    { "name": "forced-colors borders as expected", "assert": "__vars.forcedColors.ok", "message": "no forced-colors borders" },
+    { "screenshot": "bookmarks-phone-player-list-forced-colors.png" },
+    { "name": "forced colours off", "emulate": { "media": {} } },
+    { "name": "Escape closes the list", "key": "Escape" },
+    { "name": "closed", "waitFor": "!document.querySelector('.jfbm-backdrop')" },
+    { "name": "leave the player", "goto": "/web/index.html#/details?id=${movieId}" },
+    { "name": "details page again", "waitFor": "(() => { const s = document.querySelector('#itemDetailPage:not(.hide) .jfbm-section'); return !!s && s.querySelectorAll('.jfbm-row').length === 2; })()", "timeout": 20000 },
+    { "name": "back to the desktop viewport", "emulate": "desktop" },
+    { "name": "no uncaught exceptions (the stale CustomRatings tag, and jellyfin-web's own 'player cannot be null' when the player is left, excepted)", "noExceptions": true, "ignore": "/CustomRatings/script|^Error: player cannot be null" }
+  ]
+}

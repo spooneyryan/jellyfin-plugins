@@ -1,0 +1,25 @@
+{
+  "description": "The web guard in the experimental layout's MUI user menu, every section locked: viewer with the probe's Guest role in the experimental layout. Every item of the user menu but Sign out is hidden and aria-disabled, the menu's first divider doesn't stay alone at the top, and opened with the pointer and with Enter the focus lands on Sign out, where the arrow keys keep it. Reads only.",
+  "timeout": 30000,
+  "steps": [
+    { "name": "the experimental layout", "initScript": "localStorage.setItem('layout', 'experimental')" },
+    { "name": "sign in as viewer", "login": "viewer" },
+    { "name": "the guard has viewer's /Me (every section locked), the MUI app bar is up", "waitFor": "!!window.__jfkit && !!window.__jfkit.jfar && __jfkit.jfar.instance.accessRoles.rules().source === 'me' && document.documentElement.classList.contains('jfar-lock-allsettings') && !!document.querySelector('[aria-controls=\"app-user-menu\"]')" },
+    { "name": "open the user menu with the pointer", "click": "[aria-controls=\"app-user-menu\"]" },
+    { "sleep": 800 },
+    { "name": "the menu", "eval": "(() => { const m = document.getElementById('app-user-menu'); const list = m.querySelector('ul'); const children = [...list.children].filter((c) => getComputedStyle(c).display !== 'none').map((c) => c.tagName + ':' + c.textContent.trim()); const a = document.activeElement; return { visible: children, active: a ? a.textContent.trim() : null, jellyfinEnhancedEntry: !!m.querySelector('#jellyfinEnhancedUserMenuLink'), dividers: list.querySelectorAll('hr').length }; })()", "save": "menu", "full": true },
+    { "name": "only Sign out is visible (no divider alone at the top), and it has the focus", "assert": "__vars.menu.visible.length === 1 && /Sign Out/i.test(__vars.menu.visible[0]) && /Sign Out/i.test(__vars.menu.active || '')" },
+    { "name": "ArrowDown", "key": "ArrowDown" },
+    { "sleep": 250 },
+    { "name": "the focus stays on Sign out", "assert": "/Sign Out/i.test(document.activeElement ? document.activeElement.textContent : '')" },
+    { "screenshot": "accessroles-web-guard-experimental-guest-menu.png" },
+    { "name": "close the menu", "key": "Escape" },
+    { "sleep": 600 },
+    { "name": "open it with Enter on the avatar", "script": "document.querySelector('[aria-controls=\"app-user-menu\"]').focus(); return true;" },
+    { "name": "Enter", "key": "Enter" },
+    { "sleep": 800 },
+    { "name": "the focus on Sign out", "assert": "/Sign Out/i.test(document.activeElement ? document.activeElement.textContent : '') && document.getElementById('app-user-menu').contains(document.activeElement)" },
+    { "name": "close it", "key": "Escape" },
+    { "name": "no uncaught exceptions (the stale CustomRatings tag excepted)", "noExceptions": true, "ignore": "/CustomRatings/script" }
+  ]
+}

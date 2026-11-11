@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- xunit v3, Moq, Jellyfin.Controller with runtime assets and RollForward=Major come from TestSupport.props. -->
+  <Import Project="$(KitRoot)build\TestSupport.props" />
+
+  <!-- The plugin's plan-only switch: the tests compile with the same MOVE_PREVIEW_ONLY as the plugin. -->
+  <Import Project="..\..\MovePreviewOnly.props" />
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Jellyfin.Plugin.LibraryMaintenance\Jellyfin.Plugin.LibraryMaintenance.csproj" />
+  </ItemGroup>
+
+  <!--
+    PreviewOnlyBuildTests reads the IL of both builds of the plugin, the plan-only one and
+    the one that will move. The referenced build is one of them; this builds the other into OtherBuild\ below the output,
+    with its own intermediate folder, so neither overwrites the other.
+  -->
+  <PropertyGroup>
+    <LibraryMaintenanceOtherBuild Condition="'$(MovePreviewOnly)' == 'true'">false</LibraryMaintenanceOtherBuild>
+    <LibraryMaintenanceOtherBuild Condition="'$(MovePreviewOnly)' != 'true'">true</LibraryMaintenanceOtherBuild>
+    <LibraryMaintenanceProject>$(MSBuildProjectDirectory)\..\..\Jellyfin.Plugin.LibraryMaintenance\Jellyfin.Plugin.LibraryMaintenance.csproj</LibraryMaintenanceProject>
+  </PropertyGroup>
+
+  <Target Name="BuildTheOtherLibraryMaintenanceBuild" AfterTargets="Build">
+    <MSBuild Projects="$(LibraryMaintenanceProject)"
+             Targets="Build"
+             Properties="Configuration=$(Configuration);MovePreviewOnly=$(LibraryMaintenanceOtherBuild);OutDir=$([MSBuild]::NormalizeDirectory('$(MSBuildProjectDirectory)', '$(OutDir)', 'OtherBuild'));IntermediateOutputPath=$([MSBuild]::NormalizeDirectory('$(MSBuildProjectDirectory)', '..', '..', 'Jellyfin.Plugin.LibraryMaintenance', 'obj', 'other-build', '$(Configuration)'))" />
+  </Target>
+
+</Project>

@@ -1,0 +1,174 @@
+{
+  "name": "Smart Search's Advanced Search page follows the dashboard theme through the kit's tokens: as viewer, a title search ('test', Movies) in Dark, Light, Apple TV and Purple Haze (localStorage '<userId>-appTheme', then a reload; Dark is a fresh profile's theme): the page's text is the theme's text colour, and the pressed item type and the Search button are the theme's accent. Screenshots smartsearch-search-theme-*.png.",
+  "failOnException": false,
+  "timeout": 30000,
+  "steps": [
+    {
+      "name": "page helpers",
+      "initScript": "\nwindow.__ss = {\n  root: () => [...document.querySelectorAll('[data-jfss-page=\"search\"][data-jfss-mounted] .jfss-search')].find(x => x.getClientRects().length > 0) || null,\n  q: (s) => { const r = window.__ss.root(); return r ? r.querySelector(s) : null; },\n  all: (s) => { const r = window.__ss.root(); return r ? [...r.querySelectorAll(s)] : []; },\n  set: (s, v) => { const e = window.__ss.q(s); e.value = v; e.dispatchEvent(new Event('input', { bubbles: true })); e.dispatchEvent(new Event('change', { bubbles: true })); return true; },\n  ready: () => !!window.__ss.q('.jfss-scope') && !!window.__ss.q('.jfss-search-button'),\n  done: () => { const c = window.__ss.q('.jfss-count'); const n = window.__ss.q('.jfss-notices'); if (c && c.textContent && !/Searching/.test(c.textContent)) return c.textContent; if (n && n.textContent) return n.textContent; return false; },\n  ids: () => window.__ss.all('.jfss-card, .jfss-row').map(x => x.getAttribute('data-id')),\n  names: () => window.__ss.all('.jfss-card, .jfss-row').map(x => (x.querySelector('bdi') || x).textContent.trim()),\n  pressed: (s) => window.__ss.all(s).filter(b => b.getAttribute('aria-pressed') === 'true').map(b => b.textContent),\n  norm: (ids) => ids.map(i => String(i).replace(/-/g, '').toLowerCase()).sort().join(),\n  server: async (q) => window.__ss.norm((await ApiClient.getItems(ApiClient.getCurrentUserId(), Object.assign({ Recursive: true }, q))).Items.map(i => i.Id)),\n  noHScroll: () => document.documentElement.scrollWidth <= innerWidth && window.__ss.root().scrollWidth <= window.__ss.root().clientWidth + 1,\n  box: (e) => { const r = e.getBoundingClientRect(); return [Math.round(r.width), Math.round(r.height)]; }\n};\n"
+    },
+    {
+      "name": "sign in as viewer",
+      "login": "viewer"
+    },
+    {
+      "name": "the Smart Search script ran",
+      "waitFor": "!!window.__jfkit && !!window.__jfkit.jfss && !!window.ApiClient && !!ApiClient.getCurrentUserId()",
+      "timeout": 20000
+    },
+    {
+      "name": "Dark for this browser",
+      "eval": "(localStorage.setItem(ApiClient.getCurrentUserId() + '-appTheme', 'dark'), true)"
+    },
+    {
+      "name": "the page (Dark)",
+      "goto": "/web/index.html#/jfss-search?kinds=Movie&q=test&run=1"
+    },
+    {
+      "name": "the page is on its route before the reload (a goto within the page returns before the browser has the new address, and a reload at once would load the old one)",
+      "waitFor": "location.hash.indexOf('#/jfss-search') === 0 && !!window.__ss && !!__ss.root()",
+      "timeout": 20000
+    },
+    {
+      "name": "reload (Dark)",
+      "reload": true
+    },
+    {
+      "name": "let the reloaded page start (Dark)",
+      "sleep": 2000
+    },
+    {
+      "name": "the results (Dark)",
+      "waitFor": "document.documentElement.getAttribute('data-theme') === 'dark' && !!window.__ss && !!__ss.root() && !!__ss.done() && __ss.all('.jfss-card').length > 0",
+      "timeout": 25000
+    },
+    {
+      "name": "settle (Dark)",
+      "sleep": 500
+    },
+    {
+      "name": "the colours (Dark)",
+      "eval": "(() => { const host = document.querySelector('[data-jfss-page=\"search\"][data-jfss-mounted]'); const kind = __ss.all('.jfss-kind').find(b => b.getAttribute('aria-pressed') === 'true'); return { pageColor: getComputedStyle(host).color, htmlColor: getComputedStyle(document.documentElement).color, kindBackground: getComputedStyle(kind).backgroundColor, searchBackground: getComputedStyle(__ss.q('.jfss-search-button')).backgroundColor, titleColor: getComputedStyle(__ss.q('.jfss-title')).color }; })()",
+      "save": "dark",
+      "full": true
+    },
+    {
+      "screenshot": "smartsearch-search-theme-dark.png"
+    },
+    {
+      "name": "Light for this browser",
+      "eval": "(localStorage.setItem(ApiClient.getCurrentUserId() + '-appTheme', 'light'), true)"
+    },
+    {
+      "name": "the page (Light)",
+      "goto": "/web/index.html#/jfss-search?kinds=Movie&q=test&run=1"
+    },
+    {
+      "name": "reload (Light)",
+      "reload": true
+    },
+    {
+      "name": "let the reloaded page start (Light)",
+      "sleep": 2000
+    },
+    {
+      "name": "the results (Light)",
+      "waitFor": "document.documentElement.getAttribute('data-theme') === 'light' && !!window.__ss && !!__ss.root() && !!__ss.done() && __ss.all('.jfss-card').length > 0",
+      "timeout": 25000
+    },
+    {
+      "name": "settle (Light)",
+      "sleep": 500
+    },
+    {
+      "name": "the colours (Light)",
+      "eval": "(() => { const host = document.querySelector('[data-jfss-page=\"search\"][data-jfss-mounted]'); const kind = __ss.all('.jfss-kind').find(b => b.getAttribute('aria-pressed') === 'true'); return { pageColor: getComputedStyle(host).color, htmlColor: getComputedStyle(document.documentElement).color, kindBackground: getComputedStyle(kind).backgroundColor, searchBackground: getComputedStyle(__ss.q('.jfss-search-button')).backgroundColor, titleColor: getComputedStyle(__ss.q('.jfss-title')).color }; })()",
+      "save": "light",
+      "full": true
+    },
+    {
+      "screenshot": "smartsearch-search-theme-light.png"
+    },
+    {
+      "name": "Apple TV for this browser",
+      "eval": "(localStorage.setItem(ApiClient.getCurrentUserId() + '-appTheme', 'appletv'), true)"
+    },
+    {
+      "name": "the page (Apple TV)",
+      "goto": "/web/index.html#/jfss-search?kinds=Movie&q=test&run=1"
+    },
+    {
+      "name": "reload (Apple TV)",
+      "reload": true
+    },
+    {
+      "name": "let the reloaded page start (Apple TV)",
+      "sleep": 2000
+    },
+    {
+      "name": "the results (Apple TV)",
+      "waitFor": "document.documentElement.getAttribute('data-theme') === 'appletv' && !!window.__ss && !!__ss.root() && !!__ss.done() && __ss.all('.jfss-card').length > 0",
+      "timeout": 25000
+    },
+    {
+      "name": "settle (Apple TV)",
+      "sleep": 500
+    },
+    {
+      "name": "the colours (Apple TV)",
+      "eval": "(() => { const host = document.querySelector('[data-jfss-page=\"search\"][data-jfss-mounted]'); const kind = __ss.all('.jfss-kind').find(b => b.getAttribute('aria-pressed') === 'true'); return { pageColor: getComputedStyle(host).color, htmlColor: getComputedStyle(document.documentElement).color, kindBackground: getComputedStyle(kind).backgroundColor, searchBackground: getComputedStyle(__ss.q('.jfss-search-button')).backgroundColor, titleColor: getComputedStyle(__ss.q('.jfss-title')).color }; })()",
+      "save": "appletv",
+      "full": true
+    },
+    {
+      "screenshot": "smartsearch-search-theme-appletv.png"
+    },
+    {
+      "name": "Purple Haze for this browser",
+      "eval": "(localStorage.setItem(ApiClient.getCurrentUserId() + '-appTheme', 'purplehaze'), true)"
+    },
+    {
+      "name": "the page (Purple Haze)",
+      "goto": "/web/index.html#/jfss-search?kinds=Movie&q=test&run=1"
+    },
+    {
+      "name": "reload (Purple Haze)",
+      "reload": true
+    },
+    {
+      "name": "let the reloaded page start (Purple Haze)",
+      "sleep": 2000
+    },
+    {
+      "name": "the results (Purple Haze)",
+      "waitFor": "document.documentElement.getAttribute('data-theme') === 'purplehaze' && !!window.__ss && !!__ss.root() && !!__ss.done() && __ss.all('.jfss-card').length > 0",
+      "timeout": 25000
+    },
+    {
+      "name": "settle (Purple Haze)",
+      "sleep": 500
+    },
+    {
+      "name": "the colours (Purple Haze)",
+      "eval": "(() => { const host = document.querySelector('[data-jfss-page=\"search\"][data-jfss-mounted]'); const kind = __ss.all('.jfss-kind').find(b => b.getAttribute('aria-pressed') === 'true'); return { pageColor: getComputedStyle(host).color, htmlColor: getComputedStyle(document.documentElement).color, kindBackground: getComputedStyle(kind).backgroundColor, searchBackground: getComputedStyle(__ss.q('.jfss-search-button')).backgroundColor, titleColor: getComputedStyle(__ss.q('.jfss-title')).color }; })()",
+      "save": "purplehaze",
+      "full": true
+    },
+    {
+      "screenshot": "smartsearch-search-theme-purplehaze.png"
+    },
+    {
+      "name": "the page's text is the theme's in every theme, and Light's differs from Dark's",
+      "assert": "[__vars.dark, __vars.light, __vars.appletv, __vars.purplehaze].every(p => p.pageColor === p.htmlColor) && __vars.dark.htmlColor !== __vars.light.htmlColor"
+    },
+    {
+      "name": "the pressed kind and Search are the theme's accent",
+      "assert": "['dark', 'light', 'appletv'].every(k => __vars[k].kindBackground === 'rgb(0, 164, 220)' && __vars[k].searchBackground === 'rgb(0, 164, 220)') && __vars.purplehaze.kindBackground === 'rgb(72, 195, 200)' && __vars.purplehaze.searchBackground === 'rgb(72, 195, 200)'"
+    },
+    {
+      "name": "no uncaught exception (the stale CustomRatings tag is known noise)",
+      "noExceptions": true,
+      "ignore": "CustomRatings"
+    }
+  ]
+}

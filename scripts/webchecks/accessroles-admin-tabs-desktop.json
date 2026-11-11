@@ -1,0 +1,438 @@
+{
+  "description": "The Overview, Libraries, Audit, Settings, Data and Diagnostics tabs on Access Roles' dashboard page at 1366 px, as admin, after accessroles-admin-tabs-probe.mjs set up its libraries (one renamed to an 81-character name, one deleted with its references kept, one deleted and created again), its roles \"Tabs probe Pair\" and \"Tabs probe Gone only\" and its users tabsprobe-kid (drifted under DriftPolicy ReportOnly) and tabsprobe-teen (no library left by the rules, its own access changed natively: a skip). The Overview's chips (enforcement active, the web UI injected, the kid's drift, the teen with no library, who the login screen shows, the filter errors as Diagnostics counts them) and its server-wide box of five; the Libraries tab's cards (created again, deleted naming the role it empties and its user, renamed from the audit's LibraryRenamed line), the teen with no library by user; Grant again and Remove references, each previewed as its own dry run and saved; the kid's Revert this user, previewed for the kid alone and written; the Audit tab's lines, the action filter and Download (the export captured in the page through URL.createObjectURL and the anchor's click, never saved to disk: the server's file name, every line an audit line); the Settings tab's interval change previewed, another administrator's change of the same setting (PUT Settings without a token, through the page's session) making Save a 409 with the focus on Look again, the new preview and Save; the Data tab as Diagnostics has it, with its Export, Import and Snapshots sections; the Diagnostics tab's five tables and the rule search. The probe checks the writes through the API afterwards and puts everything back.",
+  "steps": [
+    {
+      "name": "sign in as admin",
+      "login": "admin"
+    },
+    {
+      "name": "the web client is ready",
+      "waitFor": "!!window.ApiClient && !!ApiClient.getCurrentUserId()"
+    },
+    {
+      "name": "open Access Roles' page",
+      "goto": "/web/index.html#/configurationpage?name=AccessRoles"
+    },
+    {
+      "name": "the module mounted: the tabs, the status loaded, the chips, the loading note hidden",
+      "waitFor": "(() => { const p = document.querySelector('#AccessRolesConfigPage:not(.hide)'); return !!p && p.querySelectorAll('[role=\"tab\"]').length === 8 && p.querySelectorAll('#AccessRolesStatus table').length === 5 && p.querySelector('#AccessRolesScriptNote').hidden === true && p.querySelectorAll('#AccessRolesChips [data-chip]').length >= 10; })()",
+      "timeout": 30000
+    },
+    {
+      "name": "the check's helpers",
+      "script": "window.__arTabs = {\n  page: () => document.querySelector('#AccessRolesConfigPage:not(.hide)'),\n  panels: () => [...document.querySelectorAll('.jfar-backdrop .jfar-panel')],\n  top: () => __arTabs.panels().pop() || null,\n  title: () => { const t = __arTabs.top(); return t ? t.querySelector('.jfar-panel-header h3').textContent : null; },\n  button: (root, text) => [...(root || document).querySelectorAll('button')].find(b => b.textContent === text) || null,\n  press: (root, text) => { const b = __arTabs.button(root, text); if (!b) throw new Error('no button ' + text); if (b.disabled) throw new Error(text + ' is disabled'); b.click(); return true; },\n  shown: (el) => !!el && el.getClientRects().length > 0 && !el.closest('[hidden]'),\n  chip: (id) => __arTabs.page().querySelector('#AccessRolesChips [data-chip=\"' + id + '\"]'),\n  card: (name) => [...__arTabs.page().querySelectorAll('.jfar-page-library')].find(c => c.querySelector('.jfar-page-library-name').textContent === name) || null,\n  setting: (name) => __arTabs.page().querySelector('[data-setting=\"' + name + '\"]'),\n  set: (el, value) => { el.value = String(value); el.dispatchEvent(new Event('input', { bubbles: true })); el.dispatchEvent(new Event('change', { bubbles: true })); return el.value; },\n  id: (x) => String(x || '').replace(/-/g, '').toLowerCase(),\n  seen: [],\n  toasts: () => __arTabs.seen.concat([...document.querySelectorAll('.jfar-toast')].map(t => t.textContent))\n};\n// Every toast's text as it comes (a toast goes after 4 s, maybe before a wait sees it).\nnew MutationObserver(() => { document.querySelectorAll('.jfar-toast').forEach(t => { if (!__arTabs.seen.includes(t.textContent)) __arTabs.seen.push(t.textContent); }); }).observe(document.body, { childList: true, subtree: true });\nreturn true;"
+    },
+    {
+      "name": "another administrator's helper (this check's only)",
+      "script": "__arTabs.otherAdmin = (body) => ApiClient.ajax({ type: 'PUT', url: ApiClient.getUrl('AccessRoles/Admin/Settings'), data: JSON.stringify(body), contentType: 'application/json', dataType: 'json' });\nreturn true;"
+    },
+    {
+      "name": "who the login screen shows: the managed non-admins neither hidden nor disabled",
+      "eval": "(async () => { const rows = await ApiClient.getJSON(ApiClient.getUrl('AccessRoles/Admin/Users')); const users = await ApiClient.getJSON(ApiClient.getUrl('Users')); const managed = rows.filter(r => r.State === 'Managed').map(r => __arTabs.id(r.UserId)); return users.filter(u => managed.includes(__arTabs.id(u.Id)) && !u.Policy.IsAdministrator && !u.Policy.IsHidden && !u.Policy.IsDisabled).map(u => u.Name); })()",
+      "save": "loginShown"
+    },
+    {
+      "name": "Diagnostics' filter errors",
+      "eval": "(async () => { const d = await ApiClient.getJSON(ApiClient.getUrl('AccessRoles/Admin/Diagnostics')); return (d.Enforcement && d.Enforcement.Filter && d.Enforcement.Filter.FilterErrors) || 0; })()",
+      "save": "filterErrors"
+    },
+    {
+      "name": "the chips",
+      "eval": "Object.fromEntries([...__arTabs.page().querySelectorAll('#AccessRolesChips [data-chip]')].map(c => [c.getAttribute('data-chip'), c.getAttribute('data-kind') + ': ' + c.textContent]))",
+      "save": "chips",
+      "full": true
+    },
+    {
+      "name": "enforcement active, the web UI injected in this browser",
+      "assert": "__vars.chips.enforcement === 'ok: Enforcement active' && __vars.chips.webui === 'ok: Web UI injected'"
+    },
+    {
+      "name": "the drift: one user's (the kid's)",
+      "assert": "__vars.chips.drift === 'warning: Drift: 1 user changed outside Access Roles (Users tab)'"
+    },
+    {
+      "name": "the teen has no library (and the kid has one)",
+      "assert": "/^error: Users with no libraries: /.test(__vars.chips.nolibraries) && __vars.chips.nolibraries.includes('tabsprobe-teen') && !__vars.chips.nolibraries.includes('tabsprobe-kid')"
+    },
+    {
+      "name": "the login-screen chip names who the login screen shows",
+      "assert": "__vars.loginShown.length ? (__vars.chips.loginscreen.startsWith('warning: ') && __vars.loginShown.every(n => __vars.chips.loginscreen.includes(n))) : __vars.chips.loginscreen === 'ok: No managed user is shown on the login screen'"
+    },
+    {
+      "name": "the filter-error chip as Diagnostics counts them",
+      "assert": "__vars.filterErrors > 0 ? __vars.chips.filtererrors.startsWith('error: Filter errors: ' + __vars.filterErrors + ' ') : __vars.chips.filtererrors === 'ok: No filter errors'"
+    },
+    {
+      "name": "the server-wide box: five behaviours",
+      "assert": "__arTabs.shown(document.querySelector('#AccessRolesServerWide')) && document.querySelectorAll('#AccessRolesServerWide li').length === 5"
+    },
+    {
+      "sleep": 200
+    },
+    {
+      "screenshot": "accessroles-admin-tabs-overview.png"
+    },
+    {
+      "name": "the Libraries tab",
+      "click": "#AccessRolesTabLibraries"
+    },
+    {
+      "name": "the Libraries panel shown",
+      "waitFor": "document.querySelector('#AccessRolesTabLibraries').getAttribute('aria-selected') === 'true' && __arTabs.shown(document.querySelector('#AccessRolesPanelLibraries'))"
+    },
+    {
+      "name": "the probe's three cards",
+      "waitFor": "!!__arTabs.card('Tabs probe Again') && !!__arTabs.card('Tabs probe Gone') && !!__arTabs.card(\"Tabs probe NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN\")",
+      "timeout": 20000
+    },
+    {
+      "name": "the renames read from the audit",
+      "waitFor": "[...__arTabs.card(\"Tabs probe NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN\").querySelectorAll('.jfar-page-library-warning')].some(w => w.textContent.startsWith('Library renamed: Tabs probe Old → '))",
+      "timeout": 20000
+    },
+    {
+      "name": "what the cards say",
+      "eval": "Object.fromEntries(['Tabs probe Again', 'Tabs probe Gone', \"Tabs probe NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN\"].map(n => { const c = __arTabs.card(n); return [n.slice(0, 16), { state: c.getAttribute('data-state'), warnings: [...c.querySelectorAll('.jfar-page-library-warning')].map(w => w.textContent), actions: [...c.querySelectorAll('button[data-action]')].map(b => b.getAttribute('data-action') + (b.disabled ? ' (disabled)' : '')) }]; }))",
+      "save": "cards",
+      "full": true
+    },
+    {
+      "name": "created again: a new library, Grant again offered",
+      "assert": "(() => { const c = __vars.cards['Tabs probe Again']; return c.state === 'Active' && c.warnings.some(w => w === 'Library Tabs probe Again was created again. It is a new library: grant it again?') && c.actions.includes('grant-again'); })()"
+    },
+    {
+      "name": "deleted: Orphaned, the references kept, the role it empties and its user named, Remove references offered",
+      "assert": "(() => { const c = __vars.cards['Tabs probe Gone'];  return c.state === 'Orphaned' && c.warnings.some(w => w.startsWith('Library Tabs probe Gone was deleted.') && w.includes('role Tabs probe Gone only now grants no library, so 1 user has no libraries') && w.includes('Their references are kept until you remove them.')) && c.actions.includes('purge'); })()"
+    },
+    {
+      "name": "renamed: the old and new names, the roles re-pointed",
+      "assert": "__vars.cards['Tabs probe NNNNN'].warnings.some(w => w.startsWith('Library renamed: Tabs probe Old → Tabs probe NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN; roles re-pointed'))"
+    },
+    {
+      "name": "by user: the teen opens its own library, marked: the roles would leave it none (since 0.9.12)",
+      "assert": "(async () => { const rows = await ApiClient.getJSON(ApiClient.getUrl('AccessRoles/Admin/Users')); const teen = rows.find(r => r.Name === 'tabsprobe-teen'); const li = document.querySelector('#AccessRolesLibrariesByUser li[data-user-id=\"' + __arTabs.id(teen.UserId) + '\"]'); return !!li && li.getAttribute('data-mismatch') === 'NoLibraries' && li.classList.contains('jfar-page-library-mismatch') && !li.classList.contains('jfar-page-library-none') && li.textContent.includes('not as the roles give: the roles would leave this user no library'); })()"
+    },
+    {
+      "sleep": 200
+    },
+    {
+      "screenshot": "accessroles-admin-tabs-libraries.png"
+    },
+    {
+      "name": "Grant again…",
+      "script": "__arTabs.card('Tabs probe Again').querySelector('button[data-action=\"grant-again\"]').click(); return true;"
+    },
+    {
+      "name": "its review: the dry run of the grant, Grant again enabled",
+      "waitFor": "__arTabs.title() === 'Grant Tabs probe Again again' && !!__arTabs.button(__arTabs.top(), 'Grant again') && !__arTabs.button(__arTabs.top(), 'Grant again').disabled",
+      "timeout": 20000
+    },
+    {
+      "name": "Grant again",
+      "script": "return __arTabs.press(__arTabs.top(), 'Grant again');"
+    },
+    {
+      "name": "saved: the review closed, the toast, the card no longer created again",
+      "waitFor": "__arTabs.panels().length === 0 && __arTabs.toasts().includes('Tabs probe Again is granted again.') && !!__arTabs.card('Tabs probe Again') && !__arTabs.card('Tabs probe Again').textContent.includes('was created again')",
+      "timeout": 20000
+    },
+    {
+      "name": "Remove references…",
+      "script": "__arTabs.card('Tabs probe Gone').querySelector('button[data-action=\"purge\"]').click(); return true;"
+    },
+    {
+      "name": "its review: the dry run of the purge, Remove references enabled",
+      "waitFor": "__arTabs.title() === 'Remove the references to Tabs probe Gone' && !!__arTabs.button(__arTabs.top(), 'Remove references') && !__arTabs.button(__arTabs.top(), 'Remove references').disabled",
+      "timeout": 20000
+    },
+    {
+      "name": "Remove references",
+      "script": "return __arTabs.press(__arTabs.top(), 'Remove references');"
+    },
+    {
+      "name": "saved: the review closed, the toast, the deleted library's card gone",
+      "waitFor": "__arTabs.panels().length === 0 && __arTabs.toasts().includes('The references to Tabs probe Gone are removed.') && !__arTabs.card('Tabs probe Gone')",
+      "timeout": 20000
+    },
+    {
+      "name": "the Users tab",
+      "click": "#AccessRolesTabUsers"
+    },
+    {
+      "name": "the Users panel shown",
+      "waitFor": "document.querySelector('#AccessRolesTabUsers').getAttribute('aria-selected') === 'true' && __arTabs.shown(document.querySelector('#AccessRolesPanelUsers'))"
+    },
+    {
+      "name": "tabsprobe-kid's id",
+      "eval": "(async () => __arTabs.id((await ApiClient.getJSON(ApiClient.getUrl('AccessRoles/Admin/Users'))).find(u => u.Name === 'tabsprobe-kid').UserId))()",
+      "save": "kidId"
+    },
+    {
+      "name": "open tabsprobe-kid's panel",
+      "click": "#AccessRolesPanelUsers [data-ar-focus=\"user-${kidId}\"]"
+    },
+    {
+      "name": "the panel's drift section: Revert this user",
+      "waitFor": "__arTabs.title() === 'tabsprobe-kid' && !!__arTabs.top().querySelector('#AccessRolesDriftRevertUser') && !__arTabs.top().querySelector('#AccessRolesDriftRevertUser').disabled",
+      "timeout": 20000
+    },
+    {
+      "name": "Revert this user…",
+      "script": "__arTabs.top().querySelector('#AccessRolesDriftRevertUser').click(); return true;"
+    },
+    {
+      "name": "its review: the kid's dry run, Revert enabled",
+      "waitFor": "__arTabs.title() === 'Revert the library access of tabsprobe-kid' && !!document.querySelector('#AccessRolesRevertConfirm') && !document.querySelector('#AccessRolesRevertConfirm').disabled",
+      "timeout": 20000
+    },
+    {
+      "name": "what it writes",
+      "eval": "({ summary: __arTabs.top().querySelector('.jfar-page-preview-summary').textContent, rows: [...__arTabs.top().querySelectorAll('#AccessRolesRevertPreview li')].map(li => li.textContent) })",
+      "save": "revert",
+      "full": true
+    },
+    {
+      "name": "the kid alone",
+      "assert": "__vars.revert.summary === 'Reverting writes the library access of 1 user:' && __vars.revert.rows.length === 1 && __vars.revert.rows[0].startsWith('tabsprobe-kid: ')"
+    },
+    {
+      "name": "Revert",
+      "click": "#AccessRolesRevertConfirm"
+    },
+    {
+      "name": "written: the toast, the review closed",
+      "waitFor": "__arTabs.toasts().includes('Library access written for 1 user.') && __arTabs.title() !== 'Revert the library access of tabsprobe-kid'",
+      "timeout": 20000
+    },
+    {
+      "name": "Close the panel",
+      "script": "while (__arTabs.panels().length) { __arTabs.top().querySelector('.jfar-panel-header .jfar-icon-button').click(); } return true;"
+    },
+    {
+      "name": "closed",
+      "waitFor": "__arTabs.panels().length === 0"
+    },
+    {
+      "name": "the Audit tab",
+      "click": "#AccessRolesTabAudit"
+    },
+    {
+      "name": "the Audit panel shown",
+      "waitFor": "document.querySelector('#AccessRolesTabAudit').getAttribute('aria-selected') === 'true' && __arTabs.shown(document.querySelector('#AccessRolesPanelAudit'))"
+    },
+    {
+      "name": "the first page of lines",
+      "waitFor": "document.querySelectorAll('#AccessRolesAuditList .jfar-page-audit-entry').length > 0",
+      "timeout": 20000
+    },
+    {
+      "name": "the lines' actions",
+      "eval": "[...new Set([...document.querySelectorAll('#AccessRolesAuditList .jfar-page-audit-entry')].map(e => e.getAttribute('data-action')))]",
+      "save": "actions"
+    },
+    {
+      "name": "the page's writes are listed: LibraryPurged, LibraryGrantedAgain, SettingsChanged, LibraryRenamed",
+      "assert": "['LibraryPurged', 'LibraryGrantedAgain', 'SettingsChanged', 'LibraryRenamed'].every(a => __vars.actions.includes(a))"
+    },
+    {
+      "name": "only LibraryPurged",
+      "script": "__arTabs.set(__arTabs.page().querySelector('[data-audit-filter=\"action\"]'), 'LibraryPurged'); document.querySelector('#AccessRolesAuditShow').click(); return true;"
+    },
+    {
+      "name": "the filtered page: LibraryPurged lines only",
+      "waitFor": "(() => { const e = [...document.querySelectorAll('#AccessRolesAuditList .jfar-page-audit-entry')]; return e.length >= 1 && e.every(x => x.getAttribute('data-action') === 'LibraryPurged') && /^Showing \\d+ of \\d+ lines?\\.$/.test(document.querySelector('#AccessRolesAuditSummary').textContent); })()",
+      "timeout": 20000
+    },
+    {
+      "name": "the purge's line by the admin",
+      "assert": "[...document.querySelectorAll('#AccessRolesAuditList .jfar-page-audit-entry')].some(e => e.textContent.includes('Tabs probe Gone'))"
+    },
+    {
+      "name": "any action again",
+      "script": "__arTabs.set(__arTabs.page().querySelector('[data-audit-filter=\"action\"]'), ''); document.querySelector('#AccessRolesAuditShow').click(); return true;"
+    },
+    {
+      "name": "every line again",
+      "waitFor": "new Set([...document.querySelectorAll('#AccessRolesAuditList .jfar-page-audit-entry')].map(e => e.getAttribute('data-action'))).size > 1",
+      "timeout": 20000
+    },
+    {
+      "name": "the download captured in the page (nothing saved to disk)",
+      "script": "window.__arTabsDownload = null; const create = URL.createObjectURL; window.__arTabsCreate = create; URL.createObjectURL = (blob) => { window.__arTabsBlob = blob; return create.call(URL, blob); }; window.__arTabsClick = HTMLAnchorElement.prototype.click; HTMLAnchorElement.prototype.click = function () { if (this.hasAttribute('download')) { window.__arTabsDownload = { name: this.getAttribute('download'), blob: !!window.__arTabsBlob }; return; } return window.__arTabsClick.call(this); }; return true;"
+    },
+    {
+      "name": "Download (JSON Lines)",
+      "click": "#AccessRolesAuditExport"
+    },
+    {
+      "name": "the export handed to the browser",
+      "waitFor": "!!window.__arTabsDownload && __arTabs.toasts().some(t => t.startsWith('The audit log is saved as '))",
+      "timeout": 20000
+    },
+    {
+      "name": "what it holds",
+      "eval": "(async () => { const text = await window.__arTabsBlob.text(); const lines = text.split('\\n').filter(l => l.length); const parsed = lines.map(l => { try { return JSON.parse(l); } catch { return null; } }); URL.createObjectURL = window.__arTabsCreate; HTMLAnchorElement.prototype.click = window.__arTabsClick; return { name: window.__arTabsDownload.name, lines: lines.length, json: parsed.every(p => p && typeof p.Seq === 'number' && typeof p.Action === 'string'), purged: parsed.some(p => p && p.Action === 'LibraryPurged') }; })()",
+      "save": "export",
+      "full": true
+    },
+    {
+      "name": "the server's file name, every line an audit line, the purge among them",
+      "assert": "/^accessroles-audit.*\\.jsonl$/.test(__vars.export.name) && __vars.export.lines > 5 && __vars.export.json === true && __vars.export.purged === true"
+    },
+    {
+      "sleep": 200
+    },
+    {
+      "screenshot": "accessroles-admin-tabs-audit.png"
+    },
+    {
+      "name": "the Settings tab",
+      "click": "#AccessRolesTabSettings"
+    },
+    {
+      "name": "the Settings panel shown",
+      "waitFor": "document.querySelector('#AccessRolesTabSettings').getAttribute('aria-selected') === 'true' && __arTabs.shown(document.querySelector('#AccessRolesPanelSettings'))"
+    },
+    {
+      "name": "the settings loaded",
+      "waitFor": "__arTabs.shown(document.querySelector('#AccessRolesSettingsForm')) && document.querySelector('#AccessRolesSettingsStatus').textContent === 'No changes.'",
+      "timeout": 20000
+    },
+    {
+      "name": "the interval now, the page's value and another administrator's",
+      "eval": "(() => { const n = Number(__arTabs.setting('ReconcileIntervalMinutes').value); const m = (n % 60) + 1; return { n, m, k: (m % 60) + 1 }; })()",
+      "save": "minutes"
+    },
+    {
+      "name": "change the interval",
+      "script": "return __arTabs.set(__arTabs.setting('ReconcileIntervalMinutes'), __vars.minutes.m);"
+    },
+    {
+      "name": "one setting changed, not saved",
+      "waitFor": "document.querySelector('#AccessRolesSettingsStatus').textContent === '1 setting changed, not saved yet.' && !document.querySelector('#AccessRolesSettingsReview').disabled"
+    },
+    {
+      "name": "no toast over the page (a mouse click on Review would land on it)",
+      "waitFor": "document.querySelectorAll('.jfar-toast').length === 0",
+      "timeout": 15000
+    },
+    {
+      "name": "Review and save…",
+      "click": "#AccessRolesSettingsReview"
+    },
+    {
+      "name": "the review: the dry run's change, Save enabled",
+      "waitFor": "__arTabs.title() === 'Review the settings' && !!document.querySelector('#AccessRolesSettingsSave') && !document.querySelector('#AccessRolesSettingsSave').disabled",
+      "timeout": 20000
+    },
+    {
+      "name": "the change shown",
+      "assert": "[...document.querySelectorAll('#AccessRolesSettingsChanges li')].map(li => li.textContent).join('|') === \"Check every user's library access every (minutes, 1 to 60) (ReconcileIntervalMinutes): \" + __vars.minutes.n + ' → ' + __vars.minutes.m"
+    },
+    {
+      "name": "another administrator changes the same setting",
+      "eval": "(async () => { const r = await __arTabs.otherAdmin({ ReconcileIntervalMinutes: __vars.minutes.k }); return r.Settings.ReconcileIntervalMinutes; })()",
+      "save": "other"
+    },
+    {
+      "name": "Save",
+      "click": "#AccessRolesSettingsSave"
+    },
+    {
+      "name": "a 409: nothing saved, Save off, the focus on Look again",
+      "waitFor": "__arTabs.shown(document.querySelector('#AccessRolesSettingsLookAgain')) && document.querySelector('#AccessRolesSettingsSave').disabled && document.activeElement === document.querySelector('#AccessRolesSettingsLookAgain') && __arTabs.top().textContent.includes('ReconcileIntervalMinutes')",
+      "timeout": 20000
+    },
+    {
+      "name": "still another administrator's value",
+      "assert": "(async () => (await ApiClient.getJSON(ApiClient.getUrl('AccessRoles/Admin/Settings'))).ReconcileIntervalMinutes === __vars.minutes.k)()"
+    },
+    {
+      "name": "Look again",
+      "click": "#AccessRolesSettingsLookAgain"
+    },
+    {
+      "name": "the new preview: from another administrator's value",
+      "waitFor": "!document.querySelector('#AccessRolesSettingsSave').disabled && [...document.querySelectorAll('#AccessRolesSettingsChanges li')].map(li => li.textContent).join('|') === \"Check every user's library access every (minutes, 1 to 60) (ReconcileIntervalMinutes): \" + __vars.minutes.k + ' → ' + __vars.minutes.m",
+      "timeout": 20000
+    },
+    {
+      "name": "Save",
+      "click": "#AccessRolesSettingsSave"
+    },
+    {
+      "name": "saved: the review closed, the toast, the form as saved",
+      "waitFor": "__arTabs.panels().length === 0 && __arTabs.toasts().includes('Settings saved.') && document.querySelector('#AccessRolesSettingsStatus').textContent === 'No changes.' && Number(__arTabs.setting('ReconcileIntervalMinutes').value) === __vars.minutes.m",
+      "timeout": 20000
+    },
+    {
+      "name": "the server has the page's value",
+      "assert": "(async () => (await ApiClient.getJSON(ApiClient.getUrl('AccessRoles/Admin/Settings'))).ReconcileIntervalMinutes === __vars.minutes.m)()"
+    },
+    {
+      "sleep": 200
+    },
+    {
+      "screenshot": "accessroles-admin-tabs-settings.png"
+    },
+    {
+      "name": "the Data tab",
+      "click": "#AccessRolesTabData"
+    },
+    {
+      "name": "the Data panel shown",
+      "waitFor": "document.querySelector('#AccessRolesTabData').getAttribute('aria-selected') === 'true' && __arTabs.shown(document.querySelector('#AccessRolesPanelData'))"
+    },
+    {
+      "name": "the data file's table",
+      "waitFor": "document.querySelectorAll('#AccessRolesPanelData table').length >= 2",
+      "timeout": 20000
+    },
+    {
+      "name": "what it shows",
+      "eval": "(async () => { const d = await ApiClient.getJSON(ApiClient.getUrl('AccessRoles/Admin/Diagnostics')); const rows = {}; document.querySelectorAll('#AccessRolesPanelData tr').forEach(tr => { const th = tr.querySelector('th'); const td = tr.querySelector('td'); if (th && td) rows[th.textContent] = td.textContent; }); return { rows, file: d.Store.File, kept: document.querySelectorAll('#AccessRolesKeptFiles li').length, keptCount: d.Store.KeptFileCount, later: !!document.querySelector('#AccessRolesDataLater'), sections: ['AccessRolesDataExportSection', 'AccessRolesDataImportSection', 'AccessRolesDataSnapshotsSection'].map(id => { const e = document.getElementById(id); return !!e && e.getClientRects().length > 0; }), roles: String(d.Records.Roles) }; })()",
+      "save": "data",
+      "full": true
+    },
+    {
+      "name": "the file as Diagnostics has it, Ok, the copies kept next to it as Diagnostics counts them, the records; the Export, Import and Snapshots sections, the 0.9 placeholder gone",
+      "assert": "__vars.data.rows['File'] === __vars.data.file && __vars.data.rows['Status'] === 'Ok' && __vars.data.kept === __vars.data.keptCount && __vars.data.rows['Roles'] === __vars.data.roles && __vars.data.later === false && __vars.data.sections.every(Boolean)"
+    },
+    {
+      "name": "the Diagnostics tab",
+      "click": "#AccessRolesTabDiagnostics"
+    },
+    {
+      "name": "the Diagnostics panel shown",
+      "waitFor": "document.querySelector('#AccessRolesTabDiagnostics').getAttribute('aria-selected') === 'true' && __arTabs.shown(document.querySelector('#AccessRolesPanelDiagnostics'))"
+    },
+    {
+      "name": "the five status tables shown",
+      "assert": "[...document.querySelectorAll('#AccessRolesPanelDiagnostics #AccessRolesStatus table')].filter(t => __arTabs.shown(t)).length === 5"
+    },
+    {
+      "name": "a rule the filter timed",
+      "eval": "(async () => { const d = await ApiClient.getJSON(ApiClient.getUrl('AccessRoles/Admin/Diagnostics')); const names = Object.keys((d.Enforcement && d.Enforcement.Cost) || {}); return names.length ? names[0].split('+')[0] : null; })()",
+      "save": "rule"
+    },
+    {
+      "name": "search for it",
+      "script": "if (__vars.rule) __arTabs.set(document.querySelector('#AccessRolesRuleSearch input'), __vars.rule); return __vars.rule;"
+    },
+    {
+      "name": "only the rows of that rule (or no rule timed yet)",
+      "assert": "__vars.rule === null || (() => { const rows = [...document.querySelectorAll('#AccessRolesRuleCost tbody tr')]; return rows.length >= 1 && rows.every(r => r.getAttribute('data-rule-name').split('+').map(p => p.trim().toLowerCase()).includes(__vars.rule.toLowerCase()) || r.getAttribute('data-rule-name').toLowerCase() === __vars.rule.toLowerCase()); })()"
+    },
+    {
+      "sleep": 200
+    },
+    {
+      "screenshot": "accessroles-admin-tabs-diagnostics.png"
+    },
+    {
+      "name": "no uncaught exceptions (the stale CustomRatings tag excepted)",
+      "noExceptions": true,
+      "ignore": "/CustomRatings/script"
+    }
+  ]
+}

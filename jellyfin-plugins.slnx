@@ -1,0 +1,89 @@
+<Solution>
+  <Folder Name="/Solution Items/">
+    <File Path=".editorconfig" />
+    <File Path="DEVELOPMENT.md" />
+    <File Path="Directory.Build.props" />
+    <File Path="Directory.Build.targets" />
+    <File Path="Directory.Packages.props" />
+    <File Path="kit/build/Kit.props" />
+    <File Path="kit/build/TestSupport.props" />
+    <File Path="kit/VERSION" />
+  </Folder>
+  <Folder Name="/plugins/" />
+  <Folder Name="/plugins/AccessRoles/">
+    <File Path="plugins/AccessRoles/build.yaml" />
+    <File Path="plugins/AccessRoles/DEVELOPMENT.md" />
+    <File Path="plugins/AccessRoles/README.md" />
+    <Project Path="plugins/AccessRoles/Jellyfin.Plugin.AccessRoles/Jellyfin.Plugin.AccessRoles.csproj" />
+    <Project Path="plugins/AccessRoles/tests/Jellyfin.Plugin.AccessRoles.Tests/Jellyfin.Plugin.AccessRoles.Tests.csproj" />
+  </Folder>
+  <Folder Name="/plugins/Bookmarks/">
+    <File Path="plugins/Bookmarks/build.yaml" />
+    <File Path="plugins/Bookmarks/DEVELOPMENT.md" />
+    <File Path="plugins/Bookmarks/README.md" />
+    <Project Path="plugins/Bookmarks/Jellyfin.Plugin.Bookmarks/Jellyfin.Plugin.Bookmarks.csproj" />
+    <Project Path="plugins/Bookmarks/tests/Jellyfin.Plugin.Bookmarks.Tests/Jellyfin.Plugin.Bookmarks.Tests.csproj" />
+  </Folder>
+  <Folder Name="/plugins/LibraryMaintenance/">
+    <File Path="plugins/LibraryMaintenance/build.yaml" />
+    <File Path="plugins/LibraryMaintenance/DEVELOPMENT.md" />
+    <File Path="plugins/LibraryMaintenance/README.md" />
+    <Project Path="plugins/LibraryMaintenance/Jellyfin.Plugin.LibraryMaintenance/Jellyfin.Plugin.LibraryMaintenance.csproj" />
+    <Project Path="plugins/LibraryMaintenance/tests/Jellyfin.Plugin.LibraryMaintenance.Tests/Jellyfin.Plugin.LibraryMaintenance.Tests.csproj" />
+  </Folder>
+  <Folder Name="/plugins/SmartSearch/">
+    <File Path="plugins/SmartSearch/build.yaml" />
+    <File Path="plugins/SmartSearch/DEVELOPMENT.md" />
+    <File Path="plugins/SmartSearch/README.md" />
+    <Project Path="plugins/SmartSearch/Jellyfin.Plugin.SmartSearch/Jellyfin.Plugin.SmartSearch.csproj" />
+    <Project Path="plugins/SmartSearch/tests/Jellyfin.Plugin.SmartSearch.Tests/Jellyfin.Plugin.SmartSearch.Tests.csproj" />
+  </Folder>
+  <Folder Name="/plugins/TagCloud/">
+    <File Path="plugins/TagCloud/build.yaml" />
+    <File Path="plugins/TagCloud/DEVELOPMENT.md" />
+    <File Path="plugins/TagCloud/README.md" />
+    <Project Path="plugins/TagCloud/Jellyfin.Plugin.TagCloud/Jellyfin.Plugin.TagCloud.csproj" />
+    <Project Path="plugins/TagCloud/tests/Jellyfin.Plugin.TagCloud.Tests/Jellyfin.Plugin.TagCloud.Tests.csproj" />
+  </Folder>
+  <Folder Name="/plugins/UserRatings/">
+    <File Path="plugins/UserRatings/build.yaml" />
+    <File Path="plugins/UserRatings/DEVELOPMENT.md" />
+    <File Path="plugins/UserRatings/README.md" />
+    <Project Path="plugins/UserRatings/Jellyfin.Plugin.UserRatings/Jellyfin.Plugin.UserRatings.csproj" />
+    <Project Path="plugins/UserRatings/tests/Jellyfin.Plugin.UserRatings.Tests/Jellyfin.Plugin.UserRatings.Tests.csproj" />
+  </Folder>
+  <Folder Name="/kit/">
+    <File Path="kit/testdata/openapi-schema-ids.txt" />
+    <File Path="kit/testdata/reserved-controller-names.txt" />
+    <File Path="kit/testdata/web/index.html" />
+    <File Path="kit/testsupport/Api/AnonymousActionChecks.cs" />
+    <File Path="kit/testsupport/Api/ControllerDiscovery.cs" />
+    <File Path="kit/testsupport/Api/ControllerNameChecks.cs" />
+    <File Path="kit/testsupport/Api/JellyfinAuth.cs" />
+    <File Path="kit/testsupport/Api/SchemaPrefixChecks.cs" />
+    <File Path="kit/testsupport/Logging/ListLogger.cs" />
+    <File Path="kit/testsupport/PluginIdentity/BuildYaml.cs" />
+    <File Path="kit/testsupport/PluginIdentity/PluginIdentityChecks.cs" />
+    <File Path="kit/testsupport/Storage/StoreConformance.cs" />
+    <File Path="kit/testsupport/Storage/StoreConformanceTests.cs" />
+    <File Path="kit/testsupport/TempDirectory.cs" />
+    <File Path="kit/testsupport/Time/ManualTimeProvider.cs" />
+    <File Path="kit/testsupport/Web/JellyfinEnhancedLikeStartupFilter.cs" />
+    <File Path="kit/testsupport/Web/JsSource.cs" />
+    <File Path="kit/testsupport/Web/KitScriptChecks.cs" />
+    <File Path="kit/testsupport/Web/MiddlewareStartupFilter.cs" />
+    <File Path="kit/testsupport/Web/NodeRunner.cs" />
+    <File Path="kit/testsupport/Web/WebCouplingChecks.cs" />
+    <File Path="kit/testsupport/Web/WebHostHarness.cs" />
+    <File Path="kit/web/kit.css" />
+    <File Path="kit/web/kit.js" />
+    <File Path="kit/web/tests/admin-script.test.mjs" />
+    <File Path="kit/web/tests/client-script.test.mjs" />
+    <File Path="kit/web/tests/fake-dom.mjs" />
+    <File Path="kit/web/tests/kit.test.mjs" />
+    <Project Path="kit/tests/Kit.Tests/Kit.Tests.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Repo.Tests/Repo.Tests.csproj" />
+  </Folder>
+</Solution>

@@ -1,0 +1,9 @@
+# Normalise text files to LF in the repository and in the working tree, matching .editorconfig
+# (end_of_line = lf). This keeps embedded web resources byte-identical on every checkout.
+* text=auto eol=lf
+
+# Store fixtures stay byte-for-byte as the plugin wrote them (CRLF on Windows); tests compare bytes.
+plugins/*/tests/**/Fixtures/*.json -text
+
+# Images are binary: never normalised or diffed as text.
+*.png binary

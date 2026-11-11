@@ -1,0 +1,553 @@
+{
+  "name": "Move's entry in the item menu of an admin, and the dialog opening",
+  "timeout": 30000,
+  "steps": [
+    {
+      "name": "the helpers (a log of Library Maintenance's requests, short names)",
+      "initScript": {
+        "file": "probes/librarymaintenance-move-helpers.js"
+      }
+    },
+    {
+      "name": "sign in as admin",
+      "login": "admin"
+    },
+    {
+      "name": "home page, Library Maintenance's script and its capabilities",
+      "waitFor": "!!document.querySelector('.homePage:not(.hide) .card[data-type=Movie]') && !!window.__jfkit && !!window.__jfkit.jflm && __lmm.log('/LibraryMaintenance/Capabilities').length > 0",
+      "timeout": 60000
+    },
+    {
+      "name": "the capabilities: an admin who can plan, not move",
+      "eval": "(async () => (await (await fetch(ApiClient.getUrl('LibraryMaintenance/Capabilities'), { headers: { Authorization: 'MediaBrowser Token=\"' + ApiClient.accessToken() + '\"' } })).json()))()",
+      "save": "caps",
+      "full": true
+    },
+    {
+      "assert": "__vars.caps.IsAdmin === true && __vars.caps.CanPlanMove === true && __vars.caps.CanMove === false && __vars.caps.ShowMoveInItemMenu === true"
+    },
+    {
+      "name": "the test items",
+      "script": "const u = ApiClient.getCurrentUserId(); const q = async (o) => (await ApiClient.getItems(u, Object.assign({ Recursive: true }, o))).Items; const views = (await ApiClient.getUserViews({}, u)).Items; const movies = await q({ IncludeItemTypes: 'Movie', Fields: 'MediaSources' }); const versions = movies.find(m => m.Name.indexOf('Versions Movie') === 0); const single = movies.find(m => m.Name === 'Test Pattern (2020)' || m.Name === 'Test Pattern'); const boxes = await q({ IncludeItemTypes: 'BoxSet' }); return { moviesLib: views.find(v => v.Name === 'Movies').Id, showsLib: views.find(v => v.Name === 'Shows').Id, versions: versions.Id, versionSources: versions.MediaSources.map(s => s.Id), single: single.Id, series: (await q({ IncludeItemTypes: 'Series' }))[0].Id, season: (await q({ IncludeItemTypes: 'Season', SortBy: 'SortName' }))[0].Id, box: boxes[0] && boxes[0].Id };",
+      "save": "ids",
+      "full": true
+    },
+    {
+      "name": "no eligibility request for the home page's cards before a menu opens",
+      "assert": "__lmm.log('/LibraryMaintenance/Move/Eligibility').length === 0"
+    },
+    {
+      "name": "1a. home row: a movie card's menu button",
+      "script": "__s.hashA = location.hash; __s.opened = __s.opened || []; const id = __lmm.menu(__lmm.card('Movie')); __s.opened.push(__lmm.key(id)); return id;",
+      "save": "homeCard"
+    },
+    {
+      "waitFor": "!!__lmm.sheet() && __lmm.afterRefresh('jflm-move')"
+    },
+    {
+      "sleep": 300
+    },
+    {
+      "name": "1a. the entry right after Refresh metadata, once",
+      "assert": "__lmm.afterRefresh('jflm-move') && JSON.stringify(__lmm.ours()) === JSON.stringify(['jflm-move'])"
+    },
+    {
+      "name": "1a. the row looks like its siblings, with its text and icon",
+      "eval": "(() => { const r = __lmm.sheet().querySelector('[data-id=jflm-move]'); const s = __lmm.sheet().querySelector('[data-id=refresh]'); const icon = r.querySelector('.material-icons'); return { same: r.className === s.className, cls: r.className, text: r.textContent.trim(), icon: icon && icon.className, glyph: icon && getComputedStyle(icon, '::before').content }; })()",
+      "save": "row",
+      "full": true
+    },
+    {
+      "assert": "__vars.row.same && __vars.row.text === 'Move media to new location' && /(^| )drive_file_move( |$)/.test(__vars.row.icon) && !!__vars.row.glyph && __vars.row.glyph !== 'none'"
+    },
+    {
+      "screenshot": "lm-move-1a-home-sheet.png"
+    },
+    {
+      "name": "a real click on the entry",
+      "click": ".dialogContainer > .actionSheet [data-id=\"jflm-move\"]"
+    },
+    {
+      "name": "the sheet closes itself, then the Move dialog opens and loads",
+      "waitFor": "!__lmm.sheet() && !!__lmm.dialog() && __lmm.loaded()"
+    },
+    {
+      "name": "1a. the dialog: its title, Source and Destinations of the card's item, the preview-only note, no Move button",
+      "eval": "({ title: __lmm.dialog().querySelector('.formDialogHeader h3').textContent, item: __lmm.text('.jflm-move-item-title'), note: __lmm.text('.jflm-move-preview-only'), noteShown: !__lmm.q('.jflm-move-preview-only').classList.contains('hide'), lead: __lmm.notice().lead, runHidden: __lmm.q('.jflm-move-run').classList.contains('hide'), source: __lmm.log('/LibraryMaintenance/Move/Source').slice(-1)[0].query.itemId, destinations: __lmm.log('/LibraryMaintenance/Move/Destinations').slice(-1)[0].query.itemId, plans: __lmm.log('/LibraryMaintenance/Move/Plan').length, focus: document.activeElement && document.activeElement.className })",
+      "save": "dialogA",
+      "full": true
+    },
+    {
+      "assert": "__vars.dialogA.title === 'Move media' && __vars.dialogA.noteShown && __vars.dialogA.lead.text === 'Preview only: nothing is moved.' && __lmm.seen(__vars.dialogA.lead) && __vars.dialogA.runHidden && __lmm.key(__vars.dialogA.source) === __lmm.key(__vars.homeCard) && __lmm.key(__vars.dialogA.destinations) === __lmm.key(__vars.homeCard) && __vars.dialogA.plans === 0"
+    },
+    {
+      "screenshot": "lm-move-1a-dialog.png"
+    },
+    {
+      "script": "document.querySelector('.dialogContainer .jflm-move-dialog .jflm-move-close').scrollIntoView({ block: 'center', behavior: 'instant' }); return true;"
+    },
+    {
+      "sleep": 200
+    },
+    {
+      "click": ".dialogContainer .jflm-move-dialog .jflm-move-close"
+    },
+    {
+      "waitFor": "!__lmm.dialog()"
+    },
+    {
+      "assert": "location.hash === __s.hashA",
+      "message": "Close left the page"
+    },
+    {
+      "name": "1b. the Movies library grid",
+      "script": "location.hash = '#/movies?topParentId=' + __vars.ids.moviesLib + '&collectionType=movies'; return location.hash;"
+    },
+    {
+      "waitFor": "!!__lmm.card('Movie', 2)"
+    },
+    {
+      "name": "1b. no eligibility request for the grid's cards",
+      "assert": "__lmm.log('/LibraryMaintenance/Move/Eligibility').every(e => e.query.ids.split(',').every(id => __s.opened.indexOf(id) >= 0))"
+    },
+    {
+      "script": "__s.opened = __s.opened || []; const id = __lmm.menu(__lmm.card('Movie', 1)); __s.opened.push(__lmm.key(id)); return id;",
+      "save": "gridCard"
+    },
+    {
+      "waitFor": "!!__lmm.sheet() && __lmm.afterRefresh('jflm-move')"
+    },
+    {
+      "script": "history.back(); return true;"
+    },
+    {
+      "waitFor": "!__lmm.sheet()"
+    },
+    {
+      "name": "1d. a right-click on a card (contextmenu, then jellyfin-web's command event)",
+      "script": "const c = __lmm.card('Movie', 2); c.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true, button: 2 })); __s.opened = __s.opened || []; const id = c.getAttribute('data-id'); __s.opened.push(__lmm.key(id)); return id;",
+      "save": "rightClicked"
+    },
+    {
+      "waitFor": "!!__lmm.sheet() && __lmm.afterRefresh('jflm-move')"
+    },
+    {
+      "script": "history.back(); return true;"
+    },
+    {
+      "waitFor": "!__lmm.sheet()"
+    },
+    {
+      "name": "4a. the sort menu",
+      "script": "const b = [...__lmm.page().querySelectorAll('.btnSort')].find(x => x.offsetParent !== null); if (!b) return null; b.click(); return b.className;"
+    },
+    {
+      "waitFor": "!!document.querySelector('.dialogContainer')"
+    },
+    {
+      "sleep": 300
+    },
+    {
+      "name": "4a. no entry in the sort menu",
+      "assert": "document.querySelectorAll('.dialogContainer [data-id^=\"jflm-\"]').length === 0"
+    },
+    {
+      "script": "history.back(); return true;"
+    },
+    {
+      "waitFor": "!document.querySelector('.dialogContainer')"
+    },
+    {
+      "name": "4b. the filter menu",
+      "script": "const b = [...__lmm.page().querySelectorAll('.btnFilter')].find(x => x.offsetParent !== null); if (!b) return null; b.click(); return b.className;"
+    },
+    {
+      "waitFor": "!!document.querySelector('.dialogContainer')"
+    },
+    {
+      "sleep": 300
+    },
+    {
+      "name": "4b. no entry in the filter menu",
+      "assert": "document.querySelectorAll('.dialogContainer [data-id^=\"jflm-\"]').length === 0"
+    },
+    {
+      "script": "history.back(); return true;"
+    },
+    {
+      "waitFor": "!document.querySelector('.dialogContainer')"
+    },
+    {
+      "name": "4c. the header's cast menu",
+      "script": "const b = document.querySelector('.headerCastButton'); if (!b) return null; b.click(); return b.className;"
+    },
+    {
+      "waitFor": "!!document.querySelector('.dialogContainer')",
+      "optional": true
+    },
+    {
+      "sleep": 300,
+      "optional": true
+    },
+    {
+      "name": "4c. no entry in the cast menu",
+      "assert": "document.querySelectorAll('.dialogContainer [data-id^=\"jflm-\"]').length === 0",
+      "optional": true
+    },
+    {
+      "script": "return __lmm.close();",
+      "optional": true
+    },
+    {
+      "waitFor": "!document.querySelector('.dialogContainer')",
+      "optional": true
+    },
+    {
+      "name": "6. a card at the bottom edge of the window",
+      "script": "const cards = [...__lmm.page().querySelectorAll('.card[data-type=Movie]')]; const c = cards[cards.length - 1]; c.scrollIntoView({ block: 'end' }); window.scrollBy(0, 4); const b = c.querySelector('.itemAction[data-action=menu]').getBoundingClientRect(); __s.edge = { id: c.getAttribute('data-id'), buttonTop: b.top, buttonBottom: b.bottom, innerHeight: innerHeight }; return __s.edge;",
+      "full": true
+    },
+    {
+      "script": "__s.opened = __s.opened || []; const id = __lmm.menu([...__lmm.page().querySelectorAll('.card[data-type=Movie]')].pop()); __s.opened.push(__lmm.key(id)); return id;"
+    },
+    {
+      "waitFor": "!!__lmm.sheet() && __lmm.afterRefresh('jflm-move')"
+    },
+    {
+      "sleep": 400
+    },
+    {
+      "name": "6. the sheet stays fully on screen",
+      "eval": "(() => { const s = __lmm.sheet(); const r = s.getBoundingClientRect(); return { top: r.top, bottom: r.bottom, left: r.left, right: r.right, innerHeight: innerHeight, innerWidth: innerWidth }; })()",
+      "save": "edgeSheet",
+      "full": true
+    },
+    {
+      "assert": "__vars.edgeSheet.bottom <= innerHeight + 0.5 && __vars.edgeSheet.top >= 0 && __vars.edgeSheet.right <= innerWidth + 0.5"
+    },
+    {
+      "screenshot": "lm-move-6-edge.png"
+    },
+    {
+      "script": "history.back(); return true;"
+    },
+    {
+      "waitFor": "!__lmm.sheet()"
+    },
+    {
+      "name": "10. Back while the Move dialog is open closes it and stays on the page",
+      "script": "window.scrollTo(0, 0); __s.hash10 = location.hash; __s.opened = __s.opened || []; const id = __lmm.menu(__lmm.card('Movie', 0)); __s.opened.push(__lmm.key(id)); return id;"
+    },
+    {
+      "waitFor": "!!__lmm.sheet() && __lmm.afterRefresh('jflm-move')"
+    },
+    {
+      "sleep": 300
+    },
+    {
+      "name": "a real click on the entry",
+      "click": ".dialogContainer > .actionSheet [data-id=\"jflm-move\"]"
+    },
+    {
+      "waitFor": "!__lmm.sheet() && !!__lmm.dialog()"
+    },
+    {
+      "script": "history.back(); return true;"
+    },
+    {
+      "waitFor": "!__lmm.dialog()"
+    },
+    {
+      "sleep": 800
+    },
+    {
+      "assert": "location.hash === __s.hash10 && !!__lmm.card('Movie', 0)",
+      "message": "Back left the page"
+    },
+    {
+      "name": "7. selection mode from a card's Select",
+      "script": "const c = __lmm.card('Movie', 0); __lmm.menu(c); return true;"
+    },
+    {
+      "waitFor": "!!__lmm.sheet() && (__lmm.rows() || []).indexOf('multiSelect') >= 0"
+    },
+    {
+      "sleep": 300
+    },
+    {
+      "click": ".dialogContainer > .actionSheet [data-id=\"multiSelect\"]"
+    },
+    {
+      "waitFor": "!!document.querySelector('.selectionCommandsPanel') && !__lmm.sheet()"
+    },
+    {
+      "name": "7. two more cards checked",
+      "script": "for (const i of [1, 2]) { const c = __lmm.card('Movie', i); (c.querySelector('.cardScalable') || c).click(); } return [...document.querySelectorAll('.itemSelectionPanel .chkItemSelect')].filter(b => b.checked).length;"
+    },
+    {
+      "sleep": 300
+    },
+    {
+      "script": "document.querySelector('.selectionCommandsPanel .btnSelectionPanelOptions').click(); return true;"
+    },
+    {
+      "waitFor": "!!__lmm.sheet() && (__lmm.rows() || []).indexOf('selectall') >= 0"
+    },
+    {
+      "sleep": 300
+    },
+    {
+      "name": "7. the bulk menu: no entry of ours (one item at a time in this version)",
+      "eval": "({ rows: __lmm.rows(), ours: __lmm.ours() })",
+      "full": true
+    },
+    {
+      "assert": "__lmm.ours().length === 0 && (__lmm.rows() || []).indexOf('refresh') >= 0"
+    },
+    {
+      "screenshot": "lm-move-7-bulk-sheet.png"
+    },
+    {
+      "name": "7. the bulk sheet closed by its own Select all",
+      "click": ".dialogContainer > .actionSheet [data-id=\"selectall\"]"
+    },
+    {
+      "waitFor": "!__lmm.sheet()"
+    },
+    {
+      "script": "const b = document.querySelector('.selectionCommandsPanel .btnCloseSelectionPanel'); if (b) b.click(); return !!b;"
+    },
+    {
+      "waitFor": "!document.querySelector('.selectionCommandsPanel')"
+    },
+    {
+      "name": "1c. a list row: an episode on its season's page (a details page opened)",
+      "script": "location.hash = '#/details?id=' + __vars.ids.season; __s.opened = __s.opened || []; const id = __vars.ids.season; __s.opened.push(__lmm.key(id)); return id;"
+    },
+    {
+      "waitFor": "!!__lmm.page().querySelector('.listItem[data-id] .itemAction[data-action=menu]')"
+    },
+    {
+      "script": "const row = __lmm.page().querySelector('.listItem[data-id]'); row.querySelector('.itemAction[data-action=menu]').click(); __s.opened = __s.opened || []; const id = row.getAttribute('data-id'); __s.opened.push(__lmm.key(id)); return id;",
+      "save": "row"
+    },
+    {
+      "waitFor": "!!__lmm.sheet() && __lmm.afterRefresh('jflm-move')"
+    },
+    {
+      "script": "history.back(); return true;"
+    },
+    {
+      "waitFor": "!__lmm.sheet()"
+    },
+    {
+      "name": "2a. details page of a single-version movie: More",
+      "script": "location.hash = '#/details?id=' + __vars.ids.single; __s.opened = __s.opened || []; const id = __vars.ids.single; __s.opened.push(__lmm.key(id)); return id;"
+    },
+    {
+      "waitFor": "!!__lmm.page().querySelector('.btnMoreCommands:not(.hide)')"
+    },
+    {
+      "name": "2a. the details page asked about its item on viewshow",
+      "waitFor": "__lmm.log('/LibraryMaintenance/Move/Eligibility').some(e => e.query.ids.split(',').indexOf(__lmm.key(__vars.ids.single)) >= 0)"
+    },
+    {
+      "script": "__lmm.page().querySelector('.btnMoreCommands').click(); return true;"
+    },
+    {
+      "waitFor": "!!__lmm.sheet() && __lmm.afterRefresh('jflm-move')"
+    },
+    {
+      "script": "history.back(); return true;"
+    },
+    {
+      "waitFor": "!__lmm.sheet()"
+    },
+    {
+      "name": "2b. details page of the two-version movie, the other version chosen",
+      "script": "location.hash = '#/details?id=' + __vars.ids.versions; __s.opened = __s.opened || []; const id = __vars.ids.versions; __s.opened.push(__lmm.key(id)); return id;"
+    },
+    {
+      "waitFor": "!!__lmm.page().querySelector('.btnMoreCommands:not(.hide)') && __lmm.page().querySelectorAll('select.selectSource option').length === 2"
+    },
+    {
+      "script": "const sel = __lmm.page().querySelector('select.selectSource'); const other = [...sel.options].map(o => o.value).find(v => v !== sel.value); __s.v2 = { before: sel.value, chosen: other }; sel.value = other; sel.dispatchEvent(new Event('change', { bubbles: true })); __s.opened.push(__lmm.key(other)); return __s.v2;",
+      "save": "v2",
+      "full": true
+    },
+    {
+      "sleep": 800
+    },
+    {
+      "script": "__lmm.page().querySelector('.btnMoreCommands').click(); return true;"
+    },
+    {
+      "waitFor": "!!__lmm.sheet() && __lmm.afterRefresh('jflm-move')"
+    },
+    {
+      "sleep": 300
+    },
+    {
+      "name": "a real click on the entry",
+      "click": ".dialogContainer > .actionSheet [data-id=\"jflm-move\"]"
+    },
+    {
+      "name": "the sheet closes itself, then the Move dialog opens and loads",
+      "waitFor": "!__lmm.sheet() && !!__lmm.dialog() && __lmm.loaded()"
+    },
+    {
+      "name": "2b. the dialog is for the chosen version: Source asked for it, and what moves says whose it is",
+      "eval": "({ source: __lmm.log('/LibraryMaintenance/Move/Source').slice(-1)[0].query.itemId, item: __lmm.text('.jflm-move-item-title'), summary: __lmm.text('.jflm-move-summary'), retargeted: __lmm.text('.jflm-move-retargeted'), lists: __lmm.all('.jflm-move-list-label').map(l => l.textContent) })",
+      "save": "v2dialog",
+      "full": true
+    },
+    {
+      "assert": "__lmm.key(__vars.v2dialog.source) === __lmm.key(__s.v2.chosen) && __vars.v2.chosen !== __vars.v2.before"
+    },
+    {
+      "screenshot": "lm-move-2b-version-dialog.png"
+    },
+    {
+      "script": "document.querySelector('.dialogContainer .jflm-move-dialog .jflm-move-close').scrollIntoView({ block: 'center', behavior: 'instant' }); return true;"
+    },
+    {
+      "sleep": 200
+    },
+    {
+      "click": ".dialogContainer .jflm-move-dialog .jflm-move-close"
+    },
+    {
+      "waitFor": "!__lmm.dialog()"
+    },
+    {
+      "name": "5a. the Shows library: a series card",
+      "script": "location.hash = '#/tv?topParentId=' + __vars.ids.showsLib + '&collectionType=tvshows'; return location.hash;"
+    },
+    {
+      "waitFor": "!!__lmm.card('Series')"
+    },
+    {
+      "script": "__lmm.menu(__lmm.card('Series')); return true;"
+    },
+    {
+      "waitFor": "!!__lmm.sheet() && (__lmm.rows() || []).indexOf('refresh') >= 0"
+    },
+    {
+      "sleep": 300
+    },
+    {
+      "name": "5a. no entry on a series",
+      "assert": "__lmm.ours().length === 0"
+    },
+    {
+      "script": "history.back(); return true;"
+    },
+    {
+      "waitFor": "!__lmm.sheet()"
+    },
+    {
+      "name": "5b. the series' page (a details page opened, so its item may be asked about): a season card",
+      "script": "location.hash = '#/details?id=' + __vars.ids.series; __s.opened = __s.opened || []; const id = __vars.ids.series; __s.opened.push(__lmm.key(id)); return id;"
+    },
+    {
+      "waitFor": "!!__lmm.card('Season')"
+    },
+    {
+      "script": "__lmm.menu(__lmm.card('Season')); return true;"
+    },
+    {
+      "waitFor": "!!__lmm.sheet() && (__lmm.rows() || []).indexOf('refresh') >= 0"
+    },
+    {
+      "sleep": 300
+    },
+    {
+      "name": "5b. no entry on a season",
+      "assert": "__lmm.ours().length === 0"
+    },
+    {
+      "script": "history.back(); return true;"
+    },
+    {
+      "waitFor": "!__lmm.sheet()"
+    },
+    {
+      "name": "5c. the series' own More",
+      "script": "__lmm.page().querySelector('.btnMoreCommands').click(); return true;"
+    },
+    {
+      "waitFor": "!!__lmm.sheet() && (__lmm.rows() || []).indexOf('refresh') >= 0"
+    },
+    {
+      "sleep": 300
+    },
+    {
+      "name": "5c. no entry on the series' details",
+      "assert": "__lmm.ours().length === 0"
+    },
+    {
+      "script": "history.back(); return true;"
+    },
+    {
+      "waitFor": "!__lmm.sheet()"
+    },
+    {
+      "name": "5d. a collection's (BoxSet) own More (a details page opened)",
+      "if": "!!__vars.ids.box",
+      "script": "location.hash = '#/details?id=' + __vars.ids.box; __s.opened = __s.opened || []; const id = __vars.ids.box; __s.opened.push(__lmm.key(id)); return id;"
+    },
+    {
+      "if": "!!__vars.ids.box",
+      "waitFor": "!!__lmm.page().querySelector('.btnMoreCommands:not(.hide)')"
+    },
+    {
+      "if": "!!__vars.ids.box",
+      "script": "__lmm.page().querySelector('.btnMoreCommands').click(); return true;"
+    },
+    {
+      "if": "!!__vars.ids.box",
+      "waitFor": "!!__lmm.sheet()"
+    },
+    {
+      "sleep": 300
+    },
+    {
+      "name": "5d. no entry on a collection",
+      "if": "!!__vars.ids.box",
+      "assert": "__lmm.ours().length === 0"
+    },
+    {
+      "if": "!!__lmm.sheet()",
+      "script": "history.back(); return true;"
+    },
+    {
+      "waitFor": "!__lmm.sheet()"
+    },
+    {
+      "name": "eligibility: only the items whose menu or details page was opened were asked about, in batches",
+      "eval": "({ calls: __lmm.log('/LibraryMaintenance/Move/Eligibility').map(e => e.query.ids.split(',').length), opened: __s.opened.length, capabilities: __lmm.log('/LibraryMaintenance/Capabilities').length })",
+      "save": "eligibility",
+      "full": true
+    },
+    {
+      "assert": "__lmm.log('/LibraryMaintenance/Move/Eligibility').every(e => e.query.ids.split(',').every(id => __s.opened.indexOf(id) >= 0)) && __lmm.log('/LibraryMaintenance/Capabilities').length <= 6"
+    },
+    {
+      "name": "who asked for /web/null (jellyfin-web's details page, for an item without an image), recorded",
+      "eval": "performance.getEntriesByType('resource').filter(e => /\\/web\\/null$/.test(e.name)).map(e => e.initiatorType)",
+      "full": true,
+      "save": "webNull"
+    },
+    {
+      "name": "no kit health miss, no uncaught exception",
+      "eval": "__lmm.health()",
+      "full": true
+    },
+    {
+      "assert": "Array.isArray(__lmm.health()) && __lmm.health().length === 0"
+    },
+    {
+      "noExceptions": true
+    }
+  ]
+}

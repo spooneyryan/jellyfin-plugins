@@ -1,0 +1,197 @@
+{
+  "name": "A cold load of #/jfbm-demo-a with Bookmarks' ClientScript held back 1.5 s (webcheck delayRequests) shows no \"Page not found\" frame and the right title from the head fragment, then the same with the pre-hide rule outranked (positive control, flash frames > 0). Needs EnablePageDemo on (it turns it on).",
+  "failOnException": false,
+  "timeout": 30000,
+  "steps": [
+    {
+      "name": "frame probe in every document (probes/pages-probe.js)",
+      "initScript": {
+        "file": "probes/pages-probe.js"
+      }
+    },
+    {
+      "name": "sign in as admin",
+      "login": "admin"
+    },
+    {
+      "name": "turn the page demo on (the developer setting EnablePageDemo; per request)",
+      "script": "const id = 'd0ee1b2a-7f71-4654-8ff2-163a81441b03'; const c = await ApiClient.getPluginConfiguration(id); Object.assign(c, {\"EnablePageDemo\":true,\"EnableDemoPageB\":true,\"EnableWebUi\":true}); await ApiClient.updatePluginConfiguration(id, c); const r = await ApiClient.getPluginConfiguration(id); return { EnablePageDemo: r.EnablePageDemo, EnableDemoPageB: r.EnableDemoPageB, EnableWebUi: r.EnableWebUi, PageHostMode: r.PageHostMode };"
+    },
+    {
+      "name": "reload, so index.html carries the demo's head fragment",
+      "reload": true
+    },
+    {
+      "name": "the home page is shown",
+      "waitFor": "!!document.querySelector('.homePage:not(.hide)')"
+    },
+    {
+      "name": "load Demo page A",
+      "goto": "/web/index.html#/jfbm-demo-a"
+    },
+    {
+      "name": "the hash navigation committed",
+      "waitFor": "location.hash === '#/jfbm-demo-a'"
+    },
+    {
+      "name": "baseline cold load",
+      "reload": true
+    },
+    {
+      "name": "baseline: Demo page A",
+      "waitFor": "(() => { const r = [...document.querySelectorAll(\"#fallbackPage > [data-jfbm-page=\\\"demo-a\\\"][data-jfbm-mounted]\")].find(x => x.getClientRects().length > 0); const t = (document.querySelector('.skinHeader .pageTitle') || { textContent: '' }).textContent.trim(); const title = r && r.querySelector('.jfbm-demo-title'); const user = r && r.querySelector('[data-jfbm-demo=\"user\"]'); if (!r || !title || title.textContent !== \"Demo page A\" || [...document.querySelectorAll('#fallbackPage > :not([data-jfbm-page]) h1')].some(h => h.getClientRects().length > 0) || t !== \"Demo page A\" || !user || user.textContent === '…') return false;  return { hash: location.hash, render: Number(r.getAttribute('data-jfbm-render')), reason: r.getAttribute('data-jfbm-reason'), host: r.getAttribute('data-jfbm-host'), params: JSON.parse(r.querySelector('[data-jfbm-demo=\"params\"]').textContent), user: user.textContent, admin: r.querySelector('[data-jfbm-demo=\"admin\"]').textContent, headerTitle: t, documentTitle: document.title, historyLength: history.length }; })()",
+      "save": "baseline"
+    },
+    {
+      "sleep": 400
+    },
+    {
+      "name": "probe: probeBaseline",
+      "eval": "__pagesProbe.summary()",
+      "save": "probeBaseline"
+    },
+    {
+      "name": "hold every /Bookmarks/ClientScript request 1.5 s",
+      "delayRequests": {
+        "url": "/Bookmarks/ClientScript",
+        "ms": 1500
+      }
+    },
+    {
+      "name": "slow cold load",
+      "reload": true
+    },
+    {
+      "name": "slow: Demo page A eventually",
+      "waitFor": "(() => { const r = [...document.querySelectorAll(\"#fallbackPage > [data-jfbm-page=\\\"demo-a\\\"][data-jfbm-mounted]\")].find(x => x.getClientRects().length > 0); const t = (document.querySelector('.skinHeader .pageTitle') || { textContent: '' }).textContent.trim(); const title = r && r.querySelector('.jfbm-demo-title'); const user = r && r.querySelector('[data-jfbm-demo=\"user\"]'); if (!r || !title || title.textContent !== \"Demo page A\" || [...document.querySelectorAll('#fallbackPage > :not([data-jfbm-page]) h1')].some(h => h.getClientRects().length > 0) || t !== \"Demo page A\" || !user || user.textContent === '…') return false;  return { hash: location.hash, render: Number(r.getAttribute('data-jfbm-render')), reason: r.getAttribute('data-jfbm-reason'), host: r.getAttribute('data-jfbm-host'), params: JSON.parse(r.querySelector('[data-jfbm-demo=\"params\"]').textContent), user: user.textContent, admin: r.querySelector('[data-jfbm-demo=\"admin\"]').textContent, headerTitle: t, documentTitle: document.title, historyLength: history.length }; })()",
+      "timeout": 20000,
+      "save": "slow"
+    },
+    {
+      "sleep": 400
+    },
+    {
+      "name": "probe: probeSlow",
+      "eval": "__pagesProbe.summary()",
+      "save": "probeSlow"
+    },
+    {
+      "name": "transitions on our routes: slowTransitions",
+      "eval": "__pagesProbe.transitions.filter(t => t.loc).map(t => [t.t, t.frames, t.title, t.nf, t.root].join(' | '))",
+      "save": "slowTransitions"
+    },
+    {
+      "name": "events: slowEvents",
+      "eval": "__pagesProbe.events.map(e => e.t + ' ' + e.kind + ' ' + (e.detail || ''))",
+      "save": "slowEvents"
+    },
+    {
+      "name": "slow: the router showed #fallbackPage over a second before our script ran",
+      "eval": "(() => { const shown = __pagesProbe.events.find(e => e.kind === 'event:viewbeforeshow' && e.detail === '#fallbackPage'); return { fallbackPageShownAt: shown ? shown.t : null, scriptStartedAt: Math.round(__jfkit.jfbm.timing.script), marginMs: shown ? Math.round(__jfkit.jfbm.timing.script) - shown.t : null }; })()",
+      "save": "race"
+    },
+    {
+      "name": "the race really happened (the check is not vacuous)",
+      "assert": "__vars.race.fallbackPageShownAt !== null && __vars.race.marginMs > 1000"
+    },
+    {
+      "name": "slow: 0 flash frames, and only our title on our route",
+      "assert": "__vars.probeSlow.flashFrames === 0 && Object.keys(__vars.probeSlow.headerTitlesOnOurRoutes).every(t => t === 'Demo page A' || t === '' || t === 'null')",
+      "message": "the slow cold load flashed Page not found or another title (before the header exists the probe records null)"
+    },
+    {
+      "screenshot": "pages-slow-script.png"
+    },
+    {
+      "name": "slow: the page's own title was kept although the head fragment titled the page before our script ran",
+      "eval": "(() => { const fp = document.getElementById('fallbackPage'); const root = document.querySelector('#fallbackPage > [data-jfbm-page]'); return { notFoundVisible: [...document.querySelectorAll('#fallbackPage > :not([data-jfbm-page]) h1')].some(h => h.getClientRects().length > 0), ourRootVisible: !!root && root.getClientRects().length > 0, ourRoot: !!root, headerTitle: (document.querySelector('.skinHeader .pageTitle') || { textContent: '' }).textContent.trim(), documentTitle: document.title, fallbackTitle: fp && fp.getAttribute('data-title'), original: fp && fp.getAttribute('data-jfkit-orig-title'), claim: fp && fp.getAttribute('data-jfkit-claim'), routeClass: document.documentElement.classList.contains('jfbm-route') }; })()",
+      "save": "slowState"
+    },
+    {
+      "name": "slow: original title \"Page not found\"",
+      "assert": "__vars.slowState.original === 'Page not found' && __vars.slowState.fallbackTitle === 'Demo page A'"
+    },
+    {
+      "name": "reset the probe",
+      "eval": "__pagesProbe.reset(), true"
+    },
+    {
+      "name": "slow: to an unknown route of nobody",
+      "goto": "/web/index.html#/nobody-route"
+    },
+    {
+      "sleep": 1800
+    },
+    {
+      "name": "slow: after the hand-back",
+      "eval": "(() => { const fp = document.getElementById('fallbackPage'); const root = document.querySelector('#fallbackPage > [data-jfbm-page]'); return { notFoundVisible: [...document.querySelectorAll('#fallbackPage > :not([data-jfbm-page]) h1')].some(h => h.getClientRects().length > 0), ourRootVisible: !!root && root.getClientRects().length > 0, ourRoot: !!root, headerTitle: (document.querySelector('.skinHeader .pageTitle') || { textContent: '' }).textContent.trim(), documentTitle: document.title, fallbackTitle: fp && fp.getAttribute('data-title'), original: fp && fp.getAttribute('data-jfkit-orig-title'), claim: fp && fp.getAttribute('data-jfkit-claim'), routeClass: document.documentElement.classList.contains('jfbm-route') }; })()",
+      "save": "slowHandBack"
+    },
+    {
+      "name": "slow: handed back, titled \"Page not found\"",
+      "assert": "__vars.slowHandBack.notFoundVisible && !__vars.slowHandBack.ourRoot && !__vars.slowHandBack.claim && __vars.slowHandBack.headerTitle === 'Page not found' && __vars.slowHandBack.fallbackTitle === 'Page not found' && __vars.slowHandBack.documentTitle === 'Page not found'"
+    },
+    {
+      "sleep": 400
+    },
+    {
+      "name": "probe: probeSlowHandBack",
+      "eval": "__pagesProbe.summary()",
+      "save": "probeSlowHandBack"
+    },
+    {
+      "name": "slow: no flash while leaving",
+      "assert": "__vars.probeSlowHandBack.flashFrames === 0"
+    },
+    {
+      "name": "back to Demo page A for the control",
+      "goto": "/web/index.html#/jfbm-demo-a"
+    },
+    {
+      "name": "the hash navigation committed",
+      "waitFor": "location.hash === '#/jfbm-demo-a'"
+    },
+    {
+      "name": "positive control: pre-hide off in every later document",
+      "initScript": {
+        "file": "probes/pages-prehide-off.js"
+      }
+    },
+    {
+      "name": "slow cold load with the pre-hide rule outranked",
+      "reload": true
+    },
+    {
+      "name": "control: Demo page A mounted",
+      "waitFor": "(() => { const r = document.querySelector('#fallbackPage > [data-jfbm-page=\"demo-a\"][data-jfbm-mounted][data-jfbm-state=\"on\"]'); return !!r && !!r.querySelector('.jfbm-demo-title') && { hash: location.hash, notFoundVisible: [...document.querySelectorAll('#fallbackPage > :not([data-jfbm-page]) h1')].some(h => h.getClientRects().length > 0), headerTitle: (document.querySelector('.skinHeader .pageTitle') || { textContent: '' }).textContent.trim() }; })()",
+      "timeout": 20000,
+      "save": "control"
+    },
+    {
+      "sleep": 400
+    },
+    {
+      "name": "probe: probeSlowControl",
+      "eval": "__pagesProbe.summary()",
+      "save": "probeSlowControl"
+    },
+    {
+      "name": "control: the probe counted flash frames",
+      "assert": "__vars.probeSlowControl.flashFrames > 0",
+      "message": "the probe saw no flash with the pre-hide rule off"
+    },
+    {
+      "name": "stop holding requests",
+      "delayRequests": null
+    },
+    {
+      "name": "baseline: 0 flash frames too",
+      "assert": "__vars.probeBaseline.flashFrames === 0"
+    },
+    {
+      "name": "no uncaught exceptions",
+      "noExceptions": true,
+      "ignore": "/CustomRatings/script|^Error: player cannot be null"
+    }
+  ]
+}

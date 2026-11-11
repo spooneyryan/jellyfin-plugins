@@ -1,0 +1,1379 @@
+{
+  "name": "User Ratings 1.0.2: the star widget of the served ClientScript on Long Test Movie's details page as viewer, in the desktop layout: its markup and aria values; Tab reaches it and the ring shows; Right ×7 reads 3.5 and Enter saves at once; every key the widget handles, prevented, none scrolling the page, Delete, Backspace and digits left alone; the 600 ms debounce; the mouse: hover previews, the middle of star 3 is 2.5, just past it 3.0, star 4's right half 4.0, the current value does nothing; Clear; a failed save put back; disabled with the page's reason and note (keys left to the page, the note read once); forced colours; reduced motion; right to left (filled from the right, the left edge 5, Left adds). No request to User Ratings' API.",
+  "failOnException": false,
+  "timeout": 30000,
+  "steps": [
+    {
+      "name": "the star probe in every document (it mounts the served 30-stars.js)",
+      "initScript": {
+        "file": "probes/userratings-stars-probe.js"
+      }
+    },
+    {
+      "name": "sign in as viewer",
+      "login": "viewer"
+    },
+    {
+      "name": "desktop layout",
+      "eval": "(localStorage.removeItem('layout'), true)"
+    },
+    {
+      "name": "reload",
+      "reload": true
+    },
+    {
+      "name": "layout-desktop applied, User Ratings' script started",
+      "waitFor": "document.documentElement.classList.contains('layout-desktop') && !!window.ApiClient && !!ApiClient.getCurrentUserId() && !!(window.__jfkit && window.__jfkit.jfur)",
+      "timeout": 40000
+    },
+    {
+      "name": "Long Test Movie",
+      "eval": "(await ApiClient.getItems(ApiClient.getCurrentUserId(), { IncludeItemTypes: 'Movie', Recursive: true, SearchTerm: \"Long Test Movie\", Limit: 1 })).Items[0].Id",
+      "save": "movieId"
+    },
+    {
+      "name": "its details page",
+      "script": "location.hash = '#/details?id=' + __vars.movieId; return true;"
+    },
+    {
+      "name": "drawn",
+      "waitFor": "(() => { const p = document.querySelector('#itemDetailPage:not(.hide)'); return !!p && location.hash.indexOf(__vars.movieId) > 0 && !!p.querySelector('.mainDetailButtons .btnPlay:not(.hide)'); })()",
+      "timeout": 30000
+    },
+    {
+      "sleep": 1500
+    },
+    {
+      "name": "mount the widget (alone in its row, Clear and Write a review below, read-only stars)",
+      "eval": "__jfurStars.mount({})",
+      "save": "mounted",
+      "full": true
+    },
+    {
+      "name": "mounted from the served ClientScript of 1.0.2",
+      "assert": "__vars.mounted.ok === true && __vars.mounted.version === '1.0.2.0'",
+      "message": "the probe could not mount the widget of User Ratings 1.0.2"
+    },
+    {
+      "name": "markup: role=\"slider\", one tab stop, the focusable class, aria values, labelled by \"Your rating\", the live region; the read-only stars an img",
+      "eval": "(() => { const w = __jfurStars.widget; const s = w.slider; const l = w.element.querySelector('.jfur-stars-live'); const d = __jfurStars.display; return { role: s.getAttribute('role'), tabIndex: s.tabIndex, classes: s.className, min: s.getAttribute('aria-valuemin'), max: s.getAttribute('aria-valuemax'), now: s.getAttribute('aria-valuenow'), text: s.getAttribute('aria-valuetext'), labelledBy: s.getAttribute('aria-labelledby'), label: document.getElementById(s.getAttribute('aria-labelledby')).textContent, live: [l.getAttribute('role'), l.getAttribute('aria-live')], shown: w.element.querySelector('.jfur-stars-value').textContent, display: { role: d.getAttribute('role'), label: d.getAttribute('aria-label'), tabIndex: d.tabIndex, value: d.querySelector('.jfur-stars-display-value').textContent } }; })()",
+      "save": "markup",
+      "full": true
+    },
+    {
+      "name": "markup as expected",
+      "assert": "(m => m.role === 'slider' && m.tabIndex === 0 && m.classes === 'jfur-stars focusable' && m.min === '0' && m.max === '5' && m.now === '0' && m.text === 'Not rated' && m.label === 'Your rating' && m.live[0] === 'status' && m.live[1] === 'polite' && m.shown === 'Not rated' && m.display.role === 'img' && m.display.label === 'Member average 4.2 out of 5, 7 ratings' && m.display.tabIndex === -1 && m.display.value === '4.2')(__vars.markup)"
+    },
+    {
+      "name": "styles on the desktop",
+      "eval": "__jfurStars.styles()",
+      "save": "desktopStyles",
+      "full": true
+    },
+    {
+      "name": "pan-y pinch-zoom, 28 px stars, the − / + buttons hidden (pointer: fine), the slider the only focusable of its row, every text isolated, outline and fill in contrast with the page, the 4.2 average filled to 20 %",
+      "assert": "(s => s.touchAction === 'pan-y pinch-zoom' && Math.round(s.star.w) === 28 && s.minus === 'none' && s.plus === 'none' && s.rowFocusables.length === 1 && s.rowFocusables[0].indexOf('div.jfur-stars.focusable') === 0 && s.isolate.length === 2 && s.isolate.every(i => i.unicodeBidi === 'isolate') && s.isolate[1].dir === 'auto' && s.displayIsolate.every(i => i.unicodeBidi === 'isolate') && s.contrast.stroke >= 4.5 && s.contrast.fill >= 3 && s.offFill === 'none' && s.direction === 'ltr' && s.valueInk.x - s.slider.right < 24 && s.display.fills.join() === '100%,100%,100%,100%,20%' && s.fillTransition === '0.12s')(__vars.desktopStyles)"
+    },
+    {
+      "name": "desktop: focus the Play button",
+      "script": "__jfurStars.log.length = 0; document.querySelector('#itemDetailPage:not(.hide) .mainDetailButtons .btnPlay').focus(); return __jfurStars.active();"
+    },
+    {
+      "name": "desktop: Tab 1",
+      "key": "Tab",
+      "if": "!__jfurStars.onSlider()"
+    },
+    {
+      "name": "desktop: Tab 2",
+      "key": "Tab",
+      "if": "!__jfurStars.onSlider()"
+    },
+    {
+      "name": "desktop: Tab 3",
+      "key": "Tab",
+      "if": "!__jfurStars.onSlider()"
+    },
+    {
+      "name": "desktop: Tab 4",
+      "key": "Tab",
+      "if": "!__jfurStars.onSlider()"
+    },
+    {
+      "name": "desktop: Tab 5",
+      "key": "Tab",
+      "if": "!__jfurStars.onSlider()"
+    },
+    {
+      "name": "desktop: Tab 6",
+      "key": "Tab",
+      "if": "!__jfurStars.onSlider()"
+    },
+    {
+      "name": "desktop: Tab 7",
+      "key": "Tab",
+      "if": "!__jfurStars.onSlider()"
+    },
+    {
+      "name": "desktop: Tab 8",
+      "key": "Tab",
+      "if": "!__jfurStars.onSlider()"
+    },
+    {
+      "name": "desktop: Tab 9",
+      "key": "Tab",
+      "if": "!__jfurStars.onSlider()"
+    },
+    {
+      "name": "desktop: Tab 10",
+      "key": "Tab",
+      "if": "!__jfurStars.onSlider()"
+    },
+    {
+      "name": "desktop: Tab 11",
+      "key": "Tab",
+      "if": "!__jfurStars.onSlider()"
+    },
+    {
+      "name": "desktop: Tab 12",
+      "key": "Tab",
+      "if": "!__jfurStars.onSlider()"
+    },
+    {
+      "name": "desktop: Tab 13",
+      "key": "Tab",
+      "if": "!__jfurStars.onSlider()"
+    },
+    {
+      "name": "desktop: Tab 14",
+      "key": "Tab",
+      "if": "!__jfurStars.onSlider()"
+    },
+    {
+      "name": "desktop: Tab 15",
+      "key": "Tab",
+      "if": "!__jfurStars.onSlider()"
+    },
+    {
+      "name": "desktop: Tab reached the slider",
+      "eval": "({ onSlider: __jfurStars.onSlider(), tabs: __jfurStars.log.filter(e => e.kind === 'key-capture' && e.key === 'Tab').length, path: __jfurStars.log.filter(e => e.kind === 'focus').map(f => f.target) })",
+      "save": "tabReach",
+      "full": true
+    },
+    {
+      "name": "desktop: assert reached",
+      "assert": "__jfurStars.onSlider()"
+    },
+    {
+      "name": "desktop: the focus ring after Tab (:focus-visible, 2 px)",
+      "eval": "__jfurStars.styles()",
+      "save": "ringStyles",
+      "full": true
+    },
+    {
+      "name": "desktop: the ring shows",
+      "assert": "(s => s.focused && s.focusVisible && s.outline.style === 'solid' && s.outline.width === '2px')(__vars.ringStyles)"
+    },
+    {
+      "name": "desktop: the page scrolled to 200 so a key that scrolled would show",
+      "script": "window.scrollTo(0, 200); await new Promise(r => setTimeout(r, 300)); __jfurStars.widget.slider.focus(); return Math.round(window.scrollY);",
+      "save": "scroll0"
+    },
+    {
+      "name": "desktop Right 1: mark",
+      "script": "window.__mark = __jfurStars.log.length; window.__markAbs = Math.round(performance.now()) - 1; return true;"
+    },
+    {
+      "name": "desktop Right 1: ArrowRight",
+      "key": "ArrowRight"
+    },
+    {
+      "sleep": 150
+    },
+    {
+      "name": "desktop Right 1: after ArrowRight",
+      "eval": "(() => { const since = __jfurStars.log.slice(window.__mark); const pick = (kind) => since.filter(e => e.kind === kind).pop() || null; const cap = pick('key-capture'); const bub = pick('key-bubble'); return Object.assign(__jfurStars.state(), { key: \"ArrowRight\", capture: cap && { key: cap.key, prevented: cap.prevented }, bubble: bub ? { prevented: bub.prevented, target: bub.target } : 'not reached', changes: since.filter(e => e.kind === 'change').map(e => e.value + ':' + e.how), jeCalls: window.__jeSpy ? window.__jeSpy.calls.filter(c => c.ms >= window.__markAbs).map(c => c.fn) : null }); })()",
+      "full": true
+    },
+    {
+      "name": "desktop Right 1: ArrowRight handled, the focus kept",
+      "assert": "(__jfurStars.log.slice(window.__mark).filter(e => e.kind === 'key-bubble').pop() || {}).prevented === true && __jfurStars.onSlider()",
+      "message": "ArrowRight: handled, the focus kept"
+    },
+    {
+      "name": "desktop Right 2: mark",
+      "script": "window.__mark = __jfurStars.log.length; window.__markAbs = Math.round(performance.now()) - 1; return true;"
+    },
+    {
+      "name": "desktop Right 2: ArrowRight",
+      "key": "ArrowRight"
+    },
+    {
+      "sleep": 150
+    },
+    {
+      "name": "desktop Right 2: after ArrowRight",
+      "eval": "(() => { const since = __jfurStars.log.slice(window.__mark); const pick = (kind) => since.filter(e => e.kind === kind).pop() || null; const cap = pick('key-capture'); const bub = pick('key-bubble'); return Object.assign(__jfurStars.state(), { key: \"ArrowRight\", capture: cap && { key: cap.key, prevented: cap.prevented }, bubble: bub ? { prevented: bub.prevented, target: bub.target } : 'not reached', changes: since.filter(e => e.kind === 'change').map(e => e.value + ':' + e.how), jeCalls: window.__jeSpy ? window.__jeSpy.calls.filter(c => c.ms >= window.__markAbs).map(c => c.fn) : null }); })()",
+      "full": true
+    },
+    {
+      "name": "desktop Right 2: ArrowRight handled, the focus kept",
+      "assert": "(__jfurStars.log.slice(window.__mark).filter(e => e.kind === 'key-bubble').pop() || {}).prevented === true && __jfurStars.onSlider()",
+      "message": "ArrowRight: handled, the focus kept"
+    },
+    {
+      "name": "desktop Right 3: mark",
+      "script": "window.__mark = __jfurStars.log.length; window.__markAbs = Math.round(performance.now()) - 1; return true;"
+    },
+    {
+      "name": "desktop Right 3: ArrowRight",
+      "key": "ArrowRight"
+    },
+    {
+      "sleep": 150
+    },
+    {
+      "name": "desktop Right 3: after ArrowRight",
+      "eval": "(() => { const since = __jfurStars.log.slice(window.__mark); const pick = (kind) => since.filter(e => e.kind === kind).pop() || null; const cap = pick('key-capture'); const bub = pick('key-bubble'); return Object.assign(__jfurStars.state(), { key: \"ArrowRight\", capture: cap && { key: cap.key, prevented: cap.prevented }, bubble: bub ? { prevented: bub.prevented, target: bub.target } : 'not reached', changes: since.filter(e => e.kind === 'change').map(e => e.value + ':' + e.how), jeCalls: window.__jeSpy ? window.__jeSpy.calls.filter(c => c.ms >= window.__markAbs).map(c => c.fn) : null }); })()",
+      "full": true
+    },
+    {
+      "name": "desktop Right 3: ArrowRight handled, the focus kept",
+      "assert": "(__jfurStars.log.slice(window.__mark).filter(e => e.kind === 'key-bubble').pop() || {}).prevented === true && __jfurStars.onSlider()",
+      "message": "ArrowRight: handled, the focus kept"
+    },
+    {
+      "name": "desktop Right 4: mark",
+      "script": "window.__mark = __jfurStars.log.length; window.__markAbs = Math.round(performance.now()) - 1; return true;"
+    },
+    {
+      "name": "desktop Right 4: ArrowRight",
+      "key": "ArrowRight"
+    },
+    {
+      "sleep": 150
+    },
+    {
+      "name": "desktop Right 4: after ArrowRight",
+      "eval": "(() => { const since = __jfurStars.log.slice(window.__mark); const pick = (kind) => since.filter(e => e.kind === kind).pop() || null; const cap = pick('key-capture'); const bub = pick('key-bubble'); return Object.assign(__jfurStars.state(), { key: \"ArrowRight\", capture: cap && { key: cap.key, prevented: cap.prevented }, bubble: bub ? { prevented: bub.prevented, target: bub.target } : 'not reached', changes: since.filter(e => e.kind === 'change').map(e => e.value + ':' + e.how), jeCalls: window.__jeSpy ? window.__jeSpy.calls.filter(c => c.ms >= window.__markAbs).map(c => c.fn) : null }); })()",
+      "full": true
+    },
+    {
+      "name": "desktop Right 4: ArrowRight handled, the focus kept",
+      "assert": "(__jfurStars.log.slice(window.__mark).filter(e => e.kind === 'key-bubble').pop() || {}).prevented === true && __jfurStars.onSlider()",
+      "message": "ArrowRight: handled, the focus kept"
+    },
+    {
+      "name": "desktop Right 5: mark",
+      "script": "window.__mark = __jfurStars.log.length; window.__markAbs = Math.round(performance.now()) - 1; return true;"
+    },
+    {
+      "name": "desktop Right 5: ArrowRight",
+      "key": "ArrowRight"
+    },
+    {
+      "sleep": 150
+    },
+    {
+      "name": "desktop Right 5: after ArrowRight",
+      "eval": "(() => { const since = __jfurStars.log.slice(window.__mark); const pick = (kind) => since.filter(e => e.kind === kind).pop() || null; const cap = pick('key-capture'); const bub = pick('key-bubble'); return Object.assign(__jfurStars.state(), { key: \"ArrowRight\", capture: cap && { key: cap.key, prevented: cap.prevented }, bubble: bub ? { prevented: bub.prevented, target: bub.target } : 'not reached', changes: since.filter(e => e.kind === 'change').map(e => e.value + ':' + e.how), jeCalls: window.__jeSpy ? window.__jeSpy.calls.filter(c => c.ms >= window.__markAbs).map(c => c.fn) : null }); })()",
+      "full": true
+    },
+    {
+      "name": "desktop Right 5: ArrowRight handled, the focus kept",
+      "assert": "(__jfurStars.log.slice(window.__mark).filter(e => e.kind === 'key-bubble').pop() || {}).prevented === true && __jfurStars.onSlider()",
+      "message": "ArrowRight: handled, the focus kept"
+    },
+    {
+      "name": "desktop Right 6: mark",
+      "script": "window.__mark = __jfurStars.log.length; window.__markAbs = Math.round(performance.now()) - 1; return true;"
+    },
+    {
+      "name": "desktop Right 6: ArrowRight",
+      "key": "ArrowRight"
+    },
+    {
+      "sleep": 150
+    },
+    {
+      "name": "desktop Right 6: after ArrowRight",
+      "eval": "(() => { const since = __jfurStars.log.slice(window.__mark); const pick = (kind) => since.filter(e => e.kind === kind).pop() || null; const cap = pick('key-capture'); const bub = pick('key-bubble'); return Object.assign(__jfurStars.state(), { key: \"ArrowRight\", capture: cap && { key: cap.key, prevented: cap.prevented }, bubble: bub ? { prevented: bub.prevented, target: bub.target } : 'not reached', changes: since.filter(e => e.kind === 'change').map(e => e.value + ':' + e.how), jeCalls: window.__jeSpy ? window.__jeSpy.calls.filter(c => c.ms >= window.__markAbs).map(c => c.fn) : null }); })()",
+      "full": true
+    },
+    {
+      "name": "desktop Right 6: ArrowRight handled, the focus kept",
+      "assert": "(__jfurStars.log.slice(window.__mark).filter(e => e.kind === 'key-bubble').pop() || {}).prevented === true && __jfurStars.onSlider()",
+      "message": "ArrowRight: handled, the focus kept"
+    },
+    {
+      "name": "desktop Right 7: mark",
+      "script": "window.__mark = __jfurStars.log.length; window.__markAbs = Math.round(performance.now()) - 1; return true;"
+    },
+    {
+      "name": "desktop Right 7: ArrowRight",
+      "key": "ArrowRight"
+    },
+    {
+      "sleep": 150
+    },
+    {
+      "name": "desktop Right 7: after ArrowRight",
+      "eval": "(() => { const since = __jfurStars.log.slice(window.__mark); const pick = (kind) => since.filter(e => e.kind === kind).pop() || null; const cap = pick('key-capture'); const bub = pick('key-bubble'); return Object.assign(__jfurStars.state(), { key: \"ArrowRight\", capture: cap && { key: cap.key, prevented: cap.prevented }, bubble: bub ? { prevented: bub.prevented, target: bub.target } : 'not reached', changes: since.filter(e => e.kind === 'change').map(e => e.value + ':' + e.how), jeCalls: window.__jeSpy ? window.__jeSpy.calls.filter(c => c.ms >= window.__markAbs).map(c => c.fn) : null }); })()",
+      "full": true
+    },
+    {
+      "name": "desktop Right 7: ArrowRight handled, the focus kept",
+      "assert": "(__jfurStars.log.slice(window.__mark).filter(e => e.kind === 'key-bubble').pop() || {}).prevented === true && __jfurStars.onSlider()",
+      "message": "ArrowRight: handled, the focus kept"
+    },
+    {
+      "name": "desktop: Right ×7 reads \"3.5 out of 5 stars\"",
+      "assert": "__jfurStars.widget.value() === 3.5 && __jfurStars.widget.slider.getAttribute('aria-valuetext') === '3.5 out of 5 stars'"
+    },
+    {
+      "name": "desktop Enter: mark",
+      "script": "window.__mark = __jfurStars.log.length; window.__markAbs = Math.round(performance.now()) - 1; return true;"
+    },
+    {
+      "name": "desktop Enter: Enter",
+      "key": "Enter"
+    },
+    {
+      "sleep": 60
+    },
+    {
+      "name": "desktop Enter: after Enter",
+      "eval": "(() => { const since = __jfurStars.log.slice(window.__mark); const pick = (kind) => since.filter(e => e.kind === kind).pop() || null; const cap = pick('key-capture'); const bub = pick('key-bubble'); return Object.assign(__jfurStars.state(), { key: \"Enter\", capture: cap && { key: cap.key, prevented: cap.prevented }, bubble: bub ? { prevented: bub.prevented, target: bub.target } : 'not reached', changes: since.filter(e => e.kind === 'change').map(e => e.value + ':' + e.how), jeCalls: window.__jeSpy ? window.__jeSpy.calls.filter(c => c.ms >= window.__markAbs).map(c => c.fn) : null }); })()",
+      "full": true
+    },
+    {
+      "name": "desktop Enter: Enter saves now, skipping the debounce",
+      "assert": "(__jfurStars.log.slice(window.__mark).filter(e => e.kind === 'key-bubble').pop() || {}).prevented === true && (() => { const c = (__jfurStars.commits.length ? __jfurStars.commits[__jfurStars.commits.length - 1] : { value: null, t: -1 }); const press = __jfurStars.log.slice(window.__mark).find(e => e.kind === 'key-capture' && e.key === \"Enter\"); return c.value === 3.5 && !!press && c.t - press.t < 100; })()",
+      "message": "Enter: saves now, skipping the debounce"
+    },
+    {
+      "sleep": 400
+    },
+    {
+      "name": "desktop: the save answered: \"Saved: 3.5 stars\" in the live region",
+      "assert": "__jfurStars.widget.element.querySelector('.jfur-stars-live').textContent === 'Saved: 3.5 stars' && __jfurStars.widget.savedValue() === 3.5"
+    },
+    {
+      "name": "desktop ArrowUp to 4: mark",
+      "script": "window.__mark = __jfurStars.log.length; window.__markAbs = Math.round(performance.now()) - 1; return true;"
+    },
+    {
+      "name": "desktop ArrowUp to 4: ArrowUp",
+      "key": "ArrowUp"
+    },
+    {
+      "sleep": 150
+    },
+    {
+      "name": "desktop ArrowUp to 4: after ArrowUp",
+      "eval": "(() => { const since = __jfurStars.log.slice(window.__mark); const pick = (kind) => since.filter(e => e.kind === kind).pop() || null; const cap = pick('key-capture'); const bub = pick('key-bubble'); return Object.assign(__jfurStars.state(), { key: \"ArrowUp\", capture: cap && { key: cap.key, prevented: cap.prevented }, bubble: bub ? { prevented: bub.prevented, target: bub.target } : 'not reached', changes: since.filter(e => e.kind === 'change').map(e => e.value + ':' + e.how), jeCalls: window.__jeSpy ? window.__jeSpy.calls.filter(c => c.ms >= window.__markAbs).map(c => c.fn) : null }); })()",
+      "full": true
+    },
+    {
+      "name": "desktop ArrowUp to 4: ArrowUp as expected",
+      "assert": "(__jfurStars.log.slice(window.__mark).filter(e => e.kind === 'key-bubble').pop() || {}).prevented === true && __jfurStars.widget.value() === 4",
+      "message": "ArrowUp: not as expected"
+    },
+    {
+      "name": "desktop ArrowDown to 3.5: mark",
+      "script": "window.__mark = __jfurStars.log.length; window.__markAbs = Math.round(performance.now()) - 1; return true;"
+    },
+    {
+      "name": "desktop ArrowDown to 3.5: ArrowDown",
+      "key": "ArrowDown"
+    },
+    {
+      "sleep": 150
+    },
+    {
+      "name": "desktop ArrowDown to 3.5: after ArrowDown",
+      "eval": "(() => { const since = __jfurStars.log.slice(window.__mark); const pick = (kind) => since.filter(e => e.kind === kind).pop() || null; const cap = pick('key-capture'); const bub = pick('key-bubble'); return Object.assign(__jfurStars.state(), { key: \"ArrowDown\", capture: cap && { key: cap.key, prevented: cap.prevented }, bubble: bub ? { prevented: bub.prevented, target: bub.target } : 'not reached', changes: since.filter(e => e.kind === 'change').map(e => e.value + ':' + e.how), jeCalls: window.__jeSpy ? window.__jeSpy.calls.filter(c => c.ms >= window.__markAbs).map(c => c.fn) : null }); })()",
+      "full": true
+    },
+    {
+      "name": "desktop ArrowDown to 3.5: ArrowDown as expected",
+      "assert": "(__jfurStars.log.slice(window.__mark).filter(e => e.kind === 'key-bubble').pop() || {}).prevented === true && __jfurStars.widget.value() === 3.5",
+      "message": "ArrowDown: not as expected"
+    },
+    {
+      "name": "desktop ArrowLeft to 3: mark",
+      "script": "window.__mark = __jfurStars.log.length; window.__markAbs = Math.round(performance.now()) - 1; return true;"
+    },
+    {
+      "name": "desktop ArrowLeft to 3: ArrowLeft",
+      "key": "ArrowLeft"
+    },
+    {
+      "sleep": 150
+    },
+    {
+      "name": "desktop ArrowLeft to 3: after ArrowLeft",
+      "eval": "(() => { const since = __jfurStars.log.slice(window.__mark); const pick = (kind) => since.filter(e => e.kind === kind).pop() || null; const cap = pick('key-capture'); const bub = pick('key-bubble'); return Object.assign(__jfurStars.state(), { key: \"ArrowLeft\", capture: cap && { key: cap.key, prevented: cap.prevented }, bubble: bub ? { prevented: bub.prevented, target: bub.target } : 'not reached', changes: since.filter(e => e.kind === 'change').map(e => e.value + ':' + e.how), jeCalls: window.__jeSpy ? window.__jeSpy.calls.filter(c => c.ms >= window.__markAbs).map(c => c.fn) : null }); })()",
+      "full": true
+    },
+    {
+      "name": "desktop ArrowLeft to 3: ArrowLeft as expected",
+      "assert": "(__jfurStars.log.slice(window.__mark).filter(e => e.kind === 'key-bubble').pop() || {}).prevented === true && __jfurStars.widget.value() === 3",
+      "message": "ArrowLeft: not as expected"
+    },
+    {
+      "name": "desktop PageUp to 4: mark",
+      "script": "window.__mark = __jfurStars.log.length; window.__markAbs = Math.round(performance.now()) - 1; return true;"
+    },
+    {
+      "name": "desktop PageUp to 4: PageUp",
+      "key": "PageUp"
+    },
+    {
+      "sleep": 150
+    },
+    {
+      "name": "desktop PageUp to 4: after PageUp",
+      "eval": "(() => { const since = __jfurStars.log.slice(window.__mark); const pick = (kind) => since.filter(e => e.kind === kind).pop() || null; const cap = pick('key-capture'); const bub = pick('key-bubble'); return Object.assign(__jfurStars.state(), { key: \"PageUp\", capture: cap && { key: cap.key, prevented: cap.prevented }, bubble: bub ? { prevented: bub.prevented, target: bub.target } : 'not reached', changes: since.filter(e => e.kind === 'change').map(e => e.value + ':' + e.how), jeCalls: window.__jeSpy ? window.__jeSpy.calls.filter(c => c.ms >= window.__markAbs).map(c => c.fn) : null }); })()",
+      "full": true
+    },
+    {
+      "name": "desktop PageUp to 4: PageUp as expected",
+      "assert": "(__jfurStars.log.slice(window.__mark).filter(e => e.kind === 'key-bubble').pop() || {}).prevented === true && __jfurStars.widget.value() === 4",
+      "message": "PageUp: not as expected"
+    },
+    {
+      "name": "desktop PageDown to 3: mark",
+      "script": "window.__mark = __jfurStars.log.length; window.__markAbs = Math.round(performance.now()) - 1; return true;"
+    },
+    {
+      "name": "desktop PageDown to 3: PageDown",
+      "key": "PageDown"
+    },
+    {
+      "sleep": 150
+    },
+    {
+      "name": "desktop PageDown to 3: after PageDown",
+      "eval": "(() => { const since = __jfurStars.log.slice(window.__mark); const pick = (kind) => since.filter(e => e.kind === kind).pop() || null; const cap = pick('key-capture'); const bub = pick('key-bubble'); return Object.assign(__jfurStars.state(), { key: \"PageDown\", capture: cap && { key: cap.key, prevented: cap.prevented }, bubble: bub ? { prevented: bub.prevented, target: bub.target } : 'not reached', changes: since.filter(e => e.kind === 'change').map(e => e.value + ':' + e.how), jeCalls: window.__jeSpy ? window.__jeSpy.calls.filter(c => c.ms >= window.__markAbs).map(c => c.fn) : null }); })()",
+      "full": true
+    },
+    {
+      "name": "desktop PageDown to 3: PageDown as expected",
+      "assert": "(__jfurStars.log.slice(window.__mark).filter(e => e.kind === 'key-bubble').pop() || {}).prevented === true && __jfurStars.widget.value() === 3",
+      "message": "PageDown: not as expected"
+    },
+    {
+      "name": "desktop End to 5: mark",
+      "script": "window.__mark = __jfurStars.log.length; window.__markAbs = Math.round(performance.now()) - 1; return true;"
+    },
+    {
+      "name": "desktop End to 5: End",
+      "key": "End"
+    },
+    {
+      "sleep": 150
+    },
+    {
+      "name": "desktop End to 5: after End",
+      "eval": "(() => { const since = __jfurStars.log.slice(window.__mark); const pick = (kind) => since.filter(e => e.kind === kind).pop() || null; const cap = pick('key-capture'); const bub = pick('key-bubble'); return Object.assign(__jfurStars.state(), { key: \"End\", capture: cap && { key: cap.key, prevented: cap.prevented }, bubble: bub ? { prevented: bub.prevented, target: bub.target } : 'not reached', changes: since.filter(e => e.kind === 'change').map(e => e.value + ':' + e.how), jeCalls: window.__jeSpy ? window.__jeSpy.calls.filter(c => c.ms >= window.__markAbs).map(c => c.fn) : null }); })()",
+      "full": true
+    },
+    {
+      "name": "desktop End to 5: End as expected",
+      "assert": "(__jfurStars.log.slice(window.__mark).filter(e => e.kind === 'key-bubble').pop() || {}).prevented === true && __jfurStars.widget.value() === 5",
+      "message": "End: not as expected"
+    },
+    {
+      "name": "desktop ArrowRight to 5: mark",
+      "script": "window.__mark = __jfurStars.log.length; window.__markAbs = Math.round(performance.now()) - 1; return true;"
+    },
+    {
+      "name": "desktop ArrowRight to 5: ArrowRight",
+      "key": "ArrowRight"
+    },
+    {
+      "sleep": 150
+    },
+    {
+      "name": "desktop ArrowRight to 5: after ArrowRight",
+      "eval": "(() => { const since = __jfurStars.log.slice(window.__mark); const pick = (kind) => since.filter(e => e.kind === kind).pop() || null; const cap = pick('key-capture'); const bub = pick('key-bubble'); return Object.assign(__jfurStars.state(), { key: \"ArrowRight\", capture: cap && { key: cap.key, prevented: cap.prevented }, bubble: bub ? { prevented: bub.prevented, target: bub.target } : 'not reached', changes: since.filter(e => e.kind === 'change').map(e => e.value + ':' + e.how), jeCalls: window.__jeSpy ? window.__jeSpy.calls.filter(c => c.ms >= window.__markAbs).map(c => c.fn) : null }); })()",
+      "full": true
+    },
+    {
+      "name": "desktop ArrowRight to 5: ArrowRight as expected",
+      "assert": "(__jfurStars.log.slice(window.__mark).filter(e => e.kind === 'key-bubble').pop() || {}).prevented === true && __jfurStars.widget.value() === 5",
+      "message": "ArrowRight: not as expected"
+    },
+    {
+      "name": "desktop Home to 0.5: mark",
+      "script": "window.__mark = __jfurStars.log.length; window.__markAbs = Math.round(performance.now()) - 1; return true;"
+    },
+    {
+      "name": "desktop Home to 0.5: Home",
+      "key": "Home"
+    },
+    {
+      "sleep": 150
+    },
+    {
+      "name": "desktop Home to 0.5: after Home",
+      "eval": "(() => { const since = __jfurStars.log.slice(window.__mark); const pick = (kind) => since.filter(e => e.kind === kind).pop() || null; const cap = pick('key-capture'); const bub = pick('key-bubble'); return Object.assign(__jfurStars.state(), { key: \"Home\", capture: cap && { key: cap.key, prevented: cap.prevented }, bubble: bub ? { prevented: bub.prevented, target: bub.target } : 'not reached', changes: since.filter(e => e.kind === 'change').map(e => e.value + ':' + e.how), jeCalls: window.__jeSpy ? window.__jeSpy.calls.filter(c => c.ms >= window.__markAbs).map(c => c.fn) : null }); })()",
+      "full": true
+    },
+    {
+      "name": "desktop Home to 0.5: Home as expected",
+      "assert": "(__jfurStars.log.slice(window.__mark).filter(e => e.kind === 'key-bubble').pop() || {}).prevented === true && __jfurStars.widget.value() === 0.5",
+      "message": "Home: not as expected"
+    },
+    {
+      "name": "desktop ArrowLeft to 0.5: mark",
+      "script": "window.__mark = __jfurStars.log.length; window.__markAbs = Math.round(performance.now()) - 1; return true;"
+    },
+    {
+      "name": "desktop ArrowLeft to 0.5: ArrowLeft",
+      "key": "ArrowLeft"
+    },
+    {
+      "sleep": 150
+    },
+    {
+      "name": "desktop ArrowLeft to 0.5: after ArrowLeft",
+      "eval": "(() => { const since = __jfurStars.log.slice(window.__mark); const pick = (kind) => since.filter(e => e.kind === kind).pop() || null; const cap = pick('key-capture'); const bub = pick('key-bubble'); return Object.assign(__jfurStars.state(), { key: \"ArrowLeft\", capture: cap && { key: cap.key, prevented: cap.prevented }, bubble: bub ? { prevented: bub.prevented, target: bub.target } : 'not reached', changes: since.filter(e => e.kind === 'change').map(e => e.value + ':' + e.how), jeCalls: window.__jeSpy ? window.__jeSpy.calls.filter(c => c.ms >= window.__markAbs).map(c => c.fn) : null }); })()",
+      "full": true
+    },
+    {
+      "name": "desktop ArrowLeft to 0.5: ArrowLeft as expected",
+      "assert": "(__jfurStars.log.slice(window.__mark).filter(e => e.kind === 'key-bubble').pop() || {}).prevented === true && __jfurStars.widget.value() === 0.5",
+      "message": "ArrowLeft: not as expected"
+    },
+    {
+      "name": "desktop PageDown to 0.5: mark",
+      "script": "window.__mark = __jfurStars.log.length; window.__markAbs = Math.round(performance.now()) - 1; return true;"
+    },
+    {
+      "name": "desktop PageDown to 0.5: PageDown",
+      "key": "PageDown"
+    },
+    {
+      "sleep": 150
+    },
+    {
+      "name": "desktop PageDown to 0.5: after PageDown",
+      "eval": "(() => { const since = __jfurStars.log.slice(window.__mark); const pick = (kind) => since.filter(e => e.kind === kind).pop() || null; const cap = pick('key-capture'); const bub = pick('key-bubble'); return Object.assign(__jfurStars.state(), { key: \"PageDown\", capture: cap && { key: cap.key, prevented: cap.prevented }, bubble: bub ? { prevented: bub.prevented, target: bub.target } : 'not reached', changes: since.filter(e => e.kind === 'change').map(e => e.value + ':' + e.how), jeCalls: window.__jeSpy ? window.__jeSpy.calls.filter(c => c.ms >= window.__markAbs).map(c => c.fn) : null }); })()",
+      "full": true
+    },
+    {
+      "name": "desktop PageDown to 0.5: PageDown as expected",
+      "assert": "(__jfurStars.log.slice(window.__mark).filter(e => e.kind === 'key-bubble').pop() || {}).prevented === true && __jfurStars.widget.value() === 0.5",
+      "message": "PageDown: not as expected"
+    },
+    {
+      "name": "desktop Space: mark",
+      "script": "window.__mark = __jfurStars.log.length; window.__markAbs = Math.round(performance.now()) - 1; return true;"
+    },
+    {
+      "name": "desktop Space: Space",
+      "key": " "
+    },
+    {
+      "sleep": 60
+    },
+    {
+      "name": "desktop Space: after Space",
+      "eval": "(() => { const since = __jfurStars.log.slice(window.__mark); const pick = (kind) => since.filter(e => e.kind === kind).pop() || null; const cap = pick('key-capture'); const bub = pick('key-bubble'); return Object.assign(__jfurStars.state(), { key: \" \", capture: cap && { key: cap.key, prevented: cap.prevented }, bubble: bub ? { prevented: bub.prevented, target: bub.target } : 'not reached', changes: since.filter(e => e.kind === 'change').map(e => e.value + ':' + e.how), jeCalls: window.__jeSpy ? window.__jeSpy.calls.filter(c => c.ms >= window.__markAbs).map(c => c.fn) : null }); })()",
+      "full": true
+    },
+    {
+      "name": "desktop Space: Space saves now (or the debounce had saved it already)",
+      "assert": "(__jfurStars.log.slice(window.__mark).filter(e => e.kind === 'key-bubble').pop() || {}).prevented === true && ((() => { const c = (__jfurStars.commits.length ? __jfurStars.commits[__jfurStars.commits.length - 1] : { value: null, t: -1 }); const press = __jfurStars.log.slice(window.__mark).find(e => e.kind === 'key-capture' && e.key === \" \"); return c.value === 0.5 && !!press && c.t - press.t < 100; })() || ((__jfurStars.commits.length ? __jfurStars.commits[__jfurStars.commits.length - 1] : { value: null, t: -1 }).value === 0.5 && __jfurStars.widget.isPending() === false))",
+      "message": "Space: saves now (or the debounce had saved it already)"
+    },
+    {
+      "name": "desktop Delete: mark",
+      "script": "window.__mark = __jfurStars.log.length; window.__markAbs = Math.round(performance.now()) - 1; return true;"
+    },
+    {
+      "name": "desktop Delete: Delete",
+      "key": "Delete"
+    },
+    {
+      "sleep": 150
+    },
+    {
+      "name": "desktop Delete: after Delete",
+      "eval": "(() => { const since = __jfurStars.log.slice(window.__mark); const pick = (kind) => since.filter(e => e.kind === kind).pop() || null; const cap = pick('key-capture'); const bub = pick('key-bubble'); return Object.assign(__jfurStars.state(), { key: \"Delete\", capture: cap && { key: cap.key, prevented: cap.prevented }, bubble: bub ? { prevented: bub.prevented, target: bub.target } : 'not reached', changes: since.filter(e => e.kind === 'change').map(e => e.value + ':' + e.how), jeCalls: window.__jeSpy ? window.__jeSpy.calls.filter(c => c.ms >= window.__markAbs).map(c => c.fn) : null }); })()",
+      "full": true
+    },
+    {
+      "name": "desktop Delete: Delete left to the page, nothing cleared",
+      "assert": "(__jfurStars.log.slice(window.__mark).filter(e => e.kind === 'key-bubble').pop() || { prevented: false }).prevented === false && __jfurStars.widget.value() === 0.5",
+      "message": "Delete: left to the page, nothing cleared"
+    },
+    {
+      "name": "desktop Backspace: mark",
+      "script": "window.__mark = __jfurStars.log.length; window.__markAbs = Math.round(performance.now()) - 1; return true;"
+    },
+    {
+      "name": "desktop Backspace: Backspace",
+      "key": "Backspace"
+    },
+    {
+      "sleep": 150
+    },
+    {
+      "name": "desktop Backspace: after Backspace",
+      "eval": "(() => { const since = __jfurStars.log.slice(window.__mark); const pick = (kind) => since.filter(e => e.kind === kind).pop() || null; const cap = pick('key-capture'); const bub = pick('key-bubble'); return Object.assign(__jfurStars.state(), { key: \"Backspace\", capture: cap && { key: cap.key, prevented: cap.prevented }, bubble: bub ? { prevented: bub.prevented, target: bub.target } : 'not reached', changes: since.filter(e => e.kind === 'change').map(e => e.value + ':' + e.how), jeCalls: window.__jeSpy ? window.__jeSpy.calls.filter(c => c.ms >= window.__markAbs).map(c => c.fn) : null }); })()",
+      "full": true
+    },
+    {
+      "name": "desktop Backspace: Backspace left to the page, nothing cleared",
+      "assert": "(__jfurStars.log.slice(window.__mark).filter(e => e.kind === 'key-bubble').pop() || { prevented: false }).prevented === false && __jfurStars.widget.value() === 0.5",
+      "message": "Backspace: left to the page, nothing cleared"
+    },
+    {
+      "name": "desktop 3: mark",
+      "script": "window.__mark = __jfurStars.log.length; window.__markAbs = Math.round(performance.now()) - 1; return true;"
+    },
+    {
+      "name": "desktop 3: 3",
+      "key": "3"
+    },
+    {
+      "sleep": 150
+    },
+    {
+      "name": "desktop 3: after 3",
+      "eval": "(() => { const since = __jfurStars.log.slice(window.__mark); const pick = (kind) => since.filter(e => e.kind === kind).pop() || null; const cap = pick('key-capture'); const bub = pick('key-bubble'); return Object.assign(__jfurStars.state(), { key: \"3\", capture: cap && { key: cap.key, prevented: cap.prevented }, bubble: bub ? { prevented: bub.prevented, target: bub.target } : 'not reached', changes: since.filter(e => e.kind === 'change').map(e => e.value + ':' + e.how), jeCalls: window.__jeSpy ? window.__jeSpy.calls.filter(c => c.ms >= window.__markAbs).map(c => c.fn) : null }); })()",
+      "full": true
+    },
+    {
+      "name": "desktop 3: 3 left to the page, nothing cleared",
+      "assert": "(__jfurStars.log.slice(window.__mark).filter(e => e.kind === 'key-bubble').pop() || { prevented: false }).prevented === false && __jfurStars.widget.value() === 0.5",
+      "message": "3: left to the page, nothing cleared"
+    },
+    {
+      "name": "desktop: no key scrolled the page",
+      "assert": "Math.round(window.scrollY) === __vars.scroll0",
+      "message": "a key the slider handles scrolled the page"
+    },
+    {
+      "name": "the saves so far",
+      "eval": "__jfurStars.commits.length",
+      "save": "beforeDebounce"
+    },
+    {
+      "name": "desktop debounce Right: mark",
+      "script": "window.__mark = __jfurStars.log.length; window.__markAbs = Math.round(performance.now()) - 1; return true;"
+    },
+    {
+      "name": "desktop debounce Right: ArrowRight",
+      "key": "ArrowRight"
+    },
+    {
+      "sleep": 300
+    },
+    {
+      "name": "desktop debounce Right: after ArrowRight",
+      "eval": "(() => { const since = __jfurStars.log.slice(window.__mark); const pick = (kind) => since.filter(e => e.kind === kind).pop() || null; const cap = pick('key-capture'); const bub = pick('key-bubble'); return Object.assign(__jfurStars.state(), { key: \"ArrowRight\", capture: cap && { key: cap.key, prevented: cap.prevented }, bubble: bub ? { prevented: bub.prevented, target: bub.target } : 'not reached', changes: since.filter(e => e.kind === 'change').map(e => e.value + ':' + e.how), jeCalls: window.__jeSpy ? window.__jeSpy.calls.filter(c => c.ms >= window.__markAbs).map(c => c.fn) : null }); })()",
+      "full": true
+    },
+    {
+      "name": "desktop debounce Right: ArrowRight not saved within 300 ms",
+      "assert": "__jfurStars.commits.length === __vars.beforeDebounce",
+      "message": "ArrowRight: not saved within 300 ms"
+    },
+    {
+      "sleep": 500
+    },
+    {
+      "name": "desktop: saved once, 600 ms after the change",
+      "assert": "__jfurStars.commits.length === __vars.beforeDebounce + 1 && (__jfurStars.commits.length ? __jfurStars.commits[__jfurStars.commits.length - 1] : { value: null, t: -1 }).value === 1 && (__jfurStars.commits.length ? __jfurStars.commits[__jfurStars.commits.length - 1] : { value: null, t: -1 }).t - (__jfurStars.log.filter(e => e.kind === 'change').pop() || null).t >= 590"
+    },
+    {
+      "name": "desktop: Tab leaves the slider",
+      "key": "Tab"
+    },
+    {
+      "name": "desktop: where Tab went",
+      "eval": "({ active: __jfurStars.active(), value: __jfurStars.widget.value() })",
+      "save": "tabOut",
+      "full": true
+    },
+    {
+      "name": "desktop: to Clear on the next row",
+      "assert": "__vars.tabOut.active.indexOf('jfur-probe-clear') >= 0 && __vars.tabOut.value === 1"
+    },
+    {
+      "name": "mouse: the page back to the top, the stars in view",
+      "script": "window.scrollTo(0, 0); __jfurStars.widget.slider.scrollIntoView({ block: 'center' }); await new Promise(r => setTimeout(r, 400)); __jfurStars.widget.setValue(0); return __jfurStars.state();",
+      "full": true
+    },
+    {
+      "cdp": "Input.dispatchMouseEvent",
+      "params": "(() => { const b = __jfurStars.box(__jfurStars.widget.slider); return Object.assign({ type: 'mouseMoved', x: __jfurStars.xFor(2.5), y: b.cy, button: 'none', clickCount: 0 }, {}); })()"
+    },
+    {
+      "sleep": 100
+    },
+    {
+      "name": "mouse: hovering the middle of star 3",
+      "eval": "__jfurStars.state()",
+      "save": "hover",
+      "full": true
+    },
+    {
+      "name": "mouse: previews 2.5, the value still \"Not rated\"",
+      "assert": "__vars.hover.fills.join() === '100%,100%,50%,0%,0%' && __vars.hover.valuenow === '0' && __vars.hover.shown === '2.5' && __vars.hover.classes.indexOf('jfur-rating-preview') >= 0"
+    },
+    {
+      "cdp": "Input.dispatchMouseEvent",
+      "params": "(() => { const b = __jfurStars.box(__jfurStars.widget.slider); return Object.assign({ type: 'mouseMoved', x: __jfurStars.xFor(2.5), y: b.cy, button: 'none', clickCount: 0 }, {\"y\":5}); })()"
+    },
+    {
+      "sleep": 100
+    },
+    {
+      "name": "mouse: after leaving",
+      "eval": "__jfurStars.state()",
+      "save": "left",
+      "full": true
+    },
+    {
+      "name": "mouse: leaving shows the value again",
+      "assert": "__vars.left.fills.join() === '0%,0%,0%,0%,0%' && __vars.left.shown === 'Not rated'"
+    },
+    {
+      "name": "mouse: a click on the middle of star 3",
+      "script": "window.__mark = __jfurStars.log.length; return true;"
+    },
+    {
+      "cdp": "Input.dispatchMouseEvent",
+      "params": "(() => { const b = __jfurStars.box(__jfurStars.widget.slider); return Object.assign({ type: 'mouseMoved', x: __jfurStars.xFor(2.5), y: b.cy, button: 'none', clickCount: 0 }, {}); })()"
+    },
+    {
+      "cdp": "Input.dispatchMouseEvent",
+      "params": "(() => { const b = __jfurStars.box(__jfurStars.widget.slider); return Object.assign({ type: 'mousePressed', x: __jfurStars.xFor(2.5), y: b.cy, button: 'left', clickCount: 1 }, {}); })()"
+    },
+    {
+      "cdp": "Input.dispatchMouseEvent",
+      "params": "(() => { const b = __jfurStars.box(__jfurStars.widget.slider); return Object.assign({ type: 'mouseReleased', x: __jfurStars.xFor(2.5), y: b.cy, button: 'left', clickCount: 1 }, {}); })()"
+    },
+    {
+      "sleep": 100
+    },
+    {
+      "name": "mouse: after a click on the middle of star 3",
+      "eval": "Object.assign(__jfurStars.state(), { pointer: __jfurStars.log.slice(window.__mark).filter(e => e.kind === 'pointer').map(e => e.type + '@' + e.x), left: __jfurStars.box(__jfurStars.widget.slider).x, width: __jfurStars.box(__jfurStars.widget.slider).w })",
+      "full": true
+    },
+    {
+      "name": "mouse: the middle of star 3 is 2.5",
+      "assert": "(() => { const s = __jfurStars.state(); return s.value === 2.5 && s.valuetext === '2.5 out of 5 stars'; })()",
+      "message": "the middle of star 3 did not give 2.5"
+    },
+    {
+      "name": "mouse: the pointer's x was the middle exactly",
+      "eval": "(() => { const p = __jfurStars.log.filter(e => e.kind === 'pointer' && e.type === 'pointerup').pop(); const b = __jfurStars.box(__jfurStars.widget.slider); return { x: p.x, middle: b.x + b.w / 2, exact: Math.abs(p.x - (b.x + b.w / 2)) < 0.01 }; })()",
+      "save": "middle",
+      "full": true
+    },
+    {
+      "name": "mouse: a click 1 px past the middle",
+      "script": "window.__mark = __jfurStars.log.length; return true;"
+    },
+    {
+      "cdp": "Input.dispatchMouseEvent",
+      "params": "(() => { const b = __jfurStars.box(__jfurStars.widget.slider); return Object.assign({ type: 'mouseMoved', x: __jfurStars.xFor(2.5) + 1, y: b.cy, button: 'none', clickCount: 0 }, {}); })()"
+    },
+    {
+      "cdp": "Input.dispatchMouseEvent",
+      "params": "(() => { const b = __jfurStars.box(__jfurStars.widget.slider); return Object.assign({ type: 'mousePressed', x: __jfurStars.xFor(2.5) + 1, y: b.cy, button: 'left', clickCount: 1 }, {}); })()"
+    },
+    {
+      "cdp": "Input.dispatchMouseEvent",
+      "params": "(() => { const b = __jfurStars.box(__jfurStars.widget.slider); return Object.assign({ type: 'mouseReleased', x: __jfurStars.xFor(2.5) + 1, y: b.cy, button: 'left', clickCount: 1 }, {}); })()"
+    },
+    {
+      "sleep": 100
+    },
+    {
+      "name": "mouse: after a click 1 px past the middle",
+      "eval": "Object.assign(__jfurStars.state(), { pointer: __jfurStars.log.slice(window.__mark).filter(e => e.kind === 'pointer').map(e => e.type + '@' + e.x), left: __jfurStars.box(__jfurStars.widget.slider).x, width: __jfurStars.box(__jfurStars.widget.slider).w })",
+      "full": true
+    },
+    {
+      "name": "mouse: just past the middle is 3.0",
+      "assert": "__jfurStars.widget.value() === 3"
+    },
+    {
+      "name": "mouse: a click 1 px before the middle",
+      "script": "window.__mark = __jfurStars.log.length; return true;"
+    },
+    {
+      "cdp": "Input.dispatchMouseEvent",
+      "params": "(() => { const b = __jfurStars.box(__jfurStars.widget.slider); return Object.assign({ type: 'mouseMoved', x: __jfurStars.xFor(2.5) - 1, y: b.cy, button: 'none', clickCount: 0 }, {}); })()"
+    },
+    {
+      "cdp": "Input.dispatchMouseEvent",
+      "params": "(() => { const b = __jfurStars.box(__jfurStars.widget.slider); return Object.assign({ type: 'mousePressed', x: __jfurStars.xFor(2.5) - 1, y: b.cy, button: 'left', clickCount: 1 }, {}); })()"
+    },
+    {
+      "cdp": "Input.dispatchMouseEvent",
+      "params": "(() => { const b = __jfurStars.box(__jfurStars.widget.slider); return Object.assign({ type: 'mouseReleased', x: __jfurStars.xFor(2.5) - 1, y: b.cy, button: 'left', clickCount: 1 }, {}); })()"
+    },
+    {
+      "sleep": 100
+    },
+    {
+      "name": "mouse: after a click 1 px before the middle",
+      "eval": "Object.assign(__jfurStars.state(), { pointer: __jfurStars.log.slice(window.__mark).filter(e => e.kind === 'pointer').map(e => e.type + '@' + e.x), left: __jfurStars.box(__jfurStars.widget.slider).x, width: __jfurStars.box(__jfurStars.widget.slider).w })",
+      "full": true
+    },
+    {
+      "name": "mouse: just before is 2.5",
+      "assert": "__jfurStars.widget.value() === 2.5"
+    },
+    {
+      "name": "mouse: a click on star 4's right half",
+      "script": "window.__mark = __jfurStars.log.length; return true;"
+    },
+    {
+      "cdp": "Input.dispatchMouseEvent",
+      "params": "(() => { const b = __jfurStars.box(__jfurStars.widget.slider); return Object.assign({ type: 'mouseMoved', x: __jfurStars.xFor(3.75), y: b.cy, button: 'none', clickCount: 0 }, {}); })()"
+    },
+    {
+      "cdp": "Input.dispatchMouseEvent",
+      "params": "(() => { const b = __jfurStars.box(__jfurStars.widget.slider); return Object.assign({ type: 'mousePressed', x: __jfurStars.xFor(3.75), y: b.cy, button: 'left', clickCount: 1 }, {}); })()"
+    },
+    {
+      "cdp": "Input.dispatchMouseEvent",
+      "params": "(() => { const b = __jfurStars.box(__jfurStars.widget.slider); return Object.assign({ type: 'mouseReleased', x: __jfurStars.xFor(3.75), y: b.cy, button: 'left', clickCount: 1 }, {}); })()"
+    },
+    {
+      "sleep": 100
+    },
+    {
+      "name": "mouse: after a click on star 4's right half",
+      "eval": "Object.assign(__jfurStars.state(), { pointer: __jfurStars.log.slice(window.__mark).filter(e => e.kind === 'pointer').map(e => e.type + '@' + e.x), left: __jfurStars.box(__jfurStars.widget.slider).x, width: __jfurStars.box(__jfurStars.widget.slider).w })",
+      "full": true
+    },
+    {
+      "name": "mouse: star 4's right half is 4.0, not saved yet",
+      "assert": "__jfurStars.widget.value() === 4 && __jfurStars.widget.isPending()"
+    },
+    {
+      "sleep": 800
+    },
+    {
+      "name": "mouse: the last click saved, 600 ms after it",
+      "assert": "(__jfurStars.commits.length ? __jfurStars.commits[__jfurStars.commits.length - 1] : { value: null, t: -1 }).value === 4 && __jfurStars.widget.savedValue() === 4 && (__jfurStars.commits.length ? __jfurStars.commits[__jfurStars.commits.length - 1] : { value: null, t: -1 }).t - (__jfurStars.log.filter(e => e.kind === 'change').pop() || null).t >= 590"
+    },
+    {
+      "name": "the saves so far",
+      "eval": "__jfurStars.commits.length",
+      "save": "beforeSame"
+    },
+    {
+      "name": "mouse: a click on the current value",
+      "script": "window.__mark = __jfurStars.log.length; return true;"
+    },
+    {
+      "cdp": "Input.dispatchMouseEvent",
+      "params": "(() => { const b = __jfurStars.box(__jfurStars.widget.slider); return Object.assign({ type: 'mouseMoved', x: __jfurStars.xFor(3.75), y: b.cy, button: 'none', clickCount: 0 }, {}); })()"
+    },
+    {
+      "cdp": "Input.dispatchMouseEvent",
+      "params": "(() => { const b = __jfurStars.box(__jfurStars.widget.slider); return Object.assign({ type: 'mousePressed', x: __jfurStars.xFor(3.75), y: b.cy, button: 'left', clickCount: 1 }, {}); })()"
+    },
+    {
+      "cdp": "Input.dispatchMouseEvent",
+      "params": "(() => { const b = __jfurStars.box(__jfurStars.widget.slider); return Object.assign({ type: 'mouseReleased', x: __jfurStars.xFor(3.75), y: b.cy, button: 'left', clickCount: 1 }, {}); })()"
+    },
+    {
+      "sleep": 100
+    },
+    {
+      "name": "mouse: after a click on the current value",
+      "eval": "Object.assign(__jfurStars.state(), { pointer: __jfurStars.log.slice(window.__mark).filter(e => e.kind === 'pointer').map(e => e.type + '@' + e.x), left: __jfurStars.box(__jfurStars.widget.slider).x, width: __jfurStars.box(__jfurStars.widget.slider).w })",
+      "full": true
+    },
+    {
+      "sleep": 800
+    },
+    {
+      "name": "mouse: clicking the current value does nothing",
+      "assert": "__jfurStars.widget.value() === 4 && __jfurStars.commits.length === __vars.beforeSame"
+    },
+    {
+      "name": "Clear (the page's button: DELETE Mine/Rating, then setValue(0) and the live region)",
+      "click": ".jfur-probe-clear"
+    },
+    {
+      "sleep": 200
+    },
+    {
+      "name": "after Clear",
+      "eval": "__jfurStars.state()",
+      "save": "cleared",
+      "full": true
+    },
+    {
+      "name": "cleared: \"Not rated\", \"Rating cleared\" announced",
+      "assert": "__vars.cleared.valuenow === '0' && __vars.cleared.valuetext === 'Not rated' && __vars.cleared.live === 'Rating cleared'"
+    },
+    {
+      "name": "a failed save: the next one fails",
+      "script": "__jfurStars.widget.setValue(2); __jfurStars.fail = 1; __jfurStars.widget.slider.focus(); return true;"
+    },
+    {
+      "name": "failed save Right: mark",
+      "script": "window.__mark = __jfurStars.log.length; window.__markAbs = Math.round(performance.now()) - 1; return true;"
+    },
+    {
+      "name": "failed save Right: ArrowRight",
+      "key": "ArrowRight"
+    },
+    {
+      "sleep": 150
+    },
+    {
+      "name": "failed save Right: after ArrowRight",
+      "eval": "(() => { const since = __jfurStars.log.slice(window.__mark); const pick = (kind) => since.filter(e => e.kind === kind).pop() || null; const cap = pick('key-capture'); const bub = pick('key-bubble'); return Object.assign(__jfurStars.state(), { key: \"ArrowRight\", capture: cap && { key: cap.key, prevented: cap.prevented }, bubble: bub ? { prevented: bub.prevented, target: bub.target } : 'not reached', changes: since.filter(e => e.kind === 'change').map(e => e.value + ':' + e.how), jeCalls: window.__jeSpy ? window.__jeSpy.calls.filter(c => c.ms >= window.__markAbs).map(c => c.fn) : null }); })()",
+      "full": true
+    },
+    {
+      "name": "failed save Right: ArrowRight as expected",
+      "assert": "__jfurStars.widget.value() === 2.5",
+      "message": "ArrowRight: not as expected"
+    },
+    {
+      "name": "failed save Enter: mark",
+      "script": "window.__mark = __jfurStars.log.length; window.__markAbs = Math.round(performance.now()) - 1; return true;"
+    },
+    {
+      "name": "failed save Enter: Enter",
+      "key": "Enter"
+    },
+    {
+      "sleep": 400
+    },
+    {
+      "name": "failed save Enter: after Enter",
+      "eval": "(() => { const since = __jfurStars.log.slice(window.__mark); const pick = (kind) => since.filter(e => e.kind === kind).pop() || null; const cap = pick('key-capture'); const bub = pick('key-bubble'); return Object.assign(__jfurStars.state(), { key: \"Enter\", capture: cap && { key: cap.key, prevented: cap.prevented }, bubble: bub ? { prevented: bub.prevented, target: bub.target } : 'not reached', changes: since.filter(e => e.kind === 'change').map(e => e.value + ':' + e.how), jeCalls: window.__jeSpy ? window.__jeSpy.calls.filter(c => c.ms >= window.__markAbs).map(c => c.fn) : null }); })()",
+      "full": true
+    },
+    {
+      "name": "failed save Enter: Enter puts back the last saved value",
+      "assert": "__jfurStars.widget.value() === 2 && __jfurStars.widget.element.querySelector('.jfur-stars-value').textContent === '2' && __jfurStars.log.some(e => e.kind === 'save-failed')",
+      "message": "Enter: puts back the last saved value"
+    },
+    {
+      "name": "disabled: NeedsPlay with its note (the details section gives the disabled slider to NeedsPlay and ReadOnly, read-only stars to NotARater)",
+      "script": "__jfurStars.widget.setDisabled({ reason: 'NeedsPlay', note: \"Play this first: rating it needs it to be played\" }); __jfurStars.widget.slider.focus(); return __jfurStars.state();",
+      "full": true
+    },
+    {
+      "name": "disabled: aria-disabled, the reason, the note described and isolated, still a tab stop",
+      "eval": "(() => { const s = __jfurStars.widget.slider; const n = document.getElementById(s.getAttribute('aria-describedby')); return { noteHidden: n && n.getAttribute('aria-hidden'), disabled: s.getAttribute('aria-disabled'), reason: s.getAttribute('data-jfur-reason'), note: n && n.textContent, shown: n && n.getClientRects().length > 0, bidi: n && getComputedStyle(n).unicodeBidi, dir: n && n.getAttribute('dir'), title: s.getAttribute('title'), tabIndex: s.tabIndex, onSlider: __jfurStars.onSlider() }; })()",
+      "save": "disabled",
+      "full": true
+    },
+    {
+      "name": "disabled as expected (the reason and note the page gave; the note read once, as the slider's description: no title, hidden in the reading order)",
+      "assert": "(d => d.disabled === 'true' && d.reason === 'NeedsPlay' && d.note === \"Play this first: rating it needs it to be played\" && d.shown && d.bidi === 'isolate' && d.dir === 'auto' && d.title === null && d.noteHidden === 'true' && d.tabIndex === 0 && d.onSlider)(__vars.disabled)"
+    },
+    {
+      "name": "disabled ArrowRight: the slider focused",
+      "script": "__jfurStars.widget.slider.focus(); return __jfurStars.onSlider();"
+    },
+    {
+      "name": "disabled ArrowRight: mark",
+      "script": "window.__mark = __jfurStars.log.length; window.__markAbs = Math.round(performance.now()) - 1; return true;"
+    },
+    {
+      "name": "disabled ArrowRight: ArrowRight",
+      "key": "ArrowRight"
+    },
+    {
+      "sleep": 150
+    },
+    {
+      "name": "disabled ArrowRight: after ArrowRight",
+      "eval": "(() => { const since = __jfurStars.log.slice(window.__mark); const pick = (kind) => since.filter(e => e.kind === kind).pop() || null; const cap = pick('key-capture'); const bub = pick('key-bubble'); return Object.assign(__jfurStars.state(), { key: \"ArrowRight\", capture: cap && { key: cap.key, prevented: cap.prevented }, bubble: bub ? { prevented: bub.prevented, target: bub.target } : 'not reached', changes: since.filter(e => e.kind === 'change').map(e => e.value + ':' + e.how), jeCalls: window.__jeSpy ? window.__jeSpy.calls.filter(c => c.ms >= window.__markAbs).map(c => c.fn) : null }); })()",
+      "full": true
+    },
+    {
+      "name": "disabled ArrowRight: ArrowRight left to the page, the value kept",
+      "assert": "(__jfurStars.log.slice(window.__mark).filter(e => e.kind === 'key-bubble').pop() || { prevented: false }).prevented === false && __jfurStars.widget.value() === 2",
+      "message": "ArrowRight: left to the page, the value kept"
+    },
+    {
+      "name": "disabled ArrowLeft: the slider focused",
+      "script": "__jfurStars.widget.slider.focus(); return __jfurStars.onSlider();"
+    },
+    {
+      "name": "disabled ArrowLeft: mark",
+      "script": "window.__mark = __jfurStars.log.length; window.__markAbs = Math.round(performance.now()) - 1; return true;"
+    },
+    {
+      "name": "disabled ArrowLeft: ArrowLeft",
+      "key": "ArrowLeft"
+    },
+    {
+      "sleep": 150
+    },
+    {
+      "name": "disabled ArrowLeft: after ArrowLeft",
+      "eval": "(() => { const since = __jfurStars.log.slice(window.__mark); const pick = (kind) => since.filter(e => e.kind === kind).pop() || null; const cap = pick('key-capture'); const bub = pick('key-bubble'); return Object.assign(__jfurStars.state(), { key: \"ArrowLeft\", capture: cap && { key: cap.key, prevented: cap.prevented }, bubble: bub ? { prevented: bub.prevented, target: bub.target } : 'not reached', changes: since.filter(e => e.kind === 'change').map(e => e.value + ':' + e.how), jeCalls: window.__jeSpy ? window.__jeSpy.calls.filter(c => c.ms >= window.__markAbs).map(c => c.fn) : null }); })()",
+      "full": true
+    },
+    {
+      "name": "disabled ArrowLeft: ArrowLeft left to the page, the value kept",
+      "assert": "(__jfurStars.log.slice(window.__mark).filter(e => e.kind === 'key-bubble').pop() || { prevented: false }).prevented === false && __jfurStars.widget.value() === 2",
+      "message": "ArrowLeft: left to the page, the value kept"
+    },
+    {
+      "name": "disabled Home: the slider focused",
+      "script": "__jfurStars.widget.slider.focus(); return __jfurStars.onSlider();"
+    },
+    {
+      "name": "disabled Home: mark",
+      "script": "window.__mark = __jfurStars.log.length; window.__markAbs = Math.round(performance.now()) - 1; return true;"
+    },
+    {
+      "name": "disabled Home: Home",
+      "key": "Home"
+    },
+    {
+      "sleep": 150
+    },
+    {
+      "name": "disabled Home: after Home",
+      "eval": "(() => { const since = __jfurStars.log.slice(window.__mark); const pick = (kind) => since.filter(e => e.kind === kind).pop() || null; const cap = pick('key-capture'); const bub = pick('key-bubble'); return Object.assign(__jfurStars.state(), { key: \"Home\", capture: cap && { key: cap.key, prevented: cap.prevented }, bubble: bub ? { prevented: bub.prevented, target: bub.target } : 'not reached', changes: since.filter(e => e.kind === 'change').map(e => e.value + ':' + e.how), jeCalls: window.__jeSpy ? window.__jeSpy.calls.filter(c => c.ms >= window.__markAbs).map(c => c.fn) : null }); })()",
+      "full": true
+    },
+    {
+      "name": "disabled Home: Home left to the page, the value kept",
+      "assert": "(__jfurStars.log.slice(window.__mark).filter(e => e.kind === 'key-bubble').pop() || { prevented: false }).prevented === false && __jfurStars.widget.value() === 2",
+      "message": "Home: left to the page, the value kept"
+    },
+    {
+      "name": "disabled End: the slider focused",
+      "script": "__jfurStars.widget.slider.focus(); return __jfurStars.onSlider();"
+    },
+    {
+      "name": "disabled End: mark",
+      "script": "window.__mark = __jfurStars.log.length; window.__markAbs = Math.round(performance.now()) - 1; return true;"
+    },
+    {
+      "name": "disabled End: End",
+      "key": "End"
+    },
+    {
+      "sleep": 150
+    },
+    {
+      "name": "disabled End: after End",
+      "eval": "(() => { const since = __jfurStars.log.slice(window.__mark); const pick = (kind) => since.filter(e => e.kind === kind).pop() || null; const cap = pick('key-capture'); const bub = pick('key-bubble'); return Object.assign(__jfurStars.state(), { key: \"End\", capture: cap && { key: cap.key, prevented: cap.prevented }, bubble: bub ? { prevented: bub.prevented, target: bub.target } : 'not reached', changes: since.filter(e => e.kind === 'change').map(e => e.value + ':' + e.how), jeCalls: window.__jeSpy ? window.__jeSpy.calls.filter(c => c.ms >= window.__markAbs).map(c => c.fn) : null }); })()",
+      "full": true
+    },
+    {
+      "name": "disabled End: End left to the page, the value kept",
+      "assert": "(__jfurStars.log.slice(window.__mark).filter(e => e.kind === 'key-bubble').pop() || { prevented: false }).prevented === false && __jfurStars.widget.value() === 2",
+      "message": "End: left to the page, the value kept"
+    },
+    {
+      "name": "the saves so far",
+      "eval": "__jfurStars.commits.length",
+      "save": "beforeDisabledClick"
+    },
+    {
+      "name": "mouse: a click while disabled",
+      "script": "window.__mark = __jfurStars.log.length; return true;"
+    },
+    {
+      "cdp": "Input.dispatchMouseEvent",
+      "params": "(() => { const b = __jfurStars.box(__jfurStars.widget.slider); return Object.assign({ type: 'mouseMoved', x: __jfurStars.xFor(4.75), y: b.cy, button: 'none', clickCount: 0 }, {}); })()"
+    },
+    {
+      "cdp": "Input.dispatchMouseEvent",
+      "params": "(() => { const b = __jfurStars.box(__jfurStars.widget.slider); return Object.assign({ type: 'mousePressed', x: __jfurStars.xFor(4.75), y: b.cy, button: 'left', clickCount: 1 }, {}); })()"
+    },
+    {
+      "cdp": "Input.dispatchMouseEvent",
+      "params": "(() => { const b = __jfurStars.box(__jfurStars.widget.slider); return Object.assign({ type: 'mouseReleased', x: __jfurStars.xFor(4.75), y: b.cy, button: 'left', clickCount: 1 }, {}); })()"
+    },
+    {
+      "sleep": 100
+    },
+    {
+      "name": "mouse: after a click while disabled",
+      "eval": "Object.assign(__jfurStars.state(), { pointer: __jfurStars.log.slice(window.__mark).filter(e => e.kind === 'pointer').map(e => e.type + '@' + e.x), left: __jfurStars.box(__jfurStars.widget.slider).x, width: __jfurStars.box(__jfurStars.widget.slider).w })",
+      "full": true
+    },
+    {
+      "sleep": 700
+    },
+    {
+      "name": "disabled: the click changed nothing, saved nothing",
+      "assert": "__jfurStars.widget.value() === 2 && __jfurStars.commits.length === __vars.beforeDisabledClick"
+    },
+    {
+      "name": "a name with an unclosed override in the note stays in its element",
+      "script": "__jfurStars.widget.setDisabled({ reason: 'NeedsPlay', note: 'Only \\u0633\\u0627\\u0631\\u0629 \\u202Eabc can rate' }); const n = __jfurStars.widget.element.querySelector('.jfur-stars-note'); return { bidi: getComputedStyle(n).unicodeBidi, dir: n.getAttribute('dir'), text: n.textContent };",
+      "save": "bidiNote",
+      "full": true
+    },
+    {
+      "name": "the note isolated",
+      "assert": "__vars.bidiNote.bidi === 'isolate' && __vars.bidiNote.dir === 'auto'"
+    },
+    {
+      "name": "enabled again",
+      "script": "__jfurStars.widget.setDisabled(null); return __jfurStars.state();",
+      "full": true
+    },
+    {
+      "name": "forced colours",
+      "emulate": {
+        "media": {
+          "forced-colors": "active"
+        }
+      }
+    },
+    {
+      "sleep": 200
+    },
+    {
+      "name": "styles in forced colours",
+      "eval": "__jfurStars.styles()",
+      "save": "forcedStyles",
+      "full": true
+    },
+    {
+      "name": "forced colours: the theme's colours, the fill solid, the outline drawn",
+      "assert": "(s => s.forcedColorAdjust === 'none' && s.stroke === s.onFill && s.offFill === 'none' && s.contrast.stroke >= 4.5)(__vars.forcedStyles)"
+    },
+    {
+      "name": "reduced motion",
+      "emulate": {
+        "media": {
+          "prefers-reduced-motion": "reduce"
+        }
+      }
+    },
+    {
+      "sleep": 200
+    },
+    {
+      "name": "styles with reduced motion",
+      "eval": "__jfurStars.styles()",
+      "save": "motionStyles",
+      "full": true
+    },
+    {
+      "name": "reduced motion: no transition",
+      "assert": "__vars.motionStyles.fillTransition === '0s'"
+    },
+    {
+      "name": "media features back",
+      "emulate": "desktop"
+    },
+    {
+      "name": "screenshot (desktop)",
+      "screenshot": "userratings-stars-desktop.png"
+    },
+    {
+      "name": "right to left: mount again under dir=\"rtl\"",
+      "eval": "__jfurStars.mount({ rtl: true, value: 0.5 })",
+      "save": "rtlMount",
+      "full": true
+    },
+    {
+      "sleep": 300
+    },
+    {
+      "name": "right to left: styles",
+      "eval": "__jfurStars.styles()",
+      "save": "rtlStyles",
+      "full": true
+    },
+    {
+      "name": "right to left: the half star is the rightmost star's right half",
+      "assert": "(s => s.direction === 'rtl' && s.slider.right - s.fills[0].star.right < 1 && Math.abs(s.fills[0].fill.right - s.fills[0].star.right) < 0.5 && Math.abs(s.fills[0].fill.w - s.fills[0].star.w / 2) < 0.5 && Math.abs(s.fills[0].svg.right - s.fills[0].star.right) < 0.5 && s.slider.x - s.valueInk.right > 0 && s.slider.x - s.valueInk.right < 24)(__vars.rtlStyles)",
+      "message": "right to left the stars did not fill from the right, or the value is not beside them"
+    },
+    {
+      "name": "right to left: the stars in view",
+      "script": "__jfurStars.widget.slider.scrollIntoView({ block: 'center' }); await new Promise(r => setTimeout(r, 300)); return true;"
+    },
+    {
+      "name": "mouse: right to left, 2 px from the left edge",
+      "script": "window.__mark = __jfurStars.log.length; return true;"
+    },
+    {
+      "cdp": "Input.dispatchMouseEvent",
+      "params": "(() => { const b = __jfurStars.box(__jfurStars.widget.slider); return Object.assign({ type: 'mouseMoved', x: __jfurStars.box(__jfurStars.widget.slider).x + 2, y: b.cy, button: 'none', clickCount: 0 }, {}); })()"
+    },
+    {
+      "cdp": "Input.dispatchMouseEvent",
+      "params": "(() => { const b = __jfurStars.box(__jfurStars.widget.slider); return Object.assign({ type: 'mousePressed', x: __jfurStars.box(__jfurStars.widget.slider).x + 2, y: b.cy, button: 'left', clickCount: 1 }, {}); })()"
+    },
+    {
+      "cdp": "Input.dispatchMouseEvent",
+      "params": "(() => { const b = __jfurStars.box(__jfurStars.widget.slider); return Object.assign({ type: 'mouseReleased', x: __jfurStars.box(__jfurStars.widget.slider).x + 2, y: b.cy, button: 'left', clickCount: 1 }, {}); })()"
+    },
+    {
+      "sleep": 100
+    },
+    {
+      "name": "mouse: after right to left, 2 px from the left edge",
+      "eval": "Object.assign(__jfurStars.state(), { pointer: __jfurStars.log.slice(window.__mark).filter(e => e.kind === 'pointer').map(e => e.type + '@' + e.x), left: __jfurStars.box(__jfurStars.widget.slider).x, width: __jfurStars.box(__jfurStars.widget.slider).w })",
+      "full": true
+    },
+    {
+      "name": "right to left: the left edge is 5",
+      "assert": "__jfurStars.widget.value() === 5"
+    },
+    {
+      "name": "mouse: right to left, the middle of star 3",
+      "script": "window.__mark = __jfurStars.log.length; return true;"
+    },
+    {
+      "cdp": "Input.dispatchMouseEvent",
+      "params": "(() => { const b = __jfurStars.box(__jfurStars.widget.slider); return Object.assign({ type: 'mouseMoved', x: __jfurStars.xFor(2.5, true), y: b.cy, button: 'none', clickCount: 0 }, {}); })()"
+    },
+    {
+      "cdp": "Input.dispatchMouseEvent",
+      "params": "(() => { const b = __jfurStars.box(__jfurStars.widget.slider); return Object.assign({ type: 'mousePressed', x: __jfurStars.xFor(2.5, true), y: b.cy, button: 'left', clickCount: 1 }, {}); })()"
+    },
+    {
+      "cdp": "Input.dispatchMouseEvent",
+      "params": "(() => { const b = __jfurStars.box(__jfurStars.widget.slider); return Object.assign({ type: 'mouseReleased', x: __jfurStars.xFor(2.5, true), y: b.cy, button: 'left', clickCount: 1 }, {}); })()"
+    },
+    {
+      "sleep": 100
+    },
+    {
+      "name": "mouse: after right to left, the middle of star 3",
+      "eval": "Object.assign(__jfurStars.state(), { pointer: __jfurStars.log.slice(window.__mark).filter(e => e.kind === 'pointer').map(e => e.type + '@' + e.x), left: __jfurStars.box(__jfurStars.widget.slider).x, width: __jfurStars.box(__jfurStars.widget.slider).w })",
+      "full": true
+    },
+    {
+      "name": "right to left: the middle of star 3 is 2.5",
+      "assert": "__jfurStars.widget.value() === 2.5"
+    },
+    {
+      "name": "mouse: right to left, star 1's left half (from the right edge 30 px)",
+      "script": "window.__mark = __jfurStars.log.length; return true;"
+    },
+    {
+      "cdp": "Input.dispatchMouseEvent",
+      "params": "(() => { const b = __jfurStars.box(__jfurStars.widget.slider); return Object.assign({ type: 'mouseMoved', x: __jfurStars.box(__jfurStars.widget.slider).right - 21, y: b.cy, button: 'none', clickCount: 0 }, {}); })()"
+    },
+    {
+      "cdp": "Input.dispatchMouseEvent",
+      "params": "(() => { const b = __jfurStars.box(__jfurStars.widget.slider); return Object.assign({ type: 'mousePressed', x: __jfurStars.box(__jfurStars.widget.slider).right - 21, y: b.cy, button: 'left', clickCount: 1 }, {}); })()"
+    },
+    {
+      "cdp": "Input.dispatchMouseEvent",
+      "params": "(() => { const b = __jfurStars.box(__jfurStars.widget.slider); return Object.assign({ type: 'mouseReleased', x: __jfurStars.box(__jfurStars.widget.slider).right - 21, y: b.cy, button: 'left', clickCount: 1 }, {}); })()"
+    },
+    {
+      "sleep": 100
+    },
+    {
+      "name": "mouse: after right to left, star 1's left half (from the right edge 30 px)",
+      "eval": "Object.assign(__jfurStars.state(), { pointer: __jfurStars.log.slice(window.__mark).filter(e => e.kind === 'pointer').map(e => e.type + '@' + e.x), left: __jfurStars.box(__jfurStars.widget.slider).x, width: __jfurStars.box(__jfurStars.widget.slider).w })",
+      "full": true
+    },
+    {
+      "name": "right to left: 1.0",
+      "assert": "__jfurStars.widget.value() === 1"
+    },
+    {
+      "name": "right to left Left: the slider focused",
+      "script": "__jfurStars.widget.slider.focus(); return __jfurStars.onSlider();"
+    },
+    {
+      "name": "right to left Left: mark",
+      "script": "window.__mark = __jfurStars.log.length; window.__markAbs = Math.round(performance.now()) - 1; return true;"
+    },
+    {
+      "name": "right to left Left: ArrowLeft",
+      "key": "ArrowLeft"
+    },
+    {
+      "sleep": 150
+    },
+    {
+      "name": "right to left Left: after ArrowLeft",
+      "eval": "(() => { const since = __jfurStars.log.slice(window.__mark); const pick = (kind) => since.filter(e => e.kind === kind).pop() || null; const cap = pick('key-capture'); const bub = pick('key-bubble'); return Object.assign(__jfurStars.state(), { key: \"ArrowLeft\", capture: cap && { key: cap.key, prevented: cap.prevented }, bubble: bub ? { prevented: bub.prevented, target: bub.target } : 'not reached', changes: since.filter(e => e.kind === 'change').map(e => e.value + ':' + e.how), jeCalls: window.__jeSpy ? window.__jeSpy.calls.filter(c => c.ms >= window.__markAbs).map(c => c.fn) : null }); })()",
+      "full": true
+    },
+    {
+      "name": "right to left Left: ArrowLeft Left adds half a star",
+      "assert": "(__jfurStars.log.slice(window.__mark).filter(e => e.kind === 'key-bubble').pop() || {}).prevented === true && __jfurStars.widget.value() === 1.5",
+      "message": "ArrowLeft: Left adds half a star"
+    },
+    {
+      "name": "right to left Right: mark",
+      "script": "window.__mark = __jfurStars.log.length; window.__markAbs = Math.round(performance.now()) - 1; return true;"
+    },
+    {
+      "name": "right to left Right: ArrowRight",
+      "key": "ArrowRight"
+    },
+    {
+      "sleep": 150
+    },
+    {
+      "name": "right to left Right: after ArrowRight",
+      "eval": "(() => { const since = __jfurStars.log.slice(window.__mark); const pick = (kind) => since.filter(e => e.kind === kind).pop() || null; const cap = pick('key-capture'); const bub = pick('key-bubble'); return Object.assign(__jfurStars.state(), { key: \"ArrowRight\", capture: cap && { key: cap.key, prevented: cap.prevented }, bubble: bub ? { prevented: bub.prevented, target: bub.target } : 'not reached', changes: since.filter(e => e.kind === 'change').map(e => e.value + ':' + e.how), jeCalls: window.__jeSpy ? window.__jeSpy.calls.filter(c => c.ms >= window.__markAbs).map(c => c.fn) : null }); })()",
+      "full": true
+    },
+    {
+      "name": "right to left Right: ArrowRight Right takes it away",
+      "assert": "(__jfurStars.log.slice(window.__mark).filter(e => e.kind === 'key-bubble').pop() || {}).prevented === true && __jfurStars.widget.value() === 1",
+      "message": "ArrowRight: Right takes it away"
+    },
+    {
+      "name": "screenshot (right to left)",
+      "screenshot": "userratings-stars-rtl.png"
+    },
+    {
+      "name": "left to right again",
+      "eval": "__jfurStars.direction('ltr')"
+    },
+    {
+      "name": "requests to User Ratings' routes but the script",
+      "eval": "performance.getEntriesByType('resource').map(e => e.name.replace(location.origin, '')).filter(n => /\\/UserRatings\\//i.test(n) && !/\\/UserRatings\\/ClientScript/i.test(n))",
+      "save": "apiCalls",
+      "full": true
+    },
+    {
+      "name": "none: the widget never calls the API",
+      "assert": "__vars.apiCalls.length === 0"
+    },
+    {
+      "name": "the details section's reads, answered 404 by the probe (the details section kept out)",
+      "eval": "__jfurStars.stubbed",
+      "save": "stubbed",
+      "full": true
+    },
+    {
+      "name": "the section asked for the item and showed nothing",
+      "assert": "__vars.stubbed.some(u => /\\/UserRatings\\/Items\\//.test(u)) && document.querySelectorAll('.jfur-section').length === 0"
+    },
+    {
+      "name": "no uncaught exception",
+      "noExceptions": true,
+      "ignore": "/CustomRatings/script|^Error: player cannot be null"
+    },
+    {
+      "name": "the key log",
+      "eval": "__jfurStars.log.filter(e => e.kind !== 'pointer')",
+      "full": true
+    }
+  ]
+}

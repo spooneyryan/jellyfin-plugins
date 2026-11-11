@@ -1,0 +1,34 @@
+{
+  "name": "Jellyfin Enhanced's Bookmark Current Time set to Disabled, never blank (12.11), in the je sandbox: as admin, Jellyfin Enhanced's own settings page, Keyboard tab: Bookmark Current Time chosen in the shortcut list, the word Disabled typed into its Key field and added (not JE's Disable button, which saves a blank key that JE drops at its next start), or typed over the key of its override row when there is one, then the page saved. JE's settings must then hold Key 'Disabled' for BookmarkCurrentTime, every other shortcut as before. bookmarks-je-web-probe.mjs runs it and puts JE's settings back.",
+  "failOnException": false,
+  "timeout": 30000,
+  "steps": [
+    { "name": "sign in as admin", "login": "admin" },
+    { "name": "the web client is up", "waitFor": "!!window.ApiClient && !!ApiClient.getCurrentUserId()" },
+    { "name": "Jellyfin Enhanced's settings page", "eval": "'#/configurationpage?name=' + encodeURIComponent((await ApiClient.getJSON(ApiClient.getUrl('web/ConfigurationPages'))).filter(p => String(p.PluginId || '').replace(/-/g, '').toLowerCase() === 'f69e946a4b3c4e9a8f0a8d7c1b2c4d9b')[0].Name)", "save": "jeRoute" },
+    { "name": "JE's shortcuts before", "eval": "(await ApiClient.getPluginConfiguration('f69e946a-4b3c-4e9a-8f0a-8d7c1b2c4d9b')).Shortcuts.map(s => [s.Name, s.Key])", "save": "before", "full": true },
+    { "name": "open it", "goto": "/web/index.html${jeRoute}" },
+    { "name": "the page has loaded JE's settings", "waitFor": "(() => { const p = document.querySelector('#JellyfinEnhancedPage'); return !!p && !!p.querySelector('#add-shortcut-select') && p.querySelector('#add-shortcut-select').options.length + p.querySelectorAll('#shortcut-list-container input').length > 0; })()", "timeout": 60000 },
+    { "sleep": 1000 },
+    { "name": "the Keyboard tab", "click": "#JellyfinEnhancedPage .jellyfin-tab-button[data-tab=\"keyboard\"]" },
+    { "name": "the shortcut editor is shown", "waitFor": "document.querySelector('#add-shortcut-key').getClientRects().length > 0", "timeout": 10000 },
+    {
+      "name": "where Bookmark Current Time is: an override row, or the list of shortcuts left at their default",
+      "eval": "(() => { const rows = Array.from(document.querySelectorAll('#shortcut-list-container .inputContainer')).map(r => ({ label: r.querySelector('label').textContent, key: r.querySelector('input').value })); const option = Array.from(document.querySelector('#add-shortcut-select').options).find(o => o.value === 'BookmarkCurrentTime'); return { rows, inList: !!option, optionText: option ? option.textContent : null }; })()",
+      "save": "editor",
+      "full": true
+    },
+    { "name": "Bookmark Current Time is at its default here (the list offers it) or has a row", "assert": "__vars.editor.inList || __vars.editor.rows.some(r => /bookmark current time/i.test(r.label))" },
+    { "name": "choose it in the list (when it is there)", "script": "if (!__vars.editor.inList) return 'row'; const s = document.querySelector('#add-shortcut-select'); s.value = 'BookmarkCurrentTime'; s.dispatchEvent(new Event('change', { bubbles: true })); return s.value;" },
+    { "name": "the field to type into: the Key field, or the row's", "script": "const row = Array.from(document.querySelectorAll('#shortcut-list-container .inputContainer')).find(r => /bookmark current time/i.test(r.querySelector('label').textContent)); const input = __vars.editor.inList ? document.querySelector('#add-shortcut-key') : row.querySelector('input'); input.focus(); input.select(); return document.activeElement === input;" },
+    { "name": "type the word Disabled", "type": "Disabled" },
+    { "name": "Add (when it came from the list)", "script": "if (__vars.editor.inList) document.querySelector('#add-shortcut-btn').click(); return Array.from(document.querySelectorAll('#shortcut-list-container .inputContainer')).map(r => [r.querySelector('label').textContent, r.querySelector('input').value]);", "save": "rows", "full": true },
+    { "name": "its row says Disabled", "assert": "__vars.rows.some(r => /bookmark current time/i.test(r[0]) && r[1] === 'Disabled')" },
+    { "sleep": 300 },
+    { "screenshot": "je-switchoff-disabled.png" },
+    { "name": "JE's Save button", "click": "#JellyfinEnhancedPage .je-save-dock-btn" },
+    { "name": "saved: BookmarkCurrentTime is 'Disabled'", "waitFor": "(async () => { const c = await ApiClient.getPluginConfiguration('f69e946a-4b3c-4e9a-8f0a-8d7c1b2c4d9b'); const s = (c.Shortcuts || []).find(x => x.Name === 'BookmarkCurrentTime'); return s && s.Key === 'Disabled' ? c.Shortcuts.map(x => [x.Name, x.Key]) : false; })()", "timeout": 30000, "save": "after", "full": true },
+    { "name": "every other shortcut as before", "assert": "JSON.stringify(__vars.after.filter(s => s[0] !== 'BookmarkCurrentTime').map(s => s.join('=')).sort()) === JSON.stringify(__vars.before.filter(s => s[0] !== 'BookmarkCurrentTime').map(s => s.join('=')).sort())" },
+    { "name": "no uncaught exceptions (the stale CustomRatings tag excepted)", "noExceptions": true, "ignore": "/CustomRatings/script|^TypeError: t\\.value\\.pause is not a function" }
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "description": "As viewer with the server's ShowPlayerButtons off: the player's button row has none of Bookmarks' three buttons while jellyfin-web's own are there, and Shift+B still bookmarks the moment (the toast with Name it). Run by bookmarks-player-probe.mjs, which turns the setting off before and back on afterwards and deletes the bookmark; on its own it needs ShowPlayerButtons off.",
+  "failOnException": false,
+  "timeout": 30000,
+  "steps": [
+    { "name": "sign in as viewer", "login": "viewer" },
+    { "name": "the Bookmarks script ran", "waitFor": "!!window.__jfkit && !!window.__jfkit.jfbm && !!window.ApiClient && !!ApiClient.getCurrentUserId()" },
+    { "name": "find Chaptered Movie", "eval": "(await ApiClient.getItems(ApiClient.getCurrentUserId(), { IncludeItemTypes: 'Movie', Recursive: true, SearchTerm: 'Chaptered Movie', Limit: 1 })).Items[0].Id", "save": "movieId" },
+    { "name": "the capabilities say no buttons", "assert": "(await ApiClient.getJSON(ApiClient.getUrl('Bookmarks/Capabilities'))).ShowPlayerButtons === false" },
+    { "name": "bookmarks on the movie before", "eval": "(await ApiClient.getJSON(ApiClient.getUrl('Bookmarks', { itemId: __vars.movieId }))).length", "save": "before" },
+    { "name": "open the details page", "goto": "/web/index.html#/details?id=${movieId}" },
+    { "name": "details page with a Play button", "waitFor": "!!document.querySelector('#itemDetailPage:not(.hide) .mainDetailButtons .btnPlay:not(.hide)')", "timeout": 20000 },
+    { "name": "start playback", "click": "#itemDetailPage:not(.hide) .mainDetailButtons .btnPlay:not(.hide)" },
+    { "name": "video page, video playing, jellyfin-web's own buttons there", "waitFor": "location.hash.indexOf('#/video') === 0 && (v => !!v && !v.paused && v.currentTime > 2)(document.querySelector('.videoPlayerContainer video')) && !!document.querySelector('.videoOsdBottom .buttons .btnSubtitles')", "timeout": 60000 },
+    { "sleep": 2000 },
+    { "name": "the button row", "eval": "({ ours: document.querySelectorAll('.videoOsdBottom .buttons .btnBookmarkAdd, .videoOsdBottom .buttons .btnBookmarkRange, .videoOsdBottom .buttons .btnBookmarkList').length, native: [...document.querySelectorAll('.videoOsdBottom .buttons > button')].map(b => b.className.split(' ')[0]), capabilitiesRead: performance.getEntriesByType('resource').some(e => /\\/Bookmarks\\/Capabilities/.test(e.name)) })", "save": "row", "full": true },
+    { "name": "none of ours, jellyfin-web's untouched, the capabilities were read", "assert": "__vars.row.ours === 0 && __vars.row.native.length > 0 && __vars.row.capabilitiesRead === true" },
+    { "screenshot": "player-buttons-off.png" },
+    { "name": "press Shift, then Shift+B", "key": "Shift" },
+    { "key": "Shift+B" },
+    { "name": "the shortcut still bookmarks: one more, with the toast", "waitFor": "(await ApiClient.getJSON(ApiClient.getUrl('Bookmarks', { itemId: __vars.movieId }))).length === Number(__vars.before) + 1 && [...document.querySelectorAll('.jfbm-toast')].some(t => /^Bookmarked at \\d+:\\d\\d\\.Name it$/.test(t.textContent))", "timeout": 10000 },
+    { "name": "two Shift+B presses in one go, the second before the first answers, AskForName off", "script": "const toasts = () => [...document.querySelectorAll('.jfbm-toast')].filter(t => /^Bookmarked at /.test(t.textContent)).length; const before = toasts(); const press = () => document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'B', code: 'KeyB', shiftKey: true, bubbles: true, cancelable: true })); const first = press(); const second = press(); return { toastsBefore: before, firstTaken: !first, secondTaken: !second };", "save": "double", "full": true },
+    { "name": "both presses were the binding's (prevented); the guard ignored the second", "assert": "__vars.double.firstTaken === true && __vars.double.secondTaken === true" },
+    { "sleep": 1500 },
+    { "name": "one bookmark more and one toast more, not two of each", "script": "const list = await ApiClient.getJSON(ApiClient.getUrl('Bookmarks', { itemId: __vars.movieId })); return { bookmarks: list.length - Number(__vars.before), toasts: [...document.querySelectorAll('.jfbm-toast')].filter(t => /^Bookmarked at /.test(t.textContent)).length - __vars.double.toastsBefore };", "save": "afterDouble", "full": true },
+    { "name": "two bookmarks of this check (the shortcut's and the double's first) and one toast from the double", "assert": "__vars.afterDouble.bookmarks === 2 && __vars.afterDouble.toasts === 1" },
+    { "name": "delete the bookmarks this check made", "script": "const list = await ApiClient.getJSON(ApiClient.getUrl('Bookmarks', { itemId: __vars.movieId })); const mine = list.slice(Number(__vars.before)); for (const b of mine) { await ApiClient.ajax({ type: 'DELETE', url: ApiClient.getUrl('Bookmarks/' + b.Id) }); } return mine.length;" },
+    { "name": "no uncaught exceptions (the stale CustomRatings tag and jellyfin-web's player teardown excepted)", "noExceptions": true, "ignore": "/CustomRatings/script|^Error: player cannot be null" }
+  ]
+}

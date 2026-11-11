@@ -1,0 +1,58 @@
+{
+  "name": "Kit start-up timing: on cold loads of the login page, #/home (three times) and a details deep link, every kit starts within 50 ms of window.ApiClient appearing and no request to a plugin route goes out before ApiClient.getCurrentUserId() is set. probes/kit-boot-probe.js records the moments; the kit's own timing is window.__jfkit[<prefix>].timing. The data is collected first and asserted at the end, so a run against a build without the kit (Bookmarks 1.0) still records the comparison values before it fails.",
+  "failOnException": false,
+  "timeout": 30000,
+  "steps": [
+    { "name": "boot probe in every document", "initScript": { "file": "probes/kit-boot-probe.js" } },
+    { "name": "sign in as admin (a cold load of the login page, then a sign-in without a reload)", "login": "admin" },
+    { "name": "the home page is shown", "waitFor": "!!document.querySelector('.homePage:not(.hide)')" },
+    { "sleep": 1000 },
+    { "name": "login page load, then sign-in", "eval": "__kitBoot.summary(['Bookmarks'])", "save": "login", "full": true },
+
+    { "name": "cold load of #/home (1)", "reload": true },
+    { "name": "home shown, user known (1)", "waitFor": "!!document.querySelector('.homePage:not(.hide)') && __kitBoot.state.userAt !== null" },
+    { "sleep": 1500 },
+    { "name": "home (1)", "eval": "__kitBoot.summary(['Bookmarks'])", "save": "home1", "full": true },
+    { "name": "cold load of #/home (2)", "reload": true },
+    { "name": "home shown, user known (2)", "waitFor": "!!document.querySelector('.homePage:not(.hide)') && __kitBoot.state.userAt !== null" },
+    { "sleep": 1500 },
+    { "name": "home (2)", "eval": "__kitBoot.summary(['Bookmarks'])", "save": "home2", "full": true },
+    { "name": "cold load of #/home (3)", "reload": true },
+    { "name": "home shown, user known (3)", "waitFor": "!!document.querySelector('.homePage:not(.hide)') && __kitBoot.state.userAt !== null" },
+    { "sleep": 1500 },
+    { "name": "home (3)", "eval": "__kitBoot.summary(['Bookmarks'])", "save": "home3", "full": true },
+
+    {
+      "name": "find Long Test Movie",
+      "eval": "(await ApiClient.getItems(ApiClient.getCurrentUserId(), { IncludeItemTypes: 'Movie', Recursive: true, SearchTerm: 'Long Test Movie', Limit: 1 })).Items[0].Id",
+      "save": "movieId"
+    },
+    { "name": "go to its details page", "goto": "/web/index.html#/details?id=${movieId}" },
+    { "waitFor": "location.hash.indexOf('#/details') === 0" },
+    { "name": "cold load of the details deep link", "reload": true },
+    {
+      "name": "the Bookmarks section rendered after its API calls",
+      "waitFor": "!!document.querySelector('#itemDetailPage:not(.hide) .jfbm-section') && __kitBoot.summary(['Bookmarks']).pluginRequests.length >= 2",
+      "timeout": 20000
+    },
+    { "sleep": 1000 },
+    { "name": "details deep link", "eval": "__kitBoot.summary(['Bookmarks'])", "save": "details", "full": true },
+
+    {
+      "name": "every load: the kit saw window.ApiClient within 50 ms",
+      "assert": "[__vars.login, __vars.home1, __vars.home2, __vars.home3, __vars.details].every(s => s.kits.jfbm && typeof s.kits.jfbm.startLagMs === 'number' && s.kits.jfbm.startLagMs >= 0 && s.kits.jfbm.startLagMs <= 50)",
+      "message": "a kit start lag is missing or above 50 ms"
+    },
+    {
+      "name": "every load: no request to /Bookmarks before getCurrentUserId() was set",
+      "assert": "[__vars.login, __vars.home1, __vars.home2, __vars.home3, __vars.details].every(s => s.pluginRequestsWithoutUser === 0 && s.pluginRequestsBeforeUser === 0)",
+      "message": "a plugin API call went out without a signed-in user"
+    },
+    {
+      "name": "the kit's own record agrees: its first API call came after it saw the user",
+      "assert": "[__vars.login, __vars.home1, __vars.home2, __vars.home3, __vars.details].every(s => { const t = s.kits.jfbm.timing; return t.firstApi === null || (typeof t.user === 'number' && t.firstApi >= t.user); })"
+    },
+    { "name": "the details load did call the plugin API (the check above is not vacuous)", "assert": "__vars.details.pluginRequests.length >= 2" },
+    { "name": "no uncaught exceptions (the stale CustomRatings tag excepted)", "noExceptions": true, "ignore": "/CustomRatings/script" }
+  ]
+}

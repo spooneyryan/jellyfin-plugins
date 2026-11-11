@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Pinned Jellyfin Enhanced settings for the 'je' sandbox, written against JE 12.8 and the same for 12.11
+  (every name, shortcut and default it pins is unchanged there; kit/README.md, "Jellyfin Enhanced 12.11").
+  Hand-written; never a copy of a server's own file. Only the settings that matter for coexistence are set; everything else stays at JE's defaults.
+  expected.json lists what Initialize-Sandbox.ps1 reads back after the first start.
+-->
+<PluginConfiguration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <ShowUserReviews>true</ShowUserReviews>
+  <ShowReviews>true</ShowReviews>
+  <HideReviewsFromHiddenUsers>true</HideReviewsFromHiddenUsers>
+  <ShowUserRatingOnPosters>false</ShowUserRatingOnPosters>
+  <RatingTagsEnabled>true</RatingTagsEnabled>
+  <QualityTagsEnabled>true</QualityTagsEnabled>
+  <BookmarksEnabled>true</BookmarksEnabled>
+  <BookmarksUsePluginPages>true</BookmarksUsePluginPages>
+  <BookmarksUseCustomTabs>true</BookmarksUseCustomTabs>
+  <BookmarksUseNativeTab>false</BookmarksUseNativeTab>
+  <BookmarksAutoCreateCustomTab>true</BookmarksAutoCreateCustomTab>
+  <BookmarksCustomTabJeOwned>true</BookmarksCustomTabJeOwned>
+  <DisableAllShortcuts>false</DisableAllShortcuts>
+  <RemoveContinueWatchingEnabled>true</RemoveContinueWatchingEnabled>
+  <ShowCollectionsInSearch>true</ShowCollectionsInSearch>
+  <JellyseerrEnabled>false</JellyseerrEnabled>
+  <HiddenContentEnabled>false</HiddenContentEnabled>
+  <SpoilerBlurEnabled>false</SpoilerBlurEnabled>
+  <ActivityFeedEnabled>false</ActivityFeedEnabled>
+  <DisableScriptInjectionMiddleware>false</DisableScriptInjectionMiddleware>
+  <AnalyticsEnabled>false</AnalyticsEnabled>
+  <Shortcuts>
+    <Shortcut>
+      <Name>JumpToPercentage</Name>
+      <Key>0-9</Key>
+      <Label>Jump to percentage</Label>
+      <Category>Player</Category>
+    </Shortcut>
+    <Shortcut>
+      <Name>OpenSearch</Name>
+      <Key>/</Key>
+      <Label>Open search</Label>
+      <Category>Global</Category>
+    </Shortcut>
+    <Shortcut>
+      <Name>GoToHome</Name>
+      <Key>Shift+H</Key>
+      <Label>Go to home</Label>
+      <Category>Global</Category>
+    </Shortcut>
+    <Shortcut>
+      <Name>GoToDashboard</Name>
+      <Key>D</Key>
+      <Label>Go to dashboard</Label>
+      <Category>Global</Category>
+    </Shortcut>
+    <Shortcut>
+      <Name>QuickConnect</Name>
+      <Key>Q</Key>
+      <Label>Quick Connect</Label>
+      <Category>Global</Category>
+    </Shortcut>
+    <Shortcut>
+      <Name>PlayRandomItem</Name>
+      <Key>R</Key>
+      <Label>Play a random item</Label>
+      <Category>Global</Category>
+    </Shortcut>
+    <Shortcut>
+      <Name>CycleAspectRatio</Name>
+      <Key>A</Key>
+      <Label>Cycle aspect ratio</Label>
+      <Category>Player</Category>
+    </Shortcut>
+    <Shortcut>
+      <Name>ShowPlaybackInfo</Name>
+      <Key>I</Key>
+      <Label>Show playback info</Label>
+      <Category>Player</Category>
+    </Shortcut>
+    <Shortcut>
+      <Name>SubtitleMenu</Name>
+      <Key>S</Key>
+      <Label>Subtitle menu</Label>
+      <Category>Player</Category>
+    </Shortcut>
+    <Shortcut>
+      <Name>CycleSubtitleTracks</Name>
+      <Key>C</Key>
+      <Label>Cycle subtitle tracks</Label>
+      <Category>Player</Category>
+    </Shortcut>
+    <Shortcut>
+      <Name>CycleAudioTracks</Name>
+      <Key>V</Key>
+      <Label>Cycle audio tracks</Label>
+      <Category>Player</Category>
+    </Shortcut>
+    <Shortcut>
+      <Name>IncreasePlaybackSpeed</Name>
+      <Key>+</Key>
+      <Label>Increase playback speed</Label>
+      <Category>Player</Category>
+    </Shortcut>
+    <Shortcut>
+      <Name>DecreasePlaybackSpeed</Name>
+      <Key>-</Key>
+      <Label>Decrease playback speed</Label>
+      <Category>Player</Category>
+    </Shortcut>
+    <Shortcut>
+      <Name>ResetPlaybackSpeed</Name>
+      <Key>R</Key>
+      <Label>Reset playback speed</Label>
+      <Category>Player</Category>
+    </Shortcut>
+    <Shortcut>
+      <Name>BookmarkCurrentTime</Name>
+      <Key>B</Key>
+      <Label>Bookmark current time</Label>
+      <Category>Player</Category>
+    </Shortcut>
+    <Shortcut>
+      <Name>OpenEpisodePreview</Name>
+      <Key>P</Key>
+      <Label>Open episode preview</Label>
+      <Category>Player</Category>
+    </Shortcut>
+    <Shortcut>
+      <Name>SkipIntroOutro</Name>
+      <Key>O</Key>
+      <Label>Skip intro or outro</Label>
+      <Category>Player</Category>
+    </Shortcut>
+    <Shortcut>
+      <Name>FrameStepBack</Name>
+      <Key>,</Key>
+      <Label>Step one frame back</Label>
+      <Category>Player</Category>
+    </Shortcut>
+    <Shortcut>
+      <Name>FrameStepForward</Name>
+      <Key>.</Key>
+      <Label>Step one frame forward</Label>
+      <Category>Player</Category>
+    </Shortcut>
+    <Shortcut>
+      <Name>JumpToLastPosition</Name>
+      <Key>Z</Key>
+      <Label>Jump to the last position</Label>
+      <Category>Player</Category>
+    </Shortcut>
+  </Shortcuts>
+</PluginConfiguration>

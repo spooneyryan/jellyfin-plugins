@@ -1,0 +1,53 @@
+<Project>
+  <!--
+    Imported by each test csproj. Carries the test conventions of the Bookmarks
+    test project: xunit v3 and Moq, the server packages with their runtime assets (plugins exclude
+    them), and RollForward=Major so tests run where only a newer ASP.NET Core runtime is installed.
+    Shared helpers in kit/testsupport compile into every test project, with the pinned lists they
+    read from kit/testdata embedded.
+  -->
+  <PropertyGroup>
+    <KitRoot Condition="'$(KitRoot)' == ''">$([MSBuild]::NormalizeDirectory('$(MSBuildThisFileDirectory)', '..'))</KitRoot>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+    <RollForward>Major</RollForward>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- The API checks in kit/testsupport/Api reflect over MVC controllers. -->
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <!--
+    KitUseSqlite: the real Microsoft.Data.Sqlite 9.0.11 with its bundle_e_sqlite3, the same
+    native SQLite 3.46.1 build the server ships, in the test output only. A plugin's own reference is PrivateAssets=all, so
+    nothing flows from it: Kit.Tests and every test project of a SQLite plugin set KitUseSqlite to true.
+  -->
+  <ItemGroup Condition="'$(KitUseSqlite)' == 'true'">
+    <PackageReference Include="Microsoft.Data.Sqlite" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit.v3" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="Moq" />
+    <!-- The plugins exclude the server's assemblies at runtime; the tests need them. -->
+    <PackageReference Include="Jellyfin.Controller" />
+    <!-- testsupport/Web/WebHostHarness: Jellyfin's web pipeline in process. -->
+    <PackageReference Include="Microsoft.AspNetCore.TestHost" />
+  </ItemGroup>
+
+  <!--
+    testsupport/Storage (the store conformance suite) uses the kit's internal types, so it compiles only into
+    test projects that see them: Kit.Tests, which compiles the kit, and a plugin's own tests (InternalsVisibleTo).
+    Repo.Tests references every plugin without that access and sets KitStoreConformance to false.
+  -->
+  <ItemGroup>
+    <Compile Include="$(KitRoot)testsupport\**\*.cs" Exclude="$(KitRoot)testsupport\Storage\**" LinkBase="KitTestSupport" />
+    <Compile Include="$(KitRoot)testsupport\Storage\**\*.cs" LinkBase="KitTestSupport\Storage" Condition="'$(KitStoreConformance)' != 'false'" />
+    <EmbeddedResource Include="$(KitRoot)testdata\openapi-schema-ids.txt" LogicalName="Jellyfin.Plugin.Kit.TestData.openapi-schema-ids.txt" />
+    <EmbeddedResource Include="$(KitRoot)testdata\reserved-controller-names.txt" LogicalName="Jellyfin.Plugin.Kit.TestData.reserved-controller-names.txt" />
+    <EmbeddedResource Include="$(KitRoot)testdata\web\index.html" LogicalName="Jellyfin.Plugin.Kit.TestData.web.index.html" />
+  </ItemGroup>
+</Project>

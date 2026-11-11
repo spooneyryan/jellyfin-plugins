@@ -1,0 +1,133 @@
+{
+  "name": "The My Bookmarks page's Player options (and for viewer: no clip buttons') as viewer, a non-admin without the download permission: the My Bookmarks page's empty state names the shortcut in effect; viewer's rows offer no scissors; the Player options dialog reads the preferences fresh (Use the server's default, Pause while naming off, the device shortcut empty with the server's key as its placeholder); a reserved key (jellyfin-web's M and K, Jellyfin Enhanced's B) typed into the device field is refused inline with Save disabled, a free one (Shift+Y) accepted; Save with Always, the pause and Shift+Y: the preferences on the server, the override in localStorage, the capabilities read again; in the player Shift+B then does nothing while Shift+Y makes a bookmark whose name dialog opens at once with the video paused; Reset to default and the server's default again put everything back. Seeds and deletes its own 'page-probe options' bookmarks; viewer's preferences are put back here and by bookmarks-page-probe.mjs, which runs this.",
+  "failOnException": false,
+  "timeout": 30000,
+  "steps": [
+    { "name": "sign in as viewer", "login": "viewer" },
+    { "name": "the Bookmarks script ran", "waitFor": "!!window.__jfkit && !!window.__jfkit.jfbm && !!window.ApiClient && !!ApiClient.getCurrentUserId()" },
+    { "name": "find Chaptered Movie", "eval": "(await ApiClient.getItems(ApiClient.getCurrentUserId(), { IncludeItemTypes: 'Movie', Recursive: true, SearchTerm: 'Chaptered Movie', Limit: 1 })).Items[0].Id", "save": "movieId" },
+    { "name": "viewer's bookmarks of an earlier run deleted (the movie's, and any 'page-probe options')", "script": "let n = 0; for (const b of await ApiClient.getJSON(ApiClient.getUrl('Bookmarks', { itemId: __vars.movieId }))) { await ApiClient.ajax({ type: 'DELETE', url: ApiClient.getUrl('Bookmarks/' + b.Id) }); n++; } const r = await ApiClient.getJSON(ApiClient.getUrl('Bookmarks/Query', { searchTerm: 'page-probe options', limit: 200 })); for (const b of r.Items) { await ApiClient.ajax({ type: 'DELETE', url: ApiClient.getUrl('Bookmarks/' + b.Id) }); n++; } return n;" },
+    { "name": "viewer's preferences at the defaults (a null AskForName is left out of the JSON)", "script": "await ApiClient.ajax({ type: 'POST', url: ApiClient.getUrl('Bookmarks/Preferences'), data: JSON.stringify({ AskForName: null, PauseWhileNaming: false }), contentType: 'application/json' }); return await ApiClient.getJSON(ApiClient.getUrl('Bookmarks/Preferences'));", "save": "prefsStart", "full": true },
+    { "name": "no device override to begin with (a fresh browser profile)", "eval": "localStorage.getItem('jfbm:shortcut:bookmarkNow')", "save": "overrideStart" },
+    { "name": "the capabilities: the page, no clips, Shift+B, the reserved keys hold M, K and B and not Shift+Y, AskForName the server's default", "eval": "(c => ({ page: c.Pages.Bookmarks, clips: c.CanCreateClips, shortcut: c.Shortcuts.BookmarkNow, reserved: c.ReservedShortcuts, askForName: c.AskForName, isDefault: c.AskForNameIsDefault, askDefault: c.AskForNameDefault, pause: c.PauseWhileNaming }))(await ApiClient.getJSON(ApiClient.getUrl('Bookmarks/Capabilities')))", "save": "caps", "full": true },
+    { "name": "as expected", "assert": "__vars.caps.page === true && __vars.caps.clips === false && __vars.caps.shortcut === 'Shift+B' && ['M', 'K', 'B'].every(k => __vars.caps.reserved.includes(k)) && !__vars.caps.reserved.includes('Shift+Y') && __vars.caps.askForName === false && __vars.caps.isDefault === true && __vars.caps.askDefault === false && __vars.caps.pause === false && __vars.overrideStart === null && __vars.prefsStart.AskForName == null" },
+    { "name": "how many bookmarks viewer has", "eval": "(await ApiClient.getJSON(ApiClient.getUrl('Bookmarks/Query', { limit: 1 }))).TotalRecordCount", "save": "total" },
+
+    { "name": "the page", "goto": "/web/index.html#/jfbm-bookmarks" },
+    {
+      "name": "the page rendered: with no bookmarks the empty state names Shift+B, else the list (viewer's rows without scissors); Player options in the header",
+      "waitFor": "(() => { const r = document.querySelector('#fallbackPage > [data-jfbm-page=\"bookmarks\"][data-jfbm-state=\"on\"]'); if (!r) return false; const c = r.querySelector('.jfbm-page-content'); if (!c || c.hasAttribute('aria-busy')) return false; const notice = c.querySelector('.jfbm-notice-text'); const rows = [...c.querySelectorAll('.jfbm-row')]; if (!notice && rows.length === 0) return false; return { notice: notice ? notice.textContent : null, rows: rows.length, scissors: rows.filter(x => [...x.querySelectorAll('.jfbm-row-actions button')].some(b => /clip/i.test(b.title))).length, options: !!r.querySelector('.jfbm-page-header .jfbm-page-options') }; })()",
+      "timeout": 20000,
+      "save": "page",
+      "full": true
+    },
+    { "name": "as expected", "assert": "__vars.page.options && __vars.page.scissors === 0 && (__vars.total === 0 ? __vars.page.notice === 'No bookmarks yet. Press Shift+B while watching, or use the bookmark button in the player.' : __vars.page.rows > 0)" },
+    { "name": "a range bookmark of viewer's on the movie, through the API (its row must offer no scissors: no download permission)", "script": "const b = await ApiClient.ajax({ type: 'POST', url: ApiClient.getUrl('Bookmarks'), data: JSON.stringify({ ItemId: __vars.movieId, StartTicks: 20000000, EndTicks: 60000000, Name: 'page-probe options range' }), contentType: 'application/json', dataType: 'json' }); return b.Id;", "save": "rangeId" },
+    { "name": "the page again", "reload": true },
+    {
+      "name": "viewer's range row: Rename, Edit, Delete and More, no scissors (item 8)",
+      "waitFor": "(() => { const row = document.querySelector('#fallbackPage > [data-jfbm-page=\"bookmarks\"][data-jfbm-state=\"on\"] .jfbm-row[data-id=\"' + __vars.rangeId + '\"]'); if (!row) return false; return [...row.querySelectorAll('.jfbm-row-actions button')].map(b => b.title); })()",
+      "timeout": 20000,
+      "save": "viewerActions",
+      "full": true
+    },
+    { "name": "as expected", "assert": "JSON.stringify(__vars.viewerActions) === JSON.stringify(['Rename', 'Edit', 'Delete', 'More actions'])" },
+
+    { "name": "the clock before Player options", "eval": "performance.now()", "save": "t0" },
+    { "name": "Player options", "click": "#fallbackPage [data-jfbm-page=\"bookmarks\"] .jfbm-page-header .jfbm-page-options", "js": true },
+    {
+      "name": "the dialog: the preferences read fresh (GET /Bookmarks/Preferences), Use the server's default (don't ask), the pause off, the device field empty with the server's key as its placeholder, the focus on the first field",
+      "waitFor": "(() => { const p = document.querySelector('.jfbm-backdrop .jfbm-panel'); if (!p || p.querySelector('h3').textContent !== 'Player options' || !p.querySelector('.jfbm-options-ask')) return false; const ask = p.querySelector('.jfbm-options-ask'); return { options: [...ask.querySelectorAll('option')].map(o => o.textContent), ask: ask.value, pause: p.querySelector('.jfbm-options-pause').checked, shortcut: p.querySelector('.jfbm-options-shortcut').value, placeholder: p.querySelector('.jfbm-options-shortcut').getAttribute('placeholder'), off: p.querySelector('.jfbm-options-off').checked, focused: document.activeElement === ask, read: performance.getEntriesByType('resource').filter(e => e.startTime > __vars.t0 && /\\/Bookmarks\\/Preferences$/.test(e.name)).length, buttons: [...p.querySelectorAll('.jfbm-actions button')].map(b => b.textContent) }; })()",
+      "timeout": 10000,
+      "save": "dialog",
+      "full": true
+    },
+    { "name": "as expected", "assert": "JSON.stringify(__vars.dialog.options) === JSON.stringify([\"Use the server's default (don't ask)\", 'Always: the name dialog opens at once', 'Never: the toast offers \"Name it\"']) && __vars.dialog.ask === 'default' && __vars.dialog.pause === false && __vars.dialog.shortcut === '' && __vars.dialog.placeholder === 'Server default: Shift+B' && __vars.dialog.off === false && __vars.dialog.focused && __vars.dialog.read === 1 && JSON.stringify(__vars.dialog.buttons) === JSON.stringify(['Cancel', 'Save'])" },
+    { "sleep": 300 },
+    { "screenshot": "page-player-options.png" },
+
+    { "name": "a reserved key typed: M (jellyfin-web's mute)", "type": "m", "selector": ".jfbm-backdrop .jfbm-options-shortcut", "clear": true },
+    {
+      "name": "refused inline, Save disabled",
+      "waitFor": "(() => { const p = document.querySelector('.jfbm-backdrop .jfbm-panel'); const e = p.querySelector('.jfbm-options-shortcut-error').textContent; if (!e) return false; return { error: e, saveDisabled: [...p.querySelectorAll('.jfbm-actions button')].find(b => b.textContent === 'Save').disabled }; })()",
+      "timeout": 5000,
+      "save": "reservedM",
+      "full": true
+    },
+    { "name": "as expected", "assert": "__vars.reservedM.error === \"M is taken by the video player or Jellyfin Enhanced, so the bookmark shortcut wouldn't work with it. Choose another key.\" && __vars.reservedM.saveDisabled" },
+    { "sleep": 200 },
+    { "screenshot": "page-player-options-reserved.png" },
+    { "name": "K (jellyfin-web's play/pause)", "type": "k", "selector": ".jfbm-backdrop .jfbm-options-shortcut", "clear": true },
+    { "name": "refused too", "waitFor": "(() => { const p = document.querySelector('.jfbm-backdrop .jfbm-panel'); return p.querySelector('.jfbm-options-shortcut-error').textContent.startsWith('K is taken') && [...p.querySelectorAll('.jfbm-actions button')].find(b => b.textContent === 'Save').disabled; })()", "timeout": 5000 },
+    { "name": "B (Jellyfin Enhanced's Bookmark Current Time, reserved by default even without JE)", "type": "b", "selector": ".jfbm-backdrop .jfbm-options-shortcut", "clear": true },
+    { "name": "refused too", "waitFor": "(() => { const p = document.querySelector('.jfbm-backdrop .jfbm-panel'); return p.querySelector('.jfbm-options-shortcut-error').textContent.startsWith('B is taken') && [...p.querySelectorAll('.jfbm-actions button')].find(b => b.textContent === 'Save').disabled; })()", "timeout": 5000 },
+    { "name": "text that isn't a combination", "type": "shift+", "selector": ".jfbm-backdrop .jfbm-options-shortcut", "clear": true },
+    { "name": "refused with the other sentence", "waitFor": "(() => { const p = document.querySelector('.jfbm-backdrop .jfbm-panel'); return p.querySelector('.jfbm-options-shortcut-error').textContent === '\"shift+\" isn\\'t a key combination; use a key with optional modifiers, such as Shift+B.' && [...p.querySelectorAll('.jfbm-actions button')].find(b => b.textContent === 'Save').disabled; })()", "timeout": 5000 },
+    { "name": "a free one: shift+y", "type": "shift+y", "selector": ".jfbm-backdrop .jfbm-options-shortcut", "clear": true },
+    { "name": "accepted, Save enabled", "waitFor": "(() => { const p = document.querySelector('.jfbm-backdrop .jfbm-panel'); return p.querySelector('.jfbm-options-shortcut-error').textContent === '' && ![...p.querySelectorAll('.jfbm-actions button')].find(b => b.textContent === 'Save').disabled; })()", "timeout": 5000 },
+    { "name": "Always ask, and Pause while naming", "script": "const p = document.querySelector('.jfbm-backdrop .jfbm-panel'); const ask = p.querySelector('.jfbm-options-ask'); ask.value = 'always'; ask.dispatchEvent(new Event('change', { bubbles: true })); p.querySelector('.jfbm-options-pause').click(); return { ask: ask.value, pause: p.querySelector('.jfbm-options-pause').checked };", "save": "chosen", "full": true },
+    { "name": "as set", "assert": "__vars.chosen.ask === 'always' && __vars.chosen.pause === true" },
+    { "name": "Save", "click": ".jfbm-backdrop .jfbm-actions button.button-submit" },
+    {
+      "name": "saved: the dialog gone, the toast, the server's preferences (AskForName true, PauseWhileNaming true), the device override in localStorage, the capabilities read again and following",
+      "waitFor": "(async () => { if (document.querySelector('.jfbm-backdrop')) return false; const toast = [...document.querySelectorAll('.jfbm-toast')].map(t => t.textContent); const prefs = await ApiClient.getJSON(ApiClient.getUrl('Bookmarks/Preferences')); const caps = await ApiClient.getJSON(ApiClient.getUrl('Bookmarks/Capabilities')); return { toast, prefs, override: localStorage.getItem('jfbm:shortcut:bookmarkNow'), askForName: caps.AskForName, isDefault: caps.AskForNameIsDefault, askDefault: caps.AskForNameDefault, pause: caps.PauseWhileNaming, reads: performance.getEntriesByType('resource').filter(e => e.startTime > __vars.t0 && /\\/Bookmarks\\/Capabilities$/.test(e.name)).length }; })()",
+      "timeout": 10000,
+      "save": "saved",
+      "full": true
+    },
+    { "name": "as expected (the capabilities read once more by the page, once by this step)", "assert": "__vars.saved.toast.includes('Player options saved.') && __vars.saved.prefs.AskForName === true && __vars.saved.prefs.PauseWhileNaming === true && __vars.saved.override === '\"Shift+Y\"' && __vars.saved.askForName === true && __vars.saved.isDefault === false && __vars.saved.askDefault === false && __vars.saved.pause === true && __vars.saved.reads >= 2" },
+
+    { "name": "the movie's page", "goto": "/web/index.html#/details?id=${movieId}" },
+    { "name": "details page with a Play button", "waitFor": "!!document.querySelector('#itemDetailPage:not(.hide) .mainDetailButtons .btnPlay:not(.hide)')", "timeout": 20000 },
+    { "name": "start playback", "click": "#itemDetailPage:not(.hide) .mainDetailButtons .btnPlay:not(.hide)" },
+    { "name": "video page, video playing", "waitFor": "location.hash.indexOf('#/video') === 0 && (v => !!v && !v.paused && v.currentTime > 1)(document.querySelector('.videoPlayerContainer video'))", "timeout": 60000 },
+    { "name": "the OSD button's tooltip names the device's key", "waitFor": "(b => !!b && b.getAttribute('title') === 'Bookmark this moment (Shift+Y)')(document.querySelector('.videoOsdBottom .btnBookmarkAdd'))", "timeout": 20000 },
+    { "name": "inside 'Bank job' (12-24 s)", "waitFor": "(v => v.currentTime >= 12.5 && v.currentTime < 18)(document.querySelector('.videoPlayerContainer video'))", "timeout": 30000 },
+    { "name": "Shift, then Shift+B: the server's key, overridden on this device", "key": "Shift" },
+    { "key": "Shift+B" },
+    { "sleep": 1500 },
+    { "name": "nothing: no bookmark on the movie but the seeded range, no dialog, still playing", "script": "const list = await ApiClient.getJSON(ApiClient.getUrl('Bookmarks', { itemId: __vars.movieId })); const v = document.querySelector('.videoPlayerContainer video'); return { count: list.length, dialog: !!document.querySelector('.jfbm-backdrop'), paused: v.paused, toasts: document.querySelectorAll('.jfbm-toast').length };", "save": "shiftB", "full": true },
+    { "name": "as expected", "assert": "__vars.shiftB.count === 1 && !__vars.shiftB.dialog && !__vars.shiftB.paused && __vars.shiftB.toasts === 0" },
+    { "name": "Shift, then Shift+Y: the device's key", "key": "Shift" },
+    { "key": "Shift+Y" },
+    {
+      "name": "a bookmark at once, the name dialog open at once (Always ask) with 'Bank job', the video paused (Pause while naming)",
+      "waitFor": "(async () => { const p = document.querySelector('.jfbm-backdrop .jfbm-panel'); if (!p || p.querySelector('h3').textContent !== 'Name this bookmark') return false; const list = await ApiClient.getJSON(ApiClient.getUrl('Bookmarks', { itemId: __vars.movieId })); if (list.length !== 2) return false; const v = document.querySelector('.videoPlayerContainer video'); if (!v.paused) return false; const b = list.find(x => x.Id !== __vars.rangeId); return { startSeconds: b.StartTicks / 10000000, value: p.querySelector('input[type=text]').value, alwaysAsk: p.querySelector('.jfbm-always-ask input').checked, paused: v.paused }; })()",
+      "timeout": 10000,
+      "save": "shiftY",
+      "full": true
+    },
+    { "name": "as expected", "assert": "__vars.shiftY.startSeconds >= 12 && __vars.shiftY.startSeconds < 24 && __vars.shiftY.value === 'Bank job' && __vars.shiftY.alwaysAsk === true && __vars.shiftY.paused === true" },
+    { "sleep": 300 },
+    { "screenshot": "page-player-options-override.png" },
+    { "name": "Escape leaves it unnamed and resumes", "key": "Escape" },
+    { "name": "resumed, the player still open", "waitFor": "!document.querySelector('.jfbm-backdrop') && location.hash.indexOf('#/video') === 0 && !document.querySelector('.videoPlayerContainer video').paused", "timeout": 10000 },
+
+    { "name": "back to the page", "goto": "/web/index.html#/jfbm-bookmarks" },
+    { "name": "the page rendered with the two rows", "waitFor": "(() => { const c = document.querySelector('#fallbackPage > [data-jfbm-page=\"bookmarks\"][data-jfbm-state=\"on\"] .jfbm-page-content'); return !!c && !c.hasAttribute('aria-busy') && c.querySelectorAll('.jfbm-row').length >= 2; })()", "timeout": 20000 },
+    { "name": "Player options again", "click": "#fallbackPage [data-jfbm-page=\"bookmarks\"] .jfbm-page-header .jfbm-page-options", "js": true },
+    {
+      "name": "the dialog shows what was saved: Always, the pause, Shift+Y in the field",
+      "waitFor": "(() => { const p = document.querySelector('.jfbm-backdrop .jfbm-panel'); if (!p || p.querySelector('h3').textContent !== 'Player options' || !p.querySelector('.jfbm-options-ask')) return false; return { ask: p.querySelector('.jfbm-options-ask').value, pause: p.querySelector('.jfbm-options-pause').checked, shortcut: p.querySelector('.jfbm-options-shortcut').value, firstOption: p.querySelector('.jfbm-options-ask option').textContent }; })()",
+      "timeout": 10000,
+      "save": "again",
+      "full": true
+    },
+    { "name": "as expected (the server's default still named while the user has chosen: the capabilities' AskForNameDefault)", "assert": "__vars.again.ask === 'always' && __vars.again.pause === true && __vars.again.shortcut === 'Shift+Y' && __vars.again.firstOption === \"Use the server's default (don't ask)\"" },
+    { "name": "Reset to default, the server's default, the pause off", "script": "const p = document.querySelector('.jfbm-backdrop .jfbm-panel'); p.querySelector('.jfbm-options-reset').click(); const ask = p.querySelector('.jfbm-options-ask'); ask.value = 'default'; ask.dispatchEvent(new Event('change', { bubbles: true })); p.querySelector('.jfbm-options-pause').click(); return { shortcut: p.querySelector('.jfbm-options-shortcut').value, focused: document.activeElement === p.querySelector('.jfbm-options-shortcut'), pause: p.querySelector('.jfbm-options-pause').checked, saveEnabled: ![...p.querySelectorAll('.jfbm-actions button')].find(b => b.textContent === 'Save').disabled };", "save": "reset", "full": true },
+    { "name": "as expected", "assert": "__vars.reset.shortcut === '' && __vars.reset.focused && __vars.reset.pause === false && __vars.reset.saveEnabled" },
+    { "name": "Save", "click": ".jfbm-backdrop .jfbm-actions button.button-submit" },
+    {
+      "name": "put back: no override, the preferences at the defaults, the capabilities the server's default again",
+      "waitFor": "(async () => { if (document.querySelector('.jfbm-backdrop')) return false; const prefs = await ApiClient.getJSON(ApiClient.getUrl('Bookmarks/Preferences')); const caps = await ApiClient.getJSON(ApiClient.getUrl('Bookmarks/Capabilities')); return { override: localStorage.getItem('jfbm:shortcut:bookmarkNow'), prefs, askForName: caps.AskForName, isDefault: caps.AskForNameIsDefault, pause: caps.PauseWhileNaming }; })()",
+      "timeout": 10000,
+      "save": "restored",
+      "full": true
+    },
+    { "name": "as expected", "assert": "__vars.restored.override === null && __vars.restored.prefs.AskForName == null && __vars.restored.prefs.PauseWhileNaming === false && __vars.restored.askForName === false && __vars.restored.isDefault === true && __vars.restored.pause === false" },
+
+    { "name": "no uncaught exception of ours", "noExceptions": true, "ignore": "/CustomRatings/script|^Error: player cannot be null" },
+    { "name": "clean-up: viewer's bookmarks on the movie deleted", "script": "let n = 0; for (const b of await ApiClient.getJSON(ApiClient.getUrl('Bookmarks', { itemId: __vars.movieId }))) { await ApiClient.ajax({ type: 'DELETE', url: ApiClient.getUrl('Bookmarks/' + b.Id) }); n++; } return n;", "save": "cleanup" },
+    { "name": "the two deleted", "assert": "__vars.cleanup === 2" }
+  ]
+}

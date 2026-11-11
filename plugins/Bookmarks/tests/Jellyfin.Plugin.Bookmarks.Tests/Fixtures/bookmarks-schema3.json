@@ -1,0 +1,243 @@
+{
+  "Version": 3,
+  "ClipRoots": [
+    "C:\\src\\jellyfin-plugins\\.sandbox\\default\\data\\data\\bookmarks\\clips"
+  ],
+  "UserPreferences": {},
+  "ImportLedger": {},
+  "KnownUsers": {
+    "0038ee0f9abc4d559ef5abcf8520c9bf": "viewer2",
+    "9fa5c6778cf74a94bff0c82a60581ccf": "admin",
+    "ff71b896f20545ff936ac2393f6091f6": "viewer"
+  },
+  "LastMoveSeq": 0,
+  "PendingFileDeletes": [],
+  "Bookmarks": [
+    {
+      "Id": "93ed04fa-39fc-462f-9449-6365e4cb1cb2",
+      "UserId": "9fa5c677-8cf7-4a94-bff0-c82a60581ccf",
+      "ItemId": "ba7ef8f5-0757-f5f6-0cae-61b9b7fd19f5",
+      "StartTicks": 150000000,
+      "Name": "webcheck",
+      "ItemName": "Long Test Movie (2021)",
+      "Identity": {
+        "ItemId": "ba7ef8f5-0757-f5f6-0cae-61b9b7fd19f5",
+        "Kind": "Movie",
+        "Name": "Long Test Movie (2021)",
+        "ProviderIds": {}
+      },
+      "Origin": "Native",
+      "AttachedUtc": "2026-09-29T05:28:39.2601996Z",
+      "CreatedAt": "2026-09-29T05:28:39.2601996Z",
+      "UpdatedAt": "2026-09-29T05:28:39.2601996Z"
+    },
+    {
+      "Id": "5f7ef9bc-14bc-4e9a-a9c6-07c0b46a9210",
+      "UserId": "9fa5c677-8cf7-4a94-bff0-c82a60581ccf",
+      "ItemId": "ba7ef8f5-0757-f5f6-0cae-61b9b7fd19f5",
+      "MediaSourceId": "ba7ef8f50757f5f60cae61b9b7fd19f5",
+      "AudioStreamIndex": 1,
+      "StartTicks": 300000000,
+      "EndTicks": 450000000,
+      "Name": "Bank job - the \"reflection\" in the window",
+      "ItemName": "Long Test Movie (2021)",
+      "Identity": {
+        "ItemId": "ba7ef8f5-0757-f5f6-0cae-61b9b7fd19f5",
+        "Kind": "Movie",
+        "Name": "Long Test Movie (2021)",
+        "ProviderIds": {}
+      },
+      "Origin": "Native",
+      "AttachedUtc": "2026-09-29T10:05:27.1198706Z",
+      "CreatedAt": "2026-09-29T10:05:27.1198706Z",
+      "UpdatedAt": "2026-09-29T10:05:27.1198706Z",
+      "Clip": {
+        "Status": "Queued",
+        "Mode": "Accurate",
+        "StartTicks": 300000000,
+        "EndTicks": 450000000,
+        "RequestedAt": "2026-09-30T12:00:00Z",
+        "FilePath": "C:\\src\\jellyfin-plugins\\.sandbox\\default\\data\\data\\bookmarks\\clips\\admin\\Long Test Movie (2021) - Bank job - the _reflection_ in the window [00.00.30-00.00.45].mkv",
+        "FileSize": 698007,
+        "FileStartTicks": 300000000,
+        "FileEndTicks": 450000000,
+        "FutureClipField": 3
+      },
+      "FutureRecordField": {
+        "Kept": true
+      }
+    },
+    {
+      "Id": "2b12464b-6f44-46a2-9eb2-c8b89caf60bd",
+      "UserId": "9fa5c677-8cf7-4a94-bff0-c82a60581ccf",
+      "ItemId": "f5e2dac7-e7d1-5e15-d5fa-edd7093f1514",
+      "StartTicks": 100000000,
+      "Note": "Line one\nLine two",
+      "ItemName": "Tagged Movie (2012) [tmdbid-900001] (2012)",
+      "Identity": {
+        "ItemId": "f5e2dac7-e7d1-5e15-d5fa-edd7093f1514",
+        "Kind": "Movie",
+        "Name": "Tagged Movie (2012) [tmdbid-900001] (2012)",
+        "ProviderIds": {
+          "Tmdb": "900001"
+        }
+      },
+      "Origin": "Native",
+      "AttachedUtc": "2026-09-29T10:05:27.7345239Z",
+      "CreatedAt": "2026-09-29T10:05:27.7345239Z",
+      "UpdatedAt": "2026-09-29T10:05:27.7345239Z"
+    },
+    {
+      "Id": "bff5bbea-1ebe-4669-9bc3-b5ae14fcbc6a",
+      "UserId": "9fa5c677-8cf7-4a94-bff0-c82a60581ccf",
+      "ItemId": "d22620ec-eb6f-93f7-5792-1bf717d75613",
+      "StartTicks": 50000000,
+      "EndTicks": 200000000,
+      "Name": "Amélie, café scène ✂ 日本語",
+      "ItemName": "Amélie (2001)",
+      "Identity": {
+        "ItemId": "d22620ec-eb6f-93f7-5792-1bf717d75613",
+        "Kind": "Movie",
+        "Name": "Amélie (2001)",
+        "ProviderIds": {}
+      },
+      "Origin": "Native",
+      "AttachedUtc": "2026-09-29T10:05:27.7392431Z",
+      "CreatedAt": "2026-09-29T10:05:27.7392431Z",
+      "UpdatedAt": "2026-09-29T10:05:27.7392431Z",
+      "Clip": {
+        "Status": "Running",
+        "Mode": "Accurate",
+        "StartTicks": 50000000,
+        "EndTicks": 200000000,
+        "RequestedAt": "2026-09-30T12:00:01Z",
+        "FilePath": "C:\\src\\jellyfin-plugins\\.sandbox\\default\\data\\data\\bookmarks\\clips\\admin\\Amélie (2001) - Amélie, café scène ✂ 日本語 [00.00.05-00.00.20].mp4",
+        "FileSize": 1481427,
+        "FileStartTicks": 50000000,
+        "FileEndTicks": 200000000
+      }
+    },
+    {
+      "Id": "c4d65a56-3c29-4c94-b049-c51c01bd40f6",
+      "UserId": "9fa5c677-8cf7-4a94-bff0-c82a60581ccf",
+      "ItemId": "77c7a94d-faf7-0e13-fa1e-3896252a14b7",
+      "StartTicks": 400000000,
+      "EndTicks": 800000000,
+      "ItemName": "Edition Movie Extended (2001) [tmdbid-900301] (2001)",
+      "Identity": {
+        "ItemId": "77c7a94d-faf7-0e13-fa1e-3896252a14b7",
+        "Kind": "Movie",
+        "Name": "Edition Movie Extended (2001) [tmdbid-900301] (2001)",
+        "ProviderIds": {
+          "Tmdb": "900301"
+        }
+      },
+      "Origin": "Native",
+      "AttachedUtc": "2026-09-29T10:05:28.2614005Z",
+      "CreatedAt": "2026-09-29T10:05:28.2614005Z",
+      "UpdatedAt": "2026-09-29T10:05:28.2614005Z",
+      "Clip": {
+        "Status": "Cancelled",
+        "Mode": "Accurate",
+        "StartTicks": 400000000,
+        "EndTicks": 800000000,
+        "RequestedAt": "2026-09-29T10:05:28.2656413Z",
+        "CompletedAt": "2026-09-29T10:05:28.314048Z"
+      }
+    },
+    {
+      "Id": "41f2477c-3533-468a-a0f0-591efcc3153a",
+      "UserId": "9fa5c677-8cf7-4a94-bff0-c82a60581ccf",
+      "ItemId": "875cdbff-06b8-0e74-6730-a035117b0ebc",
+      "StartTicks": 120000000,
+      "ItemName": "Test Series (2020) [tvdbid-900401] S01E01 - Test Series",
+      "Identity": {
+        "ItemId": "875cdbff-06b8-0e74-6730-a035117b0ebc",
+        "Kind": "Episode",
+        "Name": "Test Series (2020) [tvdbid-900401] S01E01 - Test Series",
+        "ProviderIds": {}
+      },
+      "Origin": "Native",
+      "AttachedUtc": "2026-09-29T10:05:28.7888553Z",
+      "CreatedAt": "2026-09-29T10:05:28.7888553Z",
+      "UpdatedAt": "2026-09-29T10:05:28.7888553Z"
+    },
+    {
+      "Id": "dba803fe-6070-4905-86fc-807b75d6f602",
+      "UserId": "9fa5c677-8cf7-4a94-bff0-c82a60581ccf",
+      "ItemId": "d3ee0fd4-0ce8-88c7-8a39-c573b6bd28e9",
+      "StartTicks": 30000000,
+      "EndTicks": 90000000,
+      "Name": "edited note",
+      "ItemName": "beach",
+      "Identity": {
+        "ItemId": "d3ee0fd4-0ce8-88c7-8a39-c573b6bd28e9",
+        "Kind": "Video",
+        "Name": "beach",
+        "ProviderIds": {}
+      },
+      "Origin": "Native",
+      "AttachedUtc": "2026-09-29T10:05:28.7931402Z",
+      "CreatedAt": "2026-09-29T10:05:28.7931402Z",
+      "UpdatedAt": "2026-09-29T10:05:29.9101975Z"
+    },
+    {
+      "Id": "0b12c492-e988-44b7-b1d7-54b6d0721618",
+      "UserId": "9fa5c677-8cf7-4a94-bff0-c82a60581ccf",
+      "ItemId": "31581b3f-7e4b-ad9e-8ec6-0b979a220480",
+      "StartTicks": 10000000,
+      "EndTicks": 40000000,
+      "Name": "clip deleted",
+      "ItemName": "Versions Movie (2019)",
+      "Identity": {
+        "ItemId": "31581b3f-7e4b-ad9e-8ec6-0b979a220480",
+        "Kind": "Movie",
+        "Name": "Versions Movie (2019)",
+        "ProviderIds": {}
+      },
+      "Origin": "Native",
+      "AttachedUtc": "2026-09-29T10:05:29.915194Z",
+      "CreatedAt": "2026-09-29T10:05:29.915194Z",
+      "UpdatedAt": "2026-09-29T10:05:29.915194Z"
+    },
+    {
+      "Id": "72863457-d86e-4215-bbc4-cebb8e3b9c5f",
+      "UserId": "ff71b896-f205-45ff-936a-c2393f6091f6",
+      "ItemId": "0938a567-ab1f-40e1-fee5-544b003c01a5",
+      "StartTicks": 200000000,
+      "EndTicks": 250000000,
+      "Name": "viewer's note",
+      "ItemName": "Big Buck Test (2008)",
+      "Identity": {
+        "ItemId": "0938a567-ab1f-40e1-fee5-544b003c01a5",
+        "Kind": "Movie",
+        "Name": "Big Buck Test (2008)",
+        "ProviderIds": {}
+      },
+      "Origin": "Native",
+      "AttachedUtc": "2026-09-29T10:05:30.4618152Z",
+      "CreatedAt": "2026-09-29T10:05:30.4618152Z",
+      "UpdatedAt": "2026-09-29T10:05:30.4618152Z"
+    },
+    {
+      "Id": "1a0ab894-21ba-4872-8508-c7005526ce6f",
+      "UserId": "0038ee0f-9abc-4d55-9ef5-abcf8520c9bf",
+      "ItemId": "ba7ef8f5-0757-f5f6-0cae-61b9b7fd19f5",
+      "StartTicks": 600000000,
+      "ItemName": "Long Test Movie (2021)",
+      "Identity": {
+        "ItemId": "ba7ef8f5-0757-f5f6-0cae-61b9b7fd19f5",
+        "Kind": "Movie",
+        "Name": "Long Test Movie (2021)",
+        "ProviderIds": {}
+      },
+      "Origin": "Native",
+      "AttachedUtc": "2026-09-29T10:05:30.4672445Z",
+      "CreatedAt": "2026-09-29T10:05:30.4672445Z",
+      "UpdatedAt": "2026-09-29T10:05:30.4672445Z"
+    }
+  ],
+  "FutureDocumentField": {
+    "Written": "by schema 3"
+  }
+}

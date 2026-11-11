@@ -1,0 +1,57 @@
+{
+  "Reviews": {
+    "00000000000000000000000000000001:movie:550": {
+      "UserId": "00000000000000000000000000000001",
+      "TmdbId": "550",
+      "MediaType": "movie",
+      "Content": "Still holds up. The twist lands every time.",
+      "Rating": 4.5,
+      "CreatedAt": "2026-03-01T20:15:00.000Z",
+      "UpdatedAt": "2026-03-01T20:15:00.000Z"
+    },
+    "00000000000000000000000000000001:movie:603": {
+      "UserId": "00000000000000000000000000000001",
+      "TmdbId": "603",
+      "MediaType": "movie",
+      "Content": "",
+      "Rating": 5,
+      "CreatedAt": "2026-03-02T19:00:00.000Z",
+      "UpdatedAt": "2026-03-05T21:30:00.000Z"
+    },
+    "00000000000000000000000000000002:movie:550": {
+      "UserId": "00000000000000000000000000000002",
+      "TmdbId": 550,
+      "MediaType": "movie",
+      "Content": "Overrated, but the soap scene is great.",
+      "Rating": null,
+      "CreatedAt": "2026-03-03T10:00:00.000Z",
+      "UpdatedAt": "2026-03-03T10:00:00.000Z"
+    },
+    "00000000000000000000000000000002:tv:1396:s1:e1": {
+      "UserId": "00000000000000000000000000000002",
+      "TmdbId": "1396",
+      "MediaType": "tv",
+      "Content": "A strong pilot.",
+      "Rating": 4,
+      "CreatedAt": "2026-03-04T10:00:00.000Z",
+      "UpdatedAt": "2026-03-04T10:00:00.000Z"
+    },
+    "00000000000000000000000000000002:movie:bad-rating": {
+      "UserId": "00000000000000000000000000000002",
+      "TmdbId": "999",
+      "MediaType": "movie",
+      "Content": "The rating is text, so this entry is left out.",
+      "Rating": "four",
+      "CreatedAt": "2026-03-04T10:00:00.000Z",
+      "UpdatedAt": "2026-03-04T10:00:00.000Z"
+    },
+    "00000000000000000000000000000002:movie:no-tmdb": {
+      "UserId": "00000000000000000000000000000002",
+      "MediaType": "movie",
+      "Content": "No TmdbId, so this entry is left out.",
+      "Rating": 3,
+      "CreatedAt": "2026-03-04T10:00:00.000Z",
+      "UpdatedAt": "2026-03-04T10:00:00.000Z"
+    }
+  }
+}

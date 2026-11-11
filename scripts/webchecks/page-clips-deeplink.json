@@ -1,0 +1,54 @@
+{
+  "name": "My Clips' deep link state, as admin in any of the standard sandboxes (the bare one's fallback route without Plugin Pages, the baseurl one's /jf): a deep link to My Clips with the search, a state, a sort and deleted=0 loaded cold renders under its title without 'Page not found', the toolbar and the rows as the hash says (the API's for the same query); a toolbar change is one history entry, Back renders the deep link's state again and Forward the change's; My Clips is in 'Library tools' after My Bookmarks. Over the clips bookmarks-clips-page-probe.mjs seeds.",
+  "failOnException": false,
+  "timeout": 30000,
+  "steps": [
+    { "name": "sign in as admin", "login": "admin" },
+    { "name": "the Bookmarks script ran", "waitFor": "!!window.__jfkit && !!window.__jfkit.jfbm && !!window.ApiClient && !!ApiClient.getCurrentUserId()" },
+    { "name": "the deep link", "goto": "/web/index.html#/jfbm-clips?q=clips-page-probe&state=Ready&sort=Name&deleted=0" },
+    { "name": "the hash navigation committed", "waitFor": "location.hash === '#/jfbm-clips?q=clips-page-probe&state=Ready&sort=Name&deleted=0'" },
+    { "name": "loaded cold", "reload": true },
+    {
+      "name": "the deep link loaded cold: the title, no 'Page not found', the toolbar and the rows as the hash says",
+      "waitFor": "(async () => { const r = document.querySelector('#fallbackPage > [data-jfbm-page=\"clips\"]'); const k = (id) => String(id || '').replace(/-/g, '').toLowerCase(); const row = (id) => r && id ? r.querySelector('.jfbm-clips-row[data-jfbm-clip=\"' + k(id) + '\"]') : null; if (!((() => { const r = document.querySelector('#fallbackPage > [data-jfbm-page=\"clips\"]'); const k = (id) => String(id || '').replace(/-/g, '').toLowerCase(); const row = (id) => r && id ? r.querySelector('.jfbm-clips-row[data-jfbm-clip=\"' + k(id) + '\"]') : null; if (!r || r.getAttribute('data-jfbm-state') !== 'on') return false; const c = r.querySelector('.jfbm-clips-content'); return !!c && !c.hasAttribute('aria-busy') && (!!c.querySelector('.jfbm-clips-row') || !!c.querySelector('.jfbm-notice')); })())) return false; const a = await ApiClient.getJSON(ApiClient.getUrl('Bookmarks/Clips', { searchTerm: 'clips-page-probe', state: 'Ready', sortBy: 'Name', includeDeleted: false, limit: 200 })); const rows = [...r.querySelectorAll('.jfbm-clips-row')]; return { path: location.pathname, hash: location.hash, title: (document.querySelector('.skinHeader .pageTitle') || { textContent: '' }).textContent.trim(), notFound: [...document.querySelectorAll('#fallbackPage > :not([data-jfbm-page]) h1')].some(h => h.getClientRects().length > 0), search: r.querySelector('.jfbm-clips-toolbar input[type=\"search\"]').value, state: r.querySelector('.jfbm-clips-state-select').value, sort: r.querySelector('.jfbm-clips-sort-select').value, deleted: r.querySelector('.jfbm-clips-deleted').checked, rows: rows.length, api: a.TotalRecordCount, same: JSON.stringify(rows.map(x => x.getAttribute('data-jfbm-clip'))) === JSON.stringify(a.Items.map(x => k(x.Id))), titles: rows.map(x => x.querySelector('bdi').textContent), history: history.length, renders: __jfkit.jfbm.instance.pages.state().renders.clips }; })()",
+      "timeout": 30000,
+      "save": "loaded",
+      "full": true
+    },
+    {
+      "name": "as expected",
+      "assert": "__vars.loaded.title === 'My Clips' && !__vars.loaded.notFound && __vars.loaded.search === 'clips-page-probe' && __vars.loaded.state === 'Ready' && __vars.loaded.sort === 'Name' && __vars.loaded.deleted === false && __vars.loaded.same && __vars.loaded.rows === __vars.loaded.api && __vars.loaded.rows >= 2 && __vars.loaded.titles.indexOf('clips-page-probe Bravo') < 0 && __vars.loaded.hash === '#/jfbm-clips?q=clips-page-probe&state=Ready&sort=Name&deleted=0'"
+    },
+    { "screenshot": "page-clips-deeplink.png" },
+    {
+      "name": "a toolbar change: the deleted bookmarks' clips included",
+      "script": "const r = document.querySelector('#fallbackPage > [data-jfbm-page=\"clips\"]'); const k = (id) => String(id || '').replace(/-/g, '').toLowerCase(); const row = (id) => r && id ? r.querySelector('.jfbm-clips-row[data-jfbm-clip=\"' + k(id) + '\"]') : null; const settle = async () => { for (let i = 0; i < 200; i++) { const c = r.querySelector('.jfbm-clips-content'); if (c && !c.hasAttribute('aria-busy')) return; await new Promise(res => setTimeout(res, 50)); } throw new Error('the list did not load'); }; const h0 = history.length; r.querySelector('.jfbm-clips-deleted').click(); await settle(); return { hash: location.hash, entries: history.length - h0, bravo: [...r.querySelectorAll('.jfbm-clips-row bdi')].some(b => b.textContent === 'clips-page-probe Bravo') };",
+      "save": "changed"
+    },
+    { "name": "as expected: one entry, Bravo listed", "assert": "__vars.changed.hash === '#/jfbm-clips?q=clips-page-probe&state=Ready&sort=Name' && __vars.changed.entries === 1 && __vars.changed.bravo" },
+    { "name": "the kit's renders before Back", "eval": "__jfkit.jfbm.instance.pages.state().renders.clips", "save": "rendersBefore" },
+    { "name": "Back", "script": "history.back(); return true;" },
+    {
+      "name": "Back: the deep link's state again",
+      "waitFor": "(() => { const r = document.querySelector('#fallbackPage > [data-jfbm-page=\"clips\"]'); const k = (id) => String(id || '').replace(/-/g, '').toLowerCase(); const row = (id) => r && id ? r.querySelector('.jfbm-clips-row[data-jfbm-clip=\"' + k(id) + '\"]') : null; if (location.hash !== '#/jfbm-clips?q=clips-page-probe&state=Ready&sort=Name&deleted=0') return false; const renders = __jfkit.jfbm.instance.pages.state().renders.clips; if (renders <= __vars.rendersBefore || !((() => { const r = document.querySelector('#fallbackPage > [data-jfbm-page=\"clips\"]'); const k = (id) => String(id || '').replace(/-/g, '').toLowerCase(); const row = (id) => r && id ? r.querySelector('.jfbm-clips-row[data-jfbm-clip=\"' + k(id) + '\"]') : null; if (!r || r.getAttribute('data-jfbm-state') !== 'on') return false; const c = r.querySelector('.jfbm-clips-content'); return !!c && !c.hasAttribute('aria-busy') && (!!c.querySelector('.jfbm-clips-row') || !!c.querySelector('.jfbm-notice')); })())) return false; return { renders, deleted: r.querySelector('.jfbm-clips-deleted').checked, bravo: [...r.querySelectorAll('.jfbm-clips-row bdi')].some(b => b.textContent === 'clips-page-probe Bravo') }; })()",
+      "save": "back"
+    },
+    { "name": "as expected: rendered once from the hash", "assert": "__vars.back.renders === __vars.rendersBefore + 1 && __vars.back.deleted === false && !__vars.back.bravo" },
+    { "name": "Forward", "script": "history.forward(); return true;" },
+    {
+      "name": "Forward: the state after the change again",
+      "waitFor": "(() => { const r = document.querySelector('#fallbackPage > [data-jfbm-page=\"clips\"]'); const k = (id) => String(id || '').replace(/-/g, '').toLowerCase(); const row = (id) => r && id ? r.querySelector('.jfbm-clips-row[data-jfbm-clip=\"' + k(id) + '\"]') : null; if (location.hash !== '#/jfbm-clips?q=clips-page-probe&state=Ready&sort=Name') return false; const renders = __jfkit.jfbm.instance.pages.state().renders.clips; if (renders <= __vars.back.renders || !((() => { const r = document.querySelector('#fallbackPage > [data-jfbm-page=\"clips\"]'); const k = (id) => String(id || '').replace(/-/g, '').toLowerCase(); const row = (id) => r && id ? r.querySelector('.jfbm-clips-row[data-jfbm-clip=\"' + k(id) + '\"]') : null; if (!r || r.getAttribute('data-jfbm-state') !== 'on') return false; const c = r.querySelector('.jfbm-clips-content'); return !!c && !c.hasAttribute('aria-busy') && (!!c.querySelector('.jfbm-clips-row') || !!c.querySelector('.jfbm-notice')); })())) return false; return { renders, deleted: r.querySelector('.jfbm-clips-deleted').checked, bravo: [...r.querySelectorAll('.jfbm-clips-row bdi')].some(b => b.textContent === 'clips-page-probe Bravo') }; })()",
+      "save": "forward"
+    },
+    { "name": "as expected", "assert": "__vars.forward.renders === __vars.back.renders + 1 && __vars.forward.deleted === true && __vars.forward.bravo" },
+    { "name": "open the drawer", "click": ".skinHeader .mainDrawerButton" },
+    { "name": "drawer open", "waitFor": "(() => { const a = document.querySelector('.mainDrawer .userMenuOptions'); if (!a) return false; const b = a.getBoundingClientRect(); return b.width > 0 && b.height > 0; })()" },
+    {
+      "name": "'Library tools': My Bookmarks, then My Clips",
+      "waitFor": "(() => { const s = document.querySelector('.mainDrawer-scrollContainer > .jfkit-nav'); const a = s && s.querySelector('a[data-jfbm-nav=\"clips\"]'); if (!a || a.getClientRects().length === 0) return false; return [...s.querySelectorAll('a[data-jfkit-plugin=\"jfbm\"]')].map(x => [x.getAttribute('data-jfbm-nav'), x.getAttribute('href')]).filter(x => x[0].indexOf('demo') !== 0); })()",
+      "save": "drawer"
+    },
+    { "name": "as expected", "assert": "JSON.stringify(__vars.drawer) === JSON.stringify([['bookmarks', '#/jfbm-bookmarks'], ['clips', '#/jfbm-clips']])" },
+    { "name": "no uncaught exception of ours", "noExceptions": true, "ignore": "/CustomRatings/script|^Error: player cannot be null" }
+  ]
+}

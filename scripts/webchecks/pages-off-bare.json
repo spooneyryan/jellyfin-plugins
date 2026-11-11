@@ -1,0 +1,231 @@
+{
+  "name": "Without Plugin Pages (bare sandbox): Demo page B turned off while its \"Library tools\" link is still there shows \"Demo page B is turned off by your server admin.\" under its own title, from the link, its fallback route and an old Plugin Pages link (rewritten by FallbackRoute and claimed by the fallback host). With EnableWebUi off no link of ours is left after a reload and a deep link shows jellyfin-web's own \"Page not found\" (no host fetches a shell without Plugin Pages), while the shell still answers its plain-text note. Changes EnablePageDemo, EnableDemoPageB and EnableWebUi through the API and restores EnableDemoPageB and EnableWebUi at the end (sandbox data only).",
+  "failOnException": false,
+  "timeout": 30000,
+  "steps": [
+    {
+      "name": "frame probe in every document (probes/pages-probe.js)",
+      "initScript": {
+        "file": "probes/pages-probe.js"
+      }
+    },
+    {
+      "name": "sign in as admin",
+      "login": "admin"
+    },
+    {
+      "name": "turn the page demo on (the developer setting EnablePageDemo; per request)",
+      "script": "const id = 'd0ee1b2a-7f71-4654-8ff2-163a81441b03'; const c = await ApiClient.getPluginConfiguration(id); Object.assign(c, {\"EnablePageDemo\":true,\"EnableDemoPageB\":true,\"EnableWebUi\":true}); await ApiClient.updatePluginConfiguration(id, c); const r = await ApiClient.getPluginConfiguration(id); return { EnablePageDemo: r.EnablePageDemo, EnableDemoPageB: r.EnableDemoPageB, EnableWebUi: r.EnableWebUi, PageHostMode: r.PageHostMode };"
+    },
+    {
+      "name": "reload, so index.html carries the demo's head fragment",
+      "reload": true
+    },
+    {
+      "name": "the home page is shown",
+      "waitFor": "!!document.querySelector('.homePage:not(.hide)')"
+    },
+    {
+      "name": "the kit chose the fallback host (no Plugin Pages)",
+      "waitFor": "__jfkit.jfbm.instance.pages.state().hostsKnown && __jfkit.jfbm.instance.pages.state().hosts['demo-b'] === 'Fallback' && typeof PluginPages === 'undefined' && __jfkit.jfbm.instance.pages.state()",
+      "save": "pages"
+    },
+    {
+      "name": "open the drawer",
+      "click": ".skinHeader .mainDrawerButton"
+    },
+    {
+      "name": "drawer open",
+      "waitFor": "(() => { const a = document.querySelector(\".mainDrawer .userMenuOptions\"); if (!a) return false; const r = a.getBoundingClientRect(); return r.width > 0 && r.height > 0 && r.left >= 0 && r.right <= innerWidth && r.top >= 0 && getComputedStyle(a).visibility !== 'hidden'; })()"
+    },
+    {
+      "sleep": 1500
+    },
+    {
+      "name": "the drawer links Demo page B",
+      "eval": "(() => ({ pluginPagesSection: !!document.querySelector('.mainDrawer .pluginMenuOptions'), pluginPagesLinks: [...document.querySelectorAll('.mainDrawer .pluginMenuOptions a[data-itemid^=\"Jellyfin.Plugin.Bookmarks\"]')].map(a => a.getAttribute('data-itemid')), libraryToolsLinks: [...document.querySelectorAll('.mainDrawer .jfkit-nav a[data-jfkit-plugin=\"jfbm\"]')].map(a => ({ key: a.getAttribute('data-jfbm-nav'), href: a.getAttribute('href') })) }))()",
+      "save": "drawerBefore"
+    },
+    {
+      "name": "Demo page B has a \"Library tools\" link",
+      "waitFor": "(() => { const a = document.querySelector(\".mainDrawer .jfkit-nav a[data-jfbm-nav=\\\"demo-b\\\"]\"); if (!a) return false; const r = a.getBoundingClientRect(); return r.width > 0 && r.height > 0 && r.left >= 0 && r.right <= innerWidth && r.top >= 0 && getComputedStyle(a).visibility !== 'hidden'; })()"
+    },
+    {
+      "name": "close the drawer by going to Demo page A",
+      "goto": "/web/index.html#/jfbm-demo-a"
+    },
+    {
+      "name": "Demo page A",
+      "waitFor": "(() => { const r = [...document.querySelectorAll(\"#fallbackPage > [data-jfbm-page=\\\"demo-a\\\"][data-jfbm-mounted]\")].find(x => x.getClientRects().length > 0); const t = (document.querySelector('.skinHeader .pageTitle') || { textContent: '' }).textContent.trim(); const title = r && r.querySelector('.jfbm-demo-title'); const user = r && r.querySelector('[data-jfbm-demo=\"user\"]'); if (!r || !title || title.textContent !== \"Demo page A\" || [...document.querySelectorAll('#fallbackPage > :not([data-jfbm-page]) h1')].some(h => h.getClientRects().length > 0) || t !== \"Demo page A\" || !user || user.textContent === '…') return false;  return { hash: location.hash, render: Number(r.getAttribute('data-jfbm-render')), reason: r.getAttribute('data-jfbm-reason'), host: r.getAttribute('data-jfbm-host'), params: JSON.parse(r.querySelector('[data-jfbm-demo=\"params\"]').textContent), user: user.textContent, admin: r.querySelector('[data-jfbm-demo=\"admin\"]').textContent, headerTitle: t, documentTitle: document.title, historyLength: history.length }; })()"
+    },
+    {
+      "name": "turn Demo page B off (per request; the drawer link stays until the next page load)",
+      "script": "const id = 'd0ee1b2a-7f71-4654-8ff2-163a81441b03'; const c = await ApiClient.getPluginConfiguration(id); Object.assign(c, {\"EnableDemoPageB\":false}); await ApiClient.updatePluginConfiguration(id, c); const r = await ApiClient.getPluginConfiguration(id); return { EnableDemoPageB: r.EnableDemoPageB, PageHostMode: r.PageHostMode };"
+    },
+    {
+      "name": "open the drawer",
+      "click": ".skinHeader .mainDrawerButton"
+    },
+    {
+      "name": "drawer open",
+      "waitFor": "(() => { const a = document.querySelector(\".mainDrawer .userMenuOptions\"); if (!a) return false; const r = a.getBoundingClientRect(); return r.width > 0 && r.height > 0 && r.left >= 0 && r.right <= innerWidth && r.top >= 0 && getComputedStyle(a).visibility !== 'hidden'; })()"
+    },
+    {
+      "name": "the still-present link to Demo page B",
+      "eval": "(() => ({ pluginPagesSection: !!document.querySelector('.mainDrawer .pluginMenuOptions'), pluginPagesLinks: [...document.querySelectorAll('.mainDrawer .pluginMenuOptions a[data-itemid^=\"Jellyfin.Plugin.Bookmarks\"]')].map(a => a.getAttribute('data-itemid')), libraryToolsLinks: [...document.querySelectorAll('.mainDrawer .jfkit-nav a[data-jfkit-plugin=\"jfbm\"]')].map(a => ({ key: a.getAttribute('data-jfbm-nav'), href: a.getAttribute('href') })) }))()",
+      "save": "drawerAfterOff"
+    },
+    {
+      "name": "reset the probe",
+      "eval": "__pagesProbe.reset(), true"
+    },
+    {
+      "name": "click the still-present Demo page B link",
+      "click": ".mainDrawer .jfkit-nav a[data-jfbm-nav=\"demo-b\"]"
+    },
+    {
+      "name": "the page says it is turned off, under its own title",
+      "waitFor": "(() => { const t = (document.querySelector('.skinHeader .pageTitle') || { textContent: '' }).textContent.trim(); const notes = [...document.querySelectorAll('.jfbm-page-note, .jfbm-shell-note')].filter(n => n.getClientRects().length > 0 && getComputedStyle(n).display !== 'none'); const n = notes.find(x => x.textContent === \"Demo page B is turned off by your server admin.\"); return !!n && t === \"Demo page B\" && { note: n.textContent, className: n.className, headerTitle: t, hash: location.hash, host: (n.closest('[data-role=\"page\"]') || {}).id }; })()",
+      "save": "offByLink"
+    },
+    {
+      "sleep": 400
+    },
+    {
+      "name": "probe: probeOffByLink",
+      "eval": "__pagesProbe.summary()",
+      "save": "probeOffByLink"
+    },
+    {
+      "screenshot": "pages-off-bare-link.png"
+    },
+    {
+      "name": "the fallback route of Demo page B",
+      "goto": "/web/index.html#/jfbm-demo-b"
+    },
+    {
+      "name": "fallback host: the kit asked the shell and shows its sentence",
+      "waitFor": "(() => { const t = (document.querySelector('.skinHeader .pageTitle') || { textContent: '' }).textContent.trim(); const notes = [...document.querySelectorAll('.jfbm-page-note, .jfbm-shell-note')].filter(n => n.getClientRects().length > 0 && getComputedStyle(n).display !== 'none'); const n = notes.find(x => x.textContent === \"Demo page B is turned off by your server admin.\"); return !!n && t === \"Demo page B\" && { note: n.textContent, className: n.className, headerTitle: t, hash: location.hash, host: (n.closest('[data-role=\"page\"]') || {}).id }; })()",
+      "save": "offF1"
+    },
+    {
+      "name": "fallback host: the page state is off",
+      "assert": "document.querySelector('#fallbackPage > [data-jfbm-page=\"demo-b\"]').getAttribute('data-jfbm-state') === 'off'"
+    },
+    {
+      "name": "reset the probe",
+      "eval": "__pagesProbe.reset(), true"
+    },
+    {
+      "name": "an old Plugin Pages link to Demo page B",
+      "goto": "/web/index.html#/userpluginsettings.html?pageUrl=%2FBookmarks%2FPages%2Fdemo-b"
+    },
+    {
+      "name": "rewritten by FallbackRoute, claimed by the fallback host: the same sentence",
+      "waitFor": "(() => { const t = (document.querySelector('.skinHeader .pageTitle') || { textContent: '' }).textContent.trim(); const notes = [...document.querySelectorAll('.jfbm-page-note, .jfbm-shell-note')].filter(n => n.getClientRects().length > 0 && getComputedStyle(n).display !== 'none'); const n = notes.find(x => x.textContent === \"Demo page B is turned off by your server admin.\"); return !!n && t === \"Demo page B\" && { note: n.textContent, className: n.className, headerTitle: t, hash: location.hash, host: (n.closest('[data-role=\"page\"]') || {}).id }; })()",
+      "save": "offOldLink"
+    },
+    {
+      "sleep": 400
+    },
+    {
+      "name": "probe: probeOffOldLink",
+      "eval": "__pagesProbe.summary()",
+      "save": "probeOffOldLink"
+    },
+    {
+      "name": "the old link ended on #/userpluginsettings? in #fallbackPage",
+      "assert": "location.hash.startsWith('#/userpluginsettings?') && __vars.offOldLink.host === 'fallbackPage'"
+    },
+    {
+      "screenshot": "pages-off-bare-old-link.png"
+    },
+    {
+      "name": "turn Demo page B on again",
+      "script": "const id = 'd0ee1b2a-7f71-4654-8ff2-163a81441b03'; const c = await ApiClient.getPluginConfiguration(id); Object.assign(c, {\"EnableDemoPageB\":true}); await ApiClient.updatePluginConfiguration(id, c); const r = await ApiClient.getPluginConfiguration(id); return { EnableDemoPageB: r.EnableDemoPageB, PageHostMode: r.PageHostMode };"
+    },
+    {
+      "name": "turn the Bookmarks web UI off (per request)",
+      "script": "const id = 'd0ee1b2a-7f71-4654-8ff2-163a81441b03'; const c = await ApiClient.getPluginConfiguration(id); Object.assign(c, {\"EnableWebUi\":false}); await ApiClient.updatePluginConfiguration(id, c); const r = await ApiClient.getPluginConfiguration(id); return { EnableWebUi: r.EnableWebUi, PageHostMode: r.PageHostMode };"
+    },
+    {
+      "name": "the fallback route of Demo page A",
+      "goto": "/web/index.html#/jfbm-demo-a"
+    },
+    {
+      "name": "the hash navigation committed",
+      "waitFor": "location.hash === '#/jfbm-demo-a'"
+    },
+    {
+      "name": "reload with the web UI off",
+      "reload": true
+    },
+    {
+      "name": "jellyfin-web's own \"Page not found\", with no Bookmarks tag, head fragment or kit",
+      "waitFor": "(() => { const nf = [...document.querySelectorAll('#fallbackPage > :not([data-jfbm-page]) h1')].some(h => h.getClientRects().length > 0); if (!nf) return false; return { notFoundVisible: nf, headerTitle: (document.querySelector('.skinHeader .pageTitle') || { textContent: '' }).textContent.trim(), bookmarksTags: document.querySelectorAll('script[data-jfbm-plugin]').length, headFragment: document.querySelectorAll('[data-jfbm-head]').length, kit: !!(window.__jfkit && window.__jfkit.jfbm), routeClass: document.documentElement.classList.contains('jfbm-route') }; })()",
+      "save": "webUiOff"
+    },
+    {
+      "name": "nothing of ours on the page",
+      "assert": "__vars.webUiOff.bookmarksTags === 0 && __vars.webUiOff.headFragment === 0 && !__vars.webUiOff.kit && !__vars.webUiOff.routeClass"
+    },
+    {
+      "screenshot": "pages-off-bare-webui.png"
+    },
+    {
+      "name": "open the drawer",
+      "click": ".skinHeader .mainDrawerButton"
+    },
+    {
+      "name": "drawer open",
+      "waitFor": "(() => { const a = document.querySelector(\".mainDrawer .userMenuOptions\"); if (!a) return false; const r = a.getBoundingClientRect(); return r.width > 0 && r.height > 0 && r.left >= 0 && r.right <= innerWidth && r.top >= 0 && getComputedStyle(a).visibility !== 'hidden'; })()"
+    },
+    {
+      "sleep": 1500
+    },
+    {
+      "name": "the drawer with the web UI off",
+      "eval": "(() => ({ pluginPagesSection: !!document.querySelector('.mainDrawer .pluginMenuOptions'), pluginPagesLinks: [...document.querySelectorAll('.mainDrawer .pluginMenuOptions a[data-itemid^=\"Jellyfin.Plugin.Bookmarks\"]')].map(a => a.getAttribute('data-itemid')), libraryToolsLinks: [...document.querySelectorAll('.mainDrawer .jfkit-nav a[data-jfkit-plugin=\"jfbm\"]')].map(a => ({ key: a.getAttribute('data-jfbm-nav'), href: a.getAttribute('href') })) }))()",
+      "save": "drawerWebUiOff"
+    },
+    {
+      "name": "no \"Library tools\" section or link of ours is left",
+      "assert": "__vars.drawerWebUiOff.libraryToolsLinks.length === 0 && !document.querySelector('.mainDrawer .jfkit-nav')"
+    },
+    {
+      "name": "the shell still answers its plain-text note (text/html, no script)",
+      "eval": "(async () => { const r = await fetch(ApiClient.getUrl('Bookmarks/Pages/demo-a'), { headers: { Authorization: 'MediaBrowser Token=\"' + ApiClient.accessToken() + '\"' } }); const t = await r.text(); return { status: r.status, type: r.headers.get('content-type'), note: t.includes('<p class=\"jfbm-shell-note\">This page needs the Bookmarks web UI, which is turned off or failed to load.</p>'), script: /<script/i.test(t) }; })()",
+      "save": "shell"
+    },
+    {
+      "name": "shell as expected",
+      "assert": "__vars.shell.status === 200 && /^text\\/html/.test(__vars.shell.type) && __vars.shell.note && !__vars.shell.script"
+    },
+    {
+      "name": "turn the Bookmarks web UI on again",
+      "script": "const id = 'd0ee1b2a-7f71-4654-8ff2-163a81441b03'; const c = await ApiClient.getPluginConfiguration(id); Object.assign(c, {\"EnableWebUi\":true}); await ApiClient.updatePluginConfiguration(id, c); const r = await ApiClient.getPluginConfiguration(id); return { EnableWebUi: r.EnableWebUi, PageHostMode: r.PageHostMode };"
+    },
+    {
+      "name": "still on the fallback route of Demo page A",
+      "assert": "location.hash === '#/jfbm-demo-a'"
+    },
+    {
+      "name": "reload with the web UI on",
+      "reload": true
+    },
+    {
+      "name": "Demo page A renders again",
+      "waitFor": "(() => { const r = [...document.querySelectorAll(\"#fallbackPage > [data-jfbm-page=\\\"demo-a\\\"][data-jfbm-mounted]\")].find(x => x.getClientRects().length > 0); const t = (document.querySelector('.skinHeader .pageTitle') || { textContent: '' }).textContent.trim(); const title = r && r.querySelector('.jfbm-demo-title'); const user = r && r.querySelector('[data-jfbm-demo=\"user\"]'); if (!r || !title || title.textContent !== \"Demo page A\" || [...document.querySelectorAll('#fallbackPage > :not([data-jfbm-page]) h1')].some(h => h.getClientRects().length > 0) || t !== \"Demo page A\" || !user || user.textContent === '…') return false;  return { hash: location.hash, render: Number(r.getAttribute('data-jfbm-render')), reason: r.getAttribute('data-jfbm-reason'), host: r.getAttribute('data-jfbm-host'), params: JSON.parse(r.querySelector('[data-jfbm-demo=\"params\"]').textContent), user: user.textContent, admin: r.querySelector('[data-jfbm-demo=\"admin\"]').textContent, headerTitle: t, documentTitle: document.title, historyLength: history.length }; })()",
+      "save": "backOn"
+    },
+    {
+      "name": "no Page not found frame on the turned-off page",
+      "assert": "__vars.probeOffByLink.flashFrames === 0 && __vars.probeOffOldLink.flashFrames === 0"
+    },
+    {
+      "name": "no uncaught exceptions",
+      "noExceptions": true,
+      "ignore": "/CustomRatings/script|^Error: player cannot be null"
+    }
+  ]
+}

@@ -1,0 +1,49 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Framework, nullable, warnings-as-errors, analyzers and InternalsVisibleTo come from the root Directory.Build.props. -->
+  <!-- The shared kit (kit/src) compiles into this assembly (no KitUseSqlite: the plugin keeps no database of its own). -->
+  <Import Project="$(KitRoot)build\Kit.props" />
+
+  <PropertyGroup>
+    <RootNamespace>Jellyfin.Plugin.SmartSearch</RootNamespace>
+    <!-- Keep equal to build.yaml's version (checked by tests/Repo.Tests). 1.1.2.0 is released; development builds after it are 1.1.2.<n>. -->
+    <Version>1.1.2.0</Version>
+    <AssemblyVersion>1.1.2.0</AssemblyVersion>
+    <FileVersion>1.1.2.0</FileVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <!-- Not the root props' InternalsVisibleTo DynamicProxyGenAssembly2 (as Access Roles 1.0.1): the tests use written-out
+       doubles of the internal services, so no Moq proxy needs this assembly's internals, and the DLL the server loads lets
+       no other assembly see them but the tests. Moq still mocks Jellyfin's public interfaces (ILibraryManager). -->
+  <ItemGroup>
+    <InternalsVisibleTo Remove="DynamicProxyGenAssembly2" />
+  </ItemGroup>
+
+  <!-- The server provides these at runtime; never ship copies of them with the plugin. -->
+  <ItemGroup>
+    <PackageReference Include="Jellyfin.Controller">
+      <ExcludeAssets>runtime</ExcludeAssets>
+    </PackageReference>
+    <PackageReference Include="Jellyfin.Model">
+      <ExcludeAssets>runtime</ExcludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <!-- The settings page. The web client (Web/js/*.js, Web/css/*.css) is embedded by the kit's
+       Kit.props and built into one script by the kit's EmbeddedScript. -->
+  <ItemGroup>
+    <None Remove="Configuration\configPage.html" />
+    <EmbeddedResource Include="Configuration\configPage.html" />
+  </ItemGroup>
+
+  <!-- The default poster of an auto-collection's collection, rendered from branding/AutoCollection.svg. -->
+  <ItemGroup>
+    <None Remove="AutoCollections\AutoCollection.png" />
+    <EmbeddedResource Include="AutoCollections\AutoCollection.png" LogicalName="AutoCollections.AutoCollection.png" />
+  </ItemGroup>
+
+</Project>

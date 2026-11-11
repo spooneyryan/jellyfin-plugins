@@ -1,0 +1,53 @@
+{
+  "name": "Smart Search's page in the default FallbackOnly mode, as viewer: index.html carries one Smart Search tag and its head fragment (the page 'search' known and on), the kit registers it on its own (fallback) host, 'Library tools' links #/jfss-search, the page renders there under the title 'Advanced Search' with its search form (the 'Title contains' field) and no 'Page not found' frame, a hard reload renders it again, GET /SmartSearch/Fields serves viewer the catalogue without the administrator-only Path, and no exception of ours. Sandbox data only; changes no setting.",
+  "failOnException": false,
+  "timeout": 30000,
+  "steps": [
+    { "name": "sign in as viewer", "login": "viewer" },
+    { "name": "the Smart Search script ran", "waitFor": "!!window.__jfkit && !!window.__jfkit.jfss && !!window.ApiClient && !!ApiClient.getCurrentUserId()", "timeout": 20000 },
+    {
+      "name": "index.html: one Smart Search tag, the head fragment once before </head>, and its page state",
+      "eval": "fetch(new URL('index.html', location.href), { cache: 'no-store' }).then(r => r.text()).then(t => { const s = t.match(/<script type=\"application\\/json\" data-jfss-head data-jfss-pages>([^<]*)<\\/script>/); return { tags: (t.match(/data-jfss-plugin=/g) || []).length, headFragments: (t.match(/data-jfss-head/g) || []).length, beforeHeadEnd: t.indexOf('data-jfss-head') < t.indexOf('</head>'), state: s ? JSON.parse(s[1]) : null }; })",
+      "save": "indexHtml",
+      "full": true
+    },
+    { "name": "one tag; FallbackOnly; the page 'search' known and on", "assert": "__vars.indexHtml.tags === 1 && __vars.indexHtml.beforeHeadEnd && !!__vars.indexHtml.state && __vars.indexHtml.state.mode === 'FallbackOnly' && __vars.indexHtml.state.pages.join() === 'search' && __vars.indexHtml.state.off.length === 0" },
+    { "name": "the kit registered the page on its own (fallback) host", "waitFor": "__jfkit.jfss.instance.pages.state().hostsKnown && __jfkit.jfss.instance.pages.state().hosts.search === 'Fallback' && __jfkit.jfss.instance.pages.href('search')", "save": "href" },
+    { "name": "its address", "assert": "__vars.href === '#/jfss-search'" },
+    { "goto": "/web/index.html#/home" },
+    { "name": "open the drawer", "click": ".skinHeader .mainDrawerButton" },
+    {
+      "name": "'Library tools' links the page",
+      "waitFor": "(() => { const a = [...document.querySelectorAll('.mainDrawer a')].find(x => x.getAttribute('href') === '#/jfss-search'); if (!a) return false; const r = a.getBoundingClientRect(); return r.width > 0 && r.height > 0 ? { text: a.textContent.trim(), section: ((a.closest('.jfkit-nav') || {}).textContent || '').indexOf('Library tools') >= 0 } : false; })()",
+      "timeout": 15000,
+      "save": "link"
+    },
+    { "name": "the link reads 'Advanced Search', under 'Library tools'", "assert": "/Advanced Search/.test(__vars.link.text) && __vars.link.section" },
+    { "screenshot": "smartsearch-drawer.png" },
+    { "name": "follow the link", "script": "[...document.querySelectorAll('.mainDrawer a')].find(x => x.getAttribute('href') === '#/jfss-search').click(); return true;" },
+    {
+      "name": "the page renders on #/jfss-search under its title",
+      "waitFor": "(() => { const r = [...document.querySelectorAll('#fallbackPage > [data-jfss-page=\"search\"][data-jfss-mounted]')].find(x => x.getClientRects().length > 0); if (!r) return false; const body = r.querySelector('.jfss-search'); if (!body) return false; return { hash: location.hash, host: r.getAttribute('data-jfss-host'), state: r.getAttribute('data-jfss-state'), text: body.textContent.trim(), headerTitle: (document.querySelector('.skinHeader .pageTitle') || { textContent: '' }).textContent.trim(), documentTitle: document.title, notFound: [...document.querySelectorAll('#fallbackPage > :not([data-jfss-page]) h1')].some(h => h.getClientRects().length > 0) }; })()",
+      "timeout": 20000,
+      "save": "page",
+      "full": true
+    },
+    { "name": "as expected", "assert": "__vars.page.hash === '#/jfss-search' && __vars.page.host === 'Fallback' && __vars.page.state === 'on' && /Title contains/.test(__vars.page.text) && __vars.page.headerTitle === 'Advanced Search' && /Advanced Search/.test(__vars.page.documentTitle) && !__vars.page.notFound" },
+    { "screenshot": "smartsearch-page.png" },
+    { "name": "hard reload", "reload": true },
+    {
+      "name": "after the reload: the page again",
+      "waitFor": "(() => { const r = [...document.querySelectorAll('#fallbackPage > [data-jfss-page=\"search\"][data-jfss-mounted]')].find(x => x.getClientRects().length > 0); const body = r && r.querySelector('.jfss-search'); return !!body && /Title contains/.test(body.textContent) && location.hash === '#/jfss-search' && (document.querySelector('.skinHeader .pageTitle') || { textContent: '' }).textContent.trim() === 'Advanced Search'; })()",
+      "timeout": 20000
+    },
+    { "name": "the client's health report reached the server (POST /SmartSearch/Diagnostics/ClientHealth)", "eval": "new Promise(r => setTimeout(r, 1500)).then(() => true)" },
+    {
+      "name": "GET /SmartSearch/Fields as viewer",
+      "eval": "fetch(ApiClient.getUrl('SmartSearch/Fields'), { headers: { Authorization: 'MediaBrowser Token=\"' + ApiClient.accessToken() + '\"' } }).then(async r => { const b = r.ok ? await r.json() : null; return { status: r.status, version: b && b.RegistryVersion, fields: b ? b.Fields.length : 0, path: !!b && b.Fields.some(f => f.Id === 'Path'), adminOnly: b ? b.Fields.filter(f => f.AdminOnly).length : -1, title: b && b.Fields[0].Id, sortKeys: b ? b.SortKeys.length : 0, kinds: b ? b.ItemKinds.join() : '', matches: b ? b.Fields.some(f => f.Operators.includes('Matches')) : true }; })",
+      "save": "fields",
+      "full": true
+    },
+    { "name": "200; registry 2; the 32 fields but Path, Title first; no Matches (not offered yet); 15 sort keys; the six item kinds", "assert": "__vars.fields.status === 200 && __vars.fields.version === 2 && __vars.fields.fields === 32 && !__vars.fields.path && __vars.fields.adminOnly === 0 && __vars.fields.title === 'Title' && !__vars.fields.matches && __vars.fields.sortKeys === 15 && __vars.fields.kinds === 'Movie,Series,Episode,MusicVideo,Video,BoxSet'" },
+    { "name": "no uncaught exception (the stale CustomRatings tag of the sandbox's index.html is known noise)", "noExceptions": true, "ignore": "CustomRatings" }
+  ]
+}

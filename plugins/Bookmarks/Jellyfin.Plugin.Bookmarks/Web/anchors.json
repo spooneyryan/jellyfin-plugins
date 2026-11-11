@@ -1,0 +1,68 @@
+{
+  "comment": "The jellyfin-web anchors Bookmarks uses, the one place their selectors are written. Kit.props embeds this file as Web.anchors.json: the kit's EmbeddedScript puts it into the ClientScript (kit.anchors.find/all, reached through Web/js/10-selectors.js), the server accepts only these names and views in ClientHealth reports, and scripts/Test-WebAnchors.ps1 looks for them in the installed jellyfin-web bundle. css is the primary selector, then the fallbacks, tried in order. Notes cite the jellyfin-web 10.11.5 chunk and Bookmarks 1.0 (bm:Web/bookmarks.js).",
+  "anchors": [
+    {
+      "name": "detailPage",
+      "css": ["#itemDetailPage:not(.hide)"],
+      "required": true,
+      "views": ["details"],
+      "note": "The shown item details view (itemDetails-index-html chunk; several cached views exist). bm:Web/bookmarks.js:1134. Missing: no details-page UI."
+    },
+    {
+      "name": "detailContent",
+      "css": [".detailPageContent"],
+      "required": true,
+      "views": ["details"],
+      "note": "The content column inside detailPage; the Bookmarks section goes first in it (itemDetails-index-html chunk). bm:Web/bookmarks.js:1134-1251. Missing: no section and no button."
+    },
+    {
+      "name": "detailButtons",
+      "css": [".mainDetailButtons"],
+      "required": true,
+      "views": ["details"],
+      "note": "The button row inside detailPage (itemDetails-index-html and itemDetails chunks). bm:Web/bookmarks.js:1210-1225. Missing: no Add bookmark button; the section still works."
+    },
+    {
+      "name": "detailButtonsBefore",
+      "css": [".btnMoreCommands"],
+      "required": false,
+      "views": ["details"],
+      "note": "The \"more\" button inside detailButtons; Add bookmark goes right before it (itemDetails-index-html and itemDetails chunks). Missing: the button is appended at the end of the row."
+    },
+    {
+      "name": "playerPage",
+      "css": ["#videoOsdPage"],
+      "required": true,
+      "views": ["player"],
+      "note": "The video player view; the player is open while one of them isn't hidden: played again and again from a page of ours, the web client keeps up to three, the earlier ones hidden and not always after the shown one (playback-video-index-html chunk). bm:Web/bookmarks.js:328. Missing: B and the player buttons report \"start playing a video\"."
+    },
+    {
+      "name": "osdButtons",
+      "css": [".videoOsdBottom .buttons"],
+      "required": true,
+      "views": ["player"],
+      "note": "The player's on-screen button row (playback-video-index-html and playback-video chunks). bm:Web/bookmarks.js:955-986. Missing: no player buttons; B still bookmarks."
+    },
+    {
+      "name": "osdInsertBefore",
+      "css": [".btnSubtitles", ".btnAudio", ".btnVideoOsdSettings"],
+      "required": false,
+      "views": ["player"],
+      "note": "The first of these inside osdButtons gets our three buttons before it (playback-video-index-html and playback-video chunks). bm:Web/bookmarks.js:955-986. Missing: the buttons are appended at the end."
+    },
+    {
+      "name": "osdPositionSlider",
+      "css": [".videoOsdBottom .osdPositionSlider"],
+      "required": false,
+      "views": ["player"],
+      "note": "The player's position slider inside playerPage; the timeline marks go in a layer of their own in its parent, the slider container emby-slider sizes and positions, beside its chapter marks (playback-video-index-html chunk; emby-slider). Missing: no timeline marks; the Bookmarks list still jumps."
+    },
+    {
+      "name": "videoElement",
+      "css": [".videoPlayerContainer video", "video.htmlvideoplayer"],
+      "required": false,
+      "views": ["player"],
+      "note": "The playing video element, for positions between two playback reports (htmlVideoPlayer-plugin chunk). bm:Web/bookmarks.js:324, 392-418. Missing: the position comes from the playback reports alone."
+    }
+  ]
+}

@@ -1,0 +1,93 @@
+{
+  "name": "Smart Search's header button on a phone, as viewer at 375x812 with touch and the mobile layout (localStorage 'layout' = 'mobile'): one button right before jellyfin-web's search button, every header button inside the screen, no horizontal scroll, the button at least 40 px square, and a tap opens the page. Screenshot smartsearch-header-phone.png.",
+  "failOnException": false,
+  "timeout": 30000,
+  "steps": [
+    {
+      "name": "a phone: 375x812, touch",
+      "emulate": {
+        "width": 375,
+        "height": 812,
+        "deviceScaleFactor": 1,
+        "mobile": true,
+        "touch": true
+      }
+    },
+    {
+      "name": "header helpers",
+      "initScript": "\nwindow.__warns = [];\n(function () { const w = console.warn; console.warn = function () { try { window.__warns.push([].slice.call(arguments).map(String).join(' ')); } catch (e) {} return w.apply(this, arguments); }; })();\nwindow.__hb = {\n  ours: () => [...document.querySelectorAll('button[data-jfss-header]')],\n  shown: () => window.__hb.ours().filter(b => b.getClientRects().length > 0),\n  native: () => document.querySelector('.skinHeader .headerRight .headerSearchButton'),\n  visible: (e) => !!e && e.getClientRects().length > 0,\n  box: (e) => { const r = e.getBoundingClientRect(); return [Math.round(r.left), Math.round(r.top), Math.round(r.width), Math.round(r.height)]; },\n  state: () => { const o = window.__hb.ours(); const n = window.__hb.native(); const b = o[0]; return { count: o.length, shown: window.__hb.shown().length, nativeShown: window.__hb.visible(n), before: !!b && b.nextElementSibling === n, label: b ? b.getAttribute('aria-label') : null, icon: b ? (b.querySelector('.material-icons') || {}).className : null, hidden: b ? b.classList.contains('hide') : null, same: !!b && !!n && b.classList.contains('hide') === n.classList.contains('hide') }; },\n  anchorWarnings: () => window.__warns.filter(w => w.indexOf('web anchor') >= 0),\n  pageShown: () => { const r = [...document.querySelectorAll('#fallbackPage > [data-jfss-page=\"search\"][data-jfss-mounted]')].find(x => x.getClientRects().length > 0); return !!r && !!r.querySelector('.jfss-search .jfss-scope') && location.hash.indexOf('#/jfss-search') === 0; },\n  noHScroll: () => document.documentElement.scrollWidth <= innerWidth\n};\n"
+    },
+    {
+      "name": "sign in as viewer",
+      "login": "viewer"
+    },
+    {
+      "name": "the Smart Search script ran",
+      "waitFor": "!!window.__jfkit && !!window.__jfkit.jfss && !!window.ApiClient && !!ApiClient.getCurrentUserId()",
+      "timeout": 20000
+    },
+    {
+      "name": "mobile layout for this browser",
+      "eval": "(localStorage.setItem('layout', 'mobile'), true)"
+    },
+    {
+      "name": "reload (mobile)",
+      "reload": true
+    },
+    {
+      "name": "mobile layout applied",
+      "waitFor": "document.documentElement.classList.contains('layout-mobile') && !!window.__jfkit && !!window.__jfkit.jfss",
+      "timeout": 20000
+    },
+    {
+      "name": "one header button, shown right before jellyfin-web's search button (phone home)",
+      "waitFor": "(() => { const s = __hb.state(); return s.count === 1 && s.shown === 1 && s.nativeShown && s.before ? s : false; })()",
+      "timeout": 15000,
+      "save": "state",
+      "full": true
+    },
+    {
+      "name": "labelled 'Advanced search', the manage_search icon",
+      "assert": "__vars.state.label === 'Advanced search' && __vars.state.icon === 'material-icons manage_search'"
+    },
+    {
+      "name": "the header fits the screen",
+      "eval": "(() => { const r = document.querySelector('.skinHeader .headerRight'); const buttons = [...r.children].filter(c => c.getClientRects().length > 0).map(c => __hb.box(c)); return { width: innerWidth, right: Math.max(...buttons.map(b => b[0] + b[2])), left: Math.min(...buttons.map(b => b[0])), ours: __hb.box(__hb.ours()[0]), noHScroll: __hb.noHScroll() }; })()",
+      "save": "fit",
+      "full": true
+    },
+    {
+      "name": "as expected",
+      "assert": "__vars.fit.right <= __vars.fit.width && __vars.fit.left >= 0 && __vars.fit.noHScroll && __vars.fit.ours[2] >= 40 && __vars.fit.ours[3] >= 40"
+    },
+    {
+      "screenshot": "smartsearch-header-phone.png"
+    },
+    {
+      "name": "tap it",
+      "click": "button[data-jfss-header]"
+    },
+    {
+      "name": "the Advanced Search page opens (a tap)",
+      "waitFor": "__hb.pageShown()",
+      "timeout": 20000
+    },
+    {
+      "name": "the page fits the screen too",
+      "assert": "__hb.noHScroll()"
+    },
+    {
+      "name": "no anchor warning",
+      "assert": "__hb.anchorWarnings().length === 0"
+    },
+    {
+      "name": "the default layout again",
+      "eval": "(localStorage.removeItem('layout'), true)"
+    },
+    {
+      "name": "no uncaught exception (the stale CustomRatings tag of the sandbox's index.html is known noise)",
+      "noExceptions": true,
+      "ignore": "CustomRatings"
+    }
+  ]
+}

@@ -1,0 +1,87 @@
+{
+  "name": "The My Clips page next to Jellyfin Enhanced, in the je sandbox, Jellyfin Enhanced 12.12 with its quality and rating tags on (the pinned fixture): the My Clips page searched for the probe's clips renders every clip the API lists, and after JE's observers have had their time no row has changed (JE's card tags decorate card images; our rows carry none), every row shown with its actions; a preview opens and closes. The home page's JE tags are recorded as evidence that JE's tags run.",
+  "failOnException": false,
+  "timeout": 30000,
+  "steps": [
+    {
+      "name": "sign in as admin",
+      "login": "admin"
+    },
+    {
+      "name": "the Bookmarks script ran and JE loaded",
+      "waitFor": "!!window.__jfkit && !!window.__jfkit.jfbm && !!window.ApiClient && !!ApiClient.getCurrentUserId() && !!window.JellyfinEnhanced && !!window.JellyfinEnhanced.pluginConfig",
+      "timeout": 60000
+    },
+    {
+      "name": "JE's tags on",
+      "eval": "({ quality: window.JellyfinEnhanced.pluginConfig.QualityTagsEnabled, rating: window.JellyfinEnhanced.pluginConfig.RatingTagsEnabled })",
+      "save": "tags"
+    },
+    {
+      "name": "the home page had its time with JE",
+      "sleep": 5000
+    },
+    {
+      "name": "JE's tags on the home page (evidence only)",
+      "eval": "document.querySelectorAll('[class*=\"overlay\"]').length",
+      "save": "homeTags"
+    },
+    {
+      "name": "the API's count of the probe's clips",
+      "eval": "(await ApiClient.getJSON(ApiClient.getUrl('Bookmarks/Clips', { searchTerm: 'clips-page-probe', limit: 200 }))).TotalRecordCount",
+      "save": "apiCount"
+    },
+    {
+      "name": "My Clips, searched",
+      "goto": "/web/index.html#/jfbm-clips?q=clips-page-probe"
+    },
+    {
+      "name": "the rows rendered; their structure as drawn",
+      "waitFor": "(async () => { const R = () => document.querySelector('#fallbackPage > [data-jfbm-page=\"clips\"]'); const K = (id) => String(id || '').replace(/-/g, '').toLowerCase(); const row = (id) => { const r = R(); return r && id ? r.querySelector('.jfbm-clips-row[data-jfbm-clip=\"' + K(id) + '\"]') : null; }; const btn = (scope, title) => scope ? [...scope.querySelectorAll('button')].find(b => b.getAttribute('title') === title) || null : null; const panel = (title) => [...document.querySelectorAll('.jfbm-backdrop .jfbm-panel')].find(p => p.querySelector('h3').textContent === title) || null; const action = (dialog, label) => dialog ? [...dialog.querySelectorAll('.jfbm-actions button')].find(b => b.textContent === label) || null : null; const toasts = () => [...document.querySelectorAll('.jfbm-toast')].map(t => (t.querySelector('span') || t).textContent); const stateText = (x) => { const s = x && x.querySelector('.jfbm-clip-state-text'); return s ? s.textContent : null; }; const auth = () => ({ Authorization: 'MediaBrowser Token=\"' + ApiClient.accessToken() + '\"' }); const status = async (p, q, init) => (await fetch(ApiClient.getUrl(p, q), Object.assign({ headers: auth() }, init || {}))).status; const json = async (p, q) => { const r = await fetch(ApiClient.getUrl(p, q), { headers: auth() }); return r.status === 200 ? r.json() : { status: r.status }; }; const ready = () => { const r = R(); const c = r && r.querySelector('.jfbm-clips-content'); return !!r && r.getAttribute('data-jfbm-state') === 'on' && !!c && !c.hasAttribute('aria-busy'); }; if (!ready()) return false; const rows = [...R().querySelectorAll('.jfbm-clips-row')]; if (rows.length === 0) return false; window.__jeShape = rows.map(r => [...r.querySelectorAll('*')].map(e => e.tagName + '.' + e.getAttribute('class')).join('|')); return rows.length; })()",
+      "save": "rendered",
+      "timeout": 30000
+    },
+    {
+      "name": "JE's observers have their time",
+      "sleep": 5000
+    },
+    {
+      "name": "every row as drawn, shown, with its actions; nothing of JE's in them",
+      "eval": "(async () => { const R = () => document.querySelector('#fallbackPage > [data-jfbm-page=\"clips\"]'); const K = (id) => String(id || '').replace(/-/g, '').toLowerCase(); const row = (id) => { const r = R(); return r && id ? r.querySelector('.jfbm-clips-row[data-jfbm-clip=\"' + K(id) + '\"]') : null; }; const btn = (scope, title) => scope ? [...scope.querySelectorAll('button')].find(b => b.getAttribute('title') === title) || null : null; const panel = (title) => [...document.querySelectorAll('.jfbm-backdrop .jfbm-panel')].find(p => p.querySelector('h3').textContent === title) || null; const action = (dialog, label) => dialog ? [...dialog.querySelectorAll('.jfbm-actions button')].find(b => b.textContent === label) || null : null; const toasts = () => [...document.querySelectorAll('.jfbm-toast')].map(t => (t.querySelector('span') || t).textContent); const stateText = (x) => { const s = x && x.querySelector('.jfbm-clip-state-text'); return s ? s.textContent : null; }; const auth = () => ({ Authorization: 'MediaBrowser Token=\"' + ApiClient.accessToken() + '\"' }); const status = async (p, q, init) => (await fetch(ApiClient.getUrl(p, q), Object.assign({ headers: auth() }, init || {}))).status; const json = async (p, q) => { const r = await fetch(ApiClient.getUrl(p, q), { headers: auth() }); return r.status === 200 ? r.json() : { status: r.status }; }; const ready = () => { const r = R(); const c = r && r.querySelector('.jfbm-clips-content'); return !!r && r.getAttribute('data-jfbm-state') === 'on' && !!c && !c.hasAttribute('aria-busy'); }; const rows = [...R().querySelectorAll('.jfbm-clips-row')]; const shape = rows.map(r => [...r.querySelectorAll('*')].map(e => e.tagName + '.' + e.getAttribute('class')).join('|')); return { rows: rows.length, unchanged: JSON.stringify(shape) === JSON.stringify(window.__jeShape), shown: rows.every(r => r.getClientRects().length > 0 && getComputedStyle(r).display !== 'none'), actions: rows.every(r => r.querySelectorAll('.jfbm-clip-actions button').length > 0), foreign: rows.reduce((n, r) => n + r.querySelectorAll('[class*=\"overlay\"], [class*=\"je-\"], [data-je]').length, 0), jeHidden: rows.filter(r => r.classList.contains('je-hidden')).length }; })()",
+      "save": "rows",
+      "full": true
+    },
+    {
+      "name": "as expected",
+      "assert": "__vars.rows.rows === __vars.apiCount && __vars.rows.unchanged && __vars.rows.shown && __vars.rows.actions && __vars.rows.foreign === 0 && __vars.rows.jeHidden === 0"
+    },
+    {
+      "name": "the page next to Jellyfin Enhanced",
+      "screenshot": "page-clips-je.png"
+    },
+    {
+      "name": "a preview opens and plays",
+      "script": "const R = () => document.querySelector('#fallbackPage > [data-jfbm-page=\"clips\"]'); const K = (id) => String(id || '').replace(/-/g, '').toLowerCase(); const row = (id) => { const r = R(); return r && id ? r.querySelector('.jfbm-clips-row[data-jfbm-clip=\"' + K(id) + '\"]') : null; }; const btn = (scope, title) => scope ? [...scope.querySelectorAll('button')].find(b => b.getAttribute('title') === title) || null : null; const panel = (title) => [...document.querySelectorAll('.jfbm-backdrop .jfbm-panel')].find(p => p.querySelector('h3').textContent === title) || null; const action = (dialog, label) => dialog ? [...dialog.querySelectorAll('.jfbm-actions button')].find(b => b.textContent === label) || null : null; const toasts = () => [...document.querySelectorAll('.jfbm-toast')].map(t => (t.querySelector('span') || t).textContent); const stateText = (x) => { const s = x && x.querySelector('.jfbm-clip-state-text'); return s ? s.textContent : null; }; const auth = () => ({ Authorization: 'MediaBrowser Token=\"' + ApiClient.accessToken() + '\"' }); const status = async (p, q, init) => (await fetch(ApiClient.getUrl(p, q), Object.assign({ headers: auth() }, init || {}))).status; const json = async (p, q) => { const r = await fetch(ApiClient.getUrl(p, q), { headers: auth() }); return r.status === 200 ? r.json() : { status: r.status }; }; const ready = () => { const r = R(); const c = r && r.querySelector('.jfbm-clips-content'); return !!r && r.getAttribute('data-jfbm-state') === 'on' && !!c && !c.hasAttribute('aria-busy'); }; const x = [...R().querySelectorAll('.jfbm-clips-row')].find(r => btn(r, 'Preview')); btn(x, 'Preview').click(); return x.getAttribute('data-jfbm-clip');",
+      "save": "previewed"
+    },
+    {
+      "name": "playing",
+      "waitFor": "(() => { const v = document.querySelector('.jfbm-backdrop .jfbm-panel video'); return !!v && v.readyState >= 2 && v.currentTime > 0.5 && !v.error; })()",
+      "timeout": 20000
+    },
+    {
+      "name": "Escape closes it",
+      "script": "document.querySelector('.jfbm-backdrop .jfbm-preview-download').dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); return !document.querySelector('.jfbm-backdrop');",
+      "save": "closed"
+    },
+    {
+      "name": "closed",
+      "assert": "__vars.closed === true"
+    },
+    {
+      "name": "no uncaught exception of ours",
+      "noExceptions": true,
+      "ignore": "CustomRatings|jellyfin-web|main\\.jellyfin\\.bundle|\\.chunk\\.js|JellyfinEnhanced|/JellyfinEnhanced/"
+    }
+  ]
+}

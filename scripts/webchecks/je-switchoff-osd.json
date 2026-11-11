@@ -1,0 +1,31 @@
+{
+  "name": "The player once Jellyfin Enhanced's Bookmarks is off, in the je sandbox, after Jellyfin Enhanced's Bookmarks was switched off and before its shortcut is changed: as admin, at the next page load the player's OSD has our three buttons and no JE bookmark button; JE's B (its shortcut still set) opens no JE modal and makes no bookmark of ours (JE still takes the key), and Shift+B makes ours. The bookmark it makes is deleted.",
+  "failOnException": false,
+  "timeout": 30000,
+  "steps": [
+    { "name": "sign in as admin", "login": "admin" },
+    { "name": "the Bookmarks script ran and JE loaded its config", "waitFor": "!!window.__jfkit && !!window.__jfkit.jfbm && !!window.ApiClient && !!ApiClient.getCurrentUserId() && !!window.JellyfinEnhanced && !!window.JellyfinEnhanced.pluginConfig && !!window.JellyfinEnhanced.state && !!window.JellyfinEnhanced.state.activeShortcuts && typeof window.JellyfinEnhanced.state.activeShortcuts.BookmarkCurrentTime === 'string'", "timeout": 60000 },
+    { "name": "JE's config as its script loaded it", "eval": "({ bookmarksEnabled: !!JellyfinEnhanced.pluginConfig.BookmarksEnabled, key: JellyfinEnhanced.state.activeShortcuts.BookmarkCurrentTime })", "save": "je", "full": true },
+    { "name": "Bookmarks off in JE's loaded config, its key still B", "assert": "__vars.je.bookmarksEnabled === false && __vars.je.key === 'B'" },
+    { "name": "find Long Test Movie", "eval": "(await ApiClient.getItems(ApiClient.getCurrentUserId(), { IncludeItemTypes: 'Movie', Recursive: true, SearchTerm: 'Long Test Movie', Limit: 1 })).Items[0].Id", "save": "movieId" },
+    { "name": "bookmarks on the movie before", "eval": "(await ApiClient.getJSON(ApiClient.getUrl('Bookmarks', { itemId: __vars.movieId }))).length", "save": "before" },
+    { "name": "open its details page", "goto": "/web/index.html#/details?id=${movieId}" },
+    { "name": "details page with a Play button", "waitFor": "!!document.querySelector('#itemDetailPage:not(.hide) .mainDetailButtons .btnPlay:not(.hide)')", "timeout": 20000 },
+    { "name": "start playback", "click": "#itemDetailPage:not(.hide) .mainDetailButtons .btnPlay:not(.hide)" },
+    { "name": "video page, video playing", "waitFor": "location.hash.indexOf('#/video') === 0 && (v => !!v && !v.paused && v.currentTime > 1)(document.querySelector('.videoPlayerContainer video'))", "timeout": 60000 },
+    { "name": "our three buttons", "waitFor": "document.querySelectorAll('.videoOsdBottom .btnBookmarkAdd, .videoOsdBottom .btnBookmarkRange, .videoOsdBottom .btnBookmarkList').length === 3", "timeout": 20000 },
+    { "name": "JE's own OSD additions have had their time", "sleep": 4000 },
+    { "name": "the OSD", "eval": "({ jeButton: !!document.getElementById('jeBookmarkBtn'), ours: document.querySelectorAll('.videoOsdBottom .btnBookmarkAdd, .videoOsdBottom .btnBookmarkRange, .videoOsdBottom .btnBookmarkList').length })", "save": "osd", "full": true },
+    { "name": "no JE bookmark button, ours there", "assert": "__vars.osd.jeButton === false && __vars.osd.ours === 3" },
+    { "screenshot": "je-switchoff-osd.png" },
+    { "name": "press B", "key": "B" },
+    { "sleep": 1500 },
+    { "name": "after B", "eval": "(async () => ({ jeModal: !!document.querySelector('.je-bm-player-modal-overlay'), bookmarks: (await ApiClient.getJSON(ApiClient.getUrl('Bookmarks', { itemId: __vars.movieId }))).length }))()", "save": "afterB", "full": true },
+    { "name": "B: no JE modal (its bookmarks are off) and no bookmark of ours (JE still takes B)", "assert": "__vars.afterB.jeModal === false && __vars.afterB.bookmarks === Number(__vars.before)" },
+    { "name": "press Shift, then Shift+B", "key": "Shift" },
+    { "key": "Shift+B" },
+    { "name": "Shift+B makes ours", "waitFor": "(await ApiClient.getJSON(ApiClient.getUrl('Bookmarks', { itemId: __vars.movieId }))).length === Number(__vars.before) + 1", "timeout": 10000 },
+    { "name": "delete the bookmark this check made", "script": "const list = await ApiClient.getJSON(ApiClient.getUrl('Bookmarks', { itemId: __vars.movieId })); const mine = list.filter(b => !b.Name && !b.Note).sort((a, b) => Date.parse(b.CreatedAt) - Date.parse(a.CreatedAt)).slice(0, list.length - Number(__vars.before)); for (const b of mine) { await ApiClient.ajax({ type: 'DELETE', url: ApiClient.getUrl('Bookmarks/' + b.Id) }); } return mine.length;" },
+    { "name": "no uncaught exceptions (the stale CustomRatings tag, jellyfin-web's player teardown and its Home tab slider excepted)", "noExceptions": true, "ignore": "/CustomRatings/script|^Error: player cannot be null|^TypeError: t\\.value\\.pause is not a function" }
+  ]
+}

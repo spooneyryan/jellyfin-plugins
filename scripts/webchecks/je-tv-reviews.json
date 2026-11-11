@@ -1,0 +1,109 @@
+{
+  "name": "Bookmarks' section reachable past Jellyfin Enhanced 12.14's reviews in the TV layout: in the je sandbox, as admin in jellyfin-web's TV layout, on Tagged Movie (a TMDB id, so Jellyfin Enhanced draws its closed Reviews <details> above Bookmarks' section) with one bookmark of the check's own (the reviews closed first when this user has Jellyfin Enhanced's Expand reviews by default on, after checking there is no button while they are open): the kit's Bookmarks button (kit.je.tvSectionJump) sits in the details buttons row right before More while the reviews are closed; the reviews' controls outside their summary have tabindex -1 (their own kept in data-jfkit-je-tabindex); Down from Play reaches Bookmarks' section; the D-pad along the row reaches the Bookmarks button, OK on it focuses the section's first control, and Up from there gets back to the buttons row; opened, the reviews get their tabindex back and the button goes, closed again both come back; in the desktop layout neither the button nor a changed tabindex. The check's bookmark is deleted at the end (and an earlier run's at the start), and Jellyfin Enhanced's Expand reviews by default, which Jellyfin Enhanced saves whenever the reviews open or close, is left as the check found it.",
+  "failOnException": false,
+  "timeout": 30000,
+  "steps": [
+    { "name": "sign in as admin", "login": "admin" },
+    { "name": "the Bookmarks script ran", "waitFor": "!!window.__jfkit && !!window.__jfkit.jfbm && !!window.ApiClient && !!ApiClient.getCurrentUserId()" },
+    { "name": "Jellyfin Enhanced's Expand reviews by default for this user, as the check found it (Jellyfin Enhanced saves it each time the reviews open or close, so the check's own opening and closing change it; it is put back at the end)", "script": "const r = await fetch(ApiClient.getUrl('JellyfinEnhanced/user-settings/' + ApiClient.getCurrentUserId() + '/settings.json'), { headers: { Authorization: 'MediaBrowser Token=\"' + ApiClient.accessToken() + '\"' } }); if (r.status !== 200) throw new Error('JE settings ' + r.status); const j = await r.json(); return { expanded: j.ReviewsExpandedByDefault === true };", "save": "jeStart", "full": true },
+    { "name": "TV layout for this browser", "eval": "(localStorage.setItem('layout', 'tv'), true)" },
+    { "name": "reload (TV)", "reload": true },
+    { "name": "TV layout applied", "waitFor": "document.documentElement.classList.contains('layout-tv') && !!window.__jfkit && !!window.__jfkit.jfbm && !!ApiClient.getCurrentUserId()" },
+    {
+      "name": "Tagged Movie and one bookmark of the check's own on it (an earlier run's deleted first)",
+      "script": "const auth = { Authorization: 'MediaBrowser Token=\"' + ApiClient.accessToken() + '\"', 'Content-Type': 'application/json' }; const items = await ApiClient.getItems(ApiClient.getCurrentUserId(), { searchTerm: 'Tagged Movie', IncludeItemTypes: 'Movie', Recursive: true, Fields: 'ProviderIds' }); const item = items.Items.find(i => /^Tagged Movie/.test(i.Name)); if (!item) throw new Error('no Tagged Movie in the je sandbox'); const old = await (await fetch(ApiClient.getUrl('Bookmarks', { itemId: item.Id }), { headers: auth })).json(); let removed = 0; for (const b of old.filter(b => b.Name === 'je-tv-reviews')) { const d = await fetch(ApiClient.getUrl('Bookmarks/' + b.Id), { method: 'DELETE', headers: auth }); if (d.status === 204) removed++; } const r = await fetch(ApiClient.getUrl('Bookmarks'), { method: 'POST', headers: auth, body: JSON.stringify({ ItemId: item.Id, StartTicks: 100000000, EndTicks: 200000000, Name: 'je-tv-reviews' }) }); if (r.status !== 201) throw new Error('POST /Bookmarks ' + r.status); const b = await r.json(); return { item: item.Id, server: ApiClient.serverId(), bookmark: b.Id, removed, tmdb: (item.ProviderIds || {}).Tmdb || null };",
+      "save": "seed",
+      "full": true
+    },
+    { "name": "its details page", "eval": "(location.hash = '#/details?id=' + __vars.seed.item + '&serverId=' + __vars.seed.server, true)" },
+    { "name": "JE's reviews and Bookmarks' section there; open if Jellyfin Enhanced's Expand reviews by default is on for this user (Jellyfin Enhanced opens them itself then), closed if not", "waitFor": "(() => { const p = document.querySelector('#itemDetailPage:not(.hide)'); if (!p) return false; const d = p.querySelector('details.tmdb-reviews-section'); const s = p.querySelector('.jfbm-section:not(.hide)'); if (!d || !s || d.open !== __vars.jeStart.expanded) return false; return { open: d.open, button: !!p.querySelector('.mainDetailButtons .jfbm-je-jump') }; })()", "save": "initial", "timeout": 30000 },
+    { "name": "opened by Jellyfin Enhanced: no Bookmarks button while they are open (no trap then)", "if": "__vars.initial.open === true", "assert": "__vars.initial.button === false" },
+    { "name": "then closed, as a user closes them: the trap's state", "if": "__vars.initial.open === true", "eval": "(document.querySelector('#itemDetailPage:not(.hide) details.tmdb-reviews-section').open = false, true)" },
+    {
+      "name": "JE's closed reviews above Bookmarks' section, and the kit's Bookmarks button",
+      "waitFor": "(() => { const p = document.querySelector('#itemDetailPage:not(.hide)'); if (!p) return false; const d = p.querySelector('details.tmdb-reviews-section'); const s = p.querySelector('.jfbm-section:not(.hide)'); const j = p.querySelector('.mainDetailButtons .jfbm-je-jump'); return !!d && !d.open && !!s && !!j && s.getBoundingClientRect().top > d.getBoundingClientRect().top; })()",
+      "timeout": 30000
+    },
+    { "name": "settle", "sleep": 1000 },
+    {
+      "name": "the button before More, the reviews' controls out of the focus order",
+      "eval": "(() => { const p = document.querySelector('#itemDetailPage:not(.hide)'); const d = p.querySelector('details.tmdb-reviews-section'); const j = p.querySelector('.mainDetailButtons .jfbm-je-jump'); const next = j.nextElementSibling; const inside = [...d.querySelectorAll('button, a, input, select, textarea, [tabindex]')].filter(e => !e.closest('summary')); return { title: j.getAttribute('title'), label: j.getAttribute('aria-label'), next: next ? next.className : null, buttons: [...p.querySelectorAll('.mainDetailButtons .jfbm-je-jump')].length, inside: inside.map(e => ({ cls: e.className, tabindex: e.getAttribute('tabindex'), saved: e.getAttribute('data-jfkit-je-tabindex') })), summaryTabindex: d.querySelector('summary').getAttribute('tabindex') }; })()",
+      "save": "row",
+      "full": true
+    },
+    {
+      "name": "as expected",
+      "assert": "__vars.row.title === 'Bookmarks' && __vars.row.label === 'Bookmarks' && /\\bbtnMoreCommands\\b/.test(__vars.row.next) && __vars.row.buttons === 1 && __vars.row.inside.length >= 1 && __vars.row.inside.every(e => e.tabindex === '-1' && e.saved === '') && __vars.row.inside.some(e => /je-review-write-btn/.test(e.cls)) && __vars.row.summaryTabindex === null"
+    },
+    { "name": "the focus on Play", "eval": "(() => { const b = document.querySelector('#itemDetailPage:not(.hide) .mainDetailButtons .btnPlay:not(.hide)'); b.focus(); return document.activeElement === b; })()" },
+    { "name": "Down from Play", "key": "ArrowDown" },
+    { "name": "settle after Down", "sleep": 400 },
+    {
+      "name": "where Down from Play went",
+      "eval": "(() => { const a = document.activeElement; return { cls: a.className, text: (a.textContent || '').trim().slice(0, 40), inSection: !!a.closest('.jfbm-section'), inReviews: !!a.closest('details.tmdb-reviews-section'), inButtons: !!a.closest('.mainDetailButtons') }; })()",
+      "save": "down",
+      "full": true
+    },
+    { "name": "Down reached Bookmarks' section (the reviews' trap gone)", "assert": "__vars.down.inSection === true" },
+    { "name": "the focus on Play again", "eval": "(() => { const b = document.querySelector('#itemDetailPage:not(.hide) .mainDetailButtons .btnPlay:not(.hide)'); b.focus(); return document.activeElement === b; })()" },
+    { "name": "Right 1", "key": "ArrowRight", "if": "!document.activeElement.classList.contains('jfbm-je-jump')" },
+    { "name": "Right 2", "key": "ArrowRight", "if": "!document.activeElement.classList.contains('jfbm-je-jump')" },
+    { "name": "Right 3", "key": "ArrowRight", "if": "!document.activeElement.classList.contains('jfbm-je-jump')" },
+    { "name": "Right 4", "key": "ArrowRight", "if": "!document.activeElement.classList.contains('jfbm-je-jump')" },
+    { "name": "Right 5", "key": "ArrowRight", "if": "!document.activeElement.classList.contains('jfbm-je-jump')" },
+    { "name": "Right 6", "key": "ArrowRight", "if": "!document.activeElement.classList.contains('jfbm-je-jump')" },
+    { "name": "Right 7", "key": "ArrowRight", "if": "!document.activeElement.classList.contains('jfbm-je-jump')" },
+    { "name": "Right 8", "key": "ArrowRight", "if": "!document.activeElement.classList.contains('jfbm-je-jump')" },
+    { "name": "the D-pad reached the Bookmarks button", "waitFor": "document.activeElement.classList.contains('jfbm-je-jump') && !!document.activeElement.closest('.mainDetailButtons')", "timeout": 3000 },
+    { "name": "OK on it", "key": "Enter" },
+    {
+      "name": "the focus in Bookmarks' section, on its first control",
+      "waitFor": "(() => { const a = document.activeElement; const s = document.querySelector('#itemDetailPage:not(.hide) .jfbm-section'); if (!s || !s.contains(a)) return false; const first = [...s.querySelectorAll('a, button, input, select, textarea')].find(e => e.getClientRects().length > 0 && e.getAttribute('tabindex') !== '-1'); return { first: a === first, cls: a.className, text: (a.textContent || '').trim().slice(0, 40), top: Math.round(a.getBoundingClientRect().top), viewport: innerHeight }; })()",
+      "timeout": 5000,
+      "save": "landed",
+      "full": true
+    },
+    { "name": "landed on the first control, in view", "assert": "__vars.landed.first === true && __vars.landed.top >= 0 && __vars.landed.top < __vars.landed.viewport" },
+    { "name": "Up from the section", "key": "ArrowUp" },
+    { "name": "settle after Up", "sleep": 400 },
+    {
+      "name": "where Up went",
+      "eval": "(() => { const a = document.activeElement; return { cls: a.className, title: a.getAttribute('title'), inSection: !!a.closest('.jfbm-section'), inReviews: !!a.closest('details.tmdb-reviews-section'), inButtons: !!a.closest('.mainDetailButtons') }; })()",
+      "save": "up",
+      "full": true
+    },
+    { "name": "Up got back to the buttons row", "assert": "__vars.up.inButtons === true" },
+    { "name": "the reviews opened (as a mouse or Expand reviews by default opens them)", "eval": "(document.querySelector('#itemDetailPage:not(.hide) details.tmdb-reviews-section').open = true, true)" },
+    {
+      "name": "opened: the button gone, the reviews' tabindex given back",
+      "waitFor": "(() => { const p = document.querySelector('#itemDetailPage:not(.hide)'); const d = p.querySelector('details.tmdb-reviews-section'); return !p.querySelector('.mainDetailButtons .jfbm-je-jump') && [...d.querySelectorAll('[data-jfkit-je-tabindex]')].length === 0 && d.querySelector('.je-review-write-btn').getAttribute('tabindex') === null; })()",
+      "timeout": 5000
+    },
+    { "name": "the reviews closed again", "eval": "(document.querySelector('#itemDetailPage:not(.hide) details.tmdb-reviews-section').open = false, true)" },
+    {
+      "name": "closed: the button and the tabindex back",
+      "waitFor": "(() => { const p = document.querySelector('#itemDetailPage:not(.hide)'); const d = p.querySelector('details.tmdb-reviews-section'); return !!p.querySelector('.mainDetailButtons .jfbm-je-jump') && d.querySelector('.je-review-write-btn').getAttribute('tabindex') === '-1'; })()",
+      "timeout": 5000
+    },
+    { "name": "screenshot", "screenshot": "je-tv-reviews.png" },
+    { "name": "the desktop layout for this browser", "eval": "(localStorage.setItem('layout', 'desktop'), true)" },
+    { "name": "reload (desktop)", "reload": true },
+    {
+      "name": "desktop: the details page again with JE's reviews and Bookmarks' section",
+      "waitFor": "(() => { if (!document.documentElement.classList.contains('layout-desktop') || !window.__jfkit || !window.__jfkit.jfbm) return false; const p = document.querySelector('#itemDetailPage:not(.hide)'); return !!p && !!p.querySelector('details.tmdb-reviews-section') && !!p.querySelector('.jfbm-section:not(.hide)') && !!p.querySelector('.mainDetailButtons .btnBookmarkItem'); })()",
+      "timeout": 30000
+    },
+    { "name": "settle (desktop)", "sleep": 1500 },
+    {
+      "name": "desktop: no Bookmarks button, JE's reviews untouched",
+      "assert": "(() => { const p = document.querySelector('#itemDetailPage:not(.hide)'); const d = p.querySelector('details.tmdb-reviews-section'); return !p.querySelector('.jfbm-je-jump') && d.querySelectorAll('[data-jfkit-je-tabindex]').length === 0 && d.querySelector('.je-review-write-btn').getAttribute('tabindex') === null; })()"
+    },
+    { "name": "Expand reviews by default was on: the reviews opened once more, which Jellyfin Enhanced saves", "if": "__vars.jeStart.expanded === true", "eval": "(document.querySelector('#itemDetailPage:not(.hide) details.tmdb-reviews-section').open = true, true)" },
+    { "name": "Jellyfin Enhanced's Expand reviews by default as the check found it", "waitFor": "(async () => { const r = await fetch(ApiClient.getUrl('JellyfinEnhanced/user-settings/' + ApiClient.getCurrentUserId() + '/settings.json'), { headers: { Authorization: 'MediaBrowser Token=\"' + ApiClient.accessToken() + '\"' } }); const j = await r.json(); return (j.ReviewsExpandedByDefault === true) === __vars.jeStart.expanded; })()", "timeout": 10000 },
+    {
+      "name": "the check's bookmark deleted",
+      "script": "const r = await fetch(ApiClient.getUrl('Bookmarks/' + __vars.seed.bookmark), { method: 'DELETE', headers: { Authorization: 'MediaBrowser Token=\"' + ApiClient.accessToken() + '\"' } }); if (r.status !== 204) throw new Error('DELETE ' + r.status); return r.status;"
+    },
+    { "name": "no uncaught exception", "noExceptions": true }
+  ]
+}

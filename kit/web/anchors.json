@@ -1,0 +1,96 @@
+{
+  "comment": "The kit's own jellyfin-web DOM anchors, in the shape of a plugin's Web/anchors.json. Kit.props embeds this file as Kit.anchors.json. The kit's code finds them through KIT_ANCHORS in kit.js (tests/health.test.mjs keeps both equal); this list is what the kit's health checks report (kit.health.expect) and what the server accepts in ClientHealth reports, next to the plugin's own anchors, and what scripts/Test-WebAnchors.ps1 looks for in the installed jellyfin-web bundle. Names start with 'kit.'.",
+  "anchors": [
+    {
+      "name": "kit.f1Host",
+      "css": ["#fallbackPage"],
+      "required": true,
+      "views": ["pages"],
+      "note": "FallbackRoute's page, shown for routes jellyfin-web doesn't know: the fallback host of every user page. React component in main.jellyfin.bundle.js. Missing: pages on their fallback routes can't show."
+    },
+    {
+      "name": "kit.pluginPagesHost",
+      "css": [".userPreferencesPage"],
+      "required": false,
+      "views": ["pages"],
+      "note": "The view Plugin Pages hosts its pages in (#/userpluginsettings.html). Missing: pages use their fallback routes."
+    },
+    {
+      "name": "kit.drawer",
+      "css": [".mainDrawer-scrollContainer"],
+      "required": false,
+      "views": ["nav"],
+      "note": "The legacy drawer's scroll container, parent of the \"Library tools\" section. Absent in the experimental layout. Missing: no nav links; the routes still work."
+    },
+    {
+      "name": "kit.userMenu",
+      "css": [".userMenuOptions"],
+      "required": false,
+      "views": ["nav"],
+      "note": "The drawer's \"User\" section, present only while signed in; \"Library tools\" goes right before it. Missing: no nav links."
+    },
+    {
+      "name": "kit.nativeDialog",
+      "css": [".dialogContainer"],
+      "required": false,
+      "views": ["shortcuts"],
+      "note": "jellyfin-web's own dialogs and action sheets (dialogHelper's container); while one is open the kit's shortcuts stay quiet. A presence probe, never health-checked: its absence means no native dialog is open."
+    },
+    {
+      "name": "kit.actionSheet",
+      "css": [".dialogContainer > .actionSheet"],
+      "required": false,
+      "views": ["menus"],
+      "note": "An action sheet (the item menu, the bulk menu), a new one per menu in a .dialogContainer appended to <body>. Lazy chunk 62882.*.chunk.js. Missing (a recorded menu trigger that no sheet followed within 8 s): no kit.actionSheet entries."
+    },
+    {
+      "name": "kit.actionSheetRows",
+      "css": [".actionSheet .actionSheetScroller .actionSheetMenuItem[data-id]"],
+      "required": false,
+      "views": ["menus"],
+      "note": "A sheet's rows, each with its command in data-id; the item menu is told apart by its admin-only commands and the bulk menu by selectall. Missing (a sheet opened from a recorded trigger without them): no kit.actionSheet entries."
+    },
+    {
+      "name": "kit.itemMenuButton",
+      "css": [".itemAction[data-action=\"menu\"]"],
+      "required": false,
+      "views": ["menus"],
+      "note": "A card's or a list row's \"⋮\" button, inside the item's [data-id] element. A presence probe for Test-WebAnchors.ps1, never health-checked: not every view has cards."
+    },
+    {
+      "name": "kit.detailsMoreButton",
+      "css": [".itemDetailPage .btnMoreCommands"],
+      "required": false,
+      "views": ["menus"],
+      "note": "A details page's \"More\" button, which opens the item menu. A presence probe, never health-checked."
+    },
+    {
+      "name": "kit.detailsVersion",
+      "css": [".itemDetailPage .selectSource"],
+      "required": false,
+      "views": ["menus"],
+      "note": "A details page's version picker; its value is the chosen version's item id, the item its menu is for. A presence probe, never health-checked: hidden or absent for a single version, when the hash id is the item."
+    },
+    {
+      "name": "kit.selectionMenuButton",
+      "css": [".selectionCommandsPanel .btnSelectionPanelOptions"],
+      "required": false,
+      "views": ["menus"],
+      "note": "The selection bar's \"⋮\" button, which opens the bulk menu. A presence probe, never health-checked: there only in selection mode."
+    },
+    {
+      "name": "kit.selectionCheckbox",
+      "css": [".itemSelectionPanel .chkItemSelect"],
+      "required": false,
+      "views": ["menus"],
+      "note": "A card's checkbox in selection mode; the checked ones' cards are the bulk menu's items. A presence probe, never health-checked."
+    },
+    {
+      "name": "kit.selectionClose",
+      "css": [".selectionCommandsPanel .btnCloseSelectionPanel"],
+      "required": false,
+      "views": ["menus"],
+      "note": "The selection bar's close button; ctx.exitSelection() clicks it. A presence probe, never health-checked."
+    }
+  ]
+}

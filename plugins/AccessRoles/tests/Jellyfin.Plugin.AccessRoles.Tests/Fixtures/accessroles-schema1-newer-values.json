@@ -1,0 +1,30 @@
+{
+  "Version": 1,
+  "Roles": [{
+    "Id": "6c1f8e3b-4d50-4b2c-af9e-2a3b4c5d6e7f", "Name": "Night", "Locks": ["Playback", "Downloads", "HOME"],
+    "Libraries": { "Mode": "Smart", "Refs": [], "Rule": "unwatched" },
+    "Schedule": { "From": "21:00" },
+    "CreatedUtc": "2027-01-01T00:00:00Z", "UpdatedUtc": "2027-01-01T00:00:00Z"
+  }],
+  "Assignments": [
+    {
+      "UserId": "b2d5f607-1829-43a4-b5c6-d7e8f90a1b2c", "RoleIds": ["6c1f8e3b-4d50-4b2c-af9e-2a3b4c5d6e7f"],
+      "LockOverrides": { "Downloads": "Sometimes", "profile": "lock" },
+      "Libraries": { "Mode": "Inherit", "Add": [], "Remove": [], "ConfirmNoLibraries": false, "Quota": 3 },
+      "State": "Paused", "UpdatedUtc": "2027-01-02T00:00:00Z", "Note": "kept for the newer build"
+    },
+    {
+      "UserId": "c3e6a718-2930-44b5-86d7-e8f90a1b2c3d", "RoleIds": [],
+      "Libraries": { "Mode": "Everything" },
+      "State": "Managed", "UpdatedUtc": "2027-01-02T00:00:00Z"
+    }
+  ],
+  "DefaultRoleIds": [],
+  "KnownLibraries": [{ "Id": "4d2e0a9f-8c7b-4d6e-9f0a-1b2c3d4e5f60", "Name": "Anime", "Locations": [], "Enabled": false,
+                       "FirstSeenUtc": "2027-01-01T00:00:00Z", "State": "Archived", "Shelf": 2 }],
+  "PendingRenames": [{ "OldId": "4d2e0a9f-8c7b-4d6e-9f0a-1b2c3d4e5f60", "OldName": "Anime", "NewName": "Animation", "RequestedUtc": "2027-01-03T00:00:00Z", "Attempts": 1 }],
+  "Ledger": { "b2d5f607182943a4b5c6d7e8f90a1b2c": { "OriginalEnableAllFolders": false, "OriginalEnabledFolders": ["4d2e0a9f-8c7b-4d6e-9f0a-1b2c3d4e5f60"],
+                         "OriginalEnableUserPreferenceAccess": true, "CapturedUtc": "2027-01-02T00:00:00Z", "OriginalBlockedTags": ["x"] } },
+  "KnownUsers": { "b2d5f607182943a4b5c6d7e8f90a1b2c": "night1", "c3e6a718293044b586d7e8f90a1b2c3d": "night2" },
+  "Presets": [{ "Name": "Teen" }]
+}

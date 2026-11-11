@@ -1,0 +1,77 @@
+<Project>
+  <!--
+    Imported by each plugin csproj, and by kit/tests/Kit.Tests, which compiles the same sources. The kit is
+    source-only: its C# files and web assets compile into the importing plugin's own assembly, so every plugin carries
+    its own copy with a unique assembly identity. Kit types are internal.
+  -->
+  <PropertyGroup>
+    <KitRoot Condition="'$(KitRoot)' == ''">$([MSBuild]::NormalizeDirectory('$(MSBuildThisFileDirectory)', '..'))</KitRoot>
+    <KitVersion>$([System.IO.File]::ReadAllText('$(KitRoot)VERSION').Trim())</KitVersion>
+    <!--
+      The Jellyfin line this build is for. KitBuild reads it and KitAbiGuard compares it with the server's version.
+      It follows JellyfinTarget; overriding it (-p:KitAbiTarget=12) only exists to prove the guard
+      in a 10.11 sandbox, where such a build stays inert.
+    -->
+    <KitAbiTarget Condition="'$(KitAbiTarget)' == ''">$(JellyfinTarget)</KitAbiTarget>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="$(KitRoot)src\**\*.cs" Exclude="$(KitRoot)src\Sqlite\**" LinkBase="Kit" />
+    <Compile Include="$(KitRoot)src\Sqlite\**\*.cs" LinkBase="Kit\Sqlite" Condition="'$(KitUseSqlite)' == 'true'" />
+    <EmbeddedResource Include="$(KitRoot)web\kit.js" LogicalName="Kit.kit.js" />
+    <EmbeddedResource Include="$(KitRoot)web\kit.css" LogicalName="Kit.kit.css" />
+    <EmbeddedResource Include="$(KitRoot)VERSION" LogicalName="Kit.VERSION" />
+    <!-- The kit's own jellyfin-web anchors, merged with the plugin's Web/anchors.json. -->
+    <EmbeddedResource Include="$(KitRoot)web\anchors.json" LogicalName="Kit.anchors.json" />
+  </ItemGroup>
+
+  <!--
+    The plugin's own web files, which the kit's EmbeddedScript concatenates in name order:
+    Web/js/NN-name.js and Web/css/*.css into the ClientScript, Web/admin/js/*.js and Web/admin/css/*.css into the
+    optional AdminScript module. Only files directly in those folders count. Web/anchors.json declares the plugin's
+    jellyfin-web anchors: EmbeddedScript puts them into both scripts, the ClientHealth
+    endpoint accepts only their names and views, and scripts/Test-WebAnchors.ps1 reads the same file.
+  -->
+  <ItemGroup>
+    <None Remove="Web\js\*.js;Web\css\*.css;Web\admin\js\*.js;Web\admin\css\*.css;Web\anchors.json" />
+    <EmbeddedResource Include="$(MSBuildProjectDirectory)\Web\anchors.json" LogicalName="Web.anchors.json" Condition="Exists('$(MSBuildProjectDirectory)\Web\anchors.json')" />
+    <EmbeddedResource Include="$(MSBuildProjectDirectory)\Web\js\*.js" LogicalName="Web.js.%(Filename)%(Extension)" />
+    <EmbeddedResource Include="$(MSBuildProjectDirectory)\Web\css\*.css" LogicalName="Web.css.%(Filename)%(Extension)" />
+    <EmbeddedResource Include="$(MSBuildProjectDirectory)\Web\admin\js\*.js" LogicalName="Web.admin.js.%(Filename)%(Extension)" />
+    <EmbeddedResource Include="$(MSBuildProjectDirectory)\Web\admin\css\*.css" LogicalName="Web.admin.css.%(Filename)%(Extension)" />
+  </ItemGroup>
+
+  <!-- Read at run time by KitBuild (kit/src/Hosting/KitBuild.cs). -->
+  <ItemGroup>
+    <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+      <_Parameter1>Jellyfin.Plugin.Kit.JellyfinTarget</_Parameter1>
+      <_Parameter2>$(KitAbiTarget)</_Parameter2>
+    </AssemblyAttribute>
+    <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+      <_Parameter1>Jellyfin.Plugin.Kit.Version</_Parameter1>
+      <_Parameter2>$(KitVersion)</_Parameter2>
+    </AssemblyAttribute>
+  </ItemGroup>
+
+  <!--
+    Developer builds only: -p:KitRenameAnchors=detailButtons (a ';' or ',' separated list of
+    anchor names) renames those anchors' selectors in the ClientScript, so a sandbox shows what a missing jellyfin-web
+    anchor does (the feature is off, the console warns once, the server logs it and Diagnostics lists it). The server's
+    list of accepted anchors is unchanged, and EmbeddedScript logs a warning while it serves such a build.
+  -->
+  <ItemGroup Condition="'$(KitRenameAnchors)' != ''">
+    <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+      <_Parameter1>Jellyfin.Plugin.Kit.RenameAnchors</_Parameter1>
+      <_Parameter2>$(KitRenameAnchors)</_Parameter2>
+    </AssemblyAttribute>
+  </ItemGroup>
+
+  <!--
+    Compile against the server's copy and never ship it: the loader loads every *.dll in the plugin folder.
+    A test project that compiles the kit itself (Kit.Tests) gets the full Microsoft.Data.Sqlite, runtime and native
+    e_sqlite3 included, from TestSupport.props instead: with this line it would get no Microsoft.Data.Sqlite.dll.
+  -->
+  <ItemGroup Condition="'$(KitUseSqlite)' == 'true' and '$(IsTestProject)' != 'true'">
+    <PackageReference Include="Microsoft.Data.Sqlite.Core" ExcludeAssets="runtime" PrivateAssets="all" />
+  </ItemGroup>
+</Project>

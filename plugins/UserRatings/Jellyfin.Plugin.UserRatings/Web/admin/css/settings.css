@@ -1,0 +1,70 @@
+/* The settings page's Settings tab, appended to the kit's styles in the AdminScript's own
+   <style id="jfur-admin-styles">. Layout only: text colour inherits, the accent and dividers are the theme's. Each
+   setting is one row: a switch (the whole row's width, its state as a track and a word), a group of choice buttons, or a
+   number field with its unit; under it the help and default, and a message when its value can't be saved. The choices
+   wrap, so a phone at 375 px has no sideways scroll; under 600 px or with a coarse pointer every control is at least
+   44 px high. In forced colours the switch's track and the chosen buttons keep a border of their own. Every class here
+   is User Ratings' own (jfur-). */
+.jfur-set{margin:0 0 1.5em;max-width:52em}
+.jfur-set-intro{margin:.2em 0 1em;opacity:.85;line-height:1.4}
+.jfur-set-problem-list p{margin:0 0 .3em}
+.jfur-set-problem-list ul{margin:0;padding-inline-start:1.2em}
+.jfur-set-group{margin:0 0 1.4em;padding:0 0 .4em;border-bottom:1px solid var(--jf-palette-divider,rgba(128,128,128,.3))}
+.jfur-set-group-title{margin:1em 0 .4em}
+.jfur-set-group-note{margin:0 0 .6em;opacity:.8;line-height:1.4}
+.jfur-set-row{margin:0 0 1em;min-width:0}
+.jfur-set-label{font-weight:600;margin:0 0 .35em}
+.jfur-set-help{margin:.3em 0 0;font-size:.9em;opacity:.8;line-height:1.4;overflow-wrap:anywhere}
+.jfur-set-note{margin:.3em 0 0;font-size:.9em;color:var(--jfur-warning,#ffb74d)}
+.jfur-set-error{margin:.3em 0 0;font-size:.9em;font-weight:600;color:var(--jfur-danger,#ff8a80)}
+/* A switch: a button with role="switch", its label, a track and the word On or Off. */
+.jfur-set-switch{display:flex;align-items:center;gap:.75em;width:100%;min-height:40px;padding:.3em .4em;margin:0;border:0;border-radius:.3em;background:none;color:inherit;font:inherit;text-align:start;cursor:pointer}
+.jfur-set-switch:hover{background:rgba(128,128,128,.12)}
+.jfur-set-switch:focus-visible,.jfur-set-choice:focus-visible,.jfur-set-check:focus-visible{outline:2px solid var(--jfur-accent,#00a4dc);outline-offset:1px}
+.jfur-set-switch-track{position:relative;flex:0 0 auto;width:2.4em;height:1.3em;border-radius:.65em;background:rgba(128,128,128,.45);transition:background .15s}
+.jfur-set-switch-thumb{position:absolute;top:.15em;inset-inline-start:.15em;width:1em;height:1em;border-radius:50%;background:#fff;transition:inset-inline-start .15s}
+.jfur-set-switch[aria-checked="true"] .jfur-set-switch-track{background:var(--jfur-accent,#00a4dc)}
+.jfur-set-switch[aria-checked="true"] .jfur-set-switch-thumb{inset-inline-start:1.25em}
+.jfur-set-switch-label{flex:1 1 auto;font-weight:600;min-width:0;overflow-wrap:anywhere}
+.jfur-set-switch-state{flex:0 0 auto;opacity:.8;font-variant-numeric:tabular-nums}
+.jfur-set-switch:disabled{cursor:default;opacity:.6}
+.jfur-set-switch:disabled:hover{background:none}
+/* Choices (role="radio") and lists (role="checkbox"): buttons that wrap. */
+.jfur-set-choices,.jfur-set-checks{display:flex;flex-wrap:wrap;gap:.5em}
+.jfur-set-choice,.jfur-set-check{display:inline-flex;align-items:center;gap:.5em;min-height:40px;max-width:100%;padding:.35em .9em;margin:0;border:1px solid var(--jf-palette-divider,rgba(128,128,128,.45));border-radius:1.2em;background:none;color:inherit;font:inherit;text-align:start;cursor:pointer}
+.jfur-set-choice:hover,.jfur-set-check:hover{background:rgba(128,128,128,.12)}
+.jfur-set-choice[aria-checked="true"]{border-color:var(--jfur-accent,#00a4dc);background:var(--jfur-accent,#00a4dc);color:#fff;font-weight:600}
+.jfur-set-check-box{flex:0 0 auto;width:1em;height:1em;border:2px solid currentColor;border-radius:.2em;opacity:.8}
+.jfur-set-check[aria-checked="true"]{border-color:var(--jfur-accent,#00a4dc)}
+.jfur-set-check[aria-checked="true"] .jfur-set-check-box{background:var(--jfur-accent,#00a4dc);border-color:var(--jfur-accent,#00a4dc);opacity:1}
+.jfur-set-check-text{min-width:0;overflow-wrap:anywhere}
+.jfur-set-missing{font-style:italic;opacity:.85}
+.jfur-set-number-row{display:flex;flex-wrap:wrap;align-items:center;gap:.6em}
+/* Two classes and no growing: the kit's .jfur-input, on the field too, has flex:1 and width:100%, which in the number
+   row's flex box stretched it to the row's width. */
+.jfur-set .jfur-set-number{flex:0 0 auto;width:8em;max-width:100%;font-variant-numeric:tabular-nums}
+.jfur-set-unit{opacity:.8}
+.jfur-set-invalid .jfur-set-number,.jfur-set-invalid .jfur-set-checks{outline:2px solid var(--jfur-danger,#ff8a80);outline-offset:2px}
+.jfur-set-status{min-height:1.4em;margin:.6em 0}
+.jfur-set-actions{display:flex;flex-wrap:wrap;gap:.6em 1em;align-items:center}
+/* The dialog before a save: what changes, what it means. */
+.jfur-set-confirm-heading{margin:.4em 0 .3em}
+.jfur-set-changes,.jfur-set-consequences{margin:0 0 .8em;padding-inline-start:1.2em;line-height:1.4;overflow-wrap:anywhere}
+.jfur-set-change-label{font-weight:600}
+@media (max-width:599px){
+.jfur-set-switch,.jfur-set-choice,.jfur-set-check,.jfur-set button,.jfur-set input{min-height:44px}
+.jfur-set-choice,.jfur-set-check{flex:1 1 100%}
+.jfur-set-actions button{flex:1 1 100%}
+.jfur-set-cancel,.jfur-set-confirm{min-height:44px}
+}
+@media (pointer:coarse){.jfur-set-switch,.jfur-set-choice,.jfur-set-check,.jfur-set button,.jfur-set input,.jfur-set-cancel,.jfur-set-confirm{min-height:44px}}
+@media (forced-colors:active){
+.jfur-set-switch-track{border:1px solid CanvasText;background:Canvas}
+.jfur-set-switch-thumb{background:CanvasText}
+.jfur-set-switch[aria-checked="true"] .jfur-set-switch-track{background:Highlight;border-color:Highlight}
+.jfur-set-choice,.jfur-set-check{border-color:CanvasText}
+.jfur-set-choice[aria-checked="true"]{border:3px solid Highlight;background:Canvas;color:CanvasText}
+.jfur-set-check-box{border-color:CanvasText}
+.jfur-set-check[aria-checked="true"] .jfur-set-check-box{background:Highlight;border-color:Highlight}
+.jfur-set-group{border-color:CanvasText}
+}

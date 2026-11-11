@@ -1,0 +1,23 @@
+{
+  "Version": 1,
+  "Roles": [{
+    "Id": "5b0e7d2a-3c4f-4a1b-9e8d-1f2a3b4c5d6e", "Name": "Kid", "Description": "Children's accounts",
+    "Locks": ["Profile", "DisplayAccount", "Home", "Controls", "QuickConnect", "EnhancedPanel", "AdminSurfaces", "UserDirectory"],
+    "Libraries": { "Mode": "Only", "Refs": [{ "Id": "3c1d9f8e-7b6a-4c5d-8e9f-0a1b2c3d4e5f", "NameAtSelection": "Kids Movies", "Locations": ["D:\\Kids"], "Orphaned": false }] },
+    "CreatedUtc": "2026-10-01T18:00:00Z", "UpdatedUtc": "2026-10-01T18:00:00Z"
+  }],
+  "Assignments": [{
+    "UserId": "a1c4e5f6-0718-4293-a4b5-c6d7e8f90a1b", "RoleIds": ["5b0e7d2a-3c4f-4a1b-9e8d-1f2a3b4c5d6e"],
+    "LockOverrides": { "QuickConnect": "Unlock" },
+    "Libraries": { "Mode": "Inherit", "Add": [], "Remove": [], "ConfirmNoLibraries": false },
+    "State": "Managed", "UpdatedUtc": "2026-10-01T18:05:00Z"
+  }],
+  "DefaultRoleIds": ["5b0e7d2a-3c4f-4a1b-9e8d-1f2a3b4c5d6e"],
+  "KnownLibraries": [{ "Id": "3c1d9f8e-7b6a-4c5d-8e9f-0a1b2c3d4e5f", "Name": "Kids Movies", "Locations": ["D:\\Kids"], "Enabled": true,
+                       "CreatedUtc": "2026-09-30T12:00:00Z", "FirstSeenUtc": "2026-10-01T18:00:00Z", "State": "Active" }],
+  "PendingRenames": [],
+  "Ledger": { "a1c4e5f607184293a4b5c6d7e8f90a1b": { "OriginalEnableAllFolders": true, "OriginalEnabledFolders": [], "OriginalEnableUserPreferenceAccess": true,
+                         "CapturedUtc": "2026-10-01T18:05:00Z",
+                         "LastWrite": { "Utc": "2026-10-01T18:05:01Z", "EnableAllFolders": false, "EnabledFolders": ["3c1d9f8e-7b6a-4c5d-8e9f-0a1b2c3d4e5f"] } } },
+  "KnownUsers": { "a1c4e5f607184293a4b5c6d7e8f90a1b": "kid1" }
+}

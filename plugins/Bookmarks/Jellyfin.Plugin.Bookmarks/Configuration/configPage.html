@@ -1,0 +1,2034 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Bookmarks</title>
+</head>
+<body>
+    <div id="BookmarksConfigPage" data-role="page" class="page type-interior pluginConfigurationPage" data-require="emby-input,emby-button,emby-select,emby-checkbox">
+        <!-- Inside the page element, which is all jellyfin-web keeps of this file. Warning banners: an
+             amber bar and tint that read on the dashboard's dark and light themes; in forced colours, a frame. The tabs
+             (Settings | Data | Diagnostics) underline the one shown. -->
+        <style>
+            #BookmarksConfigPage .bookmarksBanner {
+                margin: 0 0 1.2em;
+                padding: .8em 1em;
+                border-left: .3em solid #f0ad4e;
+                border-radius: .2em;
+                background: rgba(240, 173, 78, .16);
+                line-height: 1.4;
+            }
+
+            /* A warning under a field (LowFreeSpace under the Clip folder field; the bookmark shortcut's check): the
+               banner's amber, smaller. */
+            #BookmarksConfigPage .bookmarksFieldWarning {
+                margin: .5em 0 0;
+                padding: .4em .7em;
+                border-left: .25em solid #f0ad4e;
+                border-radius: .2em;
+                background: rgba(240, 173, 78, .16);
+                line-height: 1.4;
+            }
+
+            #BookmarksConfigPage .bookmarksTabs {
+                display: flex;
+                flex-wrap: wrap;
+                gap: .3em;
+                margin: 0 0 1.5em;
+                border-bottom: 1px solid rgba(128, 128, 128, .35);
+            }
+
+            #BookmarksConfigPage .bookmarksTab {
+                margin: 0;
+                padding: .6em 1.2em;
+                border-bottom: .2em solid transparent;
+                border-radius: 0;
+                background: transparent;
+                opacity: .75;
+            }
+
+            #BookmarksConfigPage .bookmarksTab[aria-selected="true"] {
+                border-bottom-color: currentColor;
+                opacity: 1;
+                font-weight: 600;
+            }
+
+            /* A long word, such as the bookmark file's or the clip folder's path on the Diagnostics tab, breaks where it would
+               run past the screen's edge. break-word, not anywhere: a table's columns keep their words. */
+            #BookmarksConfigPage {
+                overflow-wrap: break-word;
+            }
+
+            /* A table's box: a table wider than the screen, the per-user counts or the snapshots on a phone,
+               scrolls sideways inside it, never the page. The box takes the table's -1em, which lines the first
+               column's text up with the page's, so nothing is cut off on its left. */
+            #BookmarksConfigPage .bookmarksTableScroll {
+                margin-left: -1em;
+                overflow-x: auto;
+            }
+
+            #BookmarksConfigPage .bookmarksTable {
+                border-spacing: 1em .4em;
+                text-align: left;
+            }
+
+            #BookmarksConfigPage .bookmarksTable td.bookmarksNumber,
+            #BookmarksConfigPage .bookmarksTable th.bookmarksNumber {
+                text-align: right;
+            }
+
+            #BookmarksConfigPage .bookmarksButtons {
+                display: flex;
+                flex-wrap: wrap;
+                gap: .5em;
+                margin: .8em 0;
+            }
+
+            #BookmarksConfigPage .bookmarksButtons .emby-button {
+                margin: 0;
+            }
+
+            @media (forced-colors: active) {
+                #BookmarksConfigPage .bookmarksBanner,
+                #BookmarksConfigPage .bookmarksFieldWarning {
+                    border: 1px solid CanvasText;
+                    border-left-width: .3em;
+                }
+
+                #BookmarksConfigPage .bookmarksTab[aria-selected="true"] {
+                    border-bottom-color: Highlight;
+                }
+            }
+        </style>
+        <div data-role="content">
+            <div class="content-primary">
+                <!-- Warnings from Diagnostics, above the tabs: read-only or recovered bookmark data, stored users that don't
+                     match this server, and Jellyfin Enhanced's Bookmarks still on (hidden with
+                     ShowJellyfinEnhancedBanner off). The bookmark shortcut's check is under its field since 1.1.0. -->
+                <div id="BookmarksBanners"></div>
+
+                <div id="BookmarksTabs" class="bookmarksTabs" role="tablist" aria-label="Bookmarks">
+                    <button is="emby-button" type="button" role="tab" id="BookmarksTabSettings" class="bookmarksTab" data-tab="Settings" aria-controls="BookmarksConfigForm" aria-selected="true" tabindex="0">Settings</button>
+                    <button is="emby-button" type="button" role="tab" id="BookmarksTabData" class="bookmarksTab" data-tab="Data" aria-controls="BookmarksData" aria-selected="false" tabindex="-1">Data</button>
+                    <button is="emby-button" type="button" role="tab" id="BookmarksTabDiagnostics" class="bookmarksTab" data-tab="Diagnostics" aria-controls="BookmarksDiagnostics" aria-selected="false" tabindex="-1">Diagnostics</button>
+                </div>
+
+                <form id="BookmarksConfigForm" class="bookmarksTabPanel" role="tabpanel" aria-labelledby="BookmarksTabSettings">
+                    <div class="verticalSection">
+                        <h2 class="sectionTitle">Web client</h2>
+
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label class="emby-checkbox-label">
+                                <input id="EnableWebUi" name="EnableWebUi" type="checkbox" is="emby-checkbox" />
+                                <span>Add the bookmark controls to the web client</span>
+                            </label>
+                            <div class="fieldDescription checkboxFieldDescription">When off, the web client shows no bookmark buttons, sections or pages; the REST API keeps working. Applies the next time a page is loaded.</div>
+                        </div>
+
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label class="emby-checkbox-label">
+                                <input id="ReportWebAnchorProblems" name="ReportWebAnchorProblems" type="checkbox" is="emby-checkbox" />
+                                <span>Record web client problems that browsers report</span>
+                            </label>
+                            <div class="fieldDescription checkboxFieldDescription">When a Jellyfin update moves a part of the web client that Bookmarks adds its buttons to, browsers report it: the server log gets one warning, and the Diagnostics tab lists the reports.</div>
+                        </div>
+                    </div>
+
+                    <!-- The user pages: My Bookmarks and, since 1.2.0, My Clips, with the kit's page settings, which apply
+                         to both. -->
+                    <div class="verticalSection">
+                        <h2 class="sectionTitle">Pages</h2>
+
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label class="emby-checkbox-label">
+                                <input id="EnableBookmarksPage" name="EnableBookmarksPage" type="checkbox" is="emby-checkbox" />
+                                <span>Turn on the My Bookmarks page</span>
+                            </label>
+                            <div class="fieldDescription checkboxFieldDescription">Each user's page of all their bookmarks, with search, filters, renaming and their naming options, linked under Library tools in the menu, from a video's bookmarks and from the player's list. When off, no link leads to it and it says the server admin turned it off. Applies the next time a page is loaded.</div>
+                        </div>
+
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label class="emby-checkbox-label">
+                                <input id="EnableClipsPage" name="EnableClipsPage" type="checkbox" is="emby-checkbox" />
+                                <span>Turn on the My Clips page</span>
+                            </label>
+                            <div class="fieldDescription checkboxFieldDescription">Each user's page of all their clips, those of deleted bookmarks included, with their state (ready, being made, failed, file missing, clip folder offline), linked under Library tools in the menu, from My Bookmarks, a video's bookmarks, the player's list and the clip-ready message. While it is on, deleting a bookmark keeps its clip unless "Also delete its clip" is ticked, since My Clips lists kept clips. When off, no link leads to it, it says the server admin turned it off, and deleting a bookmark deletes its clip unless that box is unticked. Applies the next time a page is loaded.</div>
+                        </div>
+
+                        <div class="selectContainer">
+                            <label class="selectLabel" for="PageHostMode">Where the pages are linked</label>
+                            <select is="emby-select" id="PageHostMode" name="PageHostMode" class="emby-select-withcolor emby-select">
+                                <option value="FallbackOnly">Library tools in the menu (recommended)</option>
+                                <option value="Auto">Plugin Pages' section when it shows a page, else Library tools</option>
+                                <option value="PluginPagesOnly">Plugin Pages' section only</option>
+                            </select>
+                            <div class="fieldDescription">The Plugin Pages choices need the Plugin Pages plugin, and apply after the server restarts.</div>
+                        </div>
+
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label class="emby-checkbox-label">
+                                <input id="RegisterPluginPages" name="RegisterPluginPages" type="checkbox" is="emby-checkbox" />
+                                <span>Register the pages with Plugin Pages</span>
+                            </label>
+                            <div class="fieldDescription checkboxFieldDescription">Only in the two Plugin Pages choices above. Applies after the server restarts (Plugin Pages can't take a page back while it runs).</div>
+                        </div>
+
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label class="emby-checkbox-label">
+                                <input id="ShowFallbackNav" name="ShowFallbackNav" type="checkbox" is="emby-checkbox" />
+                                <span>Show the Library tools section in the menu</span>
+                            </label>
+                            <div class="fieldDescription checkboxFieldDescription">The section above User in the menu with the links to My Bookmarks and My Clips. When off, the pages are still reached from a video's bookmarks, the player's list and each other.</div>
+                        </div>
+                    </div>
+
+                    <!-- The player: the three settings the web player follows and, since 1.1.0, the bookmark
+                         shortcut, checked as it is typed against the keys jellyfin-web and Jellyfin Enhanced take (the kit's
+                         ShortcutPolicy) and saved as the combination the player matches. -->
+                    <div class="verticalSection">
+                        <h2 class="sectionTitle">Player</h2>
+
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label class="emby-checkbox-label">
+                                <input id="ShowPlayerButtons" name="ShowPlayerButtons" type="checkbox" is="emby-checkbox" />
+                                <span>Show the bookmark buttons in the video player</span>
+                            </label>
+                            <div class="fieldDescription checkboxFieldDescription">The three buttons next to the player's controls: bookmark this moment, mark a range, this video's bookmarks. The bookmark shortcut works either way. Applies the next time a video is played.</div>
+                        </div>
+
+                        <div class="inputContainer">
+                            <label class="inputLabel inputLabelUnfocused" for="BookmarkNowShortcut">Bookmark shortcut</label>
+                            <input id="BookmarkNowShortcut" name="BookmarkNowShortcut" type="text" is="emby-input" maxlength="40" autocomplete="off" spellcheck="false" />
+                            <div class="fieldDescription">The key that bookmarks the current moment while a video plays, with any modifiers: Shift+B (the default, since Jellyfin Enhanced takes B), F7 or Ctrl+Alt+M. Empty turns it off. Each user can choose their own on their device, under My Bookmarks, Player options.</div>
+                            <!-- The check of what the field holds: free, off, or taken by jellyfin-web's player
+                                 or Jellyfin Enhanced (amber), as the server's text. -->
+                            <div id="BookmarksShortcutCheck" class="fieldDescription" aria-live="polite"></div>
+                        </div>
+
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label class="emby-checkbox-label">
+                                <input id="AskForNameDefault" name="AskForNameDefault" type="checkbox" is="emby-checkbox" />
+                                <span>Ask for a name as soon as a bookmark is made</span>
+                            </label>
+                            <div class="fieldDescription checkboxFieldDescription">The default for users who haven't chosen for themselves: the name dialog opens at once after the shortcut or the bookmark button. When off, a toast offers "Name it" instead and playback goes on. Each user can change this with the dialog's "Always ask for a name" or under My Bookmarks, Player options.</div>
+                        </div>
+
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label class="emby-checkbox-label">
+                                <input id="SuggestChapterNames" name="SuggestChapterNames" type="checkbox" is="emby-checkbox" />
+                                <span>Suggest the chapter's name</span>
+                            </label>
+                            <div class="fieldDescription checkboxFieldDescription">The name dialog starts with the title of the chapter the bookmark is in, selected, so typing replaces it. Names Jellyfin or a ripper made up ("Chapter 3", a time) are never suggested.</div>
+                        </div>
+                    </div>
+
+                    <div class="verticalSection">
+                        <h2 class="sectionTitle">Jellyfin Enhanced</h2>
+
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label class="emby-checkbox-label">
+                                <input id="ShowJellyfinEnhancedBanner" name="ShowJellyfinEnhancedBanner" type="checkbox" is="emby-checkbox" />
+                                <span>Warn while Jellyfin Enhanced's bookmarks are on</span>
+                            </label>
+                            <div class="fieldDescription checkboxFieldDescription">The banner at the top of this page while Jellyfin Enhanced has its own bookmarks switched on, so there are two bookmark systems. The import of its bookmarks and the checklist to switch them off are on the Data tab either way.</div>
+                        </div>
+                    </div>
+
+                    <!-- The bookmark data: the deleted-user policy, the retention of bookmarks whose
+                         video is gone, and the daily snapshots. -->
+                    <div class="verticalSection">
+                        <h2 class="sectionTitle">Bookmark data</h2>
+
+                        <div class="selectContainer">
+                            <label class="selectLabel" for="DeletedUserPolicy">When Jellyfin deletes a user</label>
+                            <select is="emby-select" id="DeletedUserPolicy" name="DeletedUserPolicy" class="emby-select-withcolor emby-select">
+                                <option value="KeepAsOrphan">Delete their bookmarks, keep their clip files (recommended)</option>
+                                <option value="Delete">Delete their bookmarks and their clip files</option>
+                                <option value="Anonymize">Anonymize (for Bookmarks the same as the first)</option>
+                            </select>
+                            <div class="fieldDescription">A kept clip file stays with what is left of its bookmark, for admins only. Applied only when Jellyfin deletes a user, never to bookmarks of a user the server just doesn't know (the Data tab lists those).</div>
+                        </div>
+
+                        <div class="inputContainer">
+                            <label class="inputLabel inputLabelUnfocused" for="DetachedRetentionDays">Keep bookmarks of missing videos (days)</label>
+                            <input id="DetachedRetentionDays" name="DetachedRetentionDays" type="number" is="emby-input" min="0" step="1" />
+                            <div class="fieldDescription">A bookmark whose video left the library waits as "Not in library" and comes back with the video. 0 (the default) keeps it so for good. A number of days moves one gone that long into the archive (data/bookmarks/archive), where it still finds its video again; nothing is ever deleted on a timer, and a bookmark with a clip file is never archived.</div>
+                        </div>
+
+                        <div class="inputContainer">
+                            <label class="inputLabel inputLabelUnfocused" for="SnapshotsToKeep">Daily snapshots to keep</label>
+                            <input id="SnapshotsToKeep" name="SnapshotsToKeep" type="number" is="emby-input" min="0" max="365" step="1" />
+                            <div class="fieldDescription">The daily maintenance (03:10) copies the bookmark data to data/bookmarks/snapshots and keeps this many copies; 0 takes none. The Data tab lists them and restores one.</div>
+                        </div>
+                    </div>
+
+                    <div class="verticalSection">
+                        <h2 class="sectionTitle">Clips</h2>
+                        <p>Users can extract the range between a bookmark's start and end into a video file. Creating and downloading clips requires the user's <em>Allow media downloading</em> permission.</p>
+
+                        <div class="checkboxContainer">
+                            <label class="emby-checkbox-label">
+                                <input id="EnableClips" name="EnableClips" type="checkbox" is="emby-checkbox" />
+                                <span>Allow users to create clips</span>
+                            </label>
+                        </div>
+
+                        <!-- The admins' "All users" scope of My Clips (since 1.2.0). -->
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label class="emby-checkbox-label">
+                                <input id="AdminsCanManageAllClips" name="AdminsCanManageAllClips" type="checkbox" is="emby-checkbox" />
+                                <span>Admins can see and manage every user's clips</span>
+                            </label>
+                            <div class="fieldDescription checkboxFieldDescription">On, admins get an "All users" view on the My Clips page: every user's clips with their owners, names and file paths, which they can preview, download, cancel and delete. Bookmark notes are never shown, but a clip without a name has the start of its note in its file name. Off, admins see only their own clips there; the per-user totals stay.</div>
+                        </div>
+
+                        <!-- The clip folder: keep the default folder, outside every library; to browse clips, a Home Videos
+                             library of their own on a drive with room; never a Movies or TV library, never a full drive. -->
+                        <div class="inputContainer">
+                            <label class="inputLabel inputLabelUnfocused" for="ClipOutputPath">Clip folder</label>
+                            <input id="ClipOutputPath" name="ClipOutputPath" type="text" is="emby-input" />
+                            <div class="fieldDescription">Where clips are saved on the server. Leave it empty for data/bookmarks/clips in the server's data folder, outside every library: the right choice unless clips should be browsable in Jellyfin.</div>
+                            <div class="fieldDescription">To browse clips in Jellyfin, make a folder of their own on a drive with plenty of free space, add a library of type Home Videos and Photos for exactly that folder, and enter the folder here. Never use a Movies or TV library, or a folder inside any library: Jellyfin takes clips there for the film or episode they come from and shows them as duplicates. Everyone who can open the clip library sees every user's clips; for private clips keep the default folder.</div>
+                            <!-- Since 1.2.1: the typed folder's check (a Movies or TV library), as the admin types. -->
+                            <div id="BookmarksClipFolderCheck" class="fieldDescription" aria-live="polite"></div>
+                            <!-- The saved clip folder's free space and warnings, from Diagnostics' ClipStorage. -->
+                            <div id="BookmarksClipStorage" class="fieldDescription"></div>
+                        </div>
+
+                        <div class="inputContainer">
+                            <label class="inputLabel inputLabelUnfocused" for="MinFreeSpaceMegabytes">Keep free on the clip drive (MB)</label>
+                            <input id="MinFreeSpaceMegabytes" name="MinFreeSpaceMegabytes" type="number" is="emby-input" min="0" step="1" />
+                            <div class="fieldDescription">A clip is refused when it, and the clips waiting to be made, would leave less than this free on the clip folder's drive, and a clip being made is stopped when less than half of it is left. 0 keeps nothing free: a clip is then refused only when it wouldn't fit.</div>
+                        </div>
+
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label class="emby-checkbox-label">
+                                <input id="OrganizeClipsByUser" name="OrganizeClipsByUser" type="checkbox" is="emby-checkbox" />
+                                <span>Put each user's clips in a sub-folder named after the user</span>
+                            </label>
+                        </div>
+
+                        <div class="selectContainer">
+                            <label class="selectLabel" for="DefaultClipMode">Default clip mode</label>
+                            <select is="emby-select" id="DefaultClipMode" name="DefaultClipMode" class="emby-select-withcolor emby-select">
+                                <option value="Accurate">Accurate: re-encode to MP4 (exact frames, plays anywhere)</option>
+                                <option value="Fast">Fast: copy streams to MKV (instant, starts on the nearest keyframe)</option>
+                            </select>
+                        </div>
+
+                        <div class="inputContainer">
+                            <label class="inputLabel inputLabelUnfocused" for="MaxClipDurationSeconds">Maximum clip length (seconds)</label>
+                            <input id="MaxClipDurationSeconds" name="MaxClipDurationSeconds" type="number" is="emby-input" min="0" step="1" />
+                            <div class="fieldDescription">0 means no limit.</div>
+                        </div>
+
+                        <div class="inputContainer">
+                            <label class="inputLabel inputLabelUnfocused" for="MaxConcurrentClips">Clips encoded at the same time</label>
+                            <input id="MaxConcurrentClips" name="MaxConcurrentClips" type="number" is="emby-input" min="1" max="8" step="1" />
+                            <div class="fieldDescription">Other clips wait in a queue. Takes effect after the server restarts.</div>
+                        </div>
+
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label class="emby-checkbox-label">
+                                <input id="CleanUpPartialFilesOnStartup" name="CleanUpPartialFilesOnStartup" type="checkbox" is="emby-checkbox" />
+                                <span>Delete unfinished clip files when the server starts</span>
+                            </label>
+                            <div class="fieldDescription checkboxFieldDescription">A clip being made is written as a <em>.partial</em> file. If the server stops without finishing it (a crash), the next start deletes that file before the clip is made again. Only files named as Bookmarks names them, in the clip folders, are deleted; other programs' <em>.partial</em> files are never touched.</div>
+                        </div>
+
+                        <!-- The missing-clip sweep's retention, at most 36500 days (100 years). -->
+                        <div class="inputContainer">
+                            <label class="inputLabel inputLabelUnfocused" for="MissingClipRetentionDays">Keep clips whose file is gone (days)</label>
+                            <input id="MissingClipRetentionDays" name="MissingClipRetentionDays" type="number" is="emby-input" min="0" max="36500" step="1" />
+                            <div class="fieldDescription">The daily maintenance marks a clip whose file is gone from its clip folder (deleted by hand, or through Jellyfin) as missing, and clears the mark when the file is back. After this many days (at most 36500) a deleted bookmark's kept clip moves into the archive (data/bookmarks/archive), and a bookmark's own clip is forgotten while the bookmark stays; no file is ever deleted. 0 keeps them for good. Clips are marked only in a clip folder Bookmarks recognises as theirs, by the marker file it keeps in it (.jfbm-clip-root): a folder that isn't there (an unplugged drive), that is there without its marker and without all of its clips (a disk or share that isn't mounted, a folder in its place), or in which every clip is gone at once is left out, and the Diagnostics tab names it, so nothing in it is marked or archived. If a folder's clips are gone for good, confirm it there: its clips are then marked missing.</div>
+                        </div>
+                    </div>
+
+                    <div class="verticalSection">
+                        <h2 class="sectionTitle">Accurate clip encoding</h2>
+
+                        <div class="selectContainer">
+                            <label class="selectLabel" for="VideoPreset">x264 preset</label>
+                            <select is="emby-select" id="VideoPreset" name="VideoPreset" class="emby-select-withcolor emby-select">
+                                <option value="ultrafast">ultrafast</option>
+                                <option value="superfast">superfast</option>
+                                <option value="veryfast">veryfast</option>
+                                <option value="faster">faster</option>
+                                <option value="fast">fast</option>
+                                <option value="medium">medium</option>
+                                <option value="slow">slow</option>
+                            </select>
+                            <div class="fieldDescription">Slower presets produce smaller files at the same quality but take longer.</div>
+                        </div>
+
+                        <div class="inputContainer">
+                            <label class="inputLabel inputLabelUnfocused" for="VideoCrf">Quality (CRF)</label>
+                            <input id="VideoCrf" name="VideoCrf" type="number" is="emby-input" min="0" max="51" step="1" />
+                            <div class="fieldDescription">Lower is better quality and larger files. 18 is visually lossless for most content; 23 is x264's default.</div>
+                        </div>
+
+                        <div class="selectContainer">
+                            <label class="selectLabel" for="MaxVideoHeight">Maximum resolution</label>
+                            <select is="emby-select" id="MaxVideoHeight" name="MaxVideoHeight" class="emby-select-withcolor emby-select">
+                                <option value="0">Same as source</option>
+                                <option value="2160">2160p</option>
+                                <option value="1440">1440p</option>
+                                <option value="1080">1080p</option>
+                                <option value="720">720p</option>
+                                <option value="480">480p</option>
+                            </select>
+                        </div>
+
+                        <div class="inputContainer">
+                            <label class="inputLabel inputLabelUnfocused" for="AudioBitrateKbps">Audio bitrate (kbit/s)</label>
+                            <input id="AudioBitrateKbps" name="AudioBitrateKbps" type="number" is="emby-input" min="32" max="640" step="1" />
+                        </div>
+
+                        <div class="selectContainer">
+                            <label class="selectLabel" for="AudioChannels">Audio channels</label>
+                            <select is="emby-select" id="AudioChannels" name="AudioChannels" class="emby-select-withcolor emby-select">
+                                <option value="1">Mono</option>
+                                <option value="2">Stereo</option>
+                                <option value="6">5.1</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div>
+                        <button is="emby-button" type="submit" class="raised button-submit block emby-button">
+                            <span>Save</span>
+                        </button>
+                    </div>
+                </form>
+
+                <!-- Data: the Jellyfin Enhanced import
+                     and its switch-off checklist, export and import of the bookmark data, the snapshots with Restore and the
+                     daily maintenance, and the users this server doesn't know. Every server value is written as text. -->
+                <div id="BookmarksData" class="bookmarksTabPanel hide" role="tabpanel" aria-labelledby="BookmarksTabData">
+                    <!-- The Jellyfin Enhanced import: a dry run first and then the import, with the server's report as
+                         text; after an applied import (a dry run doesn't count) the switch-off checklist
+                         (the kit's: each item ticked as the server detects the change, from JE's XML, every user's own JE
+                         shortcuts, the Custom Tabs XML and Plugin Pages' list, read on every load of this page) and "Use B for
+                         bookmarks" once JE's B key is durably off for everyone (shown disabled, with the server's reason, while B
+                         is free only until a restart or a switch). -->
+                    <div id="BookmarksJeImport" class="verticalSection hide">
+                        <h2 class="sectionTitle">Import from Jellyfin Enhanced</h2>
+                        <div class="fieldDescription">Copies every user's Jellyfin Enhanced bookmarks into Bookmarks: labels become names and positions are kept, each on the video it was made on (or the one with the same TMDb id), and bookmarks of videos that aren't in the library are kept as "Not in library" until they are. Jellyfin Enhanced's files and settings are only read. The dry run shows what the import would do and changes nothing; running the import again adds only what is new.</div>
+                        <p id="BookmarksJeImportStatus"></p>
+                        <div class="bookmarksButtons">
+                            <button is="emby-button" type="button" id="BookmarksJeDryRun" class="raised">Dry run</button>
+                            <button is="emby-button" type="button" id="BookmarksJeApply" class="raised button-submit" disabled="disabled">Import</button>
+                        </div>
+                        <div id="BookmarksJeImportReport" aria-live="polite"></div>
+                    </div>
+                    <div id="BookmarksJellyfinEnhanced" class="verticalSection hide">
+                        <h2 class="sectionTitle">Switch off Jellyfin Enhanced's bookmarks</h2>
+                        <div class="fieldDescription">What to switch off in Jellyfin Enhanced once its bookmarks are imported, so there is one bookmark system, in this order: the shortcut comes last, so a restart can't bring its B back unnoticed. Each item is ticked as soon as the server sees the change; what stays until a restart is said next to it.</div>
+                        <p id="BookmarksJeChecklistGate" class="fieldDescription hide"></p>
+                        <ul id="BookmarksJellyfinEnhancedChecklist" style="padding-left: 1.2em;"></ul>
+                        <div id="BookmarksUseBRow" class="hide">
+                            <button is="emby-button" type="button" id="BookmarksUseB" class="raised">Use B for bookmarks</button>
+                            <div class="fieldDescription" id="BookmarksUseBNote"></div>
+                        </div>
+                    </div>
+
+                    <!-- Export and import: the kit's envelope, downloaded; an export read from a
+                         file, a dry run first. -->
+                    <div id="BookmarksExportImport" class="verticalSection">
+                        <h2 class="sectionTitle">Export and import</h2>
+                        <div class="fieldDescription">Jellyfin's own backups leave plugin data out. An export saves every user's bookmarks with their names and notes (keep the file safe), what is left of bookmarks deleted with their clip kept, the naming preferences and the Jellyfin Enhanced import's record, in one file; an import reads such a file back, here or on another server. Clip files themselves are not in it.</div>
+                        <div class="bookmarksButtons">
+                            <button is="emby-button" type="button" id="BookmarksExport" class="raised">Export</button>
+                        </div>
+                        <p id="BookmarksExportStatus" aria-live="polite"></p>
+
+                        <h3>Import an export</h3>
+                        <div class="inputContainer">
+                            <label class="inputLabel" for="BookmarksImportFile">Export file</label>
+                            <input id="BookmarksImportFile" type="file" accept=".json,application/json" />
+                        </div>
+                        <div class="selectContainer">
+                            <label class="selectLabel" for="BookmarksImportMode">How</label>
+                            <select is="emby-select" id="BookmarksImportMode" class="emby-select-withcolor emby-select">
+                                <option value="Merge">Merge: add the file's new bookmarks, and update older copies here</option>
+                                <option value="Replace">Replace: the bookmarks become the file's (after a snapshot)</option>
+                            </select>
+                        </div>
+                        <div class="selectContainer">
+                            <label class="selectLabel" for="BookmarksImportUsers">Match users</label>
+                            <select is="emby-select" id="BookmarksImportUsers" class="emby-select-withcolor emby-select">
+                                <option value="Id">By id: an export of this server</option>
+                                <option value="Name">By name: an export of another server</option>
+                            </select>
+                        </div>
+                        <div class="bookmarksButtons">
+                            <button is="emby-button" type="button" id="BookmarksImportDryRun" class="raised" disabled="disabled">Dry run</button>
+                            <button is="emby-button" type="button" id="BookmarksImportApply" class="raised button-submit" disabled="disabled">Import</button>
+                        </div>
+                        <div id="BookmarksImportReport" aria-live="polite"></div>
+                    </div>
+
+                    <!-- Snapshots: the list, Restore, and the daily maintenance run now. Since Bookmarks
+                         1.2 the way out of missing or unreadable data (the store's DataMissing and DataUnreadable): Restore of a
+                         listed snapshot, or Start empty, each after a confirmation in the kit's dialog. -->
+                    <div id="BookmarksSnapshotsSection" class="verticalSection">
+                        <h2 class="sectionTitle">Snapshots</h2>
+                        <div class="fieldDescription">The daily maintenance keeps a copy of the bookmark data every day (Daily snapshots to keep, on the Settings tab), and a copy is taken before every import, restore and other change of many bookmarks at once. Restoring a snapshot makes every bookmark the snapshot's, after a copy of the data as it is now.</div>
+                        <div id="BookmarksRecovery" class="hide">
+                            <p id="BookmarksRecoveryText" class="bookmarksFieldWarning" role="alert"></p>
+                            <div class="bookmarksButtons">
+                                <button is="emby-button" type="button" id="BookmarksStartEmpty" class="raised">Start empty</button>
+                            </div>
+                        </div>
+                        <div class="bookmarksButtons">
+                            <button is="emby-button" type="button" id="BookmarksRunMaintenance" class="raised">Run the daily maintenance now</button>
+                        </div>
+                        <p id="BookmarksMaintenanceStatus" aria-live="polite"></p>
+                        <div id="BookmarksSnapshots"></div>
+                        <div id="BookmarksRestoreReport" aria-live="polite"></div>
+                    </div>
+
+                    <!-- Users this server doesn't know: Remap by name and
+                         Apply deleted-user policy, shown only while Diagnostics lists such users. -->
+                    <div id="BookmarksUnknownUsers" class="verticalSection hide">
+                        <h2 class="sectionTitle">Users this server doesn't know</h2>
+                        <div class="fieldDescription">Bookmarks of user ids that aren't on this server: a user deleted while Bookmarks was off, or data restored from another server. Nothing is deleted on its own. Remap by name gives each of them to the user of this server with the same name; the deleted-user policy (Settings tab) treats them as deleted users.</div>
+                        <div id="BookmarksUnknownUsersList"></div>
+                        <div class="bookmarksButtons">
+                            <button is="emby-button" type="button" id="BookmarksRemapDryRun" class="raised">Remap by name: dry run</button>
+                            <button is="emby-button" type="button" id="BookmarksRemapApply" class="raised button-submit" disabled="disabled">Remap by name</button>
+                            <button is="emby-button" type="button" id="BookmarksApplyPolicy" class="raised">Apply the deleted-user policy to them</button>
+                        </div>
+                        <div id="BookmarksUsersReport" aria-live="polite"></div>
+                    </div>
+
+                    <!-- The list of users deleted on this server, kit-users.json (since Bookmarks 1.2):
+                         while it can't be read, Remap by name and an import by name are refused, and here an admin
+                         can start it empty, after a confirmation in the kit's dialog. Shown only while Diagnostics' Users.Marks
+                         says Recoverable. -->
+                    <div id="BookmarksMarksRecovery" class="verticalSection hide">
+                        <h2 class="sectionTitle">Deleted users</h2>
+                        <p id="BookmarksMarksRecoveryText" class="bookmarksFieldWarning" role="alert"></p>
+                        <div class="bookmarksButtons">
+                            <button is="emby-button" type="button" id="BookmarksMarksStartEmpty" class="raised">Start the list empty</button>
+                        </div>
+                        <div id="BookmarksMarksReport" aria-live="polite"></div>
+                    </div>
+                </div>
+
+                <div id="BookmarksDiagnostics" class="bookmarksTabPanel hide" role="tabpanel" aria-labelledby="BookmarksTabDiagnostics">
+                    <div class="verticalSection">
+                        <h2 class="sectionTitle">Diagnostics</h2>
+                        <div id="BookmarksDiagnosticsSummary"></div>
+                    </div>
+                    <!-- Per-user counts: admins see how many, never what. -->
+                    <div class="verticalSection">
+                        <h3>Bookmarks per user</h3>
+                        <div class="fieldDescription">How many bookmarks each user has, and of which kind. Admins see counts only, never a bookmark's name, note or video.</div>
+                        <div id="BookmarksCounts"></div>
+                    </div>
+                    <div class="verticalSection">
+                        <h3>Web client problems reported by browsers</h3>
+                        <div class="fieldDescription">Parts of the web client Bookmarks relies on that a browser couldn't find since the server started, so the Bookmarks feature that uses them was off there. A Jellyfin update is the usual cause; a Bookmarks update brings the fix.</div>
+                        <div id="BookmarksClientHealth"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <script type="text/javascript">
+            (function () {
+                var pluginId = 'd0ee1b2a-7f71-4654-8ff2-163a81441b03';
+                var page = document.querySelector('#BookmarksConfigPage');
+                var form = document.querySelector('#BookmarksConfigForm');
+                var checkboxes = ['EnableWebUi', 'ReportWebAnchorProblems', 'EnableBookmarksPage', 'EnableClipsPage', 'RegisterPluginPages', 'ShowFallbackNav', 'ShowPlayerButtons',
+                    'AskForNameDefault', 'SuggestChapterNames', 'ShowJellyfinEnhancedBanner', 'EnableClips', 'AdminsCanManageAllClips', 'OrganizeClipsByUser', 'CleanUpPartialFilesOnStartup'];
+                var textFields = ['BookmarkNowShortcut', 'ClipOutputPath'];
+                var selectFields = ['PageHostMode', 'DeletedUserPolicy', 'DefaultClipMode', 'VideoPreset'];
+                var numberFields = ['DetachedRetentionDays', 'SnapshotsToKeep', 'MinFreeSpaceMegabytes', 'MaxClipDurationSeconds', 'MaxConcurrentClips', 'MissingClipRetentionDays',
+                    'VideoCrf', 'MaxVideoHeight', 'AudioBitrateKbps', 'AudioChannels'];
+                var tabs = ['Settings', 'Data', 'Diagnostics'];
+
+                function field(name) {
+                    return form.querySelector('#' + name);
+                }
+
+                function find(id) {
+                    return page.querySelector('#' + id);
+                }
+
+                // Every value from the server is written with textContent.
+                function element(tag, text, className) {
+                    var node = document.createElement(tag);
+                    if (text !== undefined && text !== null) {
+                        node.textContent = String(text);
+                    }
+
+                    if (className) {
+                        node.className = className;
+                    }
+
+                    return node;
+                }
+
+                function dateText(value) {
+                    var date = new Date(value);
+                    return isNaN(date.getTime()) ? '' : date.toLocaleString();
+                }
+
+                // A warning banner at the top of the page: the server's sentence, as text.
+                function banner(text, className) {
+                    var node = element('p', text, 'bookmarksBanner ' + className);
+                    node.setAttribute('role', 'alert');
+                    return node;
+                }
+
+                // An amber line under a field or in a report, as text.
+                function warningLine(text, className, role) {
+                    var node = element('p', text, 'bookmarksFieldWarning' + (className ? ' ' + className : ''));
+                    node.setAttribute('role', role || 'status');
+                    return node;
+                }
+
+                // 0.5 GB, 120 MB, 3.2 MB, 117 KB.
+                function sizeText(bytes) {
+                    var b = bytes || 0;
+                    if (b >= 107374182.4) {
+                        return (Math.round(b / 1073741824 * 10) / 10) + ' GB';
+                    }
+
+                    if (b >= 10485760 || b === 0) {
+                        return Math.round(b / 1048576) + ' MB';
+                    }
+
+                    return b >= 1048576 ? (Math.round(b / 1048576 * 10) / 10) + ' MB' : Math.max(1, Math.round(b / 1024)) + ' KB';
+                }
+
+                function setDisabled(button, disabled) {
+                    if (disabled) {
+                        button.setAttribute('disabled', 'disabled');
+                    } else {
+                        button.removeAttribute('disabled');
+                    }
+
+                    button.disabled = !!disabled;
+                }
+
+                function table(className, titles, rows, numeric) {
+                    var node = element('table', null, 'bookmarksTable ' + className);
+                    var head = element('tr');
+                    titles.forEach(function (title, i) {
+                        head.appendChild(element('th', title, numeric && numeric[i] ? 'bookmarksNumber' : null));
+                    });
+                    node.appendChild(head);
+                    rows.forEach(function (values) {
+                        var row = element('tr');
+                        values.forEach(function (value, i) {
+                            if (value && value.nodeType === 1) {
+                                var cell = element('td');
+                                cell.appendChild(value);
+                                row.appendChild(cell);
+                            } else {
+                                row.appendChild(element('td', value, numeric && numeric[i] ? 'bookmarksNumber' : null));
+                            }
+                        });
+                        node.appendChild(row);
+                    });
+
+                    // In a box of its own that scrolls sideways when the table is wider than the screen (a phone), so the
+                    // page itself never does.
+                    var box = element('div', null, 'bookmarksTableScroll');
+                    box.appendChild(node);
+                    return box;
+                }
+
+                // A refused request's sentence: the ProblemDetails' detail or title, else a fallback.
+                function problemText(response, fallback) {
+                    if (response && typeof response.json === 'function') {
+                        return response.json().then(function (problem) {
+                            return (problem && (problem.detail || problem.title)) || fallback;
+                        }, function () {
+                            return fallback;
+                        });
+                    }
+
+                    return Promise.resolve(fallback);
+                }
+
+                function confirmed(text, title) {
+                    return new Promise(function (resolve) {
+                        if (window.Dashboard && typeof Dashboard.confirm === 'function') {
+                            Dashboard.confirm(text, title, function (ok) {
+                                resolve(!!ok);
+                            });
+                        } else {
+                            resolve(window.confirm(text));
+                        }
+                    });
+                }
+
+                // A confirmation in the kit's dialog, from the Bookmarks web client that runs beside this page (the focus
+                // starts on Cancel, the least destructive control, as the dialog opens): true
+                // for the confirming button, false for Cancel, Close, Escape or Back. Without the web client (its setting off,
+                // or it failed to load), jellyfin-web's own confirmation.
+                function confirmDialog(options) {
+                    var registry = window.__jfkit && window.__jfkit.jfbm;
+                    var kit = registry && registry.instance;
+                    if (!kit || typeof kit.dialog !== 'function') {
+                        return confirmed(options.text, options.title);
+                    }
+
+                    return new Promise(function (resolve) {
+                        var answered = false;
+                        var cancel = null;
+                        var dialog = kit.dialog({
+                            title: options.title,
+                            modal: true,
+                            scopedKeys: true,
+                            initialFocus: function () {
+                                return cancel;
+                            }
+                        });
+                        var answer = function (value) {
+                            if (!answered) {
+                                answered = true;
+                                resolve(value);
+                            }
+
+                            dialog.close();
+                        };
+                        dialog.onClose(function () {
+                            answer(false);
+                        });
+                        cancel = kit.button('Cancel', { className: 'bookmarksDialogCancel', onClick: function () { answer(false); } });
+                        var confirm = kit.button(options.confirm, { variant: 'primary', className: options.className, onClick: function () { answer(true); } });
+                        kit.append(dialog.body, kit.h('p', { class: 'bookmarksDialogText', text: options.text }), kit.h('div', { class: kit.cls('actions') }, [cancel, confirm]));
+                    });
+                }
+
+                function postJson(path, query, body) {
+                    var url = ApiClient.getUrl(path) + (query ? '?' + query : '');
+                    return ApiClient.ajax({ type: 'POST', url: url, data: body === undefined ? '{}' : body, contentType: 'application/json', dataType: 'json' });
+                }
+
+                // ---------------------------------------------------------------- tabs (Settings | Data | Diagnostics)
+
+                function selectTab(name, focus) {
+                    tabs.forEach(function (tab) {
+                        var button = find('BookmarksTab' + tab);
+                        var panel = find(button.getAttribute('aria-controls'));
+                        var selected = tab === name;
+                        button.setAttribute('aria-selected', selected ? 'true' : 'false');
+                        button.setAttribute('tabindex', selected ? '0' : '-1');
+                        if (selected) {
+                            panel.classList.remove('hide');
+                            if (focus) {
+                                button.focus();
+                            }
+                        } else {
+                            panel.classList.add('hide');
+                        }
+                    });
+
+                    if (name === 'Data') {
+                        loadSnapshots();
+                    }
+                }
+
+                tabs.forEach(function (tab, index) {
+                    var button = find('BookmarksTab' + tab);
+                    button.addEventListener('click', function () {
+                        selectTab(tab, false);
+                    });
+                    // The arrow keys move between the tabs, Home and End to the ends (WAI-ARIA tabs).
+                    button.addEventListener('keydown', function (e) {
+                        var next = e.key === 'ArrowRight' ? (index + 1) % tabs.length
+                            : e.key === 'ArrowLeft' ? (index + tabs.length - 1) % tabs.length
+                            : e.key === 'Home' ? 0
+                            : e.key === 'End' ? tabs.length - 1
+                            : -1;
+                        if (next >= 0) {
+                            e.preventDefault();
+                            selectTab(tabs[next], true);
+                        }
+                    });
+                });
+
+                // ---------------------------------------------------------------- settings
+
+                // A select keeps a value it has no option for (an older or hand-edited setting), so saving never changes it.
+                function setSelect(select, value) {
+                    var text = value === null || value === undefined ? '' : String(value);
+                    var has = Array.prototype.some.call(select.querySelectorAll('option'), function (option) {
+                        return option.value === text;
+                    });
+                    if (!has && text !== '') {
+                        var option = element('option', text);
+                        option.setAttribute('value', text);
+                        select.appendChild(option);
+                    }
+
+                    select.value = text;
+                }
+
+                // A number the server holds outside its field's min and max (an older server's, another client's) shown as the
+                // nearest bound, so the browser's own check never stops a save of the other settings (found in
+                // testing: MissingClipRetentionDays above 36500); the server clamps the setting the same way.
+                function withinRange(input, value) {
+                    var number = Number(value);
+                    var min = input.getAttribute('min');
+                    var max = input.getAttribute('max');
+                    if (isNaN(number)) {
+                        return value;
+                    }
+
+                    if (max !== null && max !== '' && number > Number(max)) {
+                        return Number(max);
+                    }
+
+                    return min !== null && min !== '' && number < Number(min) ? Number(min) : value;
+                }
+
+                var savedShortcut = '';
+                function fillForm(config) {
+                    checkboxes.forEach(function (name) { field(name).checked = !!config[name]; });
+                    textFields.forEach(function (name) {
+                        field(name).value = config[name] === null || config[name] === undefined ? '' : config[name];
+                    });
+                    selectFields.concat(['MaxVideoHeight', 'AudioChannels']).forEach(function (name) {
+                        setSelect(field(name), config[name]);
+                    });
+                    numberFields.forEach(function (name) {
+                        if (name !== 'MaxVideoHeight' && name !== 'AudioChannels') {
+                            field(name).value = config[name] === null || config[name] === undefined ? '' : withinRange(field(name), config[name]);
+                        }
+                    });
+                    savedShortcut = field('BookmarkNowShortcut').value;
+                    savedClipFolder = field('ClipOutputPath').value.trim();
+                    renderClipFolderCheck(null);
+                }
+
+                function loadConfig() {
+                    Dashboard.showLoadingMsg();
+                    return ApiClient.getPluginConfiguration(pluginId).then(function (config) {
+                        fillForm(config);
+                        renderShortcutCheck(lastShortcutCheck);
+                        Dashboard.hideLoadingMsg();
+                    }, function () {
+                        Dashboard.hideLoadingMsg();
+                    });
+                }
+
+                // ------------------------------------------------- the bookmark shortcut
+
+                // The check of the field's value: the server's (GET Admin/Shortcuts/Check, the kit's ShortcutPolicy, which
+                // reads Jellyfin Enhanced's keys as JE has them now), as text. Diagnostics' OurShortcuts entry gives the saved
+                // value's check when the page loads; typing asks again (300 ms after the last key), and only the latest answer
+                // is shown.
+                var lastShortcutCheck = null;
+                var shortcutSeq = 0;
+                var shortcutTimer = null;
+
+                function renderShortcutCheck(check) {
+                    var node = find('BookmarksShortcutCheck');
+                    lastShortcutCheck = check || null;
+                    if (!check || check.Error) {
+                        node.replaceChildren();
+                        return;
+                    }
+
+                    var typed = field('BookmarkNowShortcut').value.trim();
+                    if (check.Valid === false || check.Reserved) {
+                        var warning = warningLine(check.Warning || 'This key can\'t be used.', 'bookmarksShortcutWarning');
+                        warning.setAttribute('data-shortcut', String(check.Name || 'BookmarkNow'));
+                        warning.setAttribute('data-valid', check.Valid === false ? 'false' : 'true');
+                        node.replaceChildren(warning);
+                        return;
+                    }
+
+                    var text = check.Combo === '' ? 'Off: no key bookmarks the current moment; the player\'s bookmark button still does.'
+                        : check.Combo + ' is free: neither the video player nor Jellyfin Enhanced takes it.'
+                            + (typed !== '' && typed !== check.Combo ? ' Saving writes it as ' + check.Combo + '.' : '');
+                    var line = element('p', text, 'bookmarksShortcutFree');
+                    line.setAttribute('role', 'status');
+                    node.replaceChildren(line);
+                }
+
+                function checkShortcut(text) {
+                    var seq = ++shortcutSeq;
+                    return ApiClient.getJSON(ApiClient.getUrl('Bookmarks/Admin/Shortcuts/Check') + '?combo=' + encodeURIComponent(text)).then(function (check) {
+                        if (seq === shortcutSeq) {
+                            renderShortcutCheck(check);
+                        }
+
+                        return check;
+                    }, function () {
+                        if (seq === shortcutSeq) {
+                            renderShortcutCheck(null);
+                        }
+
+                        return null;
+                    });
+                }
+
+                field('BookmarkNowShortcut').addEventListener('input', function () {
+                    if (shortcutTimer) {
+                        clearTimeout(shortcutTimer);
+                    }
+
+                    var text = field('BookmarkNowShortcut').value;
+                    shortcutTimer = setTimeout(function () {
+                        shortcutTimer = null;
+                        checkShortcut(text);
+                    }, 300);
+                });
+
+                // ------------------------------------------------- the clip folder (since 1.2.1)
+
+                // The typed folder's check (POST Admin/ClipFolder/Check, 400 ms after the last key): a warning when it lies in a
+                // Movies or TV library, as text; only the latest answer is shown. The saved folder's own warnings are
+                // Diagnostics' ClipStorage, under it, so the check shows nothing while the field holds the saved value.
+                var savedClipFolder = '';
+                var clipFolderSeq = 0;
+                var clipFolderTimer = null;
+
+                function renderClipFolderCheck(check) {
+                    var node = find('BookmarksClipFolderCheck');
+                    if (!check || check.Error || field('ClipOutputPath').value.trim() === savedClipFolder) {
+                        node.replaceChildren();
+                        return;
+                    }
+
+                    var lines = (check.Warnings || []).map(function (warning) {
+                        var line = warningLine(warning.Message, 'bookmarksClipFolderWarning');
+                        line.setAttribute('data-code', String(warning.Code));
+                        return line;
+                    });
+                    node.replaceChildren.apply(node, lines);
+                }
+
+                function checkClipFolder(text) {
+                    var seq = ++clipFolderSeq;
+                    return postJson('Bookmarks/Admin/ClipFolder/Check', '', JSON.stringify({ Path: text })).then(function (check) {
+                        if (seq === clipFolderSeq) {
+                            renderClipFolderCheck(check);
+                        }
+                    }, function () {
+                        if (seq === clipFolderSeq) {
+                            renderClipFolderCheck(null);
+                        }
+                    });
+                }
+
+                field('ClipOutputPath').addEventListener('input', function () {
+                    if (clipFolderTimer) {
+                        clearTimeout(clipFolderTimer);
+                    }
+
+                    var text = field('ClipOutputPath').value;
+                    clipFolderTimer = setTimeout(function () {
+                        clipFolderTimer = null;
+                        checkClipFolder(text);
+                    }, 400);
+                });
+
+                form.addEventListener('submit', function (e) {
+                    e.preventDefault();
+                    if (shortcutTimer) {
+                        clearTimeout(shortcutTimer);
+                        shortcutTimer = null;
+                    }
+
+                    Dashboard.showLoadingMsg();
+                    var typed = field('BookmarkNowShortcut').value.trim();
+                    checkShortcut(typed).then(function (check) {
+                        // A changed shortcut that isn't a key combination isn't saved (nothing is); one that is saves as the
+                        // combination the player matches. Without an answer (an older server), the text is saved as typed.
+                        if (check && check.Valid === false && typed !== savedShortcut.trim()) {
+                            Dashboard.hideLoadingMsg();
+                            field('BookmarkNowShortcut').focus();
+                            return;
+                        }
+
+                        var shortcut = check && check.Valid !== false && typeof check.Combo === 'string' ? check.Combo : typed;
+                        return ApiClient.getPluginConfiguration(pluginId).then(function (config) {
+                            checkboxes.forEach(function (name) { config[name] = field(name).checked; });
+                            textFields.concat(selectFields).forEach(function (name) { config[name] = field(name).value.trim(); });
+                            config.BookmarkNowShortcut = shortcut;
+                            numberFields.forEach(function (name) {
+                                var value = parseInt(field(name).value, 10);
+                                if (!isNaN(value)) {
+                                    config[name] = value;
+                                }
+                            });
+                            return ApiClient.updatePluginConfiguration(pluginId, config).then(function (result) {
+                                field('BookmarkNowShortcut').value = shortcut;
+                                savedShortcut = shortcut;
+                                savedClipFolder = field('ClipOutputPath').value.trim();
+                                renderClipFolderCheck(null);
+                                Dashboard.processPluginConfigurationUpdateResult(result);
+
+                                // The saved clip folder and reserve change the free-space line, the shortcut its check.
+                                loadDiagnostics();
+                            });
+                        });
+                    }).then(null, function () {
+                        Dashboard.hideLoadingMsg();
+                    });
+                    return false;
+                });
+
+                // ---------------------------------------------------------------- Diagnostics
+
+                // The saved clip folder under its field: the server's free-space line, and its warnings
+                // (LowFreeSpace, FolderUnavailable, FolderDeleted, FolderUnrecognised, FreeSpaceUnknown) in amber, all as text;
+                // since 1.2.0 a warning that names a RootId (a folder away, or there but refused) with the button
+                // that confirms the folder.
+                function renderClipStorage(storage) {
+                    var node = find('BookmarksClipStorage');
+                    if (!storage || storage.Error) {
+                        node.replaceChildren();
+                        return;
+                    }
+
+                    var parts = [element('p', storage.Message, 'bookmarksClipStorageLine')];
+                    (storage.Warnings || []).forEach(function (warning) {
+                        var line = warningLine(warning.Message, 'bookmarksClipStorageWarning');
+                        line.setAttribute('data-code', String(warning.Code));
+                        parts.push(line);
+                        if (warning.RootId) {
+                            parts.push(confirmFolderButton(warning.RootId, storage.Root, function () {
+                                return find('BookmarksClipStorage');
+                            }));
+                        }
+                    });
+                    node.replaceChildren.apply(node, parts);
+                }
+
+                // "This is the clip folder; its clips are gone": for a folder the sweep left
+                // out, or one the clip worker refuses. The dry run says how many clips will be marked missing, and the dialog
+                // says so; confirmed, the server makes the folder if it isn't there, gives it its marker file and marks those
+                // clips missing (after a snapshot), so the retention takes them as any. No file is deleted. The outcome is a line
+                // in `where()` (the Diagnostics summary or the Clip folder field's line, both drawn again first).
+                var clipRetentionDays = 30;
+                function confirmFolderButton(rootId, folder, where) {
+                    var button = element('button', 'This is the clip folder; its clips are gone', 'raised emby-button bookmarksConfirmClipFolder');
+                    button.setAttribute('type', 'button');
+                    button.setAttribute('data-root-id', String(rootId));
+                    button.setAttribute('aria-label', 'Confirm ' + folder + ' as the clip folder whose clips are gone');
+                    button.addEventListener('click', function () {
+                        confirmClipFolder(rootId, where);
+                    });
+                    return button;
+                }
+
+                function confirmClipFolder(rootId, where) {
+                    var path = 'Bookmarks/Admin/ClipFolders/' + encodeURIComponent(rootId) + '/Confirm';
+                    var show = function (node) {
+                        where().appendChild(node);
+                    };
+                    postJson(path, 'dryRun=true').then(function (r) {
+                        var marked = r.Marked || 0;
+                        var text = 'Take ' + r.Folder + ' for the folder its clips were made in' + (r.Existed ? '' : ', and make it again (it isn\'t there)') + '? '
+                            + (marked === 1 ? '1 clip whose file isn\'t there is' : marked + ' clips whose file isn\'t there are') + ' then marked missing'
+                            + (r.MarkedBefore ? ' (' + r.MarkedBefore + ' already were)' : '')
+                            + (clipRetentionDays > 0 ? ', and ' + clipRetentionDays + ' days on a deleted bookmark\'s clip moves to the archive and a bookmark\'s own clip is forgotten.' : '; they are kept for good.')
+                            + ' No file is deleted, and a snapshot is taken first. Only do this when the files are really gone, not while a drive is unplugged or a disk isn\'t mounted.';
+                        return confirmed(text, 'Confirm the clip folder').then(function (ok) {
+                            if (!ok) {
+                                return;
+                            }
+
+                            Dashboard.showLoadingMsg();
+                            return postJson(path, 'dryRun=false').then(function (done) {
+                                Dashboard.hideLoadingMsg();
+                                return loadDiagnostics().then(function () {
+                                    show(element('p', 'Confirmed ' + done.Folder + ' as the clip folder' + (done.Created ? ', made again' : '') + ', with its marker file: '
+                                        + (done.Marked === 1 ? '1 clip' : (done.Marked || 0) + ' clips') + ' marked missing.', 'bookmarksConfirmClipFolderDone'));
+                                });
+                            });
+                        });
+                    }).then(null, function (response) {
+                        Dashboard.hideLoadingMsg();
+                        return problemText(response, 'The clip folder wasn\'t confirmed' + (response && response.status ? ' (' + response.status + ')' : '') + '.').then(function (text) {
+                            show(warningLine(text, 'bookmarksConfirmClipFolderError', 'alert'));
+                        });
+                    });
+                }
+
+                // The daily maintenance's last look at the clip files (the missing-clip sweep), as text: what it
+                // found and what the retention did; then, in amber, each clip folder it left out, with its clips, which it left as
+                // they are ("Clip folder unavailable"), and why: not there, there
+                // but not recognised by its marker file, unproven (some of its clips there, some gone), its marker not written, or
+                // every clip gone at once, each with its remedy and, but for the marker not written, the button that confirms it.
+                var clipFolderReasons = {
+                    NoMarker: ' is there, but has neither Bookmarks\' marker file (.jfbm-clip-root) nor any of its clips, so it isn\'t taken for their folder (a disk or share that isn\'t mounted, or another drive under the same letter?), and new clips into it are refused. If its clips are gone for good, confirm the folder with the button below (they are then marked missing) or choose another clip folder',
+                    Unproven: ' is there without its marker file (.jfbm-clip-root), and some of its clips are gone while others are there, so it isn\'t taken for their folder (a folder in its place holding a clip written while the real one was away, or an older copy?), and new clips into it are refused. If the gone ones are gone for good, confirm the folder with the button below (they are then marked missing, and their owners can forget them on the My Clips page) or choose another clip folder',
+                    MarkerNotWritten: ' has its clips, but its marker file (.jfbm-clip-root) couldn\'t be written; let the server write in the folder',
+                    AllMissing: ': every one of its clips is gone at once (a folder emptied, or put back from an old copy?). If they were deleted on purpose, confirm the folder with the button below (they are then marked missing), or their owners can forget them on the My Clips page'
+                };
+                function renderClipSweep(summary, sweep) {
+                    if (!sweep || sweep.Error) {
+                        return;
+                    }
+
+                    var run = sweep.LastRun;
+                    var days = sweep.RetentionDays || 0;
+                    clipRetentionDays = days;
+                    var text;
+                    if (!run) {
+                        text = 'Clip files: not checked since the server started; the daily maintenance checks them.';
+                    } else if (run.Skipped === 'ReadOnly') {
+                        text = 'Clip files: not checked, since the bookmark data is read-only.';
+                    } else {
+                        text = 'Clip files checked ' + dateText(run.StartedUtc) + ': ' + (run.Present || 0) + ' there, ' + (run.Missing || 0) + ' gone from their clip folder ('
+                            + (run.Marked || 0) + ' newly), ' + (run.Cleared || 0) + ' back again' + (run.InProgress ? ', ' + run.InProgress + ' being made (left as they are)' : '') + '.'
+                            + (days > 0
+                                ? ' Gone for ' + days + ' days or more: ' + (run.Archived || 0) + ' deleted bookmarks\' clips moved to the archive, ' + (run.ClipsForgotten || 0)
+                                    + ' bookmarks\' clips forgotten (the bookmarks stay).'
+                                : ' Clips whose file is gone are kept for good.')
+                            + (run.MarkersWritten ? ' ' + run.MarkersWritten + ' clip folder(s) given their marker file.' : '')
+                            + (run.FoldersMadeAgain ? ' The default clip folder was gone (deleted?) and was made again with its marker file; its clips are marked missing.' : '')
+                            + (run.Error ? ' The run failed: ' + run.Error : '');
+                    }
+
+                    summary.appendChild(element('p', text + (sweep.MarkedMissing ? ' Marked missing now: ' + sweep.MarkedMissing + '.' : ''), 'bookmarksClipSweepLine'));
+                    ((run && run.UnavailableFolders) || []).forEach(function (folder) {
+                        // NotThere, and an older server (no Reason): the folder isn't there.
+                        var why = Object.prototype.hasOwnProperty.call(clipFolderReasons, folder.Reason) ? clipFolderReasons[folder.Reason] : null;
+                        var confirmable = !!folder.RootId && folder.Confirmable !== false;
+                        summary.appendChild(warningLine(why
+                            ? 'Clip folder unavailable: ' + folder.Folder + why + '. ' + folder.Clips + ' clip(s) not checked; nothing in it is marked missing or archived.'
+                            : 'Clip folder unavailable: ' + folder.Folder + ' (' + folder.Clips + ' clip(s) not checked; nothing in it is marked missing or archived while it is away).'
+                                + (confirmable ? ' If it is gone for good, confirm it with the button below: it is made again, and its clips are marked missing.' : ''),
+                        'bookmarksClipSweepFolder'));
+                        if (confirmable) {
+                            summary.appendChild(confirmFolderButton(folder.RootId, folder.Folder, function () {
+                                return find('BookmarksDiagnosticsSummary');
+                            }));
+                        }
+                    });
+                }
+
+                // Each user's bookmarks counted: counts and sizes only, as text; the file's size warning in amber.
+                function renderCounts(counts) {
+                    var node = find('BookmarksCounts');
+                    if (!counts || counts.Error) {
+                        node.replaceChildren(element('p', counts && counts.Error ? 'The counts couldn\'t be read: ' + counts.Error : 'No counts from this server.'));
+                        return;
+                    }
+
+                    var users = counts.Users || [];
+                    var total = counts.Total || {};
+                    var parts = [element('p', (total.Bookmarks || 0) + ' bookmark(s) of ' + (total.Users || 0) + ' user(s); ' + (total.Clips || 0) + ' clip file(s), '
+                        + sizeText(total.ClipBytes) + '. The bookmark file is ' + sizeText(counts.FileBytes) + '.', 'bookmarksCountsSummary')];
+                    if (counts.Warning) {
+                        parts.push(warningLine(counts.Warning, 'bookmarksCountsWarning'));
+                    }
+
+                    if (users.length) {
+                        parts.push(table('bookmarksCountsTable', ['User', 'Bookmarks', 'Named', 'Ranges', 'Not in library', 'Relinked', 'From Jellyfin Enhanced', 'Clips', 'Clip size', 'Being made', 'Kept clips of deleted bookmarks'],
+                            users.map(function (u) {
+                                return [(u.UserName || u.UserId) + (u.Known === false ? ' (not on this server)' : ''), u.Bookmarks, u.Named, u.Ranges, u.Detached, u.Relinked, u.Imported,
+                                    u.Clips, sizeText(u.ClipBytes), u.ClipsBeingMade, u.Tombstones];
+                            }), [false, true, true, true, true, true, true, true, true, true, true]));
+                    }
+
+                    node.replaceChildren.apply(node, parts);
+                }
+
+                // Whether the switch-off checklist may show (after a successful import): the
+                // server's JeImport entry says every Jellyfin Enhanced user with bookmarks is covered by an applied import (a
+                // dry run doesn't count), or JE has no bookmarks at all. Without the entry, or with its error, it stays hidden.
+                function checklistReady(gate) {
+                    return !!gate && !gate.Error && gate.ChecklistReady === true;
+                }
+
+                // The Jellyfin Enhanced switch-off section (the kit's): shown while JE is installed. Until the
+                // import has run (checklistReady), a line saying so instead of the checklist and no "Use B". Then each
+                // checklist item as text, ticked or not, with the server's detail, in the server's order (the shortcut last);
+                // "Use B for bookmarks" while the server says B is durably free (CanUseB) and our shortcut isn't B yet; the
+                // button disabled, with the server's reason (UseBNote), while B is free only until a restart or a switch, or a
+                // user's own JE shortcuts couldn't be read.
+                function renderJellyfinEnhanced(je, gate) {
+                    var section = find('BookmarksJellyfinEnhanced');
+                    var list = find('BookmarksJellyfinEnhancedChecklist');
+                    var useBRow = find('BookmarksUseBRow');
+                    var gateLine = find('BookmarksJeChecklistGate');
+                    var overlap = je && je.Overlap;
+                    if (!je || !je.Installed || !overlap || !overlap.Checklist || overlap.Checklist.length === 0) {
+                        section.classList.add('hide');
+                        list.replaceChildren();
+                        useBRow.classList.add('hide');
+                        return;
+                    }
+
+                    section.classList.remove('hide');
+                    if (!checklistReady(gate)) {
+                        var pending = (gate && gate.Pending) || [];
+                        gateLine.textContent = 'This checklist shows once Jellyfin Enhanced\'s bookmarks are imported above (a dry run doesn\'t count), so none are lost when its bookmarks are switched off.'
+                            + (gate && gate.Problem ? ' Jellyfin Enhanced\'s data folder couldn\'t be read: ' + gate.Problem
+                                : pending.length ? ' Not imported yet: ' + pending.map(function (p) { return p.UserName || p.JeUserId; }).join(', ') + '.' : '');
+                        gateLine.classList.remove('hide');
+                        list.replaceChildren();
+                        useBRow.classList.add('hide');
+                        return;
+                    }
+
+                    gateLine.classList.add('hide');
+                    gateLine.textContent = '';
+                    list.replaceChildren.apply(list, overlap.Checklist.map(function (item) {
+                        var row = element('li', null, 'bookmarksJeItem ' + (item.Done ? 'bookmarksJeDone' : 'bookmarksJePending'));
+                        row.setAttribute('data-key', String(item.Key));
+                        row.setAttribute('data-done', item.Done ? 'true' : 'false');
+                        row.appendChild(element('span', (item.Done ? '✓ ' : '☐ ') + item.Text + (item.Optional ? ' (optional)' : '')));
+                        if (item.Detail) {
+                            row.appendChild(element('div', item.Detail, 'fieldDescription'));
+                        }
+
+                        return row;
+                    }));
+
+                    var ours = (je.OurShortcuts || []).filter(function (s) { return s.Name === 'BookmarkNow'; })[0];
+                    var alreadyB = !!ours && ours.Combo === 'B';
+                    var useB = find('BookmarksUseB');
+                    var note = find('BookmarksUseBNote');
+                    if (overlap.CanUseB && !alreadyB) {
+                        useBRow.classList.remove('hide');
+                        setDisabled(useB, false);
+                        note.textContent = 'Jellyfin Enhanced no longer takes B, so the bookmark shortcut can be B instead of ' + ((ours && ours.Combo) || 'Shift+B') + '. Users keep their own device setting.';
+                    } else if (!overlap.CanUseB && overlap.UseBNote && !alreadyB) {
+                        useBRow.classList.remove('hide');
+                        setDisabled(useB, true);
+                        note.textContent = overlap.UseBNote;
+                    } else {
+                        useBRow.classList.add('hide');
+                    }
+                }
+
+                function ticksText(ticks) {
+                    var seconds = Math.floor((ticks || 0) / 10000000);
+                    var h = Math.floor(seconds / 3600);
+                    var m = Math.floor(seconds / 60) % 60;
+                    var s = seconds % 60;
+                    return (h > 0 ? h + ':' + (m < 10 ? '0' : '') : '') + m + ':' + (s < 10 ? '0' : '') + s;
+                }
+
+                // The Jellyfin Enhanced import, from the server's JeImport entry: shown
+                // while JE is installed or has bookmarks; what was imported so far, or who is still waiting; the dry run, and
+                // the import once a dry run on this page succeeded (refused while the bookmark data is read-only).
+                var dryRunDone = false;
+                var storeReadOnly = false;
+                function renderJeImport(gate, je) {
+                    var section = find('BookmarksJeImport');
+                    var status = find('BookmarksJeImportStatus');
+                    var users = gate && !gate.Error ? gate.UsersWithBookmarks || 0 : 0;
+                    if (!gate || gate.Error || (!(je && je.Installed) && users === 0)) {
+                        section.classList.add('hide');
+                        return;
+                    }
+
+                    section.classList.remove('hide');
+                    storeReadOnly = gate.StoreReadOnly === true;
+                    var pending = gate.Pending || [];
+                    var text = gate.Problem ? 'Jellyfin Enhanced\'s data folder couldn\'t be read: ' + gate.Problem
+                        : users === 0 ? 'Jellyfin Enhanced has no bookmarks on this server, so there is nothing to import.'
+                        : pending.length ? 'Not imported yet: the Jellyfin Enhanced bookmarks of ' + pending.map(function (p) { return p.UserName || p.JeUserId; }).join(', ') + '. Run the dry run, then Import.'
+                        : 'Imported' + (gate.LastAppliedUtc ? ' on ' + dateText(gate.LastAppliedUtc) : '') + ': ' + (gate.ImportedBookmarks || 0) + ' bookmark(s) here came from Jellyfin Enhanced. Running the import again adds only what is new.';
+                    if (storeReadOnly) {
+                        text += ' The bookmark data is read-only right now, so nothing can be imported.';
+                    }
+
+                    status.textContent = text;
+                    setDisabled(find('BookmarksJeDryRun'), !!gate.Problem || users === 0);
+                    setDisabled(find('BookmarksJeApply'), !dryRunDone || storeReadOnly || !!gate.Problem || users === 0);
+                }
+
+                var outcomeText = {
+                    MatchedById: 'Imported',
+                    MatchedByProviderId: 'Imported, matched by its TMDb id',
+                    Ambiguous: 'Imported on the first of several copies',
+                    Detached: 'Imported as Not in library',
+                    Updated: 'Updated',
+                    Duplicate: 'Duplicate, left out',
+                    AlreadyImported: 'Already imported',
+                    Skipped: 'Skipped'
+                };
+
+                // The server's report, every value as text: a summary, a row per user, each user's
+                // errors in amber, and up to 50 samples.
+                function renderImportReport(r) {
+                    var node = find('BookmarksJeImportReport');
+                    var users = r.Users || [];
+                    function sum(key) {
+                        return users.reduce(function (n, u) { return n + (u[key] || 0); }, 0);
+                    }
+
+                    var left = sum('Duplicates') + sum('AlreadyImported') + sum('Skipped');
+                    var parts = [element('p', (r.DryRun ? 'Dry run, nothing was changed. The import would add ' : 'Imported: added ') + sum('Import') + ' bookmark(s)'
+                        + (sum('Detached') ? ' (' + sum('Detached') + ' not in the library)' : '') + ', ' + (r.DryRun ? 'update ' : 'updated ') + sum('Updated')
+                        + ' and ' + (r.DryRun ? 'leave out ' : 'left out ') + left + ' (' + sum('Duplicates') + ' duplicates, ' + sum('AlreadyImported')
+                        + ' already imported, ' + sum('Skipped') + ' skipped).', 'bookmarksJeImportSummary')];
+                    if (r.Snapshot) {
+                        parts.push(element('p', 'The bookmark data from just before the import was kept as ' + r.Snapshot + '.', 'fieldDescription'));
+                    }
+
+                    parts.push(table('bookmarksJeImportUsers', ['User', 'Found', 'Import', 'By item id', 'By TMDb id', 'Ambiguous', 'Not in library', 'Updated', 'Duplicates', 'Already imported', 'Skipped', 'Moved off the end'],
+                        users.map(function (u) {
+                            return [u.UserName || u.JeUserId, u.Found, u.Import, u.MatchedById, u.MatchedByProviderId, u.Ambiguous, u.Detached, u.Updated, u.Duplicates, u.AlreadyImported, u.Skipped, u.Clamped];
+                        })));
+                    users.forEach(function (u) {
+                        (u.Errors || []).forEach(function (error) {
+                            parts.push(warningLine(error, 'bookmarksJeImportError'));
+                        });
+                    });
+
+                    var samples = r.Samples || [];
+                    if (samples.length) {
+                        parts.push(element('h4', 'Samples'));
+                        parts.push(table('bookmarksJeImportSamples', ['User', 'Label', 'Video', 'Position', 'Outcome', 'Why'], samples.map(function (s) {
+                            return [s.UserName || s.JeUserId, s.Label || '', s.ItemName || '', s.StartTicks === null || s.StartTicks === undefined ? '' : ticksText(s.StartTicks),
+                                outcomeText[s.Outcome] || String(s.Outcome), s.Reason];
+                        })));
+                        if (r.MoreEntries) {
+                            parts.push(element('p', 'And ' + r.MoreEntries + ' more.', 'fieldDescription'));
+                        }
+                    }
+
+                    if (!r.DryRun) {
+                        parts.push(element('p', r.ChecklistReady
+                            ? 'Next, switch Jellyfin Enhanced\'s bookmarks off with the checklist below.'
+                            : 'The switch-off checklist shows once the Jellyfin Enhanced bookmarks of every user are imported.', 'fieldDescription bookmarksJeImportNext'));
+                    }
+
+                    node.replaceChildren.apply(node, parts);
+                }
+
+                // POST /Bookmarks/Admin/Import/JellyfinEnhanced: the dry run, or the import. A dry run that succeeded enables
+                // the import; the import re-reads Diagnostics, whose JeImport entry opens the checklist.
+                function runJeImport(dryRun) {
+                    var report = find('BookmarksJeImportReport');
+                    var apply = find('BookmarksJeApply');
+                    setDisabled(apply, true);
+                    Dashboard.showLoadingMsg();
+                    return postJson('Bookmarks/Admin/Import/JellyfinEnhanced', 'dryRun=' + (dryRun ? 'true' : 'false')).then(function (result) {
+                        Dashboard.hideLoadingMsg();
+                        renderImportReport(result || {});
+                        dryRunDone = dryRun;
+                        setDisabled(apply, !dryRun || storeReadOnly || (result && result.StoreReadOnly === true));
+                        if (!dryRun) {
+                            loadDiagnostics();
+                        }
+                    }, function (response) {
+                        Dashboard.hideLoadingMsg();
+                        dryRunDone = false;
+                        var fallback = response && response.status === 404 ? 'Jellyfin Enhanced has no bookmarks on this server, so there is nothing to import.'
+                            : 'The import didn\'t run' + (response && response.status ? ' (' + response.status + ')' : '') + '.';
+                        return problemText(response, fallback).then(function (text) {
+                            report.replaceChildren(warningLine(text, 'bookmarksJeImportError', 'alert'));
+                        });
+                    });
+                }
+
+                // Users this server doesn't know: shown while the kit's Users entry lists any, with their
+                // last seen names and how many records, and the two admin actions.
+                var unknownUserIds = [];
+                function renderUnknownUsers(users) {
+                    var section = find('BookmarksUnknownUsers');
+                    var orphans = users && !users.Error ? users.OrphanUsers || [] : [];
+                    unknownUserIds = orphans.map(function (u) { return u.UserId; });
+                    if (!orphans.length) {
+                        section.classList.add('hide');
+                        find('BookmarksUnknownUsersList').replaceChildren();
+                        return;
+                    }
+
+                    section.classList.remove('hide');
+                    find('BookmarksUnknownUsersList').replaceChildren(table('bookmarksUnknownUsersTable', ['Last seen name', 'User id', 'Records'],
+                        orphans.map(function (u) { return [u.LastKnownName || '(no name known)', u.UserId, u.Records]; }), [false, false, true]));
+                    find('BookmarksApplyPolicy').textContent = 'Apply the deleted-user policy (' + (users.DeletedUserPolicy || 'KeepAsOrphan') + ') to them';
+                }
+
+                // The list of users deleted on this server, kit-users.json (Bookmarks 1.2): while it can't be read, the Data
+                // tab's way out, Start the list empty, with what that means.
+                function renderMarksRecovery(users) {
+                    var section = find('BookmarksMarksRecovery');
+                    var marks = users && !users.Error ? users.Marks : null;
+                    if (!marks || marks.Recoverable !== true) {
+                        section.classList.add('hide');
+                        return;
+                    }
+
+                    find('BookmarksMarksRecoveryText').textContent = 'The list of users deleted on this server (kit-users.json) couldn\'t be read, so Remap by name and an import that matches users by name are refused: '
+                        + 'they could give a deleted user\'s bookmarks to a new user of the same name. Start the list empty to go on: what couldn\'t be read is kept as kit-users.json.corrupt-<time>, '
+                        + 'the list of users this server doesn\'t know is rebuilt from the server\'s users, and the users deleted while it couldn\'t be read may be lost from it (their bookmarks then count as users this server doesn\'t know).';
+                    setDisabled(find('BookmarksMarksStartEmpty'), false);
+                    section.classList.remove('hide');
+                }
+
+                // The clip file renames not finished (since 1.2.0), as text: none, or in amber how many wait, the
+                // notes that can't be read by their files' names, and what to do; the line to look at before going back to 1.1.
+                function renderClipRenames(summary, renames) {
+                    if (!renames || renames.Error) {
+                        return;
+                    }
+
+                    var unfinished = renames.Unfinished || 0;
+                    if (unfinished === 0) {
+                        summary.appendChild(element('p', 'Clip file renames not finished: none.', 'bookmarksClipRenamesLine'));
+                        return;
+                    }
+
+                    var unreadable = renames.UnreadableFiles || [];
+                    summary.appendChild(warningLine('Clip file renames not finished: ' + unfinished + '. Their clips are left as they are and show "Rename not finished" on My Clips; '
+                        + 'the server finishes each as soon as it can reach the clip\'s folder and save the bookmark data, trying again after a minute, then less often while nothing changes (every 16 minutes at most).'
+                        + (unreadable.length > 0
+                            ? ' ' + count(renames.Unreadable || unreadable.length, 'note', 'notes') + ' can\'t be read (' + unreadable.join(', ') + ', in the plugin\'s data folder): look at that clip, then delete the note; its clip is held until then.'
+                            : '')
+                        + ' Don\'t go back to Bookmarks 1.1 while any is waiting.', 'bookmarksClipRenamesLine', 'alert'));
+                }
+
+                function renderDiagnostics(d) {
+                    var banners = find('BookmarksBanners');
+                    var summary = find('BookmarksDiagnosticsSummary');
+                    var list = find('BookmarksClientHealth');
+                    var abi = d.Abi || {};
+                    var store = d.Store || {};
+                    var anchors = d.WebAnchors || {};
+                    var reports = anchors.Reports || {};
+                    summary.replaceChildren(
+                        element('p', 'Bookmarks ' + d.PluginVersion + ', kit ' + d.KitVersion + ', built for Jellyfin ' + abi.Target + ' (server ' + abi.Server + ', ' + (abi.Active ? 'active' : 'inactive') + ').'),
+                        element('p', 'Bookmark file: ' + (store.File || store.Error || 'unknown') + (store.Status ? ' (schema ' + store.Version + ', ' + store.Status + ')' : '') + '.'));
+
+                    // The bookmark file: the store's own sentence on how it came up. Read-only
+                    // (why, and what to do) or recovered from a backup or empty: a warning banner at the top of the page; a
+                    // plain upgrade: a line here. Then the copies kept next to it; the one from before an upgrade is the file
+                    // to put back to use the previous version (README, "Going back to 1.0").
+                    var warnings = [];
+                    if (store.Message && store.Status !== 'Migrated') {
+                        warnings.push(banner(store.Message, 'bookmarksStoreBanner'));
+                    } else if (store.Message) {
+                        summary.appendChild(element('p', store.Message));
+                    }
+
+                    var kept = store.KeptFiles || [];
+                    if (kept.length > 0) {
+                        var names = kept.map(function (file) {
+                            return file.Name + ' (' + (file.Kind === 'PreUpgradeCopy' ? 'schema ' + file.SchemaVersion + ', from before an upgrade' : 'unreadable, moved aside')
+                                + ', ' + dateText(file.Utc) + ')';
+                        });
+                        var more = (store.KeptFileCount || kept.length) - kept.length;
+                        summary.appendChild(element('p', 'Kept next to it until you delete them: ' + names.join(', ')
+                            + (more > 0 ? ', and ' + more + ' older' : '') + '.'));
+                    }
+
+                    summary.appendChild(element('p', 'Browser reports: ' + (anchors.Reporting ? 'recorded' : 'not recorded') + '; ' + (reports.Accepted || 0) + ' accepted, '
+                        + ((reports.Invalid || 0) + (reports.RateLimited || 0) + (reports.TooManyWebClients || 0) + (reports.TooLarge || 0) + (reports.Disabled || 0))
+                        + ' dropped (invalid, too frequent, too many web clients for one user, too large or not recorded).'));
+
+                    // Clip storage: under the Clip folder field, and here the clip jobs waiting or being made and the old
+                    // clip files waiting to be deleted.
+                    var storage = d.ClipStorage;
+                    renderClipStorage(storage);
+                    if (storage && !storage.Error) {
+                        var waiting = storage.Waiting || {};
+                        summary.appendChild(element('p', 'Clip folder: ' + storage.Root + '. Clips waiting or being made: ' + (waiting.Jobs || 0)
+                            + (waiting.Jobs ? ' (about ' + sizeText(waiting.EstimatedBytes) + ')' : '') + '. Old clip files waiting to be deleted: '
+                            + (storage.PendingFileDeletes || 0) + '.'));
+                    }
+
+                    renderClipSweep(summary, d.ClipSweep);
+                    renderClipRenames(summary, d.ClipRenames);
+
+                    // Users: the kit's reconciler's banner when stored users don't match this server (at the top,
+                    // with the store's), and here the data of users the server doesn't know; the Data tab acts on them.
+                    var users = d.Users;
+                    if (users) {
+                        if (users.Banner) {
+                            warnings.push(banner(users.Banner, 'bookmarksUsersBanner'));
+                        }
+
+                        // The list of users deleted on this server (kit-users.json; Bookmarks 1.2): its own banner while it
+                        // can't be read, or after an admin started it empty, and its file and status here.
+                        var marks = users.Marks;
+                        if (marks && marks.Message) {
+                            warnings.push(banner('The list of users deleted on this server (kit-users.json): ' + marks.Message, 'bookmarksMarksBanner'));
+                        }
+
+                        summary.appendChild(element('p', (users.Message || 'No data belongs to users this server doesn\'t know.')
+                            + ' Deleted-user policy: ' + users.DeletedUserPolicy + '.'));
+                        if (marks) {
+                            summary.appendChild(element('p', 'Deleted users file: ' + marks.File + ' (' + (marks.Status || 'can\'t be read now') + ')'
+                                + (marks.MarksInMemory !== null && marks.MarksInMemory !== undefined ? '; ' + count(marks.MarksInMemory, 'mark', 'marks') + ' kept in memory only, until the server restarts' : '') + '.', 'bookmarksMarksStatus'));
+                        }
+                    }
+
+                    renderUnknownUsers(users);
+                    renderMarksRecovery(users);
+                    renderCounts(d.BookmarkCounts);
+
+                    // Jellyfin Enhanced (the kit's coexistence checks): the overlap banner while JE's
+                    // Bookmarks is still on (unless ShowJellyfinEnhancedBanner is off: the server leaves it out), the
+                    // shortcut's check under its field (since 1.1.0; it was a banner here before), the switch-off
+                    // checklist and "Use B for bookmarks", all from the server's JellyfinEnhanced entry, as text.
+                    var je = d.JellyfinEnhanced;
+                    var overlap = je && je.Overlap;
+                    if (overlap && overlap.Banner) {
+                        warnings.push(banner(overlap.Banner, 'bookmarksJeBanner'));
+                    }
+
+                    var ours = (je && je.OurShortcuts || []).filter(function (s) { return s.Name === 'BookmarkNow'; })[0];
+                    if (ours && field('BookmarkNowShortcut').value.trim() === savedShortcut.trim()) {
+                        renderShortcutCheck(ours);
+                    }
+
+                    renderJeImport(d.JeImport, je);
+                    renderJellyfinEnhanced(je, d.JeImport);
+
+                    banners.replaceChildren.apply(banners, warnings);
+
+                    var entries = d.ClientHealth || [];
+                    if (entries.length === 0) {
+                        list.replaceChildren(element('p', 'None since the server started.'));
+                        return;
+                    }
+
+                    // The server keeps at most MaxEntries rows; when full, the row updated longest ago makes room (Overflow).
+                    var overflow = reports.Overflow || 0;
+                    var full = overflow > 0 || (anchors.MaxEntries > 0 && entries.length >= anchors.MaxEntries);
+                    var health = table('bookmarksClientHealth', ['Element', 'Page', 'Web client', 'Layout', 'Times', 'Users', 'Last report'], entries.map(function (entry) {
+                        return [
+                            entry.Anchor + (entry.Required ? '' : ' (optional)'),
+                            entry.View,
+                            entry.WebVersion ? 'web ' + entry.WebVersion : 'web unknown (' + entry.Client + ' ' + entry.ClientVersion + ')',
+                            entry.Layout + (entry.Experimental ? ', experimental' : ''),
+                            entry.Count,
+                            entry.Users,
+                            dateText(entry.LastUtc)
+                        ];
+                    }));
+                    list.replaceChildren(health);
+                    if (full) {
+                        list.insertBefore(element('p', 'The list is full: it keeps the ' + (anchors.MaxEntries || entries.length) + ' problems reported most recently, and '
+                            + overflow + ' older ones made room for newer ones since the server started.', 'fieldDescription'), health);
+                    }
+                }
+
+                function loadDiagnostics() {
+                    return ApiClient.getJSON(ApiClient.getUrl('Bookmarks/Admin/Diagnostics')).then(renderDiagnostics, function () {
+                        find('BookmarksBanners').replaceChildren();
+                        find('BookmarksClipStorage').replaceChildren();
+                        find('BookmarksCounts').replaceChildren();
+                        find('BookmarksDiagnosticsSummary').replaceChildren(element('p', 'Diagnostics could not be loaded.'));
+                    });
+                }
+
+                // ---------------------------------------------------------------- export and import
+
+                // GET /Bookmarks/Admin/Export with the session's authorization (never a token in a link), saved under the
+                // server's file name.
+                find('BookmarksExport').addEventListener('click', function () {
+                    var status = find('BookmarksExportStatus');
+                    Dashboard.showLoadingMsg();
+                    ApiClient.ajax({ type: 'GET', url: ApiClient.getUrl('Bookmarks/Admin/Export') }).then(function (response) {
+                        var disposition = response && response.headers && typeof response.headers.get === 'function' ? response.headers.get('Content-Disposition') || '' : '';
+                        var match = /filename\*?=(?:UTF-8'')?"?([^";]+)"?/i.exec(disposition);
+                        var name = match ? decodeURIComponent(match[1]) : 'bookmarks-export.json';
+                        return response.blob().then(function (blob) {
+                            var url = URL.createObjectURL(blob);
+                            var link = element('a');
+                            link.setAttribute('href', url);
+                            link.setAttribute('download', name);
+                            link.style.display = 'none';
+                            page.appendChild(link);
+                            link.click();
+                            link.remove();
+                            setTimeout(function () { URL.revokeObjectURL(url); }, 10000);
+                            Dashboard.hideLoadingMsg();
+                            status.replaceChildren(element('span', 'Exported as ' + name + '. It holds every user\'s bookmark names and notes: keep it safe.', 'bookmarksExportDone'));
+                        });
+                    }).then(null, function (response) {
+                        Dashboard.hideLoadingMsg();
+                        return problemText(response, 'The export didn\'t work' + (response && response.status ? ' (' + response.status + ')' : '') + '.').then(function (text) {
+                            status.replaceChildren(warningLine(text, 'bookmarksExportError', 'alert'));
+                        });
+                    });
+                });
+
+                // The import: a file chosen, a dry run of it with the options shown, then Import with the same options. A new
+                // file or option needs a new dry run.
+                var importFile = null;
+                var importDryRunOf = null;
+                function importOptions() {
+                    return 'mode=' + encodeURIComponent(find('BookmarksImportMode').value) + '&mapUsersBy=' + encodeURIComponent(find('BookmarksImportUsers').value);
+                }
+
+                function resetImport() {
+                    importDryRunOf = null;
+                    setDisabled(find('BookmarksImportDryRun'), !importFile);
+                    setDisabled(find('BookmarksImportApply'), true);
+                }
+
+                find('BookmarksImportFile').addEventListener('change', function () {
+                    var files = find('BookmarksImportFile').files;
+                    importFile = files && files.length ? files[0] : null;
+                    find('BookmarksImportReport').replaceChildren();
+                    resetImport();
+                });
+                find('BookmarksImportMode').addEventListener('change', resetImport);
+                find('BookmarksImportUsers').addEventListener('change', resetImport);
+
+                function count(n, one, many) {
+                    return n + ' ' + (n === 1 ? one : many);
+                }
+
+                // The kit's import report, as text: what the file is, what happens to its bookmarks, its users, the
+                // archive, the notes in amber, and the snapshot taken before.
+                function renderDataImport(r) {
+                    var node = find('BookmarksImportReport');
+                    var c = r.Records || {};
+                    var dry = r.DryRun !== false;
+                    var parts = [element('p', (dry ? 'Dry run, nothing was changed. ' : 'Imported. ') + 'The file is an export of Bookmarks ' + r.SourcePluginVersion
+                        + ' (schema ' + r.SchemaVersion + (r.MigratedFrom ? ', upgraded on the way' : '') + ') from ' + dateText(r.ExportedUtc) + ', with '
+                        + count(c.Incoming || 0, 'bookmark', 'bookmarks') + '. ' + (dry ? 'The import would add ' : 'Added ') + (c.Added || 0) + ', '
+                        + (dry ? 'update ' : 'updated ') + (c.Updated || 0) + ', ' + (dry ? 'leave ' : 'left ') + (c.Unchanged || 0) + ' unchanged, ' + (dry ? 'keep ' : 'kept ') + (c.KeptNewer || 0)
+                        + ' newer here, ' + (dry ? 'remove ' : 'removed ') + (c.Removed || 0) + ', and ' + (dry ? 'skip ' : 'skipped ') + ((c.SkippedUnknownUser || 0) + (c.Skipped || 0))
+                        + ' (' + (c.SkippedUnknownUser || 0) + ' of users not found here).', 'bookmarksImportSummary')];
+                    var users = r.Users || {};
+                    var rows = (users.Mapped || []).map(function (u) { return [u.Name || u.Id, 'Found' + (u.Id === u.NewId ? '' : ': ' + u.NewId), u.Records]; })
+                        .concat((users.Unknown || []).map(function (u) { return [u.Name || u.Id, 'Not found: ' + u.Reason, u.Records]; }));
+                    if (rows.length) {
+                        parts.push(table('bookmarksImportUsers', ['User in the file', 'On this server', 'Records'], rows, [false, false, true]));
+                    }
+
+                    var archive = r.Archive || {};
+                    if (archive.Records) {
+                        parts.push(element('p', 'Archived bookmarks in the file: ' + archive.Records + '; ' + (dry ? 'would be imported: ' : 'imported: ') + (archive.Imported || 0) + '.', 'fieldDescription'));
+                    }
+
+                    if (archive.Note) {
+                        parts.push(warningLine(archive.Note, 'bookmarksImportNote'));
+                    }
+
+                    (r.Notes || []).forEach(function (note) {
+                        parts.push(warningLine(note, 'bookmarksImportNote'));
+                    });
+                    if (r.Settings) {
+                        parts.push(element('p', 'Settings: ' + r.Settings, 'fieldDescription'));
+                    }
+
+                    if (r.SafetySnapshot) {
+                        parts.push(element('p', 'The bookmark data from just before the import was kept as ' + r.SafetySnapshot + ' (Snapshots, below).', 'fieldDescription'));
+                    }
+
+                    if (dry && r.StoreReadOnly) {
+                        parts.push(warningLine('The bookmark data is read-only right now, so nothing can be imported.', 'bookmarksImportBlocked'));
+                    } else if (dry && r.ClipsBeingMade > 0) {
+                        parts.push(warningLine('Clips are being made right now (' + r.ClipsBeingMade + '). Import once they are done, after another dry run.', 'bookmarksImportBlocked'));
+                    }
+
+                    node.replaceChildren.apply(node, parts);
+                }
+
+                function runDataImport(dryRun) {
+                    if (!importFile) {
+                        return Promise.resolve();
+                    }
+
+                    var file = importFile;
+                    var options = importOptions();
+                    var node = find('BookmarksImportReport');
+                    setDisabled(find('BookmarksImportApply'), true);
+                    Dashboard.showLoadingMsg();
+                    return file.text().then(function (text) {
+                        return postJson('Bookmarks/Admin/Import', options + '&dryRun=' + (dryRun ? 'true' : 'false'), text);
+                    }).then(function (report) {
+                        Dashboard.hideLoadingMsg();
+                        renderDataImport(report || {});
+                        if (dryRun) {
+                            importDryRunOf = file === importFile && options === importOptions() ? options : null;
+                            setDisabled(find('BookmarksImportApply'), !importDryRunOf || (report && (report.StoreReadOnly || report.ClipsBeingMade > 0)));
+                        } else {
+                            importDryRunOf = null;
+                            loadDiagnostics();
+                            loadSnapshots();
+                        }
+                    }, function (response) {
+                        Dashboard.hideLoadingMsg();
+                        importDryRunOf = null;
+                        return problemText(response, 'The import didn\'t run' + (response && response.status ? ' (' + response.status + ')' : '') + '.').then(function (text) {
+                            node.replaceChildren(warningLine(text, 'bookmarksImportError', 'alert'));
+                        });
+                    });
+                }
+
+                find('BookmarksImportDryRun').addEventListener('click', function () {
+                    runDataImport(true);
+                });
+                find('BookmarksImportApply').addEventListener('click', function () {
+                    if (!importFile || importDryRunOf !== importOptions()) {
+                        resetImport();
+                        return;
+                    }
+
+                    var replace = find('BookmarksImportMode').value === 'Replace';
+                    confirmed(replace
+                        ? 'Replace every bookmark on this server with the file\'s? Bookmarks that aren\'t in the file are removed. A snapshot of the data as it is now is taken first.'
+                        : 'Import the file\'s bookmarks as the dry run showed? A snapshot of the data as it is now is taken first.', 'Import bookmarks').then(function (ok) {
+                        if (ok) {
+                            runDataImport(false);
+                        }
+                    });
+                });
+
+                // ---------------------------------------------------------------- snapshots and maintenance
+
+                var kindText = {
+                    'import': 'Before an import',
+                    restore: 'Before a restore',
+                    'user-deleted': 'Before a deleted user\'s data was removed',
+                    'apply-policy': 'Before the deleted-user policy',
+                    remap: 'Before Remap by name',
+                    purge: 'Before a purge'
+                };
+
+                // Why a snapshot is kept (Snapshots' KeptBecause: how the data was found when the kept ones were recorded).
+                // Restoring one of them ends it.
+                var keptWhy = {
+                    RecoveredEmpty: 'there when the data started empty',
+                    RestoredFromSnapshot: 'there when the data was restored from a snapshot',
+                    RecoveredFromBackup: 'there when the data was restored from its backup',
+                    other: 'there when the data was found missing or unreadable'
+                };
+
+                // The way out of missing or unreadable data (Bookmarks 1.2): what happened is the banner at the top; here, what
+                // can be done about it.
+                function renderRecovery(answer) {
+                    var panel = find('BookmarksRecovery');
+                    if (!answer || answer.Recoverable !== true) {
+                        panel.classList.add('hide');
+                        return;
+                    }
+
+                    var unreadable = answer.StoreReadOnlyReason === 'DataUnreadable';
+                    find('BookmarksRecoveryText').textContent = (unreadable
+                        ? 'The bookmark data couldn\'t be read, and no snapshot could take its place on its own (the banner at the top of the page says why), so nothing can be changed. '
+                        : 'The bookmark data is missing, and no snapshot could be restored on its own (the banner at the top of the page says why), so nothing can be changed. ')
+                        + 'Restore one of the snapshots below, or start empty. Every snapshot is kept either way'
+                        + (unreadable ? ', and so is the file that couldn\'t be read, as bookmarks.json.corrupt-<time>.' : '.');
+                    setDisabled(find('BookmarksStartEmpty'), false);
+                    panel.classList.remove('hide');
+                }
+
+                function renderSnapshots(answer) {
+                    var node = find('BookmarksSnapshots');
+                    var snapshots = (answer && answer.Snapshots) || [];
+                    var recoverable = !!answer && answer.Recoverable === true;
+                    lastSnapshots = answer || null;
+                    renderRecovery(answer);
+                    var blocked = recoverable ? null
+                        : answer && answer.StoreReadOnly ? 'The bookmark data is read-only right now, so no snapshot can be restored.'
+                        : answer && answer.ClipsBeingMade > 0 ? 'Clips are being made right now (' + answer.ClipsBeingMade + '); a snapshot can be restored once they are done.'
+                        : null;
+                    var parts = [element('p', snapshots.length ? count(snapshots.length, 'snapshot', 'snapshots') + ', newest first. Daily snapshots kept: ' + answer.SnapshotsToKeep + '.'
+                        : 'No snapshots yet: the daily maintenance takes the first one' + (answer && answer.SnapshotsToKeep === 0 ? ' once Daily snapshots to keep is more than 0.' : '.'), 'bookmarksSnapshotsSummary')];
+                    if (blocked) {
+                        parts.push(warningLine(blocked, 'bookmarksSnapshotsBlocked'));
+                    }
+
+                    if (snapshots.length) {
+                        var keptNote = keptWhy[answer.KeptBecause] || keptWhy.other;
+                        parts.push(table('bookmarksSnapshotsTable', ['Taken', 'What', 'Size', 'Schema', ''], snapshots.map(function (s) {
+                            var button = element('button', 'Restore', 'raised emby-button bookmarksRestore');
+                            button.setAttribute('type', 'button');
+                            button.setAttribute('data-name', String(s.Name));
+                            button.setAttribute('aria-label', 'Restore the snapshot of ' + dateText(s.Utc));
+
+                            // A snapshot this version can't restore (a newer schema, or one whose schema can't be read: not
+                            // readable, empty) is listed with its Restore off; the server refuses it (409) all the same.
+                            var unknownSchema = s.SchemaVersion === null || s.SchemaVersion === undefined;
+                            var newerSchema = !unknownSchema && s.SchemaVersion > 2;
+                            setDisabled(button, !!blocked || unknownSchema || newerSchema);
+                            if (unknownSchema || newerSchema) {
+                                button.setAttribute('title', newerSchema ? 'Written by a newer Bookmarks: install that version to restore it.' : 'This snapshot can\'t be read, so it can\'t be restored.');
+                            }
+
+                            button.addEventListener('click', function () {
+                                if (recoverable) {
+                                    recoverFromSnapshot(s);
+                                } else {
+                                    restoreSnapshot(s);
+                                }
+                            });
+                            return [dateText(s.Utc), (s.Kind === 'PreOp' ? (kindText[s.Operation] || 'Before ' + s.Operation) : 'Daily') + (s.Kept ? ' (kept: ' + keptNote + ')' : ''),
+                                sizeText(s.Size), unknownSchema ? '?' : s.SchemaVersion, button];
+                        }), [false, false, true, true, false]));
+                    }
+
+                    node.replaceChildren.apply(node, parts);
+                }
+
+                var lastSnapshots = null;
+
+                function loadSnapshots() {
+                    return ApiClient.getJSON(ApiClient.getUrl('Bookmarks/Admin/Snapshots')).then(renderSnapshots, function () {
+                        find('BookmarksSnapshots').replaceChildren(element('p', 'The snapshots could not be listed.'));
+                    });
+                }
+
+                // What a recovery kept aside, for its report.
+                function keptText(result) {
+                    var moved = (result && result.MovedAside) || [];
+                    return (moved.length ? ' What couldn\'t be read is kept as ' + moved.join(' and ') + '.' : '')
+                        + ' Every snapshot is kept until you restore one of them.';
+                }
+
+                function recoveryRefused(node, response, fallback) {
+                    Dashboard.hideLoadingMsg();
+                    return problemText(response, fallback + (response && response.status ? ' (' + response.status + ')' : '') + '.').then(function (text) {
+                        node.replaceChildren(warningLine(text, 'bookmarksRestoreError', 'alert'));
+                    });
+                }
+
+                // Restore while the data is missing or unreadable (POST Snapshots/Restore does the store's recovery then): no
+                // copy of the data as it is now (there is none), what couldn't be read kept aside, every snapshot kept.
+                function recoverFromSnapshot(snapshot) {
+                    var node = find('BookmarksRestoreReport');
+                    var unreadable = !!lastSnapshots && lastSnapshots.StoreReadOnlyReason === 'DataUnreadable';
+                    confirmDialog({
+                        title: 'Restore snapshot?',
+                        text: 'Restore the snapshot of ' + dateText(snapshot.Utc) + '? The bookmark data becomes the snapshot\'s, and can be changed again at once; what was added or changed after it is missing. '
+                            + (unreadable ? 'The file that couldn\'t be read is kept as bookmarks.json.corrupt-<time>. ' : '') + 'Every snapshot is kept, this one too.',
+                        confirm: 'Restore',
+                        className: 'bookmarksRecoverConfirm'
+                    }).then(function (ok) {
+                        if (!ok) {
+                            return;
+                        }
+
+                        Dashboard.showLoadingMsg();
+                        return postJson('Bookmarks/Admin/Snapshots/Restore', 'name=' + encodeURIComponent(snapshot.Name)).then(function (result) {
+                            Dashboard.hideLoadingMsg();
+                            node.replaceChildren(element('p', 'Restored ' + result.RestoredFrom + ' (' + count(result.Bookmarks || 0, 'bookmark', 'bookmarks') + '); the bookmark data can be changed again.'
+                                + keptText(result)
+                                + (result.ClipJobsEnded > 0 ? ' ' + count(result.ClipJobsEnded, 'clip was', 'clips were') + ' being made when the snapshot was taken: '
+                                    + (result.ClipJobsEnded === 1 ? 'it is' : 'they are') + ' marked failed, and can be made again.' : ''), 'bookmarksRestoreDone'));
+                            loadSnapshots();
+                            loadDiagnostics();
+                        }, function (response) {
+                            return recoveryRefused(node, response, 'The snapshot wasn\'t restored');
+                        });
+                    });
+                }
+
+                // Start empty, an admin's choice only (POST Data/StartEmpty): the store never does it on its own.
+                find('BookmarksStartEmpty').addEventListener('click', function () {
+                    var node = find('BookmarksRestoreReport');
+                    var unreadable = !!lastSnapshots && lastSnapshots.StoreReadOnlyReason === 'DataUnreadable';
+                    confirmDialog({
+                        title: 'Start empty?',
+                        text: 'Start the bookmark data empty? Every user\'s bookmarks are gone from Bookmarks until a snapshot that holds them is restored. Every snapshot is kept'
+                            + (unreadable ? ', and so is the file that couldn\'t be read, as bookmarks.json.corrupt-<time>.' : '.') + ' Only do this when none of the snapshots holds the bookmarks you want.',
+                        confirm: 'Start empty',
+                        className: 'bookmarksStartEmptyConfirm'
+                    }).then(function (ok) {
+                        if (!ok) {
+                            return;
+                        }
+
+                        Dashboard.showLoadingMsg();
+                        return postJson('Bookmarks/Admin/Data/StartEmpty').then(function (result) {
+                            Dashboard.hideLoadingMsg();
+                            node.replaceChildren(element('p', 'The bookmark data starts empty, and can be changed again.' + keptText(result), 'bookmarksStartedEmpty'));
+                            loadSnapshots();
+                            loadDiagnostics();
+                        }, function (response) {
+                            return recoveryRefused(node, response, 'The data wasn\'t started empty');
+                        });
+                    });
+                });
+
+                function restoreSnapshot(snapshot) {
+                    var node = find('BookmarksRestoreReport');
+                    confirmed('Restore the snapshot of ' + dateText(snapshot.Utc) + '? Every bookmark becomes the snapshot\'s: what was added or changed since is undone. A snapshot of the data as it is now is taken first.', 'Restore snapshot').then(function (ok) {
+                        if (!ok) {
+                            return;
+                        }
+
+                        Dashboard.showLoadingMsg();
+                        return postJson('Bookmarks/Admin/Snapshots/Restore', 'name=' + encodeURIComponent(snapshot.Name)).then(function (result) {
+                            Dashboard.hideLoadingMsg();
+                            node.replaceChildren(element('p', 'Restored ' + result.RestoredFrom + ' (' + count(result.Bookmarks || 0, 'bookmark', 'bookmarks') + ').'
+                                + (result.SafetySnapshot ? ' The data from just before was kept as ' + result.SafetySnapshot + '.' : '')
+                                + (result.ClipJobsEnded > 0 ? ' ' + count(result.ClipJobsEnded, 'clip was', 'clips were') + ' being made when the snapshot was taken: '
+                                    + (result.ClipJobsEnded === 1 ? 'it is' : 'they are') + ' marked failed, and can be made again.' : ''), 'bookmarksRestoreDone'));
+                            loadSnapshots();
+                            loadDiagnostics();
+                        }, function (response) {
+                            Dashboard.hideLoadingMsg();
+                            return problemText(response, 'The snapshot wasn\'t restored' + (response && response.status ? ' (' + response.status + ')' : '') + '.').then(function (text) {
+                                node.replaceChildren(warningLine(text, 'bookmarksRestoreError', 'alert'));
+                            });
+                        });
+                    });
+                }
+
+                find('BookmarksRunMaintenance').addEventListener('click', function () {
+                    var status = find('BookmarksMaintenanceStatus');
+                    postJson('Bookmarks/Admin/Maintenance/Run').then(function () {
+                        status.replaceChildren(element('span', 'The daily maintenance runs now (Dashboard, Scheduled Tasks: Bookmarks: Maintenance); the Diagnostics tab shows its last run.', 'bookmarksMaintenanceQueued'));
+                    }, function (response) {
+                        return problemText(response, 'The maintenance didn\'t start' + (response && response.status ? ' (' + response.status + ')' : '') + '.').then(function (text) {
+                            status.replaceChildren(warningLine(text, 'bookmarksMaintenanceError', 'alert'));
+                        });
+                    });
+                });
+
+                // ---------------------------------------------------------------- users this server doesn't know
+
+                function renderUsersReport(text, rows, className) {
+                    var node = find('BookmarksUsersReport');
+                    var parts = [element('p', text, className)];
+                    if (rows && rows.length) {
+                        parts.push(table('bookmarksUsersReportTable', ['Last seen name', 'User id', 'Records', 'Outcome'], rows, [false, false, true, false]));
+                    }
+
+                    node.replaceChildren.apply(node, parts);
+                }
+
+                function runRemap(dryRun) {
+                    setDisabled(find('BookmarksRemapApply'), true);
+                    Dashboard.showLoadingMsg();
+                    return postJson('Bookmarks/Admin/Users/Remap', 'by=Name&dryRun=' + (dryRun ? 'true' : 'false')).then(function (r) {
+                        Dashboard.hideLoadingMsg();
+                        var mapped = r.Mapped || [];
+                        var rows = mapped.map(function (m) { return [m.Name, m.OldId, m.Records, (dryRun ? 'Would go to ' : 'Given to ') + m.Name + ' (' + m.NewId + ')']; })
+                            .concat((r.Unmatched || []).map(function (u) { return [u.Name || '(no name known)', u.OldId, u.Records, 'Left alone: ' + u.Reason]; }));
+                        renderUsersReport((dryRun ? 'Dry run, nothing was changed: ' + count(mapped.length, 'user', 'users') + ' would be remapped by name.'
+                            : 'Remapped ' + count(mapped.length, 'user', 'users') + ' by name, ' + count(r.MovedRecords || 0, 'record', 'records') + ' moved.'), rows, 'bookmarksRemapSummary');
+                        setDisabled(find('BookmarksRemapApply'), !dryRun || mapped.length === 0);
+                        if (!dryRun) {
+                            loadDiagnostics();
+                        }
+                    }, function (response) {
+                        Dashboard.hideLoadingMsg();
+                        return problemText(response, 'Remap by name didn\'t run' + (response && response.status ? ' (' + response.status + ')' : '') + '.').then(function (text) {
+                            find('BookmarksUsersReport').replaceChildren(warningLine(text, 'bookmarksUsersError', 'alert'));
+                        });
+                    });
+                }
+
+                // Start the list of deleted users empty (POST Users/Marks/StartEmpty), an admin's choice only, in the kit's dialog
+                // with the focus on Cancel.
+                find('BookmarksMarksStartEmpty').addEventListener('click', function () {
+                    var node = find('BookmarksMarksReport');
+                    confirmDialog({
+                        title: 'Start the list of deleted users empty?',
+                        text: 'Start the list of users deleted on this server empty? What couldn\'t be read is kept as kit-users.json.corrupt-<time>, and the list of users this server doesn\'t know is rebuilt from the server\'s users. '
+                            + 'Users deleted while the list couldn\'t be read may be lost from it: their bookmarks then count as users this server doesn\'t know, and Remap by name could give them to a user of the same name.',
+                        confirm: 'Start the list empty',
+                        className: 'bookmarksMarksStartEmptyConfirm'
+                    }).then(function (ok) {
+                        if (!ok) {
+                            return;
+                        }
+
+                        Dashboard.showLoadingMsg();
+                        return postJson('Bookmarks/Admin/Users/Marks/StartEmpty').then(function (result) {
+                            Dashboard.hideLoadingMsg();
+                            var moved = (result && result.MovedAside) || [];
+                            node.replaceChildren(element('p', 'The list of deleted users starts empty, and can be changed again.'
+                                + (moved.length ? ' What couldn\'t be read is kept as ' + moved.join(' and ') + '.' : '')
+                                + (result && result.MarksKept > 0 ? ' ' + count(result.MarksKept, 'user', 'users') + ' deleted since the server started ' + (result.MarksKept === 1 ? 'is' : 'are') + ' still on it.' : ''), 'bookmarksMarksStartedEmpty'));
+                            loadDiagnostics();
+                        }, function (response) {
+                            return recoveryRefused(node, response, 'The list wasn\'t started empty');
+                        });
+                    });
+                });
+
+                find('BookmarksRemapDryRun').addEventListener('click', function () {
+                    runRemap(true);
+                });
+                find('BookmarksRemapApply').addEventListener('click', function () {
+                    confirmed('Give each of these users\' bookmarks to the user of this server with the same name, as the dry run showed? A snapshot is taken first.', 'Remap by name').then(function (ok) {
+                        if (ok) {
+                            runRemap(false);
+                        }
+                    });
+                });
+                find('BookmarksApplyPolicy').addEventListener('click', function () {
+                    var ids = unknownUserIds.slice();
+                    if (!ids.length) {
+                        return;
+                    }
+
+                    confirmed('Treat these ' + count(ids.length, 'user', 'users') + ' as deleted users and apply the deleted-user policy to their bookmarks? A snapshot is taken first.', 'Apply deleted-user policy').then(function (ok) {
+                        if (!ok) {
+                            return;
+                        }
+
+                        Dashboard.showLoadingMsg();
+                        return postJson('Bookmarks/Admin/Users/ApplyPolicy', null, JSON.stringify({ UserIds: ids })).then(function (r) {
+                            Dashboard.hideLoadingMsg();
+                            renderUsersReport('Applied ' + r.Policy + ' to ' + count(ids.length, 'user', 'users') + ': ' + count(r.Affected || 0, 'record', 'records') + ' affected.', null, 'bookmarksPolicySummary');
+                            loadDiagnostics();
+                        }, function (response) {
+                            Dashboard.hideLoadingMsg();
+                            return problemText(response, 'The policy wasn\'t applied' + (response && response.status ? ' (' + response.status + ')' : '') + '.').then(function (text) {
+                                find('BookmarksUsersReport').replaceChildren(warningLine(text, 'bookmarksUsersError', 'alert'));
+                            });
+                        });
+                    });
+                });
+
+                // ---------------------------------------------------------------- page events
+
+                page.addEventListener('pageshow', function () {
+                    loadDiagnostics();
+                    loadConfig();
+                    if (!find('BookmarksData').classList.contains('hide')) {
+                        loadSnapshots();
+                    }
+                });
+
+                // The Jellyfin Enhanced import's two buttons: the dry run first, then the import.
+                find('BookmarksJeDryRun').addEventListener('click', function () {
+                    runJeImport(true);
+                });
+                find('BookmarksJeApply').addEventListener('click', function () {
+                    runJeImport(false);
+                });
+
+                // "Use B for bookmarks": re-reads the server's check first and sets the
+                // server-wide BookmarkNowShortcut to B only while Jellyfin Enhanced's B is still durably free for everyone
+                // (CanUseB) and the import has run; the section is re-rendered from the fresh answer otherwise.
+                // The shortcut field on the Settings tab shows B afterwards, so a later Save keeps it. Users keep their own
+                // device override.
+                find('BookmarksUseB').addEventListener('click', function () {
+                    Dashboard.showLoadingMsg();
+                    ApiClient.getJSON(ApiClient.getUrl('Bookmarks/Admin/Diagnostics')).then(function (d) {
+                        var overlap = d.JellyfinEnhanced && d.JellyfinEnhanced.Overlap;
+                        if (!overlap || !overlap.CanUseB || !checklistReady(d.JeImport)) {
+                            Dashboard.hideLoadingMsg();
+                            renderDiagnostics(d);
+                            return;
+                        }
+
+                        return ApiClient.getPluginConfiguration(pluginId).then(function (config) {
+                            config.BookmarkNowShortcut = 'B';
+                            return ApiClient.updatePluginConfiguration(pluginId, config).then(function (result) {
+                                field('BookmarkNowShortcut').value = 'B';
+                                savedShortcut = 'B';
+                                Dashboard.processPluginConfigurationUpdateResult(result);
+                                loadDiagnostics();
+                            });
+                        });
+                    }, function () {
+                        Dashboard.hideLoadingMsg();
+                    });
+                });
+            })();
+        </script>
+    </div>
+</body>
+</html>

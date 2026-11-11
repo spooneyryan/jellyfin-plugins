@@ -1,0 +1,558 @@
+{
+  "name": "The fallback routes of Bookmarks' page demo (#/jfbm-demo-a, #/jfbm-demo-b) in the default FallbackOnly mode: \"Library tools\" above \"User\", no \"Page not found\" frame (frame probe, with its positive control at the end), titles, page events on swaps (the drawer's Home within 2 s, one history entry per navigation), back and forward, parameters, hard reload, a stale Plugin Pages link, an unknown key and the hand-back. Turns EnablePageDemo on (sandbox data only).",
+  "failOnException": false,
+  "timeout": 30000,
+  "steps": [
+    {
+      "name": "frame probe in every document (probes/pages-probe.js)",
+      "initScript": {
+        "file": "probes/pages-probe.js"
+      }
+    },
+    {
+      "name": "sign in as admin",
+      "login": "admin"
+    },
+    {
+      "name": "turn the page demo on (the developer setting EnablePageDemo; per request)",
+      "script": "const id = 'd0ee1b2a-7f71-4654-8ff2-163a81441b03'; const c = await ApiClient.getPluginConfiguration(id); Object.assign(c, {\"EnablePageDemo\":true,\"EnableDemoPageB\":true,\"EnableWebUi\":true}); await ApiClient.updatePluginConfiguration(id, c); const r = await ApiClient.getPluginConfiguration(id); return { EnablePageDemo: r.EnablePageDemo, EnableDemoPageB: r.EnableDemoPageB, EnableWebUi: r.EnableWebUi, PageHostMode: r.PageHostMode };"
+    },
+    {
+      "name": "reload, so index.html carries the demo's head fragment",
+      "reload": true
+    },
+    {
+      "name": "the home page is shown",
+      "waitFor": "!!document.querySelector('.homePage:not(.hide)')"
+    },
+    {
+      "name": "index.html: one Bookmarks tag, the head fragment once before </head>, and its page state",
+      "eval": "fetch(new URL('index.html', location.href), { cache: 'no-store' }).then(r => r.text()).then(t => { const s = t.match(/<script type=\"application\\/json\" data-jfbm-head data-jfbm-pages>([^<]*)<\\/script>/); return { bookmarksTags: (t.match(/data-jfbm-plugin=/g) || []).length, headStyles: (t.match(/<style data-jfbm-head>/g) || []).length, headFragmentBeforeHeadEnd: t.indexOf('data-jfbm-head') < t.indexOf('</head>'), state: s ? JSON.parse(s[1]) : null, pluginPagesTag: /<script plugin=\"PluginPages\"/.test(t) }; })",
+      "save": "indexHtml",
+      "full": true
+    },
+    {
+      "name": "one tag, one head fragment, FallbackOnly, both demo pages known and on (next to My Bookmarks and My Clips)",
+      "assert": "__vars.indexHtml.bookmarksTags === 1 && __vars.indexHtml.headStyles === 1 && __vars.indexHtml.headFragmentBeforeHeadEnd && __vars.indexHtml.state.mode === 'FallbackOnly' && __vars.indexHtml.state.pages.join() === 'bookmarks,clips,demo-a,demo-b' && __vars.indexHtml.state.off.length === 0"
+    },
+    {
+      "name": "the kit registered both pages on the fallback host",
+      "waitFor": "__jfkit.jfbm.instance.pages.state().hostsKnown && __jfkit.jfbm.instance.pages.state().hosts['demo-a'] === 'Fallback' && __jfkit.jfbm.instance.pages.state().hosts['demo-b'] === 'Fallback' && __jfkit.jfbm.instance.pages.state()",
+      "save": "pages"
+    },
+    {
+      "name": "open the drawer",
+      "click": ".skinHeader .mainDrawerButton"
+    },
+    {
+      "name": "drawer open",
+      "waitFor": "(() => { const a = document.querySelector(\".mainDrawer .userMenuOptions\"); if (!a) return false; const r = a.getBoundingClientRect(); return r.width > 0 && r.height > 0 && r.left >= 0 && r.right <= innerWidth && r.top >= 0 && getComputedStyle(a).visibility !== 'hidden'; })()"
+    },
+    {
+      "name": "\"Library tools\" right before \"User\", both links visible and upgraded",
+      "waitFor": "(() => { const vis = (a) => { if (!a) return false; const r = a.getBoundingClientRect(); return r.width > 0 && r.height > 0 && r.left >= 0 && r.right <= innerWidth && r.top >= 0 && getComputedStyle(a).visibility !== 'hidden'; }; const s = document.querySelector('.mainDrawer-scrollContainer > .jfkit-nav'); const a = s && s.querySelector('a[data-jfbm-nav=\"demo-a\"]'); const b = s && s.querySelector('a[data-jfbm-nav=\"demo-b\"]'); if (!vis(a) || !vis(b)) return false; const pp = document.querySelector('.mainDrawer .pluginMenuOptions'); return { header: s.querySelector('.sidebarHeader').textContent, nextSibling: s.nextElementSibling && s.nextElementSibling.className, a: { href: a.getAttribute('href'), text: a.textContent.trim(), upgraded: a.classList.contains('emby-button'), order: a.getAttribute('data-order') }, b: { href: b.getAttribute('href'), text: b.textContent.trim(), order: b.getAttribute('data-order') }, pluginPagesSection: pp ? { links: pp.querySelectorAll('a').length, ours: pp.querySelectorAll('a[data-itemid^=\"Jellyfin.Plugin.Bookmarks\"]').length } : null }; })()",
+      "save": "drawer",
+      "full": true
+    },
+    {
+      "name": "the section sits before .userMenuOptions and links the fallback routes",
+      "assert": "__vars.drawer.nextSibling === 'userMenuOptions' && __vars.drawer.header === 'Library tools' && __vars.drawer.a.href === '#/jfbm-demo-a' && __vars.drawer.a.upgraded"
+    },
+    {
+      "screenshot": "pages-fallback-drawer.png"
+    },
+    {
+      "name": "history length before the first navigation",
+      "eval": "history.length",
+      "save": "history0"
+    },
+    {
+      "name": "reset the probe",
+      "eval": "__pagesProbe.reset(), true"
+    },
+    {
+      "name": "click Demo page A in Library tools",
+      "click": ".mainDrawer .jfkit-nav a[data-jfbm-nav=\"demo-a\"]"
+    },
+    {
+      "name": "Demo page A renders in #fallbackPage with its title and data",
+      "waitFor": "(() => { const r = [...document.querySelectorAll(\"#fallbackPage > [data-jfbm-page=\\\"demo-a\\\"][data-jfbm-mounted]\")].find(x => x.getClientRects().length > 0); const t = (document.querySelector('.skinHeader .pageTitle') || { textContent: '' }).textContent.trim(); const title = r && r.querySelector('.jfbm-demo-title'); const user = r && r.querySelector('[data-jfbm-demo=\"user\"]'); if (!r || !title || title.textContent !== \"Demo page A\" || [...document.querySelectorAll('#fallbackPage > :not([data-jfbm-page]) h1')].some(h => h.getClientRects().length > 0) || t !== \"Demo page A\" || !user || user.textContent === '…') return false;  return { hash: location.hash, render: Number(r.getAttribute('data-jfbm-render')), reason: r.getAttribute('data-jfbm-reason'), host: r.getAttribute('data-jfbm-host'), params: JSON.parse(r.querySelector('[data-jfbm-demo=\"params\"]').textContent), user: user.textContent, admin: r.querySelector('[data-jfbm-demo=\"admin\"]').textContent, headerTitle: t, documentTitle: document.title, historyLength: history.length }; })()",
+      "save": "a"
+    },
+    {
+      "sleep": 400
+    },
+    {
+      "name": "probe: probeDrawerToA",
+      "eval": "__pagesProbe.summary()",
+      "save": "probeDrawerToA"
+    },
+    {
+      "name": "events: eventsDrawerToA",
+      "eval": "__pagesProbe.events.map(e => e.t + ' ' + e.kind + ' ' + (e.detail || ''))",
+      "save": "eventsDrawerToA"
+    },
+    {
+      "screenshot": "pages-fallback-a.png"
+    },
+    {
+      "name": "reset the probe",
+      "eval": "__pagesProbe.reset(), true"
+    },
+    {
+      "name": "in-page link to Demo page B (appRouter.show; FallbackRoute stays mounted)",
+      "click": "#fallbackPage [data-jfbm-page=\"demo-a\"] a[data-jfbm-link=\"demo-b\"]"
+    },
+    {
+      "name": "Demo page B renders, title updated",
+      "waitFor": "(() => { const r = [...document.querySelectorAll(\"#fallbackPage > [data-jfbm-page=\\\"demo-b\\\"][data-jfbm-mounted]\")].find(x => x.getClientRects().length > 0); const t = (document.querySelector('.skinHeader .pageTitle') || { textContent: '' }).textContent.trim(); const title = r && r.querySelector('.jfbm-demo-title'); const user = r && r.querySelector('[data-jfbm-demo=\"user\"]'); if (!r || !title || title.textContent !== \"Demo page B\" || [...document.querySelectorAll('#fallbackPage > :not([data-jfbm-page]) h1')].some(h => h.getClientRects().length > 0) || t !== \"Demo page B\" || !user || user.textContent === '…') return false;  return { hash: location.hash, render: Number(r.getAttribute('data-jfbm-render')), reason: r.getAttribute('data-jfbm-reason'), host: r.getAttribute('data-jfbm-host'), params: JSON.parse(r.querySelector('[data-jfbm-demo=\"params\"]').textContent), user: user.textContent, admin: r.querySelector('[data-jfbm-demo=\"admin\"]').textContent, headerTitle: t, documentTitle: document.title, historyLength: history.length }; })()",
+      "save": "b"
+    },
+    {
+      "sleep": 400
+    },
+    {
+      "name": "probe: probeAToB",
+      "eval": "__pagesProbe.summary()",
+      "save": "probeAToB"
+    },
+    {
+      "name": "events: eventsAToB",
+      "eval": "__pagesProbe.events.map(e => e.t + ' ' + e.kind + ' ' + (e.detail || ''))",
+      "save": "eventsAToB"
+    },
+    {
+      "name": "reset the probe",
+      "eval": "__pagesProbe.reset(), true"
+    },
+    {
+      "name": "open the drawer",
+      "click": ".skinHeader .mainDrawerButton"
+    },
+    {
+      "name": "drawer open",
+      "waitFor": "(() => { const a = document.querySelector(\".mainDrawer .userMenuOptions\"); if (!a) return false; const r = a.getBoundingClientRect(); return r.width > 0 && r.height > 0 && r.left >= 0 && r.right <= innerWidth && r.top >= 0 && getComputedStyle(a).visibility !== 'hidden'; })()"
+    },
+    {
+      "name": "click Home in the drawer (appRouter.show right after an fallback-to-fallback swap)",
+      "click": ".mainDrawer .navMenuOption[href=\"#/home\"]"
+    },
+    {
+      "name": "the home page shows within 2 s",
+      "waitFor": "location.hash.startsWith('#/home') && !!document.querySelector('.homePage:not(.hide)') && !document.getElementById('fallbackPage') && { hash: location.hash, historyLength: history.length }",
+      "timeout": 2000,
+      "save": "home"
+    },
+    {
+      "sleep": 400
+    },
+    {
+      "name": "probe: probeLeaveToHome",
+      "eval": "__pagesProbe.summary()",
+      "save": "probeLeaveToHome"
+    },
+    {
+      "name": "history grew by exactly one entry per navigation (drawer to A, link to B, drawer to Home)",
+      "assert": "__vars.a.historyLength === __vars.history0 + 1 && __vars.b.historyLength === __vars.history0 + 2 && __vars.home.historyLength === __vars.history0 + 3",
+      "message": "a navigation pushed no entry or two"
+    },
+    {
+      "name": "render counts: rendersAtHome",
+      "eval": "Object.assign({}, __jfkit.jfbm.instance.pages.state().renders)",
+      "save": "rendersAtHome"
+    },
+    {
+      "name": "reset the probe",
+      "eval": "__pagesProbe.reset(), true"
+    },
+    {
+      "name": "browser back (home to B: FallbackRoute mounts before our popstate listener runs)",
+      "eval": "history.back(), true"
+    },
+    {
+      "name": "Demo page B again, rendered again",
+      "waitFor": "(() => { const r = [...document.querySelectorAll(\"#fallbackPage > [data-jfbm-page=\\\"demo-b\\\"][data-jfbm-mounted]\")].find(x => x.getClientRects().length > 0); const t = (document.querySelector('.skinHeader .pageTitle') || { textContent: '' }).textContent.trim(); const title = r && r.querySelector('.jfbm-demo-title'); const user = r && r.querySelector('[data-jfbm-demo=\"user\"]'); if (!r || !title || title.textContent !== \"Demo page B\" || [...document.querySelectorAll('#fallbackPage > :not([data-jfbm-page]) h1')].some(h => h.getClientRects().length > 0) || t !== \"Demo page B\" || !user || user.textContent === '…') return false;  return { hash: location.hash, render: Number(r.getAttribute('data-jfbm-render')), reason: r.getAttribute('data-jfbm-reason'), host: r.getAttribute('data-jfbm-host'), params: JSON.parse(r.querySelector('[data-jfbm-demo=\"params\"]').textContent), user: user.textContent, admin: r.querySelector('[data-jfbm-demo=\"admin\"]').textContent, headerTitle: t, documentTitle: document.title, historyLength: history.length }; })()",
+      "save": "backToB"
+    },
+    {
+      "sleep": 400
+    },
+    {
+      "name": "probe: probeBackToB",
+      "eval": "__pagesProbe.summary()",
+      "save": "probeBackToB"
+    },
+    {
+      "name": "render counts: rendersBackToB",
+      "eval": "Object.assign({}, __jfkit.jfbm.instance.pages.state().renders)",
+      "save": "rendersBackToB"
+    },
+    {
+      "name": "back into the fallback host from Home: one render and one set of page events",
+      "assert": "__vars.rendersBackToB['demo-b'] === (__vars.rendersAtHome['demo-b'] || 0) + 1 && Object.values(__vars.rendersBackToB).reduce((a, b) => a + b, 0) === Object.values(__vars.rendersAtHome).reduce((a, b) => a + b, 0) + 1 && __pagesProbe.events.filter(e => e.kind === 'event:viewshow' && e.detail === '#fallbackPage').length === 1",
+      "message": "back into the fallback host from Home rendered the page twice or fired the page events twice"
+    },
+    {
+      "name": "reset the probe",
+      "eval": "__pagesProbe.reset(), true"
+    },
+    {
+      "name": "browser back (B to A)",
+      "eval": "history.back(), true"
+    },
+    {
+      "name": "Demo page A again, rendered again",
+      "waitFor": "(() => { const r = [...document.querySelectorAll(\"#fallbackPage > [data-jfbm-page=\\\"demo-a\\\"][data-jfbm-mounted]\")].find(x => x.getClientRects().length > 0); const t = (document.querySelector('.skinHeader .pageTitle') || { textContent: '' }).textContent.trim(); const title = r && r.querySelector('.jfbm-demo-title'); const user = r && r.querySelector('[data-jfbm-demo=\"user\"]'); if (!r || !title || title.textContent !== \"Demo page A\" || [...document.querySelectorAll('#fallbackPage > :not([data-jfbm-page]) h1')].some(h => h.getClientRects().length > 0) || t !== \"Demo page A\" || !user || user.textContent === '…') return false; if (Number(r.getAttribute('data-jfbm-render')) <= __vars.a.render) return false; return { hash: location.hash, render: Number(r.getAttribute('data-jfbm-render')), reason: r.getAttribute('data-jfbm-reason'), host: r.getAttribute('data-jfbm-host'), params: JSON.parse(r.querySelector('[data-jfbm-demo=\"params\"]').textContent), user: user.textContent, admin: r.querySelector('[data-jfbm-demo=\"admin\"]').textContent, headerTitle: t, documentTitle: document.title, historyLength: history.length }; })()",
+      "save": "backToA"
+    },
+    {
+      "sleep": 400
+    },
+    {
+      "name": "probe: probeBackToA",
+      "eval": "__pagesProbe.summary()",
+      "save": "probeBackToA"
+    },
+    {
+      "name": "render counts: rendersBackToA",
+      "eval": "Object.assign({}, __jfkit.jfbm.instance.pages.state().renders)",
+      "save": "rendersBackToA"
+    },
+    {
+      "name": "back from B to A: one render and one set of page events",
+      "assert": "__vars.rendersBackToA['demo-a'] === (__vars.rendersBackToB['demo-a'] || 0) + 1 && Object.values(__vars.rendersBackToA).reduce((a, b) => a + b, 0) === Object.values(__vars.rendersBackToB).reduce((a, b) => a + b, 0) + 1 && __pagesProbe.events.filter(e => e.kind === 'event:viewshow' && e.detail === '#fallbackPage').length === 1",
+      "message": "back from B to A rendered the page twice or fired the page events twice"
+    },
+    {
+      "name": "reset the probe",
+      "eval": "__pagesProbe.reset(), true"
+    },
+    {
+      "name": "browser forward (A to B)",
+      "eval": "history.forward(), true"
+    },
+    {
+      "name": "Demo page B again, rendered again",
+      "waitFor": "(() => { const r = [...document.querySelectorAll(\"#fallbackPage > [data-jfbm-page=\\\"demo-b\\\"][data-jfbm-mounted]\")].find(x => x.getClientRects().length > 0); const t = (document.querySelector('.skinHeader .pageTitle') || { textContent: '' }).textContent.trim(); const title = r && r.querySelector('.jfbm-demo-title'); const user = r && r.querySelector('[data-jfbm-demo=\"user\"]'); if (!r || !title || title.textContent !== \"Demo page B\" || [...document.querySelectorAll('#fallbackPage > :not([data-jfbm-page]) h1')].some(h => h.getClientRects().length > 0) || t !== \"Demo page B\" || !user || user.textContent === '…') return false; if (Number(r.getAttribute('data-jfbm-render')) <= __vars.backToB.render) return false; return { hash: location.hash, render: Number(r.getAttribute('data-jfbm-render')), reason: r.getAttribute('data-jfbm-reason'), host: r.getAttribute('data-jfbm-host'), params: JSON.parse(r.querySelector('[data-jfbm-demo=\"params\"]').textContent), user: user.textContent, admin: r.querySelector('[data-jfbm-demo=\"admin\"]').textContent, headerTitle: t, documentTitle: document.title, historyLength: history.length }; })()",
+      "save": "forwardToB"
+    },
+    {
+      "sleep": 400
+    },
+    {
+      "name": "probe: probeForwardToB",
+      "eval": "__pagesProbe.summary()",
+      "save": "probeForwardToB"
+    },
+    {
+      "name": "render counts: rendersForwardToB",
+      "eval": "Object.assign({}, __jfkit.jfbm.instance.pages.state().renders)",
+      "save": "rendersForwardToB"
+    },
+    {
+      "name": "forward from A to B: one render and one set of page events",
+      "assert": "__vars.rendersForwardToB['demo-b'] === (__vars.rendersBackToA['demo-b'] || 0) + 1 && Object.values(__vars.rendersForwardToB).reduce((a, b) => a + b, 0) === Object.values(__vars.rendersBackToA).reduce((a, b) => a + b, 0) + 1 && __pagesProbe.events.filter(e => e.kind === 'event:viewshow' && e.detail === '#fallbackPage').length === 1",
+      "message": "forward from A to B rendered the page twice or fired the page events twice"
+    },
+    {
+      "name": "reset the probe",
+      "eval": "__pagesProbe.reset(), true"
+    },
+    {
+      "name": "link to this page with extra hash parameters",
+      "click": "#fallbackPage [data-jfbm-page=\"demo-b\"] a[data-jfbm-demo=\"self-params\"]"
+    },
+    {
+      "name": "the parameters reach the page",
+      "waitFor": "(() => { const r = [...document.querySelectorAll(\"#fallbackPage > [data-jfbm-page=\\\"demo-b\\\"][data-jfbm-mounted]\")].find(x => x.getClientRects().length > 0); const t = (document.querySelector('.skinHeader .pageTitle') || { textContent: '' }).textContent.trim(); const title = r && r.querySelector('.jfbm-demo-title'); const user = r && r.querySelector('[data-jfbm-demo=\"user\"]'); if (!r || !title || title.textContent !== \"Demo page B\" || [...document.querySelectorAll('#fallbackPage > :not([data-jfbm-page]) h1')].some(h => h.getClientRects().length > 0) || t !== \"Demo page B\" || !user || user.textContent === '…') return false; if (JSON.parse(r.querySelector('[data-jfbm-demo=\"params\"]').textContent).tab !== 'two') return false; return { hash: location.hash, render: Number(r.getAttribute('data-jfbm-render')), reason: r.getAttribute('data-jfbm-reason'), host: r.getAttribute('data-jfbm-host'), params: JSON.parse(r.querySelector('[data-jfbm-demo=\"params\"]').textContent), user: user.textContent, admin: r.querySelector('[data-jfbm-demo=\"admin\"]').textContent, headerTitle: t, documentTitle: document.title, historyLength: history.length }; })()",
+      "save": "params"
+    },
+    {
+      "sleep": 400
+    },
+    {
+      "name": "probe: probeParams",
+      "eval": "__pagesProbe.summary()",
+      "save": "probeParams"
+    },
+    {
+      "name": "hard reload of the fallback deep link",
+      "reload": true
+    },
+    {
+      "name": "after reload: Demo page B with its parameters and title",
+      "waitFor": "(() => { const r = [...document.querySelectorAll(\"#fallbackPage > [data-jfbm-page=\\\"demo-b\\\"][data-jfbm-mounted]\")].find(x => x.getClientRects().length > 0); const t = (document.querySelector('.skinHeader .pageTitle') || { textContent: '' }).textContent.trim(); const title = r && r.querySelector('.jfbm-demo-title'); const user = r && r.querySelector('[data-jfbm-demo=\"user\"]'); if (!r || !title || title.textContent !== \"Demo page B\" || [...document.querySelectorAll('#fallbackPage > :not([data-jfbm-page]) h1')].some(h => h.getClientRects().length > 0) || t !== \"Demo page B\" || !user || user.textContent === '…') return false; if (JSON.parse(r.querySelector('[data-jfbm-demo=\"params\"]').textContent).tab !== 'two') return false; return { hash: location.hash, render: Number(r.getAttribute('data-jfbm-render')), reason: r.getAttribute('data-jfbm-reason'), host: r.getAttribute('data-jfbm-host'), params: JSON.parse(r.querySelector('[data-jfbm-demo=\"params\"]').textContent), user: user.textContent, admin: r.querySelector('[data-jfbm-demo=\"admin\"]').textContent, headerTitle: t, documentTitle: document.title, historyLength: history.length }; })()",
+      "save": "reload"
+    },
+    {
+      "sleep": 400
+    },
+    {
+      "name": "probe: probeReload",
+      "eval": "__pagesProbe.summary()",
+      "save": "probeReload"
+    },
+    {
+      "name": "transitions on our routes: reloadTransitions",
+      "eval": "__pagesProbe.transitions.filter(t => t.loc).map(t => [t.t, t.frames, t.title, t.nf, t.root].join(' | '))",
+      "save": "reloadTransitions"
+    },
+    {
+      "name": "events: reloadEvents",
+      "eval": "__pagesProbe.events.map(e => e.t + ' ' + e.kind + ' ' + (e.detail || ''))",
+      "save": "reloadEvents"
+    },
+    {
+      "screenshot": "pages-fallback-b-reload.png"
+    },
+    {
+      "name": "reset the probe",
+      "eval": "__pagesProbe.reset(), true"
+    },
+    {
+      "name": "a stale Plugin Pages deep link",
+      "goto": "/web/index.html#/userpluginsettings.html?pageUrl=%2FBookmarks%2FPages%2Fdemo-a"
+    },
+    {
+      "name": "Demo page A renders in whichever host serves the link (Plugin Pages' when installed, else the fallback host)",
+      "waitFor": "(() => { const r = [...document.querySelectorAll(\" [data-jfbm-page=\\\"demo-a\\\"][data-jfbm-mounted]\")].find(x => x.getClientRects().length > 0); const t = (document.querySelector('.skinHeader .pageTitle') || { textContent: '' }).textContent.trim(); const title = r && r.querySelector('.jfbm-demo-title'); const user = r && r.querySelector('[data-jfbm-demo=\"user\"]'); if (!r || !title || title.textContent !== \"Demo page A\" || [...document.querySelectorAll('#fallbackPage > :not([data-jfbm-page]) h1')].some(h => h.getClientRects().length > 0) || t !== \"Demo page A\" || !user || user.textContent === '…') return false;  return { hash: location.hash, render: Number(r.getAttribute('data-jfbm-render')), reason: r.getAttribute('data-jfbm-reason'), host: r.getAttribute('data-jfbm-host'), params: JSON.parse(r.querySelector('[data-jfbm-demo=\"params\"]').textContent), user: user.textContent, admin: r.querySelector('[data-jfbm-demo=\"admin\"]').textContent, headerTitle: t, documentTitle: document.title, historyLength: history.length }; })()",
+      "save": "staleLink"
+    },
+    {
+      "sleep": 400
+    },
+    {
+      "name": "probe: probeStaleLink",
+      "eval": "__pagesProbe.summary()",
+      "save": "probeStaleLink"
+    },
+    {
+      "name": "an unknown key on our prefix",
+      "goto": "/web/index.html#/jfbm-nope"
+    },
+    {
+      "sleep": 1500
+    },
+    {
+      "name": "#/jfbm-nope shows jellyfin-web's Page not found",
+      "eval": "(() => { const fp = document.getElementById('fallbackPage'); const root = document.querySelector('#fallbackPage > [data-jfbm-page]'); return { notFoundVisible: [...document.querySelectorAll('#fallbackPage > :not([data-jfbm-page]) h1')].some(h => h.getClientRects().length > 0), ourRootVisible: !!root && root.getClientRects().length > 0, ourRoot: !!root, headerTitle: (document.querySelector('.skinHeader .pageTitle') || { textContent: '' }).textContent.trim(), documentTitle: document.title, fallbackTitle: fp && fp.getAttribute('data-title'), original: fp && fp.getAttribute('data-jfkit-orig-title'), claim: fp && fp.getAttribute('data-jfkit-claim'), routeClass: document.documentElement.classList.contains('jfbm-route') }; })()",
+      "save": "unknownKey"
+    },
+    {
+      "name": "not claimed",
+      "assert": "__vars.unknownKey.notFoundVisible && !__vars.unknownKey.ourRoot && !__vars.unknownKey.routeClass"
+    },
+    {
+      "name": "back to A",
+      "goto": "/web/index.html#/jfbm-demo-a"
+    },
+    {
+      "name": "A",
+      "waitFor": "(() => { const r = [...document.querySelectorAll(\"#fallbackPage > [data-jfbm-page=\\\"demo-a\\\"][data-jfbm-mounted]\")].find(x => x.getClientRects().length > 0); const t = (document.querySelector('.skinHeader .pageTitle') || { textContent: '' }).textContent.trim(); const title = r && r.querySelector('.jfbm-demo-title'); const user = r && r.querySelector('[data-jfbm-demo=\"user\"]'); if (!r || !title || title.textContent !== \"Demo page A\" || [...document.querySelectorAll('#fallbackPage > :not([data-jfbm-page]) h1')].some(h => h.getClientRects().length > 0) || t !== \"Demo page A\" || !user || user.textContent === '…') return false;  return { hash: location.hash, render: Number(r.getAttribute('data-jfbm-render')), reason: r.getAttribute('data-jfbm-reason'), host: r.getAttribute('data-jfbm-host'), params: JSON.parse(r.querySelector('[data-jfbm-demo=\"params\"]').textContent), user: user.textContent, admin: r.querySelector('[data-jfbm-demo=\"admin\"]').textContent, headerTitle: t, documentTitle: document.title, historyLength: history.length }; })()"
+    },
+    {
+      "name": "reset the probe",
+      "eval": "__pagesProbe.reset(), true"
+    },
+    {
+      "name": "to an unknown route of nobody (FallbackRoute stays mounted)",
+      "goto": "/web/index.html#/nobody-route"
+    },
+    {
+      "sleep": 1800
+    },
+    {
+      "name": "the unknown route gets its Page not found and title back",
+      "eval": "(() => { const fp = document.getElementById('fallbackPage'); const root = document.querySelector('#fallbackPage > [data-jfbm-page]'); return { notFoundVisible: [...document.querySelectorAll('#fallbackPage > :not([data-jfbm-page]) h1')].some(h => h.getClientRects().length > 0), ourRootVisible: !!root && root.getClientRects().length > 0, ourRoot: !!root, headerTitle: (document.querySelector('.skinHeader .pageTitle') || { textContent: '' }).textContent.trim(), documentTitle: document.title, fallbackTitle: fp && fp.getAttribute('data-title'), original: fp && fp.getAttribute('data-jfkit-orig-title'), claim: fp && fp.getAttribute('data-jfkit-claim'), routeClass: document.documentElement.classList.contains('jfbm-route') }; })()",
+      "save": "handBack"
+    },
+    {
+      "name": "handed back, titled \"Page not found\"",
+      "assert": "__vars.handBack.notFoundVisible && !__vars.handBack.ourRoot && !__vars.handBack.claim && __vars.handBack.headerTitle === 'Page not found' && __vars.handBack.fallbackTitle === 'Page not found' && __vars.handBack.documentTitle === 'Page not found'"
+    },
+    {
+      "sleep": 400
+    },
+    {
+      "name": "probe: probeHandBack",
+      "eval": "__pagesProbe.summary()",
+      "save": "probeHandBack"
+    },
+    {
+      "name": "open the drawer",
+      "click": ".skinHeader .mainDrawerButton"
+    },
+    {
+      "name": "drawer open",
+      "waitFor": "(() => { const a = document.querySelector(\".mainDrawer .userMenuOptions\"); if (!a) return false; const r = a.getBoundingClientRect(); return r.width > 0 && r.height > 0 && r.left >= 0 && r.right <= innerWidth && r.top >= 0 && getComputedStyle(a).visibility !== 'hidden'; })()"
+    },
+    {
+      "name": "click Home in the drawer (FallbackRoute unmounts)",
+      "click": ".mainDrawer .navMenuOption[href=\"#/home\"]"
+    },
+    {
+      "name": "the home page",
+      "waitFor": "location.hash.startsWith('#/home') && !!document.querySelector('.homePage:not(.hide)') && !document.getElementById('fallbackPage')"
+    },
+    {
+      "name": "open the drawer",
+      "click": ".skinHeader .mainDrawerButton"
+    },
+    {
+      "name": "drawer open",
+      "waitFor": "(() => { const a = document.querySelector(\".mainDrawer .userMenuOptions\"); if (!a) return false; const r = a.getBoundingClientRect(); return r.width > 0 && r.height > 0 && r.left >= 0 && r.right <= innerWidth && r.top >= 0 && getComputedStyle(a).visibility !== 'hidden'; })()"
+    },
+    {
+      "name": "reset the probe",
+      "eval": "__pagesProbe.reset(), true"
+    },
+    {
+      "name": "click Demo page A in Library tools again (a fresh FallbackRoute page)",
+      "click": ".mainDrawer .jfkit-nav a[data-jfbm-nav=\"demo-a\"]"
+    },
+    {
+      "name": "Demo page A",
+      "waitFor": "(() => { const r = [...document.querySelectorAll(\"#fallbackPage > [data-jfbm-page=\\\"demo-a\\\"][data-jfbm-mounted]\")].find(x => x.getClientRects().length > 0); const t = (document.querySelector('.skinHeader .pageTitle') || { textContent: '' }).textContent.trim(); const title = r && r.querySelector('.jfbm-demo-title'); const user = r && r.querySelector('[data-jfbm-demo=\"user\"]'); if (!r || !title || title.textContent !== \"Demo page A\" || [...document.querySelectorAll('#fallbackPage > :not([data-jfbm-page]) h1')].some(h => h.getClientRects().length > 0) || t !== \"Demo page A\" || !user || user.textContent === '…') return false;  return { hash: location.hash, render: Number(r.getAttribute('data-jfbm-render')), reason: r.getAttribute('data-jfbm-reason'), host: r.getAttribute('data-jfbm-host'), params: JSON.parse(r.querySelector('[data-jfbm-demo=\"params\"]').textContent), user: user.textContent, admin: r.querySelector('[data-jfbm-demo=\"admin\"]').textContent, headerTitle: t, documentTitle: document.title, historyLength: history.length }; })()"
+    },
+    {
+      "sleep": 400
+    },
+    {
+      "name": "probe: probeFreshA",
+      "eval": "__pagesProbe.summary()",
+      "save": "probeFreshA"
+    },
+    {
+      "name": "the page's own title is kept for the hand-back",
+      "eval": "(() => { const fp = document.getElementById('fallbackPage'); const root = document.querySelector('#fallbackPage > [data-jfbm-page]'); return { notFoundVisible: [...document.querySelectorAll('#fallbackPage > :not([data-jfbm-page]) h1')].some(h => h.getClientRects().length > 0), ourRootVisible: !!root && root.getClientRects().length > 0, ourRoot: !!root, headerTitle: (document.querySelector('.skinHeader .pageTitle') || { textContent: '' }).textContent.trim(), documentTitle: document.title, fallbackTitle: fp && fp.getAttribute('data-title'), original: fp && fp.getAttribute('data-jfkit-orig-title'), claim: fp && fp.getAttribute('data-jfkit-claim'), routeClass: document.documentElement.classList.contains('jfbm-route') }; })()",
+      "save": "freshA"
+    },
+    {
+      "name": "original title \"Page not found\", ours shown",
+      "assert": "__vars.freshA.original === 'Page not found' && __vars.freshA.fallbackTitle === 'Demo page A' && __vars.freshA.claim === 'jfbm'"
+    },
+    {
+      "name": "reset the probe",
+      "eval": "__pagesProbe.reset(), true"
+    },
+    {
+      "name": "to an unknown route of nobody from the fresh page",
+      "goto": "/web/index.html#/nobody-route"
+    },
+    {
+      "sleep": 300
+    },
+    {
+      "name": "before the hand-back: still our page under our title",
+      "eval": "(() => { const fp = document.getElementById('fallbackPage'); const root = document.querySelector('#fallbackPage > [data-jfbm-page]'); return { notFoundVisible: [...document.querySelectorAll('#fallbackPage > :not([data-jfbm-page]) h1')].some(h => h.getClientRects().length > 0), ourRootVisible: !!root && root.getClientRects().length > 0, ourRoot: !!root, headerTitle: (document.querySelector('.skinHeader .pageTitle') || { textContent: '' }).textContent.trim(), documentTitle: document.title, fallbackTitle: fp && fp.getAttribute('data-title'), original: fp && fp.getAttribute('data-jfkit-orig-title'), claim: fp && fp.getAttribute('data-jfkit-claim'), routeClass: document.documentElement.classList.contains('jfbm-route') }; })()",
+      "save": "leavingFresh"
+    },
+    {
+      "name": "our page and title until the hand-back, \"Page not found\" hidden",
+      "assert": "__vars.leavingFresh.ourRootVisible && !__vars.leavingFresh.notFoundVisible && __vars.leavingFresh.claim === 'jfbm' && __vars.leavingFresh.headerTitle === \"Demo page A\""
+    },
+    {
+      "sleep": 1500
+    },
+    {
+      "name": "after the hand-back",
+      "eval": "(() => { const fp = document.getElementById('fallbackPage'); const root = document.querySelector('#fallbackPage > [data-jfbm-page]'); return { notFoundVisible: [...document.querySelectorAll('#fallbackPage > :not([data-jfbm-page]) h1')].some(h => h.getClientRects().length > 0), ourRootVisible: !!root && root.getClientRects().length > 0, ourRoot: !!root, headerTitle: (document.querySelector('.skinHeader .pageTitle') || { textContent: '' }).textContent.trim(), documentTitle: document.title, fallbackTitle: fp && fp.getAttribute('data-title'), original: fp && fp.getAttribute('data-jfkit-orig-title'), claim: fp && fp.getAttribute('data-jfkit-claim'), routeClass: document.documentElement.classList.contains('jfbm-route') }; })()",
+      "save": "handBackFresh"
+    },
+    {
+      "name": "handed back, titled \"Page not found\" (not \"Demo page A\")",
+      "assert": "__vars.handBackFresh.notFoundVisible && !__vars.handBackFresh.ourRoot && !__vars.handBackFresh.claim && __vars.handBackFresh.headerTitle === 'Page not found' && __vars.handBackFresh.fallbackTitle === 'Page not found' && __vars.handBackFresh.documentTitle === 'Page not found'"
+    },
+    {
+      "sleep": 400
+    },
+    {
+      "name": "probe: probeHandBackFresh",
+      "eval": "__pagesProbe.summary()",
+      "save": "probeHandBackFresh"
+    },
+    {
+      "name": "transitions on our routes: handBackFreshTransitions",
+      "eval": "__pagesProbe.transitions.filter(t => t.loc).map(t => [t.t, t.frames, t.title, t.nf, t.root].join(' | '))",
+      "save": "handBackFreshTransitions"
+    },
+    {
+      "name": "no uncaught exceptions (the stale CustomRatings tag excepted)",
+      "noExceptions": true,
+      "ignore": "/CustomRatings/script|^Error: player cannot be null"
+    },
+    {
+      "name": "every navigation above: 0 \"Page not found\" frames on our routes",
+      "assert": "[__vars.probeDrawerToA, __vars.probeAToB, __vars.probeLeaveToHome, __vars.probeBackToB, __vars.probeBackToA, __vars.probeForwardToB, __vars.probeParams, __vars.probeReload, __vars.probeStaleLink, __vars.probeHandBack, __vars.probeFreshA, __vars.probeHandBackFresh].every(p => p && p.flashFrames === 0)",
+      "message": "a probe counted \"Page not found\" frames on a demo route"
+    },
+    {
+      "name": "the header never read \"Home\" or \"Page not found\" on our routes",
+      "assert": "[__vars.probeDrawerToA, __vars.probeAToB, __vars.probeBackToB, __vars.probeBackToA, __vars.probeForwardToB, __vars.probeParams, __vars.probeReload, __vars.probeStaleLink, __vars.probeFreshA].every(p => p && !('Home' in p.headerTitlesOnOurRoutes) && !('Page not found' in p.headerTitlesOnOurRoutes))",
+      "message": "a demo route showed the title Home or Page not found"
+    },
+    {
+      "name": "positive control: pre-hide off in every later document (probes/pages-prehide-off.js)",
+      "initScript": {
+        "file": "probes/pages-prehide-off.js"
+      }
+    },
+    {
+      "name": "control: load Demo page A",
+      "goto": "/web/index.html#/jfbm-demo-a"
+    },
+    {
+      "name": "control: the hash navigation committed",
+      "waitFor": "location.hash === '#/jfbm-demo-a'"
+    },
+    {
+      "name": "control: cold load",
+      "reload": true
+    },
+    {
+      "name": "control: Demo page A mounted (Page not found now shows next to it)",
+      "waitFor": "(() => { const r = document.querySelector('#fallbackPage > [data-jfbm-page=\"demo-a\"][data-jfbm-mounted][data-jfbm-state=\"on\"]'); return !!r && !!r.querySelector('.jfbm-demo-title') && { hash: location.hash, notFoundVisible: [...document.querySelectorAll('#fallbackPage > :not([data-jfbm-page]) h1')].some(h => h.getClientRects().length > 0), headerTitle: (document.querySelector('.skinHeader .pageTitle') || { textContent: '' }).textContent.trim() }; })()",
+      "save": "control"
+    },
+    {
+      "sleep": 400
+    },
+    {
+      "name": "probe: probeControl",
+      "eval": "__pagesProbe.summary()",
+      "save": "probeControl"
+    },
+    {
+      "name": "control: the probe counted flash frames",
+      "assert": "__vars.probeControl.flashFrames > 0",
+      "message": "the probe saw no flash with the pre-hide rule off"
+    },
+    {
+      "screenshot": "pages-fallback-control.png"
+    },
+    {
+      "name": "reset the probe",
+      "eval": "__pagesProbe.reset(), true"
+    },
+    {
+      "name": "control: leave for an unknown route of nobody (the claim rule outranked too)",
+      "goto": "/web/index.html#/nobody-route"
+    },
+    {
+      "sleep": 1500
+    },
+    {
+      "sleep": 400
+    },
+    {
+      "name": "probe: probeLeaveControl",
+      "eval": "__pagesProbe.summary()",
+      "save": "probeLeaveControl"
+    },
+    {
+      "name": "control: the probe counts \"Page not found\" frames while our root is still there",
+      "assert": "__vars.probeLeaveControl.flashFrames > 0",
+      "message": "the probe saw no flash while leaving with the pre-hide rules off"
+    }
+  ]
+}

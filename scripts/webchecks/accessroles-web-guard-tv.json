@@ -1,0 +1,84 @@
+{
+  "description": "The web guard in the TV layout (all settings locked, a Kid stuck in the TV layout): viewer with the probe's Kid role in the TV layout (localStorage 'layout' = 'tv', html.layout-tv). The header's user button opens the Settings menu, where Sign out is shown and the D-pad never lands on a hidden link; a typed locked URL ends on Home; the Display page stays reachable with its layout selector enabled (Kid doesn't lock Display (this device)), so the layout can be switched back. Reads only.",
+  "timeout": 30000,
+  "steps": [
+    {
+      "name": "the TV layout",
+      "initScript": "localStorage.setItem('layout', 'tv')"
+    },
+    {
+      "name": "sign in as viewer",
+      "login": "viewer"
+    },
+    {
+      "name": "viewer's id",
+      "eval": "ApiClient.getCurrentUserId()",
+      "save": "viewerId"
+    },
+    {
+      "name": "the guard has viewer's /Me in the TV layout",
+      "waitFor": "!!window.__jfkit && !!window.__jfkit.jfar && __jfkit.jfar.instance.accessRoles.rules().source === 'me' && document.documentElement.classList.contains('layout-tv')"
+    },
+    {
+      "name": "the header's user button is shown",
+      "waitFor": "(() => { const u = document.querySelector('.headerUserButton'); return !!u && getComputedStyle(u).display !== 'none' && u.getClientRects().length > 0; })()"
+    },
+    {
+      "name": "it opens the Settings menu",
+      "script": "document.querySelector('.headerUserButton').click(); await new Promise((r) => setTimeout(r, 2500)); return location.hash;",
+      "save": "afterUser"
+    },
+    {
+      "name": "the Settings menu with Sign out",
+      "waitFor": "location.hash.startsWith('#/mypreferencesmenu') && !!document.querySelector('#myPreferencesMenuPage:not(.hide) .btnLogout') && getComputedStyle(document.querySelector('#myPreferencesMenuPage:not(.hide) .btnLogout')).display !== 'none'"
+    },
+    {
+      "sleep": 800
+    },
+    {
+      "name": "the D-pad down the page: the focus never on a hidden link, and it reaches Sign out",
+      "script": "const seen = []; for (let i = 0; i < 14; i++) { const t = document.activeElement || document.body; t.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', code: 'ArrowDown', keyCode: 40, which: 40, bubbles: true, cancelable: true })); await new Promise((r) => setTimeout(r, 200)); const a = document.activeElement; seen.push({ text: a ? (a.textContent || '').trim().slice(0, 30) : null, logout: !!a && a.classList.contains('btnLogout'), hidden: a ? getComputedStyle(a).display === 'none' || a.getClientRects().length === 0 : null }); } return seen;",
+      "save": "dpad",
+      "full": true
+    },
+    {
+      "name": "no hidden link had the focus; Sign out did",
+      "assert": "__vars.dpad.every((s) => s.hidden !== true) && __vars.dpad.some((s) => s.logout) && new Set(__vars.dpad.map((s) => s.text)).size > 1"
+    },
+    {
+      "screenshot": "accessroles-web-guard-tv-settings.png"
+    },
+    {
+      "name": "a typed locked URL",
+      "script": "location.hash = '#/mypreferenceshome'; await new Promise((r) => setTimeout(r, 3000)); return location.hash;",
+      "save": "typed"
+    },
+    {
+      "name": "it ended on Home",
+      "assert": "__vars.typed.startsWith('#/home')"
+    },
+    {
+      "name": "open Display",
+      "goto": "/web/index.html#/mypreferencesdisplay?userId=${viewerId}"
+    },
+    {
+      "name": "Display is shown with its layout selector",
+      "waitFor": "location.hash.startsWith('#/mypreferencesdisplay') && !!document.querySelector('#displayPreferencesPage:not(.hide) .selectLayout')"
+    },
+    {
+      "sleep": 1200
+    },
+    {
+      "name": "the layout selector enabled (the way out of the TV layout), Display (account) disabled",
+      "assert": "(() => { const p = document.querySelector('#displayPreferencesPage:not(.hide)'); return p.querySelector('.selectLayout').disabled === false && p.querySelector('.chkDisplayMissingEpisodes').disabled === true; })()"
+    },
+    {
+      "screenshot": "accessroles-web-guard-tv-display.png"
+    },
+    {
+      "name": "no uncaught exceptions (the stale CustomRatings tag excepted)",
+      "noExceptions": true,
+      "ignore": "/CustomRatings/script"
+    }
+  ]
+}

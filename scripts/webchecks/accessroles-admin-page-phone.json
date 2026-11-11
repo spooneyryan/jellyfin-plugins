@@ -1,0 +1,217 @@
+{
+  "description": "The Overview, Roles and Users tabs on a phone: Access Roles' dashboard page at 375x812 with touch (pointer: coarse) and jellyfin-web's mobile layout, as admin, reading only. On each of these tabs (Overview, Roles, Users; the other tabs are accessroles-admin-tabs-phone.json's) nothing is past the screen's right edge (the status tables' long values wrap) and the page doesn't scroll sideways, and every button, checkbox row and select is at least 44 px tall; the users' rows wrap; the probe's 100-character role name (one unbroken word after \"Page probe \") wraps inside the screen on the Roles tab, in its editor's title and in the panel's role list; the dialogs' Close icon is 44 px both ways and their text fields 44 px tall; pageprobe-teen's panel is a sheet no wider than the screen whose controls are 44 px tall too, closed with its Close button. accessroles-admin-page-probe.mjs gives pageprobe-teen the probe's lock-only role \"Page probe Guest\" first, and makes the long-named lock-only role nobody has.",
+  "timeout": 30000,
+  "steps": [
+    {
+      "name": "a phone: 375x812, touch",
+      "emulate": {
+        "width": 375,
+        "height": 812,
+        "deviceScaleFactor": 1,
+        "mobile": true,
+        "touch": true
+      }
+    },
+    {
+      "name": "the mobile layout",
+      "initScript": "localStorage.setItem('layout', 'mobile')"
+    },
+    {
+      "name": "sign in as admin",
+      "login": "admin"
+    },
+    {
+      "name": "the web client is ready",
+      "waitFor": "!!window.ApiClient && !!ApiClient.getCurrentUserId()"
+    },
+    {
+      "name": "open Access Roles' page",
+      "goto": "/web/index.html#/configurationpage?name=AccessRoles"
+    },
+    {
+      "name": "the module mounted: the tabs, the status loaded, the loading note hidden",
+      "waitFor": "(() => { const p = document.querySelector('#AccessRolesConfigPage:not(.hide)'); return !!p && p.querySelectorAll('[role=\"tab\"]').length === 8 && p.querySelectorAll('#AccessRolesStatus table').length === 5 && p.querySelector('#AccessRolesScriptNote').hidden === true; })()",
+      "timeout": 30000
+    },
+    {
+      "name": "the check's helpers",
+      "script": "window.__arPage = {\n  page: () => document.querySelector('#AccessRolesConfigPage:not(.hide)'),\n  panels: () => [...document.querySelectorAll('.jfar-backdrop .jfar-panel')],\n  top: () => __arPage.panels().pop() || null,\n  title: () => { const t = __arPage.top(); return t ? t.querySelector('.jfar-panel-header h3').textContent : null; },\n  buttons: (root) => [...(root || document).querySelectorAll('button')],\n  button: (root, text) => __arPage.buttons(root).find(b => b.textContent === text) || null,\n  press: (root, text) => { const b = __arPage.button(root, text); if (!b) throw new Error('no button ' + text); if (b.disabled) throw new Error(text + ' is disabled'); b.click(); return true; },\n  user: (name) => [...__arPage.page().querySelectorAll('.jfar-page-user')].find(r => r.querySelector('.jfar-page-user-name').textContent === name) || null,\n  role: (name) => [...__arPage.page().querySelectorAll('.jfar-page-role')].find(r => r.querySelector('.jfar-page-role-name').textContent === name) || null,\n  check: (root, text) => { const l = [...root.querySelectorAll('label')].find(l => l.textContent.startsWith(text)); return l ? l.querySelector('input') : null; },\n  shown: (el) => !!el && el.getClientRects().length > 0 && !el.closest('[hidden]'),\n  seen: [],\n  toasts: () => __arPage.seen.concat([...document.querySelectorAll('.jfar-toast')].map(t => t.textContent))\n};\n// Every toast's text as it comes (a toast goes after 4 s, maybe before a wait sees it).\nnew MutationObserver(() => { document.querySelectorAll('.jfar-toast').forEach(t => { if (!__arPage.seen.includes(t.textContent)) __arPage.seen.push(t.textContent); }); }).observe(document.body, { childList: true, subtree: true });\nreturn true;"
+    },
+    {
+      "name": "the mobile layout at 375 px, a coarse pointer",
+      "assert": "document.documentElement.classList.contains('layout-mobile') && innerWidth === 375 && matchMedia('(pointer: coarse)').matches"
+    },
+    {
+      "name": "the measures",
+      "script": "window.__arPageWide = (root) => { const W = innerWidth; return [...root.querySelectorAll('*')].filter(e => e.getClientRects().length > 0 && Math.round(e.getBoundingClientRect().right) > W + 1).slice(0, 5).map(e => e.tagName + '.' + e.className + ' ' + Math.round(e.getBoundingClientRect().right)); };\nwindow.__arPageSmall = (root) => [...root.querySelectorAll('button, input[type=checkbox], select')].filter(e => e.getClientRects().length > 0).map(e => { const t = e.tagName === 'INPUT' ? e.closest('label') : e; const r = t.getBoundingClientRect(); return { what: t.tagName + ' ' + (t.textContent || '').slice(0, 30), height: Math.round(r.height) }; }).filter(x => x.height < 44).slice(0, 5);\n// The dialog's own controls: the header's Close icon and the text fields, 44 px both ways for the icon.\nwindow.__arPageDialogSmall = (panel) => [...panel.querySelectorAll('.jfar-panel-header .jfar-icon-button, input.jfar-input, .jfar-input input')].filter(e => e.getClientRects().length > 0).map(e => { const r = e.getBoundingClientRect(); return { what: e.tagName + '.' + e.className, width: Math.round(r.width), height: Math.round(r.height) }; }).filter(x => x.height < 44 || (/icon-button/.test(x.what) && x.width < 44));\nwindow.__arPageLong = () => [...__arPage.page().querySelectorAll('.jfar-page-role-name')].find(e => e.textContent.length === 100) || null;\nreturn true;"
+    },
+    {
+      "name": "the Overview tab",
+      "click": "#AccessRolesTabOverview"
+    },
+    {
+      "name": "the Overview panel shown",
+      "waitFor": "__arPage.shown(document.querySelector('#AccessRolesPanelOverview'))"
+    },
+    {
+      "sleep": 200
+    },
+    {
+      "name": "Overview: past the right edge, and controls under 44 px",
+      "eval": "({ wide: __arPageWide(__arPage.page()), small: __arPageSmall(document.querySelector('#AccessRolesPanelOverview')).concat(__arPageSmall(document.querySelector('#AccessRolesConfigPage:not(.hide) [role=\"tablist\"]'))), scroll: document.scrollingElement.scrollWidth })",
+      "save": "phoneOverview",
+      "full": true
+    },
+    {
+      "name": "Overview: it fits and every control is 44 px tall",
+      "assert": "__vars.phoneOverview.wide.length === 0 && __vars.phoneOverview.small.length === 0 && __vars.phoneOverview.scroll <= 375"
+    },
+    {
+      "screenshot": "accessroles-admin-page-phone-overview.png"
+    },
+    {
+      "name": "the Roles tab",
+      "click": "#AccessRolesTabRoles"
+    },
+    {
+      "name": "the Roles panel shown",
+      "waitFor": "__arPage.shown(document.querySelector('#AccessRolesPanelRoles'))"
+    },
+    {
+      "sleep": 200
+    },
+    {
+      "name": "Roles: past the right edge, and controls under 44 px",
+      "eval": "({ wide: __arPageWide(__arPage.page()), small: __arPageSmall(document.querySelector('#AccessRolesPanelRoles')).concat(__arPageSmall(document.querySelector('#AccessRolesConfigPage:not(.hide) [role=\"tablist\"]'))), scroll: document.scrollingElement.scrollWidth })",
+      "save": "phoneRoles",
+      "full": true
+    },
+    {
+      "name": "Roles: it fits and every control is 44 px tall",
+      "assert": "__vars.phoneRoles.wide.length === 0 && __vars.phoneRoles.small.length === 0 && __vars.phoneRoles.scroll <= 375"
+    },
+    {
+      "name": "the probe's 100-character role name is listed, wrapped inside the screen",
+      "eval": "(() => { const e = __arPageLong(); if (!e) return null; const r = e.getBoundingClientRect(); return { right: Math.round(r.right), twoLines: r.height > parseFloat(getComputedStyle(e).fontSize) * 1.9, text: e.textContent.slice(0, 20) }; })()",
+      "save": "longName",
+      "full": true
+    },
+    {
+      "name": "listed, inside the screen, on more than one line",
+      "assert": "!!__vars.longName && __vars.longName.right <= 375 && __vars.longName.twoLines === true"
+    },
+    {
+      "screenshot": "accessroles-admin-page-phone-roles.png"
+    },
+    {
+      "name": "Edit on the long role: its editor's title is the long name",
+      "script": "__arPage.press(__arPageLong().closest('.jfar-page-role'), 'Edit'); return true;"
+    },
+    {
+      "name": "the editor",
+      "waitFor": "__arPage.panels().length === 1 && /^Edit role Page probe W+$/.test(__arPage.title()) && __arPage.title().length === 110",
+      "timeout": 10000
+    },
+    {
+      "sleep": 300
+    },
+    {
+      "name": "the editor: past the right edge, the title's width, the Close icon and the text fields under 44 px",
+      "eval": "(() => { const t = __arPage.top(); const h = t.querySelector('.jfar-panel-header h3').getBoundingClientRect(); return { wide: __arPageWide(t), titleRight: Math.round(h.right), panelWidth: Math.round(t.getBoundingClientRect().width), small: __arPageDialogSmall(t), fields: t.querySelectorAll('input.jfar-input, .jfar-input input').length, scroll: document.scrollingElement.scrollWidth }; })()",
+      "save": "phoneEditor",
+      "full": true
+    },
+    {
+      "name": "it fits, the title wraps inside it, the Close icon and both text fields are 44 px",
+      "assert": "__vars.phoneEditor.wide.length === 0 && __vars.phoneEditor.titleRight <= 375 && __vars.phoneEditor.panelWidth <= 375 && __vars.phoneEditor.small.length === 0 && __vars.phoneEditor.fields >= 2 && __vars.phoneEditor.scroll <= 375"
+    },
+    {
+      "screenshot": "accessroles-admin-page-phone-long-name.png"
+    },
+    {
+      "name": "Close (the header's icon), nothing saved",
+      "script": "__arPage.top().querySelector('.jfar-panel-header .jfar-icon-button').click(); return true;"
+    },
+    {
+      "name": "closed",
+      "waitFor": "__arPage.panels().length === 0"
+    },
+    {
+      "name": "the Users tab",
+      "click": "#AccessRolesTabUsers"
+    },
+    {
+      "name": "the Users panel shown",
+      "waitFor": "__arPage.shown(document.querySelector('#AccessRolesPanelUsers'))"
+    },
+    {
+      "sleep": 200
+    },
+    {
+      "name": "Users: past the right edge, and controls under 44 px",
+      "eval": "({ wide: __arPageWide(__arPage.page()), small: __arPageSmall(document.querySelector('#AccessRolesPanelUsers')).concat(__arPageSmall(document.querySelector('#AccessRolesConfigPage:not(.hide) [role=\"tablist\"]'))), scroll: document.scrollingElement.scrollWidth })",
+      "save": "phoneUsers",
+      "full": true
+    },
+    {
+      "name": "Users: it fits and every control is 44 px tall",
+      "assert": "__vars.phoneUsers.wide.length === 0 && __vars.phoneUsers.small.length === 0 && __vars.phoneUsers.scroll <= 375"
+    },
+    {
+      "screenshot": "accessroles-admin-page-phone-users.png"
+    },
+    {
+      "name": "pageprobe-teen's id",
+      "eval": "(async () => (await ApiClient.getJSON(ApiClient.getUrl('AccessRoles/Admin/Users'))).find(u => u.Name === \"pageprobe-teen\").UserId.replace(/-/g, '').toLowerCase())()",
+      "save": "teenId"
+    },
+    {
+      "name": "open pageprobe-teen's panel",
+      "click": "#AccessRolesPanelUsers [data-ar-focus=\"user-${teenId}\"]"
+    },
+    {
+      "name": "the panel, a sheet no wider than the screen",
+      "waitFor": "__arPage.title() === \"pageprobe-teen\" && !!__arPage.top().querySelector('#AccessRolesEffective') && Math.round(__arPage.top().getBoundingClientRect().width) <= 375",
+      "timeout": 20000
+    },
+    {
+      "sleep": 300
+    },
+    {
+      "name": "the panel: past the right edge, and controls under 44 px",
+      "eval": "({ wide: __arPageWide(__arPage.top()), small: __arPageSmall(__arPage.top().querySelector(\".jfar-panel-body\")) })",
+      "save": "phonePanel",
+      "full": true
+    },
+    {
+      "name": "it fits and its controls are 44 px tall",
+      "assert": "__vars.phonePanel.wide.length === 0 && __vars.phonePanel.small.length === 0"
+    },
+    {
+      "name": "the panel's Close icon, and the long role's checkbox row inside the screen",
+      "eval": "(() => { const t = __arPage.top(); const long = [...t.querySelectorAll('#AccessRolesUserRoles label')].find(l => l.textContent.length === 100); return { small: __arPageDialogSmall(t), long: long ? Math.round(long.getBoundingClientRect().right) : null }; })()",
+      "save": "phonePanelHeader",
+      "full": true
+    },
+    {
+      "name": "the Close icon 44 px both ways, the long role listed inside the screen",
+      "assert": "__vars.phonePanelHeader.small.length === 0 && __vars.phonePanelHeader.long !== null && __vars.phonePanelHeader.long <= 375"
+    },
+    {
+      "screenshot": "accessroles-admin-page-phone-panel.png"
+    },
+    {
+      "name": "Close",
+      "script": "__arPage.press(__arPage.top(), 'Close'); return true;"
+    },
+    {
+      "name": "closed",
+      "waitFor": "__arPage.panels().length === 0"
+    },
+    {
+      "name": "no uncaught exceptions (the stale CustomRatings tag excepted)",
+      "noExceptions": true,
+      "ignore": "/CustomRatings/script"
+    }
+  ]
+}

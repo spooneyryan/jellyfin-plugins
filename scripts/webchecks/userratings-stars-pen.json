@@ -1,0 +1,210 @@
+{
+  "name": "User Ratings 1.0.2 under a pen: the star widget of the served ClientScript on Long Test Movie as viewer in the desktop layout, under a pen (Input.dispatchMouseEvent with pointerType pen): a scrub from star 2 that overshoots the right edge follows the pen to 5 and, lifted off the stars, saves 5 once; a key's change (4.5) waiting for its save is kept through a pen that went down from the stars and lifted below them, and saved after; a tap sets 3.0 on its lift. No request to User Ratings' API.",
+  "failOnException": false,
+  "timeout": 30000,
+  "steps": [
+    {
+      "name": "the star probe in every document (it mounts the served 30-stars.js)",
+      "initScript": {
+        "file": "probes/userratings-stars-probe.js"
+      }
+    },
+    {
+      "name": "sign in as viewer",
+      "login": "viewer"
+    },
+    {
+      "name": "desktop layout",
+      "eval": "(localStorage.removeItem('layout'), true)"
+    },
+    {
+      "name": "reload",
+      "reload": true
+    },
+    {
+      "name": "layout-desktop applied, User Ratings' script started",
+      "waitFor": "document.documentElement.classList.contains('layout-desktop') && !!window.ApiClient && !!ApiClient.getCurrentUserId() && !!(window.__jfkit && window.__jfkit.jfur)",
+      "timeout": 40000
+    },
+    {
+      "name": "Long Test Movie",
+      "eval": "(await ApiClient.getItems(ApiClient.getCurrentUserId(), { IncludeItemTypes: 'Movie', Recursive: true, SearchTerm: \"Long Test Movie\", Limit: 1 })).Items[0].Id",
+      "save": "movieId"
+    },
+    {
+      "name": "its details page",
+      "script": "location.hash = '#/details?id=' + __vars.movieId; return true;"
+    },
+    {
+      "name": "drawn",
+      "waitFor": "(() => { const p = document.querySelector('#itemDetailPage:not(.hide)'); return !!p && location.hash.indexOf(__vars.movieId) > 0 && !!p.querySelector('.mainDetailButtons .btnPlay:not(.hide)'); })()",
+      "timeout": 30000
+    },
+    {
+      "sleep": 1500
+    },
+    {
+      "name": "mount the widget (alone in its row, Clear and Write a review below, read-only stars)",
+      "eval": "__jfurStars.mount({})",
+      "save": "mounted",
+      "full": true
+    },
+    {
+      "name": "mounted from the served ClientScript of 1.0.2",
+      "assert": "__vars.mounted.ok === true && __vars.mounted.version === '1.0.2.0'",
+      "message": "the probe could not mount the widget of User Ratings 1.0.2"
+    },
+    {
+      "name": "pen: the stars in view, the value 1 (saved)",
+      "script": "__jfurStars.widget.setValue(1); __jfurStars.widget.slider.scrollIntoView({ block: 'center' }); await new Promise(r => setTimeout(r, 400)); window.__mark = __jfurStars.log.length; return __jfurStars.state();",
+      "full": true
+    },
+    {
+      "cdp": "Input.dispatchMouseEvent",
+      "params": "(() => { const b = __jfurStars.box(__jfurStars.widget.slider); return { type: 'mousePressed', x: __jfurStars.xFor(1.75), y: b.cy, button: 'left', buttons: 1, clickCount: 1, pointerType: 'pen' }; })()"
+    },
+    {
+      "cdp": "Input.dispatchMouseEvent",
+      "params": "(() => { const b = __jfurStars.box(__jfurStars.widget.slider); return { type: 'mouseMoved', x: __jfurStars.xFor(2.5), y: b.cy, button: 'left', buttons: 1, clickCount: 0, pointerType: 'pen' }; })()"
+    },
+    {
+      "cdp": "Input.dispatchMouseEvent",
+      "params": "(() => { const b = __jfurStars.box(__jfurStars.widget.slider); return { type: 'mouseMoved', x: __jfurStars.xFor(3.5), y: b.cy, button: 'left', buttons: 1, clickCount: 0, pointerType: 'pen' }; })()"
+    },
+    {
+      "cdp": "Input.dispatchMouseEvent",
+      "params": "(() => { const b = __jfurStars.box(__jfurStars.widget.slider); return { type: 'mouseMoved', x: __jfurStars.xFor(4.5), y: b.cy, button: 'left', buttons: 1, clickCount: 0, pointerType: 'pen' }; })()"
+    },
+    {
+      "cdp": "Input.dispatchMouseEvent",
+      "params": "(() => { const b = __jfurStars.box(__jfurStars.widget.slider); return { type: 'mouseMoved', x: b.right + 40, y: b.cy, button: 'left', buttons: 1, clickCount: 0, pointerType: 'pen' }; })()"
+    },
+    {
+      "cdp": "Input.dispatchMouseEvent",
+      "params": "(() => { const b = __jfurStars.box(__jfurStars.widget.slider); return { type: 'mouseMoved', x: b.right + 120, y: b.cy, button: 'left', buttons: 1, clickCount: 0, pointerType: 'pen' }; })()"
+    },
+    {
+      "name": "pen: past the right edge, still down",
+      "eval": "Object.assign(__jfurStars.state(), { pointer: __jfurStars.log.slice(window.__mark).filter(e => e.kind === 'pointer').map(e => e.type + ':' + e.pointerType), changes: __jfurStars.log.slice(window.__mark).filter(e => e.kind === 'change').map(e => e.value + ':' + e.how) })",
+      "save": "penOver",
+      "full": true
+    },
+    {
+      "name": "pen: the scrub follows it past the edge: 5, not saved while it is down",
+      "assert": "(s => s.value === 5 && s.commits.length === 0 && s.pointer.indexOf('pointerdown:pen') >= 0)(__vars.penOver)"
+    },
+    {
+      "cdp": "Input.dispatchMouseEvent",
+      "params": "(() => { const b = __jfurStars.box(__jfurStars.widget.slider); return { type: 'mouseReleased', x: b.right + 140, y: b.cy, button: 'left', buttons: 0, clickCount: 1, pointerType: 'pen' }; })()"
+    },
+    {
+      "sleep": 900
+    },
+    {
+      "name": "pen: after the lift off the stars",
+      "eval": "Object.assign(__jfurStars.state(), { pointer: __jfurStars.log.slice(window.__mark).filter(e => e.kind === 'pointer').map(e => e.type + ':' + e.pointerType), changes: __jfurStars.log.slice(window.__mark).filter(e => e.kind === 'change').map(e => e.value + ':' + e.how) })",
+      "save": "penLift",
+      "full": true
+    },
+    {
+      "name": "pen: the lift off the stars ends the scrub, and 5 is saved once (before, 4.5 stayed shown and nothing was saved)",
+      "assert": "(s => s.value === 5 && s.saved === 5 && s.commits.join() === '5' && s.pointer.indexOf('pointerup:pen') >= 0)(__vars.penLift)"
+    },
+    {
+      "name": "pen: the slider focused for a key",
+      "script": "__jfurStars.widget.slider.focus(); window.__mark = __jfurStars.log.length; return __jfurStars.onSlider();"
+    },
+    {
+      "name": "pen: Left (4.5, its save waiting 600 ms)",
+      "key": "ArrowLeft"
+    },
+    {
+      "cdp": "Input.dispatchMouseEvent",
+      "params": "(() => { const b = __jfurStars.box(__jfurStars.widget.slider); return { type: 'mousePressed', x: __jfurStars.xFor(1.25), y: b.cy, button: 'left', buttons: 1, clickCount: 1, pointerType: 'pen' }; })()"
+    },
+    {
+      "cdp": "Input.dispatchMouseEvent",
+      "params": "(() => { const b = __jfurStars.box(__jfurStars.widget.slider); return { type: 'mouseMoved', x: __jfurStars.xFor(1.25) + 2, y: b.cy + 40, button: 'left', buttons: 1, clickCount: 0, pointerType: 'pen' }; })()"
+    },
+    {
+      "cdp": "Input.dispatchMouseEvent",
+      "params": "(() => { const b = __jfurStars.box(__jfurStars.widget.slider); return { type: 'mouseMoved', x: __jfurStars.xFor(1.25) + 3, y: b.cy + 120, button: 'left', buttons: 1, clickCount: 0, pointerType: 'pen' }; })()"
+    },
+    {
+      "cdp": "Input.dispatchMouseEvent",
+      "params": "(() => { const b = __jfurStars.box(__jfurStars.widget.slider); return { type: 'mouseReleased', x: __jfurStars.xFor(1.25) + 3, y: b.cy + 150, button: 'left', buttons: 0, clickCount: 1, pointerType: 'pen' }; })()"
+    },
+    {
+      "sleep": 1100
+    },
+    {
+      "name": "pen: after a pen that went down from the stars and lifted below them",
+      "eval": "Object.assign(__jfurStars.state(), { pointer: __jfurStars.log.slice(window.__mark).filter(e => e.kind === 'pointer').map(e => e.type + ':' + e.pointerType), changes: __jfurStars.log.slice(window.__mark).filter(e => e.kind === 'change').map(e => e.value + ':' + e.how) })",
+      "save": "penAway",
+      "full": true
+    },
+    {
+      "name": "pen: the pen changed nothing, and the key's change was saved after it lifted (before, the pen's down dropped its save for good)",
+      "assert": "(s => s.value === 4.5 && s.saved === 4.5 && s.commits.join() === '5,4.5')(__vars.penAway)"
+    },
+    {
+      "name": "pen: a tap",
+      "script": "window.__mark = __jfurStars.log.length; return true;"
+    },
+    {
+      "cdp": "Input.dispatchMouseEvent",
+      "params": "(() => { const b = __jfurStars.box(__jfurStars.widget.slider); return { type: 'mousePressed', x: __jfurStars.xFor(2.75), y: b.cy, button: 'left', buttons: 1, clickCount: 1, pointerType: 'pen' }; })()"
+    },
+    {
+      "cdp": "Input.dispatchMouseEvent",
+      "params": "(() => { const b = __jfurStars.box(__jfurStars.widget.slider); return { type: 'mouseReleased', x: __jfurStars.xFor(2.75), y: b.cy, button: 'left', buttons: 0, clickCount: 1, pointerType: 'pen' }; })()"
+    },
+    {
+      "sleep": 900
+    },
+    {
+      "name": "pen: after the tap",
+      "eval": "Object.assign(__jfurStars.state(), { pointer: __jfurStars.log.slice(window.__mark).filter(e => e.kind === 'pointer').map(e => e.type + ':' + e.pointerType), changes: __jfurStars.log.slice(window.__mark).filter(e => e.kind === 'change').map(e => e.value + ':' + e.how) })",
+      "save": "penTap",
+      "full": true
+    },
+    {
+      "name": "pen: a tap sets the value under it (3.0) on its lift and saves it",
+      "assert": "(s => s.value === 3 && s.saved === 3 && s.commits.join() === '5,4.5,3')(__vars.penTap)"
+    },
+    {
+      "name": "pen: screenshot",
+      "screenshot": "userratings-stars-pen.png"
+    },
+    {
+      "name": "requests to User Ratings' routes but the script",
+      "eval": "performance.getEntriesByType('resource').map(e => e.name.replace(location.origin, '')).filter(n => /\\/UserRatings\\//i.test(n) && !/\\/UserRatings\\/ClientScript/i.test(n))",
+      "save": "apiCalls",
+      "full": true
+    },
+    {
+      "name": "none: the widget never calls the API",
+      "assert": "__vars.apiCalls.length === 0"
+    },
+    {
+      "name": "the details section's reads, answered 404 by the probe (the details section kept out)",
+      "eval": "__jfurStars.stubbed",
+      "save": "stubbed",
+      "full": true
+    },
+    {
+      "name": "the section asked for the item and showed nothing",
+      "assert": "__vars.stubbed.some(u => /\\/UserRatings\\/Items\\//.test(u)) && document.querySelectorAll('.jfur-section').length === 0"
+    },
+    {
+      "name": "no uncaught exception",
+      "noExceptions": true,
+      "ignore": "/CustomRatings/script|^Error: player cannot be null"
+    },
+    {
+      "name": "pen: the log",
+      "eval": "__jfurStars.log.filter(e => e.kind !== 'focus')",
+      "full": true
+    }
+  ]
+}

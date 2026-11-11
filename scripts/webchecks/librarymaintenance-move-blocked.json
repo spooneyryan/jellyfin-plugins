@@ -1,0 +1,207 @@
+{
+  "name": "Move's preview in the move sandbox, blocked: a junction in the folder browser and in what moves (move.reparse-point), and a file open in another program (move.in-use, then Check again). Needs the junctions Movies\\Link Folder and Movies\\Plain Loose (2005).trickplay, and a process holding Movies\\Tagged Loose (2003) [tmdbid-910003].mkv open for about two minutes: scripts/Set-MoveBlockedFixture.ps1 -Action Setup before, -Action Remove after (scripts/README.md)",
+  "timeout": 30000,
+  "steps": [
+    {
+      "name": "the helpers (a log of Library Maintenance's requests, short names)",
+      "initScript": {
+        "file": "probes/librarymaintenance-move-helpers.js"
+      }
+    },
+    {
+      "name": "sign in as admin",
+      "login": "admin"
+    },
+    {
+      "name": "home page and Library Maintenance's script",
+      "waitFor": "!!document.querySelector('.homePage:not(.hide) .card') && !!window.__jfkit && !!window.__jfkit.jflm && __lmm.log('/LibraryMaintenance/Capabilities').length > 0",
+      "timeout": 60000
+    },
+    {
+      "name": "the move sandbox's seeded items (by name)",
+      "script": "const u = ApiClient.getCurrentUserId(); const q = async (o) => (await ApiClient.getItems(u, Object.assign({ Recursive: true }, o))).Items; const views = (await ApiClient.getUserViews({}, u)).Items; const view = (n) => (views.find((v) => v.Name === n) || {}).Id; const m1 = await q({ ParentId: view('Movies'), IncludeItemTypes: 'Movie' }); const m2 = await q({ ParentId: view('Movies 2'), IncludeItemTypes: 'Movie', Fields: 'MediaSources' }); const eps = await q({ ParentId: view('Shows'), IncludeItemTypes: 'Episode' }); const by = (list, name) => list.find((i) => i.Name === name) || {}; const versions = by(m2, 'Versions Film (2015)'); const ep = by(eps, 'Sample Show S01E03'); if (!view('Movies') || !view('Movies 2') || !view('Shows') || !ep.Id || !versions.Id) throw new Error('not the move sandbox\\'s layout'); return { movies: view('Movies'), shows: view('Shows'), plain: by(m1, 'Plain Loose').Id, tagged: by(m1, 'Tagged Loose').Id, looseOne: by(m2, 'Loose One').Id, folderMovie: by(m2, 'Folder Movie (2008)').Id, versions: versions.Id, versionSources: (versions.MediaSources || []).map((s) => s.Id), episode: ep.Id, season: ep.SeasonId };",
+      "save": "ids",
+      "full": true
+    },
+    {
+      "name": "links: the Movies library",
+      "script": "location.hash = '#/movies?topParentId=' + __vars.ids.movies + '&collectionType=movies'; return location.hash;"
+    },
+    {
+      "waitFor": "!!__lmm.page().querySelector('.card[data-id=\"' + __vars.ids.plain + '\"] .itemAction[data-action=menu]')"
+    },
+    {
+      "sleep": 500
+    },
+    {
+      "name": "links: its card's ⋮",
+      "script": "__s.hash = location.hash; return __lmm.menu(__lmm.page().querySelector('.card[data-id=\"' + __vars.ids.plain + '\"]'));"
+    },
+    {
+      "waitFor": "!!__lmm.sheet() && __lmm.afterRefresh('jflm-move')"
+    },
+    {
+      "sleep": 300
+    },
+    {
+      "name": "a real click on Move media to new location",
+      "click": ".dialogContainer > .actionSheet [data-id=\"jflm-move\"]"
+    },
+    {
+      "name": "the sheet closes, the Move dialog opens and loads",
+      "waitFor": "!__lmm.sheet() && !!__lmm.dialog() && __lmm.loaded()"
+    },
+    {
+      "name": "what the dialog shows",
+      "eval": "__lmm.state()",
+      "save": "links",
+      "full": true
+    },
+    {
+      "assert": "['Link Folder', 'Plain Loose (2005).trickplay'].every((n) => { const f = __vars.links.folders.find((x) => x.name === n); return f && f.badge === 'Link (not allowed)' && f.disabled && f.reason === 'This is a junction or symbolic link; Move doesn\\'t follow links.'; })"
+    },
+    {
+      "screenshot": "lm-move-links-folders.png"
+    },
+    {
+      "name": "links: a real click on the link does nothing",
+      "script": "const b = __lmm.folder(\"Link Folder\"); if (b) b.scrollIntoView({ block: 'center', behavior: 'instant' }); return __lmm.target(b, 'folder');"
+    },
+    {
+      "sleep": 200
+    },
+    {
+      "script": "const el = document.querySelector(\"[data-lmm-target=\\\"folder\\\"]\"); if (el) el.scrollIntoView({ block: 'center', behavior: 'instant' }); return !!el;"
+    },
+    {
+      "sleep": 200
+    },
+    {
+      "click": "[data-lmm-target=\"folder\"]"
+    },
+    {
+      "sleep": 500
+    },
+    {
+      "assert": "JSON.stringify(__lmm.state().crumbs) === JSON.stringify(['Movies']) && __lmm.log('/LibraryMaintenance/Move/Folders').length === 1"
+    },
+    {
+      "script": "__s.plans = __lmm.log('/LibraryMaintenance/Move/Plan').length; return __s.plans;"
+    },
+    {
+      "name": "links: Big Loose",
+      "eval": "__lmm.library('Big Loose')"
+    },
+    {
+      "name": "the preview settled on a new plan",
+      "waitFor": "__lmm.log('/LibraryMaintenance/Move/Plan').length > __s.plans && __lmm.settled()"
+    },
+    {
+      "name": "what the dialog shows",
+      "eval": "__lmm.state()",
+      "save": "linkplan",
+      "full": true
+    },
+    {
+      "assert": "__vars.linkplan.blockers.length === 1 && __vars.linkplan.blockers[0].code === 'move.reparse-point' && __vars.linkplan.blockers[0].title === 'A junction or symbolic link is in the way' && __vars.linkplan.status === '1 blocker: it can\\'t move there now.' && __lmm.all('li.jflm-move-blocker .jflm-move-names li').map((li) => __lmm.tail(li.textContent, 1)).indexOf('Plain Loose (2005).trickplay') >= 0"
+    },
+    {
+      "screenshot": "lm-move-links-blocker.png"
+    },
+    {
+      "script": "const el = document.querySelector(\".dialogContainer .jflm-move-dialog .jflm-move-close\"); if (el) el.scrollIntoView({ block: 'center', behavior: 'instant' }); return !!el;"
+    },
+    {
+      "sleep": 200
+    },
+    {
+      "name": "Close (a real click)",
+      "click": ".dialogContainer .jflm-move-dialog .jflm-move-close"
+    },
+    {
+      "waitFor": "!__lmm.dialog()"
+    },
+    {
+      "name": "in use: the Movies library",
+      "script": "location.hash = '#/movies?topParentId=' + __vars.ids.movies + '&collectionType=movies'; return location.hash;"
+    },
+    {
+      "waitFor": "!!__lmm.page().querySelector('.card[data-id=\"' + __vars.ids.tagged + '\"] .itemAction[data-action=menu]')"
+    },
+    {
+      "sleep": 500
+    },
+    {
+      "name": "in use: its card's ⋮",
+      "script": "__s.hash = location.hash; return __lmm.menu(__lmm.page().querySelector('.card[data-id=\"' + __vars.ids.tagged + '\"]'));"
+    },
+    {
+      "waitFor": "!!__lmm.sheet() && __lmm.afterRefresh('jflm-move')"
+    },
+    {
+      "sleep": 300
+    },
+    {
+      "name": "a real click on Move media to new location",
+      "click": ".dialogContainer > .actionSheet [data-id=\"jflm-move\"]"
+    },
+    {
+      "name": "the sheet closes, the Move dialog opens and loads",
+      "waitFor": "!__lmm.sheet() && !!__lmm.dialog() && __lmm.loaded()"
+    },
+    {
+      "script": "__s.plans = __lmm.log('/LibraryMaintenance/Move/Plan').length; return __s.plans;"
+    },
+    {
+      "name": "in use: Big Loose (the lock probe tries three times)",
+      "eval": "__lmm.library('Big Loose')"
+    },
+    {
+      "name": "the preview settled on a new plan",
+      "waitFor": "__lmm.log('/LibraryMaintenance/Move/Plan').length > __s.plans && __lmm.settled()",
+      "timeout": 60000
+    },
+    {
+      "name": "what the dialog shows",
+      "eval": "__lmm.state()",
+      "save": "inuse",
+      "full": true
+    },
+    {
+      "assert": "__vars.inuse.blockers.some((b) => b.code === 'move.in-use' && b.title === 'A file is in use' && !!b.message) && __vars.inuse.again === 'Check again' && __vars.inuse.status.indexOf('blocker') > 0"
+    },
+    {
+      "screenshot": "lm-move-in-use.png"
+    },
+    {
+      "name": "in use: Check again until the other program has closed it",
+      "script": "const t0 = Date.now(); let tries = 0; while (Date.now() - t0 < 170000) { const n = __lmm.log('/LibraryMaintenance/Move/Plan').length; __lmm.q('.jflm-move-preview-again').click(); tries++; while (!(__lmm.log('/LibraryMaintenance/Move/Plan').length > n && __lmm.settled())) { await new Promise((r) => setTimeout(r, 200)); } if (!__lmm.issues('blocker').some((b) => b.code === 'move.in-use')) { return { tries: tries, ms: Date.now() - t0, blockers: __lmm.issues('blocker').map((b) => b.code) }; } await new Promise((r) => setTimeout(r, 3000)); } throw new Error('still in use after 170 s');",
+      "save": "released",
+      "full": true,
+      "timeout": 190000
+    },
+    {
+      "assert": "__vars.released.blockers.length === 0 && __vars.released.tries >= 1 && __lmm.state().status === 'It could move there: nothing stands in the way.'"
+    },
+    {
+      "script": "const el = document.querySelector(\".dialogContainer .jflm-move-dialog .jflm-move-close\"); if (el) el.scrollIntoView({ block: 'center', behavior: 'instant' }); return !!el;"
+    },
+    {
+      "sleep": 200
+    },
+    {
+      "name": "Close (a real click)",
+      "click": ".dialogContainer .jflm-move-dialog .jflm-move-close"
+    },
+    {
+      "waitFor": "!__lmm.dialog()"
+    },
+    {
+      "name": "no kit health miss",
+      "assert": "Array.isArray(__lmm.health()) && __lmm.health().length === 0"
+    },
+    {
+      "noExceptions": true
+    }
+  ]
+}

@@ -1,0 +1,122 @@
+{
+  "name": "The My Clips page turned off in Plugin Pages' host, as admin in the Auto host mode (PageHostMode=Auto at startup, so Plugin Pages registered My Clips): the page turned off with EnableClipsPage (read per request, no restart): Plugin Pages' link to it, still there until the next restart, shows \"My Clips is turned off by your server admin.\" in its host (the shell's 200 note), never a blank page; the capabilities say Pages.Clips false; then the setting is put back on and the page renders again. Run by hand as scripts/README.md describes, which also puts the host mode back.",
+  "failOnException": false,
+  "timeout": 30000,
+  "steps": [
+    {
+      "name": "open the login page",
+      "goto": "/web/index.html#/login"
+    },
+    {
+      "name": "index.html carries Plugin Pages' tag (its startup task registers a few seconds after the server starts)",
+      "waitFor": "fetch(new URL('index.html', location.href), { cache: 'no-store' }).then(r => r.text()).then(t => t.indexOf('<script plugin=\"PluginPages\"') >= 0)",
+      "timeout": 90000
+    },
+    {
+      "name": "reload, so the page has the tag",
+      "reload": true
+    },
+    {
+      "name": "sign in as admin",
+      "login": "admin"
+    },
+    {
+      "name": "the Bookmarks script ran",
+      "waitFor": "!!window.__jfkit && !!window.__jfkit.jfbm && !!window.ApiClient && !!ApiClient.getCurrentUserId()"
+    },
+    {
+      "name": "warm-up (Bookmarks 1.2.1, as pages-pluginpages.json's): reload once after the sign-in, so the web client starts with the signed-in user from its first request (the first run after a start found the drawer empty, jellyfin-web having asked Users/null/...)",
+      "reload": true
+    },
+    {
+      "name": "the user known, the Bookmarks script ran and the drawer's user menu built",
+      "waitFor": "!!window.ApiClient && !!ApiClient.getCurrentUserId() && !!window.__jfkit && !!window.__jfkit.jfbm && !!document.querySelector('.mainDrawer .userMenuOptions')",
+      "timeout": 30000
+    },
+    {
+      "sleep": 1500
+    },
+    {
+      "name": "the kit chose the Plugin Pages host for My Clips",
+      "waitFor": "__jfkit.jfbm.instance.pages.state().hostsKnown && __jfkit.jfbm.instance.pages.state().hosts.clips === 'PluginPages' && __jfkit.jfbm.instance.pages.href('clips')",
+      "save": "href"
+    },
+    {
+      "name": "its link",
+      "assert": "__vars.href === '#/userpluginsettings.html?pageUrl=%2FBookmarks%2FPages%2Fclips'"
+    },
+    {
+      "name": "EnableClipsPage off through the configuration API",
+      "script": "const id = 'd0ee1b2a-7f71-4654-8ff2-163a81441b03'; const c = await ApiClient.getPluginConfiguration(id); c.EnableClipsPage = false; await ApiClient.updatePluginConfiguration(id, c); const r = await ApiClient.getPluginConfiguration(id); return { EnableClipsPage: r.EnableClipsPage, PageHostMode: r.PageHostMode };",
+      "save": "offSettings",
+      "full": true
+    },
+    {
+      "name": "off, in the Auto mode",
+      "assert": "__vars.offSettings.EnableClipsPage === false && __vars.offSettings.PageHostMode === 'Auto'"
+    },
+    {
+      "name": "the capabilities follow at once",
+      "assert": "(await ApiClient.getJSON(ApiClient.getUrl('Bookmarks/Capabilities'))).Pages.Clips === false"
+    },
+    {
+      "name": "open the drawer",
+      "click": ".skinHeader .mainDrawerButton"
+    },
+    {
+      "name": "drawer open",
+      "waitFor": "(() => { const a = document.querySelector('.mainDrawer .userMenuOptions'); if (!a) return false; const b = a.getBoundingClientRect(); return b.width > 0 && b.height > 0; })()"
+    },
+    {
+      "name": "Plugin Pages' link to My Clips, still there until the next restart",
+      "waitFor": "(() => { const a = [...document.querySelectorAll('.mainDrawer a')].find(x => (x.getAttribute('href') || '').indexOf('pageUrl=%2FBookmarks%2FPages%2Fclips') >= 0 || (x.getAttribute('href') || '').indexOf('pageUrl=/Bookmarks/Pages/clips') >= 0); return a ? { href: a.getAttribute('href'), text: a.textContent.trim() } : false; })()",
+      "save": "ppLink",
+      "timeout": 15000
+    },
+    {
+      "name": "the drawer's slide-in done",
+      "sleep": 400
+    },
+    {
+      "name": "follow it",
+      "script": "const a = [...document.querySelectorAll('.mainDrawer a')].find(x => (x.getAttribute('href') || '').indexOf('Pages%2Fclips') >= 0 || (x.getAttribute('href') || '').indexOf('Pages/clips') >= 0); a.click(); return true;"
+    },
+    {
+      "name": "the host shows the shell's note \"My Clips is turned off by your server admin.\", not a blank page; no page of ours mounted",
+      "waitFor": "(() => { const v = [...document.querySelectorAll('.userPreferencesPage:not(.hide)')].find(x => x.getClientRects().length > 0); if (!v) return false; const t = v.textContent.replace(/\\s+/g, ' ').trim(); if (t.indexOf('My Clips is turned off by your server admin.') < 0) return false; return { note: true, marker: !!v.querySelector('[data-jfbm-page=\"clips\"]'), mounted: !!v.querySelector('[data-jfbm-mounted]'), hash: location.hash.split('&')[0] }; })()",
+      "save": "shownOff",
+      "timeout": 20000
+    },
+    {
+      "name": "as expected",
+      "assert": "__vars.shownOff.note && !__vars.shownOff.marker && !__vars.shownOff.mounted"
+    },
+    {
+      "name": "the turned-off note in Plugin Pages' host",
+      "screenshot": "page-clips-off-pluginpages.png"
+    },
+    {
+      "name": "the shell answers 200 with the note and no page marker",
+      "script": "const r = await fetch(ApiClient.getUrl('Bookmarks/Pages/clips'), { headers: { Authorization: 'MediaBrowser Token=\"' + ApiClient.accessToken() + '\"' } }); const t = await r.text(); return { status: r.status, note: t.indexOf('My Clips is turned off by your server admin.') >= 0, marker: t.indexOf('data-jfbm-page=') >= 0 };",
+      "save": "shell"
+    },
+    {
+      "name": "as expected",
+      "assert": "__vars.shell.status === 200 && __vars.shell.note && !__vars.shell.marker"
+    },
+    {
+      "name": "EnableClipsPage back on",
+      "script": "const id = 'd0ee1b2a-7f71-4654-8ff2-163a81441b03'; const c = await ApiClient.getPluginConfiguration(id); c.EnableClipsPage = true; await ApiClient.updatePluginConfiguration(id, c); return (await ApiClient.getPluginConfiguration(id)).EnableClipsPage;",
+      "save": "backOn"
+    },
+    {
+      "name": "on again",
+      "assert": "__vars.backOn === true"
+    },
+    {
+      "name": "no uncaught exception of ours",
+      "noExceptions": true,
+      "ignore": "CustomRatings|jellyfin-web|main\\.jellyfin\\.bundle|\\.chunk\\.js|PluginPages"
+    }
+  ]
+}

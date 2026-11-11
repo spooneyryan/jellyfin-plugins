@@ -1,0 +1,27 @@
+{
+  "description": "Access Roles' Import current setup on its dashboard page, while nobody is managed: the box for users who see every library is there and unticked, Preview the import (a dry run) shows 'No change for N of the N users' with the proposed roles and the every-library users left out, Apply is enabled only then, and after the confirmation (since 0.9.8 the kit's dialog) the import is saved and the section goes. accessroles-sync-hooks-probe.mjs runs it on its own synthetic layout; it changes Access Roles' store only (no user's policy).",
+  "steps": [
+    { "name": "sign in as admin", "login": "admin" },
+    { "name": "the Access Roles script ran", "waitFor": "!!window.__jfkit && !!window.__jfkit.jfar && !!window.ApiClient && !!ApiClient.getCurrentUserId()" },
+    { "name": "open Access Roles' page", "goto": "/web/index.html#/configurationpage?name=AccessRoles" },
+    { "name": "Import current setup is shown, Apply disabled", "waitFor": "(() => { const p = document.querySelector('#AccessRolesConfigPage:not(.hide)'); return !!p && p.querySelectorAll('#AccessRolesStatus table').length === 5 && p.querySelector('#AccessRolesImport').hidden === false && p.querySelector('#AccessRolesImportApply').disabled === true; })()", "timeout": 20000 },
+    { "name": "the box for users who see every library is there, unticked (they stay unmanaged by default)", "assert": "(() => { const box = document.querySelector('#AccessRolesConfigPage:not(.hide) #AccessRolesImportEveryLibrary'); return !!box && box.checked === false && /^Also manage users who see every library/.test(box.closest('label').textContent.trim()); })()" },
+    { "name": "preview the import", "click": "#AccessRolesConfigPage:not(.hide) #AccessRolesImportPreview" },
+    { "name": "the proposal is shown, Apply enabled", "waitFor": "(() => { const p = document.querySelector('#AccessRolesConfigPage:not(.hide)'); const first = p.querySelector('#AccessRolesImportResult p'); return !!first && /^No change for \\d+ of the \\d+ users/.test(first.textContent) && p.querySelector('#AccessRolesImportApply').disabled === false; })()", "timeout": 20000 },
+    { "name": "what the preview shows", "eval": "(() => { const p = document.querySelector('#AccessRolesConfigPage:not(.hide)'); const box = p.querySelector('#AccessRolesImportResult'); const rows = Array.from(box.querySelectorAll('tr')).map(tr => [tr.querySelector('th').textContent, tr.querySelector('td').textContent]); return { summary: box.querySelector('p').textContent, headings: Array.from(box.querySelectorAll('h4')).map(h => h.textContent), rows, warnings: Array.from(box.querySelectorAll('li')).map(li => li.textContent) }; })()", "save": "preview", "full": true },
+    { "name": "no change for every user it would assign, nobody's access written", "assert": "(() => { const m = /^No change for (\\d+) of the (\\d+) users/.exec(__vars.preview.summary); return !!m && m[1] === m[2] && Number(m[2]) > 0 && __vars.preview.headings[0] === 'Proposed roles' && !__vars.preview.headings.includes('Users whose library access would be written') && __vars.preview.rows.length > 0; })()" },
+    { "name": "the users who see every library are left out, in one warning, and no role gives every library", "assert": "__vars.preview.warnings.filter(w => /sees? every library and (isn't|aren't) imported/.test(w)).length === 1 && !__vars.preview.rows.some(r => /^Every library/.test(r[1]))" },
+    { "name": "every value is text (no element inside a value cell)", "assert": "Array.from(document.querySelectorAll('#AccessRolesConfigPage:not(.hide) #AccessRolesImportResult td')).every(td => td.children.length === 0)" },
+    { "sleep": 300 },
+    { "screenshot": "accessroles-import-preview.png" },
+    { "name": "apply the import", "click": "#AccessRolesConfigPage:not(.hide) #AccessRolesImportApply" },
+    { "name": "the page asks to confirm (the kit's dialog), the focus inside it", "waitFor": "(() => { const p = document.querySelector('.jfar-backdrop .jfar-panel'); return !!p && p.querySelector('h3').textContent === 'Import current setup' && !!p.querySelector('.jfar-button-primary') && p.contains(document.activeElement); })()", "timeout": 10000 },
+    { "name": "confirm (Apply)", "click": ".jfar-backdrop .jfar-panel .jfar-button-primary" },
+    { "name": "the dialog closed", "waitFor": "!document.querySelector('.jfar-backdrop .jfar-panel')", "timeout": 10000 },
+    { "name": "imported", "waitFor": "(() => { const p = document.querySelector('#AccessRolesConfigPage:not(.hide)'); const first = p && p.querySelector('#AccessRolesImportResult p'); return !!first && /^Imported: \\d+ roles, \\d+ users\\./.test(first.textContent); })()", "timeout": 20000 },
+    { "name": "the section goes once users are managed", "waitFor": "(() => { const p = document.querySelector('#AccessRolesConfigPage:not(.hide)'); return !!p && p.querySelector('#AccessRolesImport').hidden === true && Array.from(p.querySelectorAll('#AccessRolesStatus tr')).some(tr => tr.querySelector('th').textContent === 'Users with roles or overrides' && tr.querySelector('td').textContent !== '0'); })()", "timeout": 20000 },
+    { "sleep": 300 },
+    { "screenshot": "accessroles-import-applied.png" },
+    { "name": "no uncaught exceptions (the stale CustomRatings tag excepted)", "noExceptions": true, "ignore": "/CustomRatings/script" }
+  ]
+}

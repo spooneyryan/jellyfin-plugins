@@ -1,0 +1,3387 @@
+{
+  "name": "Move in the move sandbox, keyboard only: More, the entry and the dialog by Tab, Enter, the arrows and Escape; Tab and Shift+Tab stay inside the dialog",
+  "timeout": 30000,
+  "steps": [
+    {
+      "name": "the helpers (a log of Library Maintenance's requests, short names)",
+      "initScript": {
+        "file": "probes/librarymaintenance-move-helpers.js"
+      }
+    },
+    {
+      "name": "sign in as admin",
+      "login": "admin"
+    },
+    {
+      "name": "home page and Library Maintenance's script",
+      "waitFor": "!!document.querySelector('.homePage:not(.hide) .card') && !!window.__jfkit && !!window.__jfkit.jflm && __lmm.log('/LibraryMaintenance/Capabilities').length > 0",
+      "timeout": 60000
+    },
+    {
+      "name": "the move sandbox's seeded items (by name)",
+      "script": "const u = ApiClient.getCurrentUserId(); const q = async (o) => (await ApiClient.getItems(u, Object.assign({ Recursive: true }, o))).Items; const views = (await ApiClient.getUserViews({}, u)).Items; const view = (n) => (views.find((v) => v.Name === n) || {}).Id; const m1 = await q({ ParentId: view('Movies'), IncludeItemTypes: 'Movie' }); const m2 = await q({ ParentId: view('Movies 2'), IncludeItemTypes: 'Movie', Fields: 'MediaSources' }); const eps = await q({ ParentId: view('Shows'), IncludeItemTypes: 'Episode' }); const by = (list, name) => list.find((i) => i.Name === name) || {}; const versions = by(m2, 'Versions Film (2015)'); const ep = by(eps, 'Sample Show S01E03'); if (!view('Movies') || !view('Movies 2') || !view('Shows') || !ep.Id || !versions.Id) throw new Error('not the move sandbox\\'s layout'); return { movies: view('Movies'), shows: view('Shows'), plain: by(m1, 'Plain Loose').Id, tagged: by(m1, 'Tagged Loose').Id, looseOne: by(m2, 'Loose One').Id, folderMovie: by(m2, 'Folder Movie (2008)').Id, versions: versions.Id, versionSources: (versions.MediaSources || []).map((s) => s.Id), episode: ep.Id, season: ep.SeasonId };",
+      "save": "ids",
+      "full": true
+    },
+    {
+      "name": "keys: Plain Loose's details page",
+      "script": "location.hash = '#/details?id=' + __vars.ids.plain; return location.hash;"
+    },
+    {
+      "waitFor": "location.hash.indexOf(__vars.ids.plain) >= 0 && !!document.querySelector('.itemDetailPage:not(.hide) .btnMoreCommands:not(.hide)')"
+    },
+    {
+      "sleep": 1500
+    },
+    {
+      "name": "keys: nothing focused, then Tab to More",
+      "script": "if (document.activeElement) document.activeElement.blur(); __s.hash = location.hash; return true;"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "name": "keys: More has the focus",
+      "assert": "__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands')"
+    },
+    {
+      "name": "keys: Enter opens the menu",
+      "key": "Enter"
+    },
+    {
+      "waitFor": "!!__lmm.sheet() && __lmm.afterRefresh('jflm-move')"
+    },
+    {
+      "sleep": 500
+    },
+    {
+      "name": "keys: the sheet's first focus",
+      "eval": "__lmm.focused()",
+      "full": true
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet1 = (__s.k_toSheet1 || 0) + 1)"
+    },
+    {
+      "name": "keys: Tab reached the menu's rows (jellyfin-web leaves the focus on the page: Tab goes on from More through the rest of the page)",
+      "eval": "({ tabs: __s.k_toSheet1 || 0, focus: __lmm.focused() })",
+      "full": true
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.actionSheetMenuItem[data-id=\"jflm-move\"]')) && !!(__s.k_inSheet1 = (__s.k_inSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.actionSheetMenuItem[data-id=\"jflm-move\"]')) && !!(__s.k_inSheet1 = (__s.k_inSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.actionSheetMenuItem[data-id=\"jflm-move\"]')) && !!(__s.k_inSheet1 = (__s.k_inSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.actionSheetMenuItem[data-id=\"jflm-move\"]')) && !!(__s.k_inSheet1 = (__s.k_inSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.actionSheetMenuItem[data-id=\"jflm-move\"]')) && !!(__s.k_inSheet1 = (__s.k_inSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.actionSheetMenuItem[data-id=\"jflm-move\"]')) && !!(__s.k_inSheet1 = (__s.k_inSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.actionSheetMenuItem[data-id=\"jflm-move\"]')) && !!(__s.k_inSheet1 = (__s.k_inSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.actionSheetMenuItem[data-id=\"jflm-move\"]')) && !!(__s.k_inSheet1 = (__s.k_inSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.actionSheetMenuItem[data-id=\"jflm-move\"]')) && !!(__s.k_inSheet1 = (__s.k_inSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.actionSheetMenuItem[data-id=\"jflm-move\"]')) && !!(__s.k_inSheet1 = (__s.k_inSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.actionSheetMenuItem[data-id=\"jflm-move\"]')) && !!(__s.k_inSheet1 = (__s.k_inSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.actionSheetMenuItem[data-id=\"jflm-move\"]')) && !!(__s.k_inSheet1 = (__s.k_inSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.actionSheetMenuItem[data-id=\"jflm-move\"]')) && !!(__s.k_inSheet1 = (__s.k_inSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.actionSheetMenuItem[data-id=\"jflm-move\"]')) && !!(__s.k_inSheet1 = (__s.k_inSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.actionSheetMenuItem[data-id=\"jflm-move\"]')) && !!(__s.k_inSheet1 = (__s.k_inSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.actionSheetMenuItem[data-id=\"jflm-move\"]')) && !!(__s.k_inSheet1 = (__s.k_inSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.actionSheetMenuItem[data-id=\"jflm-move\"]')) && !!(__s.k_inSheet1 = (__s.k_inSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.actionSheetMenuItem[data-id=\"jflm-move\"]')) && !!(__s.k_inSheet1 = (__s.k_inSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.actionSheetMenuItem[data-id=\"jflm-move\"]')) && !!(__s.k_inSheet1 = (__s.k_inSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.actionSheetMenuItem[data-id=\"jflm-move\"]')) && !!(__s.k_inSheet1 = (__s.k_inSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.actionSheetMenuItem[data-id=\"jflm-move\"]')) && !!(__s.k_inSheet1 = (__s.k_inSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.actionSheetMenuItem[data-id=\"jflm-move\"]')) && !!(__s.k_inSheet1 = (__s.k_inSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.actionSheetMenuItem[data-id=\"jflm-move\"]')) && !!(__s.k_inSheet1 = (__s.k_inSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.actionSheetMenuItem[data-id=\"jflm-move\"]')) && !!(__s.k_inSheet1 = (__s.k_inSheet1 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.actionSheetMenuItem[data-id=\"jflm-move\"]')) && !!(__s.k_inSheet1 = (__s.k_inSheet1 || 0) + 1)"
+    },
+    {
+      "name": "keys: the entry has the focus",
+      "assert": "__lmm.focusIs('.actionSheetMenuItem[data-id=\"jflm-move\"]')"
+    },
+    {
+      "screenshot": "lm-move-keys-entry.png"
+    },
+    {
+      "name": "keys: Enter on the entry",
+      "key": "Enter"
+    },
+    {
+      "name": "the sheet closes, the Move dialog opens and loads",
+      "waitFor": "!__lmm.sheet() && !!__lmm.dialog() && __lmm.loaded()"
+    },
+    {
+      "sleep": 300
+    },
+    {
+      "name": "keys: the focus starts on the library choice",
+      "assert": "__lmm.focusIs('select.jflm-move-library')"
+    },
+    {
+      "name": "keys: Tab all the way round",
+      "eval": "true"
+    },
+    {
+      "script": "__s.order = [__lmm.focused()]; __s.start = document.activeElement; __s.wrapped = false; return __s.order[0];",
+      "full": true
+    },
+    {
+      "key": "Tab",
+      "if": "!__s.wrapped"
+    },
+    {
+      "if": "!__s.wrapped",
+      "script": "__s.order.push(__lmm.focused()); __s.wrapped = document.activeElement === __s.start; return __s.order.length;"
+    },
+    {
+      "key": "Tab",
+      "if": "!__s.wrapped"
+    },
+    {
+      "if": "!__s.wrapped",
+      "script": "__s.order.push(__lmm.focused()); __s.wrapped = document.activeElement === __s.start; return __s.order.length;"
+    },
+    {
+      "key": "Tab",
+      "if": "!__s.wrapped"
+    },
+    {
+      "if": "!__s.wrapped",
+      "script": "__s.order.push(__lmm.focused()); __s.wrapped = document.activeElement === __s.start; return __s.order.length;"
+    },
+    {
+      "key": "Tab",
+      "if": "!__s.wrapped"
+    },
+    {
+      "if": "!__s.wrapped",
+      "script": "__s.order.push(__lmm.focused()); __s.wrapped = document.activeElement === __s.start; return __s.order.length;"
+    },
+    {
+      "key": "Tab",
+      "if": "!__s.wrapped"
+    },
+    {
+      "if": "!__s.wrapped",
+      "script": "__s.order.push(__lmm.focused()); __s.wrapped = document.activeElement === __s.start; return __s.order.length;"
+    },
+    {
+      "key": "Tab",
+      "if": "!__s.wrapped"
+    },
+    {
+      "if": "!__s.wrapped",
+      "script": "__s.order.push(__lmm.focused()); __s.wrapped = document.activeElement === __s.start; return __s.order.length;"
+    },
+    {
+      "key": "Tab",
+      "if": "!__s.wrapped"
+    },
+    {
+      "if": "!__s.wrapped",
+      "script": "__s.order.push(__lmm.focused()); __s.wrapped = document.activeElement === __s.start; return __s.order.length;"
+    },
+    {
+      "key": "Tab",
+      "if": "!__s.wrapped"
+    },
+    {
+      "if": "!__s.wrapped",
+      "script": "__s.order.push(__lmm.focused()); __s.wrapped = document.activeElement === __s.start; return __s.order.length;"
+    },
+    {
+      "key": "Tab",
+      "if": "!__s.wrapped"
+    },
+    {
+      "if": "!__s.wrapped",
+      "script": "__s.order.push(__lmm.focused()); __s.wrapped = document.activeElement === __s.start; return __s.order.length;"
+    },
+    {
+      "key": "Tab",
+      "if": "!__s.wrapped"
+    },
+    {
+      "if": "!__s.wrapped",
+      "script": "__s.order.push(__lmm.focused()); __s.wrapped = document.activeElement === __s.start; return __s.order.length;"
+    },
+    {
+      "key": "Tab",
+      "if": "!__s.wrapped"
+    },
+    {
+      "if": "!__s.wrapped",
+      "script": "__s.order.push(__lmm.focused()); __s.wrapped = document.activeElement === __s.start; return __s.order.length;"
+    },
+    {
+      "key": "Tab",
+      "if": "!__s.wrapped"
+    },
+    {
+      "if": "!__s.wrapped",
+      "script": "__s.order.push(__lmm.focused()); __s.wrapped = document.activeElement === __s.start; return __s.order.length;"
+    },
+    {
+      "key": "Tab",
+      "if": "!__s.wrapped"
+    },
+    {
+      "if": "!__s.wrapped",
+      "script": "__s.order.push(__lmm.focused()); __s.wrapped = document.activeElement === __s.start; return __s.order.length;"
+    },
+    {
+      "key": "Tab",
+      "if": "!__s.wrapped"
+    },
+    {
+      "if": "!__s.wrapped",
+      "script": "__s.order.push(__lmm.focused()); __s.wrapped = document.activeElement === __s.start; return __s.order.length;"
+    },
+    {
+      "key": "Tab",
+      "if": "!__s.wrapped"
+    },
+    {
+      "if": "!__s.wrapped",
+      "script": "__s.order.push(__lmm.focused()); __s.wrapped = document.activeElement === __s.start; return __s.order.length;"
+    },
+    {
+      "key": "Tab",
+      "if": "!__s.wrapped"
+    },
+    {
+      "if": "!__s.wrapped",
+      "script": "__s.order.push(__lmm.focused()); __s.wrapped = document.activeElement === __s.start; return __s.order.length;"
+    },
+    {
+      "key": "Tab",
+      "if": "!__s.wrapped"
+    },
+    {
+      "if": "!__s.wrapped",
+      "script": "__s.order.push(__lmm.focused()); __s.wrapped = document.activeElement === __s.start; return __s.order.length;"
+    },
+    {
+      "key": "Tab",
+      "if": "!__s.wrapped"
+    },
+    {
+      "if": "!__s.wrapped",
+      "script": "__s.order.push(__lmm.focused()); __s.wrapped = document.activeElement === __s.start; return __s.order.length;"
+    },
+    {
+      "key": "Tab",
+      "if": "!__s.wrapped"
+    },
+    {
+      "if": "!__s.wrapped",
+      "script": "__s.order.push(__lmm.focused()); __s.wrapped = document.activeElement === __s.start; return __s.order.length;"
+    },
+    {
+      "key": "Tab",
+      "if": "!__s.wrapped"
+    },
+    {
+      "if": "!__s.wrapped",
+      "script": "__s.order.push(__lmm.focused()); __s.wrapped = document.activeElement === __s.start; return __s.order.length;"
+    },
+    {
+      "key": "Tab",
+      "if": "!__s.wrapped"
+    },
+    {
+      "if": "!__s.wrapped",
+      "script": "__s.order.push(__lmm.focused()); __s.wrapped = document.activeElement === __s.start; return __s.order.length;"
+    },
+    {
+      "key": "Tab",
+      "if": "!__s.wrapped"
+    },
+    {
+      "if": "!__s.wrapped",
+      "script": "__s.order.push(__lmm.focused()); __s.wrapped = document.activeElement === __s.start; return __s.order.length;"
+    },
+    {
+      "key": "Tab",
+      "if": "!__s.wrapped"
+    },
+    {
+      "if": "!__s.wrapped",
+      "script": "__s.order.push(__lmm.focused()); __s.wrapped = document.activeElement === __s.start; return __s.order.length;"
+    },
+    {
+      "key": "Tab",
+      "if": "!__s.wrapped"
+    },
+    {
+      "if": "!__s.wrapped",
+      "script": "__s.order.push(__lmm.focused()); __s.wrapped = document.activeElement === __s.start; return __s.order.length;"
+    },
+    {
+      "key": "Tab",
+      "if": "!__s.wrapped"
+    },
+    {
+      "if": "!__s.wrapped",
+      "script": "__s.order.push(__lmm.focused()); __s.wrapped = document.activeElement === __s.start; return __s.order.length;"
+    },
+    {
+      "key": "Tab",
+      "if": "!__s.wrapped"
+    },
+    {
+      "if": "!__s.wrapped",
+      "script": "__s.order.push(__lmm.focused()); __s.wrapped = document.activeElement === __s.start; return __s.order.length;"
+    },
+    {
+      "key": "Tab",
+      "if": "!__s.wrapped"
+    },
+    {
+      "if": "!__s.wrapped",
+      "script": "__s.order.push(__lmm.focused()); __s.wrapped = document.activeElement === __s.start; return __s.order.length;"
+    },
+    {
+      "key": "Tab",
+      "if": "!__s.wrapped"
+    },
+    {
+      "if": "!__s.wrapped",
+      "script": "__s.order.push(__lmm.focused()); __s.wrapped = document.activeElement === __s.start; return __s.order.length;"
+    },
+    {
+      "key": "Tab",
+      "if": "!__s.wrapped"
+    },
+    {
+      "if": "!__s.wrapped",
+      "script": "__s.order.push(__lmm.focused()); __s.wrapped = document.activeElement === __s.start; return __s.order.length;"
+    },
+    {
+      "key": "Tab",
+      "if": "!__s.wrapped"
+    },
+    {
+      "if": "!__s.wrapped",
+      "script": "__s.order.push(__lmm.focused()); __s.wrapped = document.activeElement === __s.start; return __s.order.length;"
+    },
+    {
+      "key": "Tab",
+      "if": "!__s.wrapped"
+    },
+    {
+      "if": "!__s.wrapped",
+      "script": "__s.order.push(__lmm.focused()); __s.wrapped = document.activeElement === __s.start; return __s.order.length;"
+    },
+    {
+      "key": "Tab",
+      "if": "!__s.wrapped"
+    },
+    {
+      "if": "!__s.wrapped",
+      "script": "__s.order.push(__lmm.focused()); __s.wrapped = document.activeElement === __s.start; return __s.order.length;"
+    },
+    {
+      "key": "Tab",
+      "if": "!__s.wrapped"
+    },
+    {
+      "if": "!__s.wrapped",
+      "script": "__s.order.push(__lmm.focused()); __s.wrapped = document.activeElement === __s.start; return __s.order.length;"
+    },
+    {
+      "key": "Tab",
+      "if": "!__s.wrapped"
+    },
+    {
+      "if": "!__s.wrapped",
+      "script": "__s.order.push(__lmm.focused()); __s.wrapped = document.activeElement === __s.start; return __s.order.length;"
+    },
+    {
+      "key": "Tab",
+      "if": "!__s.wrapped"
+    },
+    {
+      "if": "!__s.wrapped",
+      "script": "__s.order.push(__lmm.focused()); __s.wrapped = document.activeElement === __s.start; return __s.order.length;"
+    },
+    {
+      "key": "Tab",
+      "if": "!__s.wrapped"
+    },
+    {
+      "if": "!__s.wrapped",
+      "script": "__s.order.push(__lmm.focused()); __s.wrapped = document.activeElement === __s.start; return __s.order.length;"
+    },
+    {
+      "key": "Tab",
+      "if": "!__s.wrapped"
+    },
+    {
+      "if": "!__s.wrapped",
+      "script": "__s.order.push(__lmm.focused()); __s.wrapped = document.activeElement === __s.start; return __s.order.length;"
+    },
+    {
+      "key": "Tab",
+      "if": "!__s.wrapped"
+    },
+    {
+      "if": "!__s.wrapped",
+      "script": "__s.order.push(__lmm.focused()); __s.wrapped = document.activeElement === __s.start; return __s.order.length;"
+    },
+    {
+      "key": "Tab",
+      "if": "!__s.wrapped"
+    },
+    {
+      "if": "!__s.wrapped",
+      "script": "__s.order.push(__lmm.focused()); __s.wrapped = document.activeElement === __s.start; return __s.order.length;"
+    },
+    {
+      "key": "Tab",
+      "if": "!__s.wrapped"
+    },
+    {
+      "if": "!__s.wrapped",
+      "script": "__s.order.push(__lmm.focused()); __s.wrapped = document.activeElement === __s.start; return __s.order.length;"
+    },
+    {
+      "name": "keys: the Tab order",
+      "eval": "__s.order",
+      "save": "order",
+      "full": true
+    },
+    {
+      "assert": "__s.wrapped && __vars.order.length > 5 && __vars.order.every((f) => f.inDialog) && __vars.order.some((f) => f.cls.indexOf('jflm-move-close') >= 0) && __vars.order.some((f) => f.cls.indexOf('jflm-move-preview-again') >= 0) && __vars.order.some((f) => f.cls === 'btnCancel') && __vars.order.some((f) => f.tag === 'SUMMARY')",
+      "message": "Tab left the dialog or missed a control"
+    },
+    {
+      "name": "keys: Shift+Tab all the way round",
+      "eval": "true"
+    },
+    {
+      "script": "__s.order = [__lmm.focused()]; __s.start = document.activeElement; __s.wrapped = false; return __s.order[0];",
+      "full": true
+    },
+    {
+      "key": "Shift+Tab",
+      "if": "!__s.wrapped"
+    },
+    {
+      "if": "!__s.wrapped",
+      "script": "__s.order.push(__lmm.focused()); __s.wrapped = document.activeElement === __s.start; return __s.order.length;"
+    },
+    {
+      "key": "Shift+Tab",
+      "if": "!__s.wrapped"
+    },
+    {
+      "if": "!__s.wrapped",
+      "script": "__s.order.push(__lmm.focused()); __s.wrapped = document.activeElement === __s.start; return __s.order.length;"
+    },
+    {
+      "key": "Shift+Tab",
+      "if": "!__s.wrapped"
+    },
+    {
+      "if": "!__s.wrapped",
+      "script": "__s.order.push(__lmm.focused()); __s.wrapped = document.activeElement === __s.start; return __s.order.length;"
+    },
+    {
+      "key": "Shift+Tab",
+      "if": "!__s.wrapped"
+    },
+    {
+      "if": "!__s.wrapped",
+      "script": "__s.order.push(__lmm.focused()); __s.wrapped = document.activeElement === __s.start; return __s.order.length;"
+    },
+    {
+      "key": "Shift+Tab",
+      "if": "!__s.wrapped"
+    },
+    {
+      "if": "!__s.wrapped",
+      "script": "__s.order.push(__lmm.focused()); __s.wrapped = document.activeElement === __s.start; return __s.order.length;"
+    },
+    {
+      "key": "Shift+Tab",
+      "if": "!__s.wrapped"
+    },
+    {
+      "if": "!__s.wrapped",
+      "script": "__s.order.push(__lmm.focused()); __s.wrapped = document.activeElement === __s.start; return __s.order.length;"
+    },
+    {
+      "key": "Shift+Tab",
+      "if": "!__s.wrapped"
+    },
+    {
+      "if": "!__s.wrapped",
+      "script": "__s.order.push(__lmm.focused()); __s.wrapped = document.activeElement === __s.start; return __s.order.length;"
+    },
+    {
+      "key": "Shift+Tab",
+      "if": "!__s.wrapped"
+    },
+    {
+      "if": "!__s.wrapped",
+      "script": "__s.order.push(__lmm.focused()); __s.wrapped = document.activeElement === __s.start; return __s.order.length;"
+    },
+    {
+      "key": "Shift+Tab",
+      "if": "!__s.wrapped"
+    },
+    {
+      "if": "!__s.wrapped",
+      "script": "__s.order.push(__lmm.focused()); __s.wrapped = document.activeElement === __s.start; return __s.order.length;"
+    },
+    {
+      "key": "Shift+Tab",
+      "if": "!__s.wrapped"
+    },
+    {
+      "if": "!__s.wrapped",
+      "script": "__s.order.push(__lmm.focused()); __s.wrapped = document.activeElement === __s.start; return __s.order.length;"
+    },
+    {
+      "key": "Shift+Tab",
+      "if": "!__s.wrapped"
+    },
+    {
+      "if": "!__s.wrapped",
+      "script": "__s.order.push(__lmm.focused()); __s.wrapped = document.activeElement === __s.start; return __s.order.length;"
+    },
+    {
+      "key": "Shift+Tab",
+      "if": "!__s.wrapped"
+    },
+    {
+      "if": "!__s.wrapped",
+      "script": "__s.order.push(__lmm.focused()); __s.wrapped = document.activeElement === __s.start; return __s.order.length;"
+    },
+    {
+      "key": "Shift+Tab",
+      "if": "!__s.wrapped"
+    },
+    {
+      "if": "!__s.wrapped",
+      "script": "__s.order.push(__lmm.focused()); __s.wrapped = document.activeElement === __s.start; return __s.order.length;"
+    },
+    {
+      "key": "Shift+Tab",
+      "if": "!__s.wrapped"
+    },
+    {
+      "if": "!__s.wrapped",
+      "script": "__s.order.push(__lmm.focused()); __s.wrapped = document.activeElement === __s.start; return __s.order.length;"
+    },
+    {
+      "key": "Shift+Tab",
+      "if": "!__s.wrapped"
+    },
+    {
+      "if": "!__s.wrapped",
+      "script": "__s.order.push(__lmm.focused()); __s.wrapped = document.activeElement === __s.start; return __s.order.length;"
+    },
+    {
+      "key": "Shift+Tab",
+      "if": "!__s.wrapped"
+    },
+    {
+      "if": "!__s.wrapped",
+      "script": "__s.order.push(__lmm.focused()); __s.wrapped = document.activeElement === __s.start; return __s.order.length;"
+    },
+    {
+      "key": "Shift+Tab",
+      "if": "!__s.wrapped"
+    },
+    {
+      "if": "!__s.wrapped",
+      "script": "__s.order.push(__lmm.focused()); __s.wrapped = document.activeElement === __s.start; return __s.order.length;"
+    },
+    {
+      "key": "Shift+Tab",
+      "if": "!__s.wrapped"
+    },
+    {
+      "if": "!__s.wrapped",
+      "script": "__s.order.push(__lmm.focused()); __s.wrapped = document.activeElement === __s.start; return __s.order.length;"
+    },
+    {
+      "key": "Shift+Tab",
+      "if": "!__s.wrapped"
+    },
+    {
+      "if": "!__s.wrapped",
+      "script": "__s.order.push(__lmm.focused()); __s.wrapped = document.activeElement === __s.start; return __s.order.length;"
+    },
+    {
+      "key": "Shift+Tab",
+      "if": "!__s.wrapped"
+    },
+    {
+      "if": "!__s.wrapped",
+      "script": "__s.order.push(__lmm.focused()); __s.wrapped = document.activeElement === __s.start; return __s.order.length;"
+    },
+    {
+      "key": "Shift+Tab",
+      "if": "!__s.wrapped"
+    },
+    {
+      "if": "!__s.wrapped",
+      "script": "__s.order.push(__lmm.focused()); __s.wrapped = document.activeElement === __s.start; return __s.order.length;"
+    },
+    {
+      "key": "Shift+Tab",
+      "if": "!__s.wrapped"
+    },
+    {
+      "if": "!__s.wrapped",
+      "script": "__s.order.push(__lmm.focused()); __s.wrapped = document.activeElement === __s.start; return __s.order.length;"
+    },
+    {
+      "key": "Shift+Tab",
+      "if": "!__s.wrapped"
+    },
+    {
+      "if": "!__s.wrapped",
+      "script": "__s.order.push(__lmm.focused()); __s.wrapped = document.activeElement === __s.start; return __s.order.length;"
+    },
+    {
+      "key": "Shift+Tab",
+      "if": "!__s.wrapped"
+    },
+    {
+      "if": "!__s.wrapped",
+      "script": "__s.order.push(__lmm.focused()); __s.wrapped = document.activeElement === __s.start; return __s.order.length;"
+    },
+    {
+      "key": "Shift+Tab",
+      "if": "!__s.wrapped"
+    },
+    {
+      "if": "!__s.wrapped",
+      "script": "__s.order.push(__lmm.focused()); __s.wrapped = document.activeElement === __s.start; return __s.order.length;"
+    },
+    {
+      "key": "Shift+Tab",
+      "if": "!__s.wrapped"
+    },
+    {
+      "if": "!__s.wrapped",
+      "script": "__s.order.push(__lmm.focused()); __s.wrapped = document.activeElement === __s.start; return __s.order.length;"
+    },
+    {
+      "key": "Shift+Tab",
+      "if": "!__s.wrapped"
+    },
+    {
+      "if": "!__s.wrapped",
+      "script": "__s.order.push(__lmm.focused()); __s.wrapped = document.activeElement === __s.start; return __s.order.length;"
+    },
+    {
+      "key": "Shift+Tab",
+      "if": "!__s.wrapped"
+    },
+    {
+      "if": "!__s.wrapped",
+      "script": "__s.order.push(__lmm.focused()); __s.wrapped = document.activeElement === __s.start; return __s.order.length;"
+    },
+    {
+      "key": "Shift+Tab",
+      "if": "!__s.wrapped"
+    },
+    {
+      "if": "!__s.wrapped",
+      "script": "__s.order.push(__lmm.focused()); __s.wrapped = document.activeElement === __s.start; return __s.order.length;"
+    },
+    {
+      "key": "Shift+Tab",
+      "if": "!__s.wrapped"
+    },
+    {
+      "if": "!__s.wrapped",
+      "script": "__s.order.push(__lmm.focused()); __s.wrapped = document.activeElement === __s.start; return __s.order.length;"
+    },
+    {
+      "key": "Shift+Tab",
+      "if": "!__s.wrapped"
+    },
+    {
+      "if": "!__s.wrapped",
+      "script": "__s.order.push(__lmm.focused()); __s.wrapped = document.activeElement === __s.start; return __s.order.length;"
+    },
+    {
+      "key": "Shift+Tab",
+      "if": "!__s.wrapped"
+    },
+    {
+      "if": "!__s.wrapped",
+      "script": "__s.order.push(__lmm.focused()); __s.wrapped = document.activeElement === __s.start; return __s.order.length;"
+    },
+    {
+      "key": "Shift+Tab",
+      "if": "!__s.wrapped"
+    },
+    {
+      "if": "!__s.wrapped",
+      "script": "__s.order.push(__lmm.focused()); __s.wrapped = document.activeElement === __s.start; return __s.order.length;"
+    },
+    {
+      "key": "Shift+Tab",
+      "if": "!__s.wrapped"
+    },
+    {
+      "if": "!__s.wrapped",
+      "script": "__s.order.push(__lmm.focused()); __s.wrapped = document.activeElement === __s.start; return __s.order.length;"
+    },
+    {
+      "key": "Shift+Tab",
+      "if": "!__s.wrapped"
+    },
+    {
+      "if": "!__s.wrapped",
+      "script": "__s.order.push(__lmm.focused()); __s.wrapped = document.activeElement === __s.start; return __s.order.length;"
+    },
+    {
+      "key": "Shift+Tab",
+      "if": "!__s.wrapped"
+    },
+    {
+      "if": "!__s.wrapped",
+      "script": "__s.order.push(__lmm.focused()); __s.wrapped = document.activeElement === __s.start; return __s.order.length;"
+    },
+    {
+      "key": "Shift+Tab",
+      "if": "!__s.wrapped"
+    },
+    {
+      "if": "!__s.wrapped",
+      "script": "__s.order.push(__lmm.focused()); __s.wrapped = document.activeElement === __s.start; return __s.order.length;"
+    },
+    {
+      "key": "Shift+Tab",
+      "if": "!__s.wrapped"
+    },
+    {
+      "if": "!__s.wrapped",
+      "script": "__s.order.push(__lmm.focused()); __s.wrapped = document.activeElement === __s.start; return __s.order.length;"
+    },
+    {
+      "key": "Shift+Tab",
+      "if": "!__s.wrapped"
+    },
+    {
+      "if": "!__s.wrapped",
+      "script": "__s.order.push(__lmm.focused()); __s.wrapped = document.activeElement === __s.start; return __s.order.length;"
+    },
+    {
+      "key": "Shift+Tab",
+      "if": "!__s.wrapped"
+    },
+    {
+      "if": "!__s.wrapped",
+      "script": "__s.order.push(__lmm.focused()); __s.wrapped = document.activeElement === __s.start; return __s.order.length;"
+    },
+    {
+      "name": "keys: the Shift+Tab order is the Tab order backwards",
+      "eval": "__s.order",
+      "save": "back",
+      "full": true
+    },
+    {
+      "assert": "__s.wrapped && __vars.back.every((f) => f.inDialog) && JSON.stringify(__vars.back.map((f) => f.cls + '|' + f.text)) === JSON.stringify(__vars.order.slice().reverse().map((f) => f.cls + '|' + f.text))",
+      "message": "Shift+Tab is not the Tab order backwards"
+    },
+    {
+      "key": "Shift+Tab",
+      "if": "!(__lmm.focusIs('details.jflm-move-files > summary'))"
+    },
+    {
+      "key": "Shift+Tab",
+      "if": "!(__lmm.focusIs('details.jflm-move-files > summary'))"
+    },
+    {
+      "key": "Shift+Tab",
+      "if": "!(__lmm.focusIs('details.jflm-move-files > summary'))"
+    },
+    {
+      "key": "Shift+Tab",
+      "if": "!(__lmm.focusIs('details.jflm-move-files > summary'))"
+    },
+    {
+      "key": "Shift+Tab",
+      "if": "!(__lmm.focusIs('details.jflm-move-files > summary'))"
+    },
+    {
+      "key": "Shift+Tab",
+      "if": "!(__lmm.focusIs('details.jflm-move-files > summary'))"
+    },
+    {
+      "key": "Shift+Tab",
+      "if": "!(__lmm.focusIs('details.jflm-move-files > summary'))"
+    },
+    {
+      "key": "Shift+Tab",
+      "if": "!(__lmm.focusIs('details.jflm-move-files > summary'))"
+    },
+    {
+      "key": "Shift+Tab",
+      "if": "!(__lmm.focusIs('details.jflm-move-files > summary'))"
+    },
+    {
+      "key": "Shift+Tab",
+      "if": "!(__lmm.focusIs('details.jflm-move-files > summary'))"
+    },
+    {
+      "key": "Shift+Tab",
+      "if": "!(__lmm.focusIs('details.jflm-move-files > summary'))"
+    },
+    {
+      "key": "Shift+Tab",
+      "if": "!(__lmm.focusIs('details.jflm-move-files > summary'))"
+    },
+    {
+      "key": "Shift+Tab",
+      "if": "!(__lmm.focusIs('details.jflm-move-files > summary'))"
+    },
+    {
+      "key": "Shift+Tab",
+      "if": "!(__lmm.focusIs('details.jflm-move-files > summary'))"
+    },
+    {
+      "key": "Shift+Tab",
+      "if": "!(__lmm.focusIs('details.jflm-move-files > summary'))"
+    },
+    {
+      "name": "keys: Enter on Every file opens the list",
+      "key": "Enter"
+    },
+    {
+      "assert": "__lmm.q('details.jflm-move-files').open === true"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('select.jflm-move-library'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('select.jflm-move-library'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('select.jflm-move-library'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('select.jflm-move-library'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('select.jflm-move-library'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('select.jflm-move-library'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('select.jflm-move-library'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('select.jflm-move-library'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('select.jflm-move-library'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('select.jflm-move-library'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('select.jflm-move-library'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('select.jflm-move-library'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('select.jflm-move-library'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('select.jflm-move-library'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('select.jflm-move-library'))"
+    },
+    {
+      "assert": "__lmm.focusIs('select.jflm-move-library')"
+    },
+    {
+      "script": "__s.plans = __lmm.log('/LibraryMaintenance/Move/Plan').length; return __s.plans;"
+    },
+    {
+      "name": "keys: ArrowDown on the library choice picks the next library",
+      "key": "ArrowDown"
+    },
+    {
+      "name": "the preview settled on a new plan",
+      "waitFor": "__lmm.log('/LibraryMaintenance/Move/Plan').length > __s.plans && __lmm.settled()"
+    },
+    {
+      "assert": "__lmm.state().library === 'Big Folders' && __lmm.state().blockers.length === 0"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('input.jflm-move-new-folder'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('input.jflm-move-new-folder'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('input.jflm-move-new-folder'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('input.jflm-move-new-folder'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('input.jflm-move-new-folder'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('input.jflm-move-new-folder'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('input.jflm-move-new-folder'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('input.jflm-move-new-folder'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('input.jflm-move-new-folder'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('input.jflm-move-new-folder'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('input.jflm-move-new-folder'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('input.jflm-move-new-folder'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('input.jflm-move-new-folder'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('input.jflm-move-new-folder'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('input.jflm-move-new-folder'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('input.jflm-move-new-folder'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('input.jflm-move-new-folder'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('input.jflm-move-new-folder'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('input.jflm-move-new-folder'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('input.jflm-move-new-folder'))"
+    },
+    {
+      "assert": "__lmm.focusIs('input.jflm-move-new-folder')"
+    },
+    {
+      "script": "__s.plans = __lmm.log('/LibraryMaintenance/Move/Plan').length; return __s.plans;"
+    },
+    {
+      "name": "keys: a new folder's name typed",
+      "type": "Keyboard Shelf"
+    },
+    {
+      "name": "the preview settled on a new plan",
+      "waitFor": "__lmm.log('/LibraryMaintenance/Move/Plan').length > __s.plans && __lmm.settled()"
+    },
+    {
+      "assert": "__lmm.tail(__lmm.state().facts.To, 2) === 'Big Folders/Keyboard Shelf'"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.jflm-move-preview-again'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.jflm-move-preview-again'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.jflm-move-preview-again'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.jflm-move-preview-again'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.jflm-move-preview-again'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.jflm-move-preview-again'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.jflm-move-preview-again'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.jflm-move-preview-again'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.jflm-move-preview-again'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.jflm-move-preview-again'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.jflm-move-preview-again'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.jflm-move-preview-again'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.jflm-move-preview-again'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.jflm-move-preview-again'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.jflm-move-preview-again'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.jflm-move-preview-again'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.jflm-move-preview-again'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.jflm-move-preview-again'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.jflm-move-preview-again'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.jflm-move-preview-again'))"
+    },
+    {
+      "script": "__s.plans = __lmm.log('/LibraryMaintenance/Move/Plan').length; return __s.plans;"
+    },
+    {
+      "name": "keys: Enter on Preview again",
+      "key": "Enter"
+    },
+    {
+      "name": "the preview settled on a new plan",
+      "waitFor": "__lmm.log('/LibraryMaintenance/Move/Plan').length > __s.plans && __lmm.settled()"
+    },
+    {
+      "screenshot": "lm-move-keys-dialog.png"
+    },
+    {
+      "name": "keys: Filter folders typed (Escape empties a text field first)",
+      "type": "zz",
+      "selector": ".dialogContainer .jflm-move-dialog input.jflm-searchbox"
+    },
+    {
+      "name": "the folders filtered",
+      "waitFor": "(__lmm.log('/LibraryMaintenance/Move/Folders').slice(-1)[0] || { query: {} }).query.filter === 'zz'"
+    },
+    {
+      "name": "keys: Escape in the filter",
+      "key": "Escape"
+    },
+    {
+      "name": "the filter emptied, the dialog still open, the folders unfiltered again",
+      "waitFor": "!!__lmm.dialog() && __lmm.q('input.jflm-searchbox').value === '' && (__lmm.log('/LibraryMaintenance/Move/Folders').slice(-1)[0] || { query: { filter: 'x' } }).query.filter === undefined"
+    },
+    {
+      "name": "the focus stays in the filter",
+      "assert": "__lmm.focused().inDialog && document.activeElement === __lmm.q('input.jflm-searchbox')"
+    },
+    {
+      "name": "keys: Escape closes the dialog",
+      "key": "Escape"
+    },
+    {
+      "waitFor": "!__lmm.dialog()"
+    },
+    {
+      "sleep": 500
+    },
+    {
+      "name": "keys: the page stays, the focus after closing",
+      "eval": "({ hash: location.hash === __s.hash, focus: __lmm.focused() })",
+      "save": "afterEscape",
+      "full": true
+    },
+    {
+      "assert": "__vars.afterEscape.hash && __vars.afterEscape.focus.cls === 'btnMoreCommands'"
+    },
+    {
+      "name": "keys, episode: the episode's details page",
+      "script": "location.hash = '#/details?id=' + __vars.ids.episode; return location.hash;"
+    },
+    {
+      "waitFor": "location.hash.indexOf(__vars.ids.episode) >= 0 && !!document.querySelector('.itemDetailPage:not(.hide) .btnMoreCommands:not(.hide)')"
+    },
+    {
+      "sleep": 1500
+    },
+    {
+      "script": "if (document.activeElement) document.activeElement.blur(); return true;"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands'))"
+    },
+    {
+      "assert": "__lmm.focusIs('.itemDetailPage:not(.hide) .btnMoreCommands')"
+    },
+    {
+      "key": "Enter"
+    },
+    {
+      "waitFor": "!!__lmm.sheet() && __lmm.afterRefresh('jflm-move')"
+    },
+    {
+      "sleep": 500
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.dialogContainer > .actionSheet .actionSheetMenuItem')) && !!(__s.k_toSheet2 = (__s.k_toSheet2 || 0) + 1)"
+    },
+    {
+      "name": "keys, episode: Tab reached the menu's rows",
+      "eval": "({ tabs: __s.k_toSheet2 || 0, focus: __lmm.focused() })",
+      "full": true
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.actionSheetMenuItem[data-id=\"jflm-move\"]')) && !!(__s.k_inSheet2 = (__s.k_inSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.actionSheetMenuItem[data-id=\"jflm-move\"]')) && !!(__s.k_inSheet2 = (__s.k_inSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.actionSheetMenuItem[data-id=\"jflm-move\"]')) && !!(__s.k_inSheet2 = (__s.k_inSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.actionSheetMenuItem[data-id=\"jflm-move\"]')) && !!(__s.k_inSheet2 = (__s.k_inSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.actionSheetMenuItem[data-id=\"jflm-move\"]')) && !!(__s.k_inSheet2 = (__s.k_inSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.actionSheetMenuItem[data-id=\"jflm-move\"]')) && !!(__s.k_inSheet2 = (__s.k_inSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.actionSheetMenuItem[data-id=\"jflm-move\"]')) && !!(__s.k_inSheet2 = (__s.k_inSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.actionSheetMenuItem[data-id=\"jflm-move\"]')) && !!(__s.k_inSheet2 = (__s.k_inSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.actionSheetMenuItem[data-id=\"jflm-move\"]')) && !!(__s.k_inSheet2 = (__s.k_inSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.actionSheetMenuItem[data-id=\"jflm-move\"]')) && !!(__s.k_inSheet2 = (__s.k_inSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.actionSheetMenuItem[data-id=\"jflm-move\"]')) && !!(__s.k_inSheet2 = (__s.k_inSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.actionSheetMenuItem[data-id=\"jflm-move\"]')) && !!(__s.k_inSheet2 = (__s.k_inSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.actionSheetMenuItem[data-id=\"jflm-move\"]')) && !!(__s.k_inSheet2 = (__s.k_inSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.actionSheetMenuItem[data-id=\"jflm-move\"]')) && !!(__s.k_inSheet2 = (__s.k_inSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.actionSheetMenuItem[data-id=\"jflm-move\"]')) && !!(__s.k_inSheet2 = (__s.k_inSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.actionSheetMenuItem[data-id=\"jflm-move\"]')) && !!(__s.k_inSheet2 = (__s.k_inSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.actionSheetMenuItem[data-id=\"jflm-move\"]')) && !!(__s.k_inSheet2 = (__s.k_inSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.actionSheetMenuItem[data-id=\"jflm-move\"]')) && !!(__s.k_inSheet2 = (__s.k_inSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.actionSheetMenuItem[data-id=\"jflm-move\"]')) && !!(__s.k_inSheet2 = (__s.k_inSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.actionSheetMenuItem[data-id=\"jflm-move\"]')) && !!(__s.k_inSheet2 = (__s.k_inSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.actionSheetMenuItem[data-id=\"jflm-move\"]')) && !!(__s.k_inSheet2 = (__s.k_inSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.actionSheetMenuItem[data-id=\"jflm-move\"]')) && !!(__s.k_inSheet2 = (__s.k_inSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.actionSheetMenuItem[data-id=\"jflm-move\"]')) && !!(__s.k_inSheet2 = (__s.k_inSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.actionSheetMenuItem[data-id=\"jflm-move\"]')) && !!(__s.k_inSheet2 = (__s.k_inSheet2 || 0) + 1)"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('.actionSheetMenuItem[data-id=\"jflm-move\"]')) && !!(__s.k_inSheet2 = (__s.k_inSheet2 || 0) + 1)"
+    },
+    {
+      "assert": "__lmm.focusIs('.actionSheetMenuItem[data-id=\"jflm-move\"]')"
+    },
+    {
+      "key": "Enter"
+    },
+    {
+      "name": "the sheet closes, the Move dialog opens and loads",
+      "waitFor": "!__lmm.sheet() && !!__lmm.dialog() && __lmm.loaded()"
+    },
+    {
+      "sleep": 300
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('button.jflm-move-folder', 'Sample Show (2020) [tvdbid-920001]'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('button.jflm-move-folder', 'Sample Show (2020) [tvdbid-920001]'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('button.jflm-move-folder', 'Sample Show (2020) [tvdbid-920001]'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('button.jflm-move-folder', 'Sample Show (2020) [tvdbid-920001]'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('button.jflm-move-folder', 'Sample Show (2020) [tvdbid-920001]'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('button.jflm-move-folder', 'Sample Show (2020) [tvdbid-920001]'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('button.jflm-move-folder', 'Sample Show (2020) [tvdbid-920001]'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('button.jflm-move-folder', 'Sample Show (2020) [tvdbid-920001]'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('button.jflm-move-folder', 'Sample Show (2020) [tvdbid-920001]'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('button.jflm-move-folder', 'Sample Show (2020) [tvdbid-920001]'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('button.jflm-move-folder', 'Sample Show (2020) [tvdbid-920001]'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('button.jflm-move-folder', 'Sample Show (2020) [tvdbid-920001]'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('button.jflm-move-folder', 'Sample Show (2020) [tvdbid-920001]'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('button.jflm-move-folder', 'Sample Show (2020) [tvdbid-920001]'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('button.jflm-move-folder', 'Sample Show (2020) [tvdbid-920001]'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('button.jflm-move-folder', 'Sample Show (2020) [tvdbid-920001]'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('button.jflm-move-folder', 'Sample Show (2020) [tvdbid-920001]'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('button.jflm-move-folder', 'Sample Show (2020) [tvdbid-920001]'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('button.jflm-move-folder', 'Sample Show (2020) [tvdbid-920001]'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('button.jflm-move-folder', 'Sample Show (2020) [tvdbid-920001]'))"
+    },
+    {
+      "assert": "__lmm.focusIs('button.jflm-move-folder', 'Sample Show (2020) [tvdbid-920001]')"
+    },
+    {
+      "script": "__s.plans = __lmm.log('/LibraryMaintenance/Move/Plan').length; return __s.plans;"
+    },
+    {
+      "name": "keys, episode: Enter opens the series' folder",
+      "key": "Enter"
+    },
+    {
+      "name": "the preview settled on a new plan",
+      "waitFor": "__lmm.log('/LibraryMaintenance/Move/Plan').length > __s.plans && __lmm.settled()"
+    },
+    {
+      "waitFor": "__lmm.text('.jflm-move-count') === '2 folders.'"
+    },
+    {
+      "name": "keys, episode: the focus stays in the dialog after the list changed",
+      "eval": "__lmm.focused()",
+      "save": "afterOpen",
+      "full": true
+    },
+    {
+      "assert": "__vars.afterOpen.inDialog"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('button.jflm-move-folder', 'Season 02'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('button.jflm-move-folder', 'Season 02'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('button.jflm-move-folder', 'Season 02'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('button.jflm-move-folder', 'Season 02'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('button.jflm-move-folder', 'Season 02'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('button.jflm-move-folder', 'Season 02'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('button.jflm-move-folder', 'Season 02'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('button.jflm-move-folder', 'Season 02'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('button.jflm-move-folder', 'Season 02'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('button.jflm-move-folder', 'Season 02'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('button.jflm-move-folder', 'Season 02'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('button.jflm-move-folder', 'Season 02'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('button.jflm-move-folder', 'Season 02'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('button.jflm-move-folder', 'Season 02'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('button.jflm-move-folder', 'Season 02'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('button.jflm-move-folder', 'Season 02'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('button.jflm-move-folder', 'Season 02'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('button.jflm-move-folder', 'Season 02'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('button.jflm-move-folder', 'Season 02'))"
+    },
+    {
+      "key": "Tab",
+      "if": "!(__lmm.focusIs('button.jflm-move-folder', 'Season 02'))"
+    },
+    {
+      "assert": "__lmm.focusIs('button.jflm-move-folder', 'Season 02')"
+    },
+    {
+      "script": "__s.plans = __lmm.log('/LibraryMaintenance/Move/Plan').length; return __s.plans;"
+    },
+    {
+      "name": "keys, episode: Space opens Season 02",
+      "key": "Space"
+    },
+    {
+      "name": "the preview settled on a new plan",
+      "waitFor": "__lmm.log('/LibraryMaintenance/Move/Plan').length > __s.plans && __lmm.settled()"
+    },
+    {
+      "assert": "__lmm.state().crumbs.length === 3 && __lmm.state().warnings.length === 1"
+    },
+    {
+      "key": "Shift+Tab",
+      "if": "!(__lmm.focusIs('.jflm-move-crumb', 'Shows'))"
+    },
+    {
+      "key": "Shift+Tab",
+      "if": "!(__lmm.focusIs('.jflm-move-crumb', 'Shows'))"
+    },
+    {
+      "key": "Shift+Tab",
+      "if": "!(__lmm.focusIs('.jflm-move-crumb', 'Shows'))"
+    },
+    {
+      "key": "Shift+Tab",
+      "if": "!(__lmm.focusIs('.jflm-move-crumb', 'Shows'))"
+    },
+    {
+      "key": "Shift+Tab",
+      "if": "!(__lmm.focusIs('.jflm-move-crumb', 'Shows'))"
+    },
+    {
+      "key": "Shift+Tab",
+      "if": "!(__lmm.focusIs('.jflm-move-crumb', 'Shows'))"
+    },
+    {
+      "key": "Shift+Tab",
+      "if": "!(__lmm.focusIs('.jflm-move-crumb', 'Shows'))"
+    },
+    {
+      "key": "Shift+Tab",
+      "if": "!(__lmm.focusIs('.jflm-move-crumb', 'Shows'))"
+    },
+    {
+      "key": "Shift+Tab",
+      "if": "!(__lmm.focusIs('.jflm-move-crumb', 'Shows'))"
+    },
+    {
+      "key": "Shift+Tab",
+      "if": "!(__lmm.focusIs('.jflm-move-crumb', 'Shows'))"
+    },
+    {
+      "key": "Shift+Tab",
+      "if": "!(__lmm.focusIs('.jflm-move-crumb', 'Shows'))"
+    },
+    {
+      "key": "Shift+Tab",
+      "if": "!(__lmm.focusIs('.jflm-move-crumb', 'Shows'))"
+    },
+    {
+      "key": "Shift+Tab",
+      "if": "!(__lmm.focusIs('.jflm-move-crumb', 'Shows'))"
+    },
+    {
+      "key": "Shift+Tab",
+      "if": "!(__lmm.focusIs('.jflm-move-crumb', 'Shows'))"
+    },
+    {
+      "key": "Shift+Tab",
+      "if": "!(__lmm.focusIs('.jflm-move-crumb', 'Shows'))"
+    },
+    {
+      "key": "Shift+Tab",
+      "if": "!(__lmm.focusIs('.jflm-move-crumb', 'Shows'))"
+    },
+    {
+      "key": "Shift+Tab",
+      "if": "!(__lmm.focusIs('.jflm-move-crumb', 'Shows'))"
+    },
+    {
+      "key": "Shift+Tab",
+      "if": "!(__lmm.focusIs('.jflm-move-crumb', 'Shows'))"
+    },
+    {
+      "key": "Shift+Tab",
+      "if": "!(__lmm.focusIs('.jflm-move-crumb', 'Shows'))"
+    },
+    {
+      "key": "Shift+Tab",
+      "if": "!(__lmm.focusIs('.jflm-move-crumb', 'Shows'))"
+    },
+    {
+      "assert": "__lmm.focusIs('.jflm-move-crumb', 'Shows')"
+    },
+    {
+      "script": "__s.plans = __lmm.log('/LibraryMaintenance/Move/Plan').length; return __s.plans;"
+    },
+    {
+      "name": "keys, episode: Enter on the breadcrumb Shows",
+      "key": "Enter"
+    },
+    {
+      "name": "the preview settled on a new plan",
+      "waitFor": "__lmm.log('/LibraryMaintenance/Move/Plan').length > __s.plans && __lmm.settled()"
+    },
+    {
+      "assert": "JSON.stringify(__lmm.state().crumbs) === JSON.stringify(['Shows'])"
+    },
+    {
+      "name": "keys, episode: Escape closes it",
+      "key": "Escape"
+    },
+    {
+      "waitFor": "!__lmm.dialog()"
+    },
+    {
+      "sleep": 500
+    },
+    {
+      "name": "keys, episode: the focus is back on More",
+      "eval": "__lmm.focused()",
+      "save": "afterF2",
+      "full": true
+    },
+    {
+      "assert": "__vars.afterF2.cls === 'btnMoreCommands'"
+    },
+    {
+      "name": "no kit health miss",
+      "assert": "Array.isArray(__lmm.health()) && __lmm.health().length === 0"
+    },
+    {
+      "noExceptions": true
+    }
+  ]
+}

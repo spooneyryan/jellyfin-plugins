@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- xunit v3, Moq, Jellyfin.Controller with runtime assets and RollForward=Major come from TestSupport.props. -->
+  <Import Project="$(KitRoot)build\TestSupport.props" />
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Jellyfin.Plugin.Bookmarks\Jellyfin.Plugin.Bookmarks.csproj" />
+  </ItemGroup>
+
+  <!-- Store files written by earlier releases, byte for byte (.gitattributes keeps git from touching them). -->
+  <ItemGroup>
+    <EmbeddedResource Include="Fixtures\*.json" LogicalName="Fixtures.%(Filename)%(Extension)" />
+  </ItemGroup>
+
+</Project>

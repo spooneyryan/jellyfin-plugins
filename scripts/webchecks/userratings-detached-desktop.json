@@ -1,0 +1,442 @@
+{
+  "name": "User Ratings 1.0.2.0, detached ratings: in the default sandbox as admin, with viewer in their own window, the desktop layout: three detached ratings made by importing a synthetic export by id (the sandbox's own export with its ratings replaced: viewer's with a review, two of viewer2's, on titles the library lacks, named as Long Test Movie, detached as removed, missing and not matched); the Data tab's detached list shows them oldest first, each title and name as isolated text, the member, stars and review, why and when, Long Test Movie to go back to by how it matches, and Purge… named for it; a reason reads the list for it alone; Relink asks first (Cancel focused), then gives viewer's rating back to Long Test Movie (POST 204, the list read again, viewer sees their stars and review on it); one purged meanwhile through the API: its Relink is the 404, whose note stays while the list is read again without it; Purge… asks first, then deletes the last for good (DELETE 204, the note cleared, the focus kept); none of the three detached any more, and a dry run of the same file skips both purged ratings as purged before (PreviouslyPurged). Every rating on Long Test Movie removed at the end, and none of the run's ratings left detached.",
+  "failOnException": false,
+  "timeout": 30000,
+  "steps": [
+    {
+      "context": "viewer"
+    },
+    {
+      "name": "the details probe in every document (its request log and server())",
+      "initScript": {
+        "file": "probes/userratings-details-probe.js"
+      }
+    },
+    {
+      "name": "sign in as viewer",
+      "login": "viewer"
+    },
+    {
+      "name": "desktop layout",
+      "eval": "(localStorage.removeItem('layout'), true)"
+    },
+    {
+      "name": "reload",
+      "reload": true
+    },
+    {
+      "name": "viewer: User Ratings 1.0.2.0 started",
+      "waitFor": "!!window.ApiClient && !!ApiClient.getCurrentUserId() && !!(window.__jfkit && window.__jfkit.jfur)",
+      "timeout": 40000
+    },
+    {
+      "name": "the served script is 1.0.2.0",
+      "assert": "window.__jfkit.jfur.version === '1.0.2.0'",
+      "message": "User Ratings 1.0.2.0 is not the script the page loaded"
+    },
+    {
+      "context": "main"
+    },
+    {
+      "name": "the details probe in every document (its request log and server())",
+      "initScript": {
+        "file": "probes/userratings-details-probe.js"
+      }
+    },
+    {
+      "name": "sign in as admin",
+      "login": "admin"
+    },
+    {
+      "name": "desktop layout",
+      "eval": "(localStorage.removeItem('layout'), true)"
+    },
+    {
+      "name": "reload",
+      "reload": true
+    },
+    {
+      "name": "admin: User Ratings 1.0.2.0 started",
+      "waitFor": "!!window.ApiClient && !!ApiClient.getCurrentUserId() && !!(window.__jfkit && window.__jfkit.jfur)",
+      "timeout": 40000
+    },
+    {
+      "name": "the served script is 1.0.2.0",
+      "assert": "window.__jfkit.jfur.version === '1.0.2.0'",
+      "message": "User Ratings 1.0.2.0 is not the script the page loaded"
+    },
+    {
+      "name": "the users' ids",
+      "script": "const norm = (v) => String(v === null || v === undefined ? '' : v).replace(/-/g, '').toLowerCase(); const u = await ApiClient.getUsers(); const id = (n) => { const x = u.find(y => y.Name === n); return x ? norm(x.Id) : null; }; const r = { admin: id('admin'), viewer: id('viewer'), viewer2: id('viewer2') }; if (!r.viewer || !r.viewer2) { throw new Error('the sandbox needs viewer and viewer2'); } return r;",
+      "save": "ids",
+      "full": true
+    },
+    {
+      "name": "Long Test Movie",
+      "eval": "(await ApiClient.getItems(ApiClient.getCurrentUserId(), { IncludeItemTypes: 'Movie', Recursive: true, SearchTerm: \"Long Test Movie\", Limit: 1 })).Items[0].Id",
+      "save": "movieId"
+    },
+    {
+      "name": "clean: before the run: every rating on Long Test Movie removed through the moderation API",
+      "script": "const page = await __jfurDetails.server('GET', 'UserRatings/Admin/Reviews?itemId=' + __vars.movieId + '&limit=200'); if (page.status !== 200) { throw new Error('list ' + page.status); } const removed = []; for (const row of page.json.Items) { const p = 'UserRatings/Admin/Reviews/' + row.RatingId + '?textOnly=false'; const dry = await __jfurDetails.server('DELETE', p); const done = await __jfurDetails.server('DELETE', p + '&dryRun=false&ifPreview=' + dry.json.PreviewToken); removed.push(done.status); } return removed;"
+    },
+    {
+      "name": "Long Test Movie as the library holds it",
+      "script": "const i = await ApiClient.getItem(ApiClient.getCurrentUserId(), __vars.movieId); return { name: i.Name, year: i.ProductionYear || null, providerIds: i.ProviderIds || {} };",
+      "save": "movie",
+      "full": true
+    },
+    {
+      "name": "its title as the list writes it (the year after the name unless the name holds it)",
+      "eval": "(() => { const m = __vars.movie; const y = m.year ? '(' + m.year + ')' : ''; return y && m.name.indexOf(y) < 0 ? m.name + ' ' + y : m.name; })()",
+      "save": "title"
+    },
+    {
+      "name": "the run's ratings and the titles the library lacks: random ids",
+      "eval": "(() => { const id = () => Array.from(crypto.getRandomValues(new Uint8Array(16))).map(b => b.toString(16).padStart(2, '0')).join(''); return { a: id(), b: id(), c: id(), ghostA: id(), ghostB: id(), ghostC: id() }; })()",
+      "save": "rows",
+      "full": true
+    },
+    {
+      "name": "before: the detached ratings as the server holds them",
+      "script": "const norm = (v) => String(v === null || v === undefined ? '' : v).replace(/-/g, '').toLowerCase(); const r = await __jfurDetails.server('GET', 'UserRatings/Admin/Detached?limit=50'); if (r.status !== 200) { throw new Error('detached ' + r.status); } return { total: r.json.TotalRecordCount, ours: r.json.Items.map(x => norm(x.Id)).filter(id => id === __vars.rows.a || id === __vars.rows.b || id === __vars.rows.c) };",
+      "save": "before",
+      "full": true
+    },
+    {
+      "name": "the run's rows fit on the list's first page (oldest first, 50 a page)",
+      "assert": "__vars.before.total <= 47",
+      "message": "more than 47 detached ratings in the sandbox: purge some first (Data → Detached & ambiguous)"
+    },
+    {
+      "name": "three detached ratings made by importing a synthetic export (its dry run, then its plan)",
+      "script": "const base = await __jfurDetails.server('GET', 'UserRatings/Admin/Export'); if (base.status !== 200) { throw new Error('export ' + base.status); } const env = base.json; const m = __vars.movie; const d = (n) => n.slice(0, 8) + '-' + n.slice(8, 12) + '-' + n.slice(12, 16) + '-' + n.slice(16, 20) + '-' + n.slice(20); const at = (h) => new Date(Date.now() - h * 3600000).toISOString(); const row = (id, user, name, ghost, stars, text, reason, h) => ({ Id: d(id), UserId: d(user), UserName: name, ItemId: d(ghost), Identity: { ItemId: d(ghost), Kind: 'Movie', Name: m.name, Year: m.year, ProviderIds: m.providerIds }, Stars: stars, ReviewText: text, IsSpoiler: false, CreatedUtc: at(h + 24), UpdatedUtc: at(h + 24), ReviewUpdatedUtc: text ? at(h + 24) : null, EditCount: 0, DetachedUtc: at(h), DetachReason: reason }); const r = __vars.rows; env.Data.Ratings = [row(r.a, __vars.ids.viewer, 'viewer', r.ghostA, 4.5, \"data webcheck detached review: <b>kept</b> as text & whole.\", 'Removed', 30), row(r.b, __vars.ids.viewer2, 'viewer2', r.ghostB, 3, null, 'Missing', 29), row(r.c, __vars.ids.viewer2, 'viewer2', r.ghostC, 2, null, 'Unmatched', 28)]; const go = async (dry, plan) => { const s = await __jfurDetails.server('POST', 'UserRatings/Admin/Import?mode=Merge&mapUsersBy=Id&dryRun=' + dry + (plan ? '&ifPlan=' + plan : ''), env); if (s.status !== 202) { throw new Error('import ' + s.status + ' ' + JSON.stringify(s.json)); } let j = s.json; for (let i = 0; i < 240 && (j.State === 'Queued' || j.State === 'Running'); i++) { await new Promise(res => setTimeout(res, 500)); j = (await __jfurDetails.server('GET', 'UserRatings/Admin/Jobs/' + s.json.Id)).json; } if (j.State !== 'Succeeded') { throw new Error('the import job ' + j.State + ' ' + (j.ErrorCode || '') + ' ' + (j.Error || '')); } return j.Report; }; const dry = await go(true, null); const real = await go(false, dry.PlanToken); return { dry: dry.Outcomes, real: real.Outcomes, unusable: (dry.Unusable || 0) + (real.Unusable || 0), safety: real.SafetySnapshot || null };",
+      "save": "made",
+      "full": true
+    },
+    {
+      "name": "the three kept detached; the import's snapshot named",
+      "assert": "__vars.made.unusable === 0 && __vars.made.dry.StoredDetached === 3 && __vars.made.real.StoredDetached === 3 && !__vars.made.real.Added && typeof __vars.made.safety === 'string' && __vars.made.safety.length > 0"
+    },
+    {
+      "name": "mark",
+      "script": "window.__mark = __jfurDetails.requests.length; return true;"
+    },
+    {
+      "name": "open User Ratings' settings page",
+      "goto": "/web/index.html#/configurationpage?name=UserRatings"
+    },
+    {
+      "name": "the page and its tabs",
+      "waitFor": "!!document.querySelector('#UserRatingsConfigPage:not(.hide) #UserRatingsTabs')",
+      "timeout": 30000
+    },
+    {
+      "name": "the Data tab",
+      "click": "#UserRatingsTabData"
+    },
+    {
+      "name": "the Data tab mounted: the snapshots, the users and the jobs read, and the detached list",
+      "waitFor": "(() => { const r = __jfurDetails.requests.slice(window.__mark); const got = (p) => r.some(x => x.method === 'GET' && x.path === p && x.status === 200); return !document.querySelector('#UserRatingsData').classList.contains('hide') && !!document.querySelector('#UserRatingsDataRoot .jfur-data-export') && !!document.querySelector('#UserRatingsDetachedListRoot .jfur-det') && got('/UserRatings/Admin/Snapshots') && got('/UserRatings/Admin/Diagnostics') && got('/UserRatings/Admin/Jobs') && got('/UserRatings/Admin/Detached'); })()",
+      "timeout": 30000
+    },
+    {
+      "name": "the time the lists take to draw",
+      "sleep": 500
+    },
+    {
+      "name": "its requests so far",
+      "eval": "__jfurDetails.requests.slice(window.__mark).map(r => r.method + ' ' + r.path + ' ' + r.status)",
+      "save": "firstRequests",
+      "full": true
+    },
+    {
+      "name": "GETs only (and the page's own Detached/Seen): opening the tab writes nothing",
+      "assert": "__vars.firstRequests.every(r => r.indexOf('GET ') === 0 || r.indexOf('POST /UserRatings/Admin/Detached/Seen ') === 0)"
+    },
+    {
+      "name": "no select in the Data tab or the detached list (the TV layout's D-pad and OK work on every control)",
+      "assert": "document.querySelectorAll('#UserRatingsDataRoot select, #UserRatingsDetachedListRoot select').length === 0"
+    },
+    {
+      "name": "the list shows the three",
+      "waitFor": "(() => { const rowOf = (id) => Array.from(document.querySelectorAll('#UserRatingsDetachedListRoot .jfur-det-row')).find(li => String(li.getAttribute('data-jfur-rating')).replace(/-/g, '').toLowerCase() === id) || null; return !!rowOf(__vars.rows.a) && !!rowOf(__vars.rows.b) && !!rowOf(__vars.rows.c); })()",
+      "timeout": 15000
+    },
+    {
+      "name": "the three in the list's order: the oldest first",
+      "eval": "(() => { const norm = (v) => String(v === null || v === undefined ? '' : v).replace(/-/g, '').toLowerCase(); return Array.from(document.querySelectorAll('#UserRatingsDetachedListRoot .jfur-det-row')).map(li => norm(li.getAttribute('data-jfur-rating'))).filter(id => id === __vars.rows.a || id === __vars.rows.b || id === __vars.rows.c); })()",
+      "save": "order",
+      "full": true
+    },
+    {
+      "name": "viewer's (detached 30 hours ago) first, then viewer2's two",
+      "assert": "JSON.stringify(__vars.order) === JSON.stringify([__vars.rows.a, __vars.rows.b, __vars.rows.c])"
+    },
+    {
+      "name": "the row of a as shown",
+      "eval": "(() => { const rowOf = (id) => Array.from(document.querySelectorAll('#UserRatingsDetachedListRoot .jfur-det-row')).find(li => String(li.getAttribute('data-jfur-rating')).replace(/-/g, '').toLowerCase() === id) || null; const norm = (v) => String(v === null || v === undefined ? '' : v).replace(/-/g, '').toLowerCase(); const li = rowOf(__vars.rows.a); if (!li) { return null; } const t = li.querySelector('.jfur-det-title'); return { attr: li.getAttribute('data-jfur-rating'), title: t.textContent, dir: t.getAttribute('dir'), bidi: getComputedStyle(t).unicodeBidi, meta: Array.from(li.querySelectorAll('.jfur-det-meta')).map(p => p.textContent), candidates: Array.from(li.querySelectorAll('.jfur-det-candidate')).map(c => ({ item: c.querySelector('.jfur-det-relink').getAttribute('data-jfur-item'), movie: norm(c.querySelector('.jfur-det-relink').getAttribute('data-jfur-item')) === norm(__vars.movieId), name: c.querySelector('.jfur-det-candidate-name').textContent, nameDir: c.querySelector('.jfur-det-candidate-name').getAttribute('dir'), meta: c.querySelector('.jfur-data-snapshot-meta').textContent, disabled: c.querySelector('.jfur-det-relink').disabled })), purge: li.querySelector('.jfur-det-purge').getAttribute('aria-label'), markup: li.querySelectorAll('b, i').length }; })()",
+      "save": "shownA",
+      "full": true
+    },
+    {
+      "name": "viewer's row: the title as text, isolated; by viewer, 4.5 out of 5 with a review; removed from the library; Long Test Movie to go back to, by how it matches; no markup",
+      "assert": "(() => { const s = __vars.shownA; return !!s && s.title === __vars.title && s.dir === 'auto' && s.bidi === 'isolate' && s.meta[0] === 'By viewer · 4.5 out of 5, with a review' && s.meta[1].indexOf('Detached ') === 0 && s.meta[1].endsWith(': removed from the library') && s.candidates.some(c => c.movie && !c.disabled && c.name === __vars.title && c.nameDir === 'auto' && [\"the same title\",\"the same provider id\",\"the same name and year\"].indexOf(c.meta) >= 0) && s.purge === 'Purge the rating of viewer on ' + __vars.title + '…' && s.markup === 0; })()"
+    },
+    {
+      "name": "the row of c as shown",
+      "eval": "(() => { const rowOf = (id) => Array.from(document.querySelectorAll('#UserRatingsDetachedListRoot .jfur-det-row')).find(li => String(li.getAttribute('data-jfur-rating')).replace(/-/g, '').toLowerCase() === id) || null; const norm = (v) => String(v === null || v === undefined ? '' : v).replace(/-/g, '').toLowerCase(); const li = rowOf(__vars.rows.c); if (!li) { return null; } const t = li.querySelector('.jfur-det-title'); return { attr: li.getAttribute('data-jfur-rating'), title: t.textContent, dir: t.getAttribute('dir'), bidi: getComputedStyle(t).unicodeBidi, meta: Array.from(li.querySelectorAll('.jfur-det-meta')).map(p => p.textContent), candidates: Array.from(li.querySelectorAll('.jfur-det-candidate')).map(c => ({ item: c.querySelector('.jfur-det-relink').getAttribute('data-jfur-item'), movie: norm(c.querySelector('.jfur-det-relink').getAttribute('data-jfur-item')) === norm(__vars.movieId), name: c.querySelector('.jfur-det-candidate-name').textContent, nameDir: c.querySelector('.jfur-det-candidate-name').getAttribute('dir'), meta: c.querySelector('.jfur-data-snapshot-meta').textContent, disabled: c.querySelector('.jfur-det-relink').disabled })), purge: li.querySelector('.jfur-det-purge').getAttribute('aria-label'), markup: li.querySelectorAll('b, i').length }; })()",
+      "save": "shownC",
+      "full": true
+    },
+    {
+      "name": "viewer2's last row: stars only, not matched",
+      "assert": "(() => { const s = __vars.shownC; return !!s && s.meta[0] === 'By viewer2 · 2 out of 5, stars only' && s.meta[1].endsWith(': not matched') && s.candidates.some(c => c.movie && !c.disabled); })()"
+    },
+    {
+      "name": "the candidates' attribute for Long Test Movie",
+      "eval": "__vars.shownA.candidates.find(c => c.movie).item",
+      "save": "movieItem"
+    },
+    {
+      "name": "the attribute of a's row",
+      "eval": "(() => { const rowOf = (id) => Array.from(document.querySelectorAll('#UserRatingsDetachedListRoot .jfur-det-row')).find(li => String(li.getAttribute('data-jfur-rating')).replace(/-/g, '').toLowerCase() === id) || null; return rowOf(__vars.rows.a).getAttribute('data-jfur-rating'); })()",
+      "save": "attrA"
+    },
+    {
+      "name": "the attribute of b's row",
+      "eval": "(() => { const rowOf = (id) => Array.from(document.querySelectorAll('#UserRatingsDetachedListRoot .jfur-det-row')).find(li => String(li.getAttribute('data-jfur-rating')).replace(/-/g, '').toLowerCase() === id) || null; return rowOf(__vars.rows.b).getAttribute('data-jfur-rating'); })()",
+      "save": "attrB"
+    },
+    {
+      "name": "the attribute of c's row",
+      "eval": "(() => { const rowOf = (id) => Array.from(document.querySelectorAll('#UserRatingsDetachedListRoot .jfur-det-row')).find(li => String(li.getAttribute('data-jfur-rating')).replace(/-/g, '').toLowerCase() === id) || null; return rowOf(__vars.rows.c).getAttribute('data-jfur-rating'); })()",
+      "save": "attrC"
+    },
+    {
+      "name": "screenshot: the detached list",
+      "screenshot": "userratings-detached-desktop.png"
+    },
+    {
+      "name": "reason: mark",
+      "script": "window.__mark = __jfurDetails.requests.length; return true;"
+    },
+    {
+      "name": "reason: \"missing from the library\"",
+      "click": "#UserRatingsDetachedListRoot [role=radio][data-jfur-value=\"Missing\"]"
+    },
+    {
+      "name": "reason: the list read for it: viewer2's missing one, not the other two",
+      "waitFor": "(() => { const rowOf = (id) => Array.from(document.querySelectorAll('#UserRatingsDetachedListRoot .jfur-det-row')).find(li => String(li.getAttribute('data-jfur-rating')).replace(/-/g, '').toLowerCase() === id) || null; return __jfurDetails.requests.slice(window.__mark).some(r => r.method === 'GET' && r.path === '/UserRatings/Admin/Detached' && /[?&]reason=Missing(&|$)/.test(r.query) && r.status === 200) && !!rowOf(__vars.rows.b) && !rowOf(__vars.rows.a) && !rowOf(__vars.rows.c); })()",
+      "timeout": 10000
+    },
+    {
+      "name": "reason: \"Every reason\"",
+      "click": "#UserRatingsDetachedListRoot [role=radio][data-jfur-value=\"\"]"
+    },
+    {
+      "name": "reason: the three again",
+      "waitFor": "(() => { const rowOf = (id) => Array.from(document.querySelectorAll('#UserRatingsDetachedListRoot .jfur-det-row')).find(li => String(li.getAttribute('data-jfur-rating')).replace(/-/g, '').toLowerCase() === id) || null; return !!rowOf(__vars.rows.a) && !!rowOf(__vars.rows.b) && !!rowOf(__vars.rows.c); })()",
+      "timeout": 10000
+    },
+    {
+      "name": "relink: mark",
+      "script": "window.__mark = __jfurDetails.requests.length; return true;"
+    },
+    {
+      "name": "relink: Relink viewer's rating to Long Test Movie",
+      "click": "#UserRatingsDetachedListRoot [data-jfur-rating=\"${attrA}\"] .jfur-det-relink[data-jfur-item=\"${movieItem}\"]"
+    },
+    {
+      "name": "relink: the question, the focus on Cancel",
+      "waitFor": "!!document.querySelector('.jfur-panel[role=\"dialog\"][aria-modal=\"true\"]') && document.activeElement === document.querySelector('.jfur-panel[role=\"dialog\"][aria-modal=\"true\"]').querySelector('.jfur-data-cancel')",
+      "timeout": 15000
+    },
+    {
+      "name": "relink: what the question says",
+      "eval": "({ text: document.querySelector('.jfur-panel[role=\"dialog\"][aria-modal=\"true\"]').textContent, markup: document.querySelector('.jfur-panel[role=\"dialog\"][aria-modal=\"true\"]').querySelectorAll('b, i').length })",
+      "save": "relinkQuestion",
+      "full": true
+    },
+    {
+      "name": "relink: the question names the member and both titles, as text",
+      "assert": "__vars.relinkQuestion.text.indexOf('Give the rating of viewer on ' + __vars.title + ' to ' + __vars.title + '?') >= 0 && __vars.relinkQuestion.markup === 0"
+    },
+    {
+      "name": "relink: the question's button",
+      "click": ".jfur-panel[role=\"dialog\"] .jfur-data-confirm"
+    },
+    {
+      "name": "relink: relinked: the toast, the row gone from the list read again",
+      "waitFor": "(() => { const rowOf = (id) => Array.from(document.querySelectorAll('#UserRatingsDetachedListRoot .jfur-det-row')).find(li => String(li.getAttribute('data-jfur-rating')).replace(/-/g, '').toLowerCase() === id) || null; return !document.querySelector('.jfur-panel[role=\"dialog\"][aria-modal=\"true\"]') && Array.from(document.querySelectorAll('.jfur-toast')).some(t => t.textContent === \"The rating was relinked.\") && !rowOf(__vars.rows.a) && !!rowOf(__vars.rows.b); })()",
+      "timeout": 15000
+    },
+    {
+      "name": "relink: the tab's requests since the mark",
+      "eval": "__jfurDetails.requests.slice(window.__mark).map(r => ({ method: r.method, path: r.path, query: r.query, status: r.status }))",
+      "save": "relinkRequests",
+      "full": true
+    },
+    {
+      "name": "relink: one POST to Relink with Long Test Movie; 204; the list read again",
+      "assert": "(() => { const r = __vars.relinkRequests; const p = r.filter(x => x.method === 'POST' && x.path.indexOf('/UserRatings/Admin/Detached/') === 0); const i = r.findIndex(x => x.method === 'POST' && x.path === '/UserRatings/Admin/Detached/' + __vars.attrA + '/Relink'); return p.length === 1 && i >= 0 && r[i].status === 204 && r.slice(i + 1).some(x => x.method === 'GET' && x.path === '/UserRatings/Admin/Detached' && x.status === 200); })()"
+    },
+    {
+      "name": "relink: the focus not lost to the page's body",
+      "assert": "!!document.activeElement && document.activeElement !== document.body && document.activeElement.isConnected"
+    },
+    {
+      "context": "viewer"
+    },
+    {
+      "name": "relink: viewer's own rating of Long Test Movie",
+      "script": "return await __jfurDetails.mine(__vars.movieId);",
+      "save": "viewerMine",
+      "full": true
+    },
+    {
+      "name": "relink: viewer sees their stars and review on it again",
+      "assert": "__vars.viewerMine.status === 200 && __vars.viewerMine.stars === 4.5 && __vars.viewerMine.text === \"data webcheck detached review: <b>kept</b> as text & whole.\""
+    },
+    {
+      "context": "main"
+    },
+    {
+      "name": "gone: viewer2's last rating purged through the API meanwhile",
+      "script": "const r = await __jfurDetails.server('DELETE', 'UserRatings/Admin/Detached/' + __vars.attrC); return r.status;",
+      "save": "purgedC"
+    },
+    {
+      "name": "gone: 204, the list not read since (it still shows it)",
+      "assert": "(() => { const rowOf = (id) => Array.from(document.querySelectorAll('#UserRatingsDetachedListRoot .jfur-det-row')).find(li => String(li.getAttribute('data-jfur-rating')).replace(/-/g, '').toLowerCase() === id) || null; return __vars.purgedC === 204 && !!rowOf(__vars.rows.c); })()"
+    },
+    {
+      "name": "gone: mark",
+      "script": "window.__mark = __jfurDetails.requests.length; return true;"
+    },
+    {
+      "name": "gone: Relink it",
+      "click": "#UserRatingsDetachedListRoot [data-jfur-rating=\"${attrC}\"] .jfur-det-relink[data-jfur-item=\"${movieItem}\"]"
+    },
+    {
+      "name": "gone: the question, the focus on Cancel",
+      "waitFor": "!!document.querySelector('.jfur-panel[role=\"dialog\"][aria-modal=\"true\"]') && document.activeElement === document.querySelector('.jfur-panel[role=\"dialog\"][aria-modal=\"true\"]').querySelector('.jfur-data-cancel')",
+      "timeout": 15000
+    },
+    {
+      "name": "gone: the question's button",
+      "click": ".jfur-panel[role=\"dialog\"] .jfur-data-confirm"
+    },
+    {
+      "name": "gone: the note says it is gone, kept after the list is read again without it",
+      "waitFor": "(() => { const rowOf = (id) => Array.from(document.querySelectorAll('#UserRatingsDetachedListRoot .jfur-det-row')).find(li => String(li.getAttribute('data-jfur-rating')).replace(/-/g, '').toLowerCase() === id) || null; const n = document.querySelector('#UserRatingsDetachedListRoot .jfur-det-notice .jfur-notice-text'); return !document.querySelector('.jfur-panel[role=\"dialog\"][aria-modal=\"true\"]') && !!n && n.textContent === \"This rating isn't detached any more, or you can't change it. The list is read again.\" && !rowOf(__vars.rows.c) && __jfurDetails.requests.slice(window.__mark).some(r => r.method === 'GET' && r.path === '/UserRatings/Admin/Detached' && r.status === 200); })()",
+      "timeout": 15000
+    },
+    {
+      "name": "gone: the tab's requests since the mark",
+      "eval": "__jfurDetails.requests.slice(window.__mark).map(r => ({ method: r.method, path: r.path, query: r.query, status: r.status }))",
+      "save": "goneRequests",
+      "full": true
+    },
+    {
+      "name": "gone: the Relink answered 404",
+      "assert": "__vars.goneRequests.some(x => x.method === 'POST' && x.path === '/UserRatings/Admin/Detached/' + __vars.attrC + '/Relink' && x.status === 404)"
+    },
+    {
+      "name": "gone: screenshot of the note",
+      "screenshot": "userratings-detached-gone.png"
+    },
+    {
+      "name": "purge: mark",
+      "script": "window.__mark = __jfurDetails.requests.length; return true;"
+    },
+    {
+      "name": "purge: Purge… on viewer2's other rating",
+      "click": "#UserRatingsDetachedListRoot [data-jfur-rating=\"${attrB}\"] .jfur-det-purge"
+    },
+    {
+      "name": "purge: the question, the focus on Cancel",
+      "waitFor": "!!document.querySelector('.jfur-panel[role=\"dialog\"][aria-modal=\"true\"]') && document.activeElement === document.querySelector('.jfur-panel[role=\"dialog\"][aria-modal=\"true\"]').querySelector('.jfur-data-cancel')",
+      "timeout": 15000
+    },
+    {
+      "name": "purge: what the question says",
+      "eval": "({ text: document.querySelector('.jfur-panel[role=\"dialog\"][aria-modal=\"true\"]').textContent, markup: document.querySelector('.jfur-panel[role=\"dialog\"][aria-modal=\"true\"]').querySelectorAll('b, i').length })",
+      "save": "purgeQuestion",
+      "full": true
+    },
+    {
+      "name": "purge: the question: for good, never back from an import, a snapshot first",
+      "assert": "__vars.purgeQuestion.text.indexOf('Delete the rating of viewer2 on ' + __vars.title + ' for good? It can\\'t come back from an import; a snapshot is taken first.') >= 0 && __vars.purgeQuestion.markup === 0"
+    },
+    {
+      "name": "purge: screenshot of the question",
+      "screenshot": "userratings-detached-purge-question.png"
+    },
+    {
+      "name": "purge: the question's button",
+      "click": ".jfur-panel[role=\"dialog\"] .jfur-data-confirm"
+    },
+    {
+      "name": "purge: purged: the toast, the row gone, the earlier note cleared",
+      "waitFor": "(() => { const rowOf = (id) => Array.from(document.querySelectorAll('#UserRatingsDetachedListRoot .jfur-det-row')).find(li => String(li.getAttribute('data-jfur-rating')).replace(/-/g, '').toLowerCase() === id) || null; return !document.querySelector('.jfur-panel[role=\"dialog\"][aria-modal=\"true\"]') && Array.from(document.querySelectorAll('.jfur-toast')).some(t => t.textContent === \"The rating was purged.\") && !rowOf(__vars.rows.b) && !document.querySelector('#UserRatingsDetachedListRoot .jfur-det-notice .jfur-notice'); })()",
+      "timeout": 15000
+    },
+    {
+      "name": "purge: the tab's requests since the mark",
+      "eval": "__jfurDetails.requests.slice(window.__mark).map(r => ({ method: r.method, path: r.path, query: r.query, status: r.status }))",
+      "save": "purgeRequests",
+      "full": true
+    },
+    {
+      "name": "purge: one DELETE of it; 204",
+      "assert": "(() => { const d = __vars.purgeRequests.filter(x => x.method === 'DELETE'); return d.length === 1 && d[0].path === '/UserRatings/Admin/Detached/' + __vars.attrB && d[0].status === 204; })()"
+    },
+    {
+      "name": "purge: the focus not lost to the page's body",
+      "assert": "!!document.activeElement && document.activeElement !== document.body && document.activeElement.isConnected"
+    },
+    {
+      "name": "purge: the detached ratings as the server holds them",
+      "script": "const norm = (v) => String(v === null || v === undefined ? '' : v).replace(/-/g, '').toLowerCase(); const r = await __jfurDetails.server('GET', 'UserRatings/Admin/Detached?limit=50'); if (r.status !== 200) { throw new Error('detached ' + r.status); } return { total: r.json.TotalRecordCount, ours: r.json.Items.map(x => norm(x.Id)).filter(id => id === __vars.rows.a || id === __vars.rows.b || id === __vars.rows.c) };",
+      "save": "afterPurge",
+      "full": true
+    },
+    {
+      "name": "purge: none of the three detached any more",
+      "assert": "__vars.afterPurge.ours.length === 0"
+    },
+    {
+      "name": "purge: a dry run of the same file",
+      "script": "const base = await __jfurDetails.server('GET', 'UserRatings/Admin/Export'); if (base.status !== 200) { throw new Error('export ' + base.status); } const env = base.json; const m = __vars.movie; const d = (n) => n.slice(0, 8) + '-' + n.slice(8, 12) + '-' + n.slice(12, 16) + '-' + n.slice(16, 20) + '-' + n.slice(20); const at = (h) => new Date(Date.now() - h * 3600000).toISOString(); const row = (id, user, name, ghost, stars, text, reason, h) => ({ Id: d(id), UserId: d(user), UserName: name, ItemId: d(ghost), Identity: { ItemId: d(ghost), Kind: 'Movie', Name: m.name, Year: m.year, ProviderIds: m.providerIds }, Stars: stars, ReviewText: text, IsSpoiler: false, CreatedUtc: at(h + 24), UpdatedUtc: at(h + 24), ReviewUpdatedUtc: text ? at(h + 24) : null, EditCount: 0, DetachedUtc: at(h), DetachReason: reason }); const r = __vars.rows; env.Data.Ratings = [row(r.a, __vars.ids.viewer, 'viewer', r.ghostA, 4.5, \"data webcheck detached review: <b>kept</b> as text & whole.\", 'Removed', 30), row(r.b, __vars.ids.viewer2, 'viewer2', r.ghostB, 3, null, 'Missing', 29), row(r.c, __vars.ids.viewer2, 'viewer2', r.ghostC, 2, null, 'Unmatched', 28)]; const go = async (dry, plan) => { const s = await __jfurDetails.server('POST', 'UserRatings/Admin/Import?mode=Merge&mapUsersBy=Id&dryRun=' + dry + (plan ? '&ifPlan=' + plan : ''), env); if (s.status !== 202) { throw new Error('import ' + s.status + ' ' + JSON.stringify(s.json)); } let j = s.json; for (let i = 0; i < 240 && (j.State === 'Queued' || j.State === 'Running'); i++) { await new Promise(res => setTimeout(res, 500)); j = (await __jfurDetails.server('GET', 'UserRatings/Admin/Jobs/' + s.json.Id)).json; } if (j.State !== 'Succeeded') { throw new Error('the import job ' + j.State + ' ' + (j.ErrorCode || '') + ' ' + (j.Error || '')); } return j.Report; }; const dry = await go(true, null); return { dry: dry.Outcomes, unusable: dry.Unusable || 0 };",
+      "save": "again",
+      "full": true
+    },
+    {
+      "name": "purge: both purged ratings skipped as purged before (PreviouslyPurged, not SkippedDeleted), nothing stored detached or added: a purge is for good",
+      "assert": "__vars.again.unusable === 0 && __vars.again.dry.PreviouslyPurged === 2 && !__vars.again.dry.SkippedDeleted && !__vars.again.dry.StoredDetached && !__vars.again.dry.Added"
+    },
+    {
+      "name": "no uncaught exception",
+      "noExceptions": true,
+      "ignore": "/CustomRatings/script|^Error: player cannot be null"
+    },
+    {
+      "name": "clean: at the end: every rating on Long Test Movie removed through the moderation API",
+      "script": "const page = await __jfurDetails.server('GET', 'UserRatings/Admin/Reviews?itemId=' + __vars.movieId + '&limit=200'); if (page.status !== 200) { throw new Error('list ' + page.status); } const removed = []; for (const row of page.json.Items) { const p = 'UserRatings/Admin/Reviews/' + row.RatingId + '?textOnly=false'; const dry = await __jfurDetails.server('DELETE', p); const done = await __jfurDetails.server('DELETE', p + '&dryRun=false&ifPreview=' + dry.json.PreviewToken); removed.push(done.status); } return removed;"
+    },
+    {
+      "name": "clean: Long Test Movie has no rating left",
+      "script": "const page = await __jfurDetails.server('GET', 'UserRatings/Admin/Reviews?itemId=' + __vars.movieId); if (page.status !== 200 || page.json.TotalRecordCount !== 0) { throw new Error('left: ' + page.status + ' ' + (page.json && page.json.TotalRecordCount)); } return true;"
+    },
+    {
+      "name": "clean: none of the run's ratings left detached",
+      "script": "const norm = (v) => String(v === null || v === undefined ? '' : v).replace(/-/g, '').toLowerCase(); const r = await __jfurDetails.server('GET', 'UserRatings/Admin/Detached?limit=50'); const left = r.json.Items.filter(x => [__vars.rows.a, __vars.rows.b, __vars.rows.c].indexOf(norm(x.Id)) >= 0); for (const x of left) { await __jfurDetails.server('DELETE', 'UserRatings/Admin/Detached/' + x.Id); } return left.length;",
+      "save": "leftDetached"
+    },
+    {
+      "name": "clean: none was",
+      "assert": "__vars.leftDetached === 0"
+    }
+  ]
+}

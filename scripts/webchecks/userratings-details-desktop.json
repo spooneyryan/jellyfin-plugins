@@ -1,0 +1,899 @@
+{
+  "name": "User Ratings 1.0.2.0: the details page's section on Long Test Movie as viewer in the desktop layout: mounted before the cast, the slider alone in its row; Tab reaches it; Right ×7 and Enter save 3.5; a real click on the middle of star 3 saves 2.5; a review written (its limit and counter, IfUpdatedUtc as read, isolated) and edited (\"(edited)\"); Clear on a reviewed row asks and keeps the review; a 503 puts the stars back with Try again, a review's 503 keeps the form; IsPartial keeps the summary; a 404 after the write removes the section with no error and the write saved; item to item with a change waiting saves it once; Back reads the item again; Delete asks and deletes; the title collapses and opens the section. The member's rows are deleted at the end.",
+  "failOnException": false,
+  "timeout": 30000,
+  "steps": [
+    {
+      "name": "the details probe in every document (it watches the section the served script mounts)",
+      "initScript": {
+        "file": "probes/userratings-details-probe.js"
+      }
+    },
+    {
+      "name": "sign in as viewer",
+      "login": "viewer"
+    },
+    {
+      "name": "desktop layout",
+      "eval": "(localStorage.removeItem('layout'), true)"
+    },
+    {
+      "name": "reload",
+      "reload": true
+    },
+    {
+      "name": "the layout applied, User Ratings 1.0.2.0 started",
+      "waitFor": "document.documentElement.classList.contains('layout-desktop') && !!window.ApiClient && !!ApiClient.getCurrentUserId() && !!(window.__jfkit && window.__jfkit.jfur)",
+      "timeout": 40000
+    },
+    {
+      "name": "the served script is 1.0.2.0",
+      "assert": "window.__jfkit.jfur.version === '1.0.2.0'",
+      "message": "User Ratings 1.0.2.0 is not the script the page loaded"
+    },
+    {
+      "name": "Long Test Movie",
+      "eval": "(await ApiClient.getItems(ApiClient.getCurrentUserId(), { IncludeItemTypes: 'Movie', Recursive: true, SearchTerm: \"Long Test Movie\", Limit: 1 })).Items[0].Id",
+      "save": "movieId"
+    },
+    {
+      "name": "clean: Long Test Movie without a rating of this member",
+      "script": "const r = await __jfurDetails.server('DELETE', 'UserRatings/Items/' + __vars.movieId + '/Mine'); return r.status;",
+      "save": "cleaned"
+    },
+    {
+      "name": "Tagged Movie",
+      "eval": "(await ApiClient.getItems(ApiClient.getCurrentUserId(), { IncludeItemTypes: 'Movie', Recursive: true, SearchTerm: \"Tagged Movie\", Limit: 1 })).Items[0].Id",
+      "save": "taggedId"
+    },
+    {
+      "name": "clean: Tagged Movie without a rating of this member",
+      "script": "const r = await __jfurDetails.server('DELETE', 'UserRatings/Items/' + __vars.taggedId + '/Mine'); return r.status;",
+      "save": "cleaned"
+    },
+    {
+      "name": "the server: Long Test Movie as the run starts",
+      "eval": "__jfurDetails.mine(__vars.movieId)",
+      "save": "before",
+      "full": true
+    },
+    {
+      "name": "no member has rated Long Test Movie (another run left nothing)",
+      "assert": "__vars.before.status === 200 && __vars.before.count === 0 && __vars.before.others === 0",
+      "message": "Long Test Movie has ratings left from another run"
+    },
+    {
+      "name": "Long Test Movie: its details page",
+      "script": "location.hash = '#/details?id=' + __vars.movieId; return true;"
+    },
+    {
+      "name": "Long Test Movie: drawn",
+      "waitFor": "(() => { const p = document.querySelector('#itemDetailPage:not(.hide)'); return !!p && location.hash.indexOf(__vars.movieId) > 0 && !!p.querySelector('.mainDetailButtons .btnPlay:not(.hide)'); })()",
+      "timeout": 30000
+    },
+    {
+      "name": "Long Test Movie: the section mounted for it",
+      "waitFor": "(() => { const s = __jfurDetails.section(); return !!s && s.getAttribute('data-jfur-item') === __vars.movieId && !!s.querySelector('.jfur-summary[data-jfur-summary]'); })()",
+      "timeout": 15000
+    },
+    {
+      "sleep": 400
+    },
+    {
+      "name": "desktop: the section as mounted",
+      "eval": "__jfurDetails.state()",
+      "save": "mounted",
+      "full": true
+    },
+    {
+      "name": "desktop: before the cast, for the item, open, \"No member ratings yet. Be the first.\", \"Not rated\", Write a review, no Clear, no list",
+      "assert": "(s => s.mounted && s.sections === 1 && s.next === 'castCollapsible' && s.item === __vars.movieId && s.expanded === 'true' && s.summaryKind === 'none' && s.summary === 'No member ratings yet. Be the first.' && s.value === 0 && s.valuetext === 'Not rated' && s.write && !s.clear && !s.form && s.reviews.length === 0 && s.notices.length === 0)(__vars.mounted)"
+    },
+    {
+      "name": "desktop: styles",
+      "eval": "__jfurDetails.styles()",
+      "save": "styles",
+      "full": true
+    },
+    {
+      "name": "desktop: the slider the only focusable control of its row; the title a disclosure button in the title's size",
+      "assert": "(s => s.rowFocusables.length === 1 && s.rowFocusables[0].indexOf('div.jfur-stars.focusable') === 0 && s.toggle.tabindexAttr === null && s.toggle.fontSize === s.titleFontSize && !s.tv)(__vars.styles)"
+    },
+    {
+      "name": "desktop: the section's requests: Capabilities and the item, nothing else",
+      "eval": "__jfurDetails.since(0)",
+      "save": "firstRequests",
+      "full": true
+    },
+    {
+      "name": "desktop: two reads",
+      "assert": "__vars.firstRequests.length === 2 && __vars.firstRequests[0] === 'GET /UserRatings/Capabilities 200' && __vars.firstRequests[1] === 'GET /UserRatings/Items/' + __vars.movieId + ' 200'"
+    },
+    {
+      "name": "desktop: focus the Play button",
+      "script": "__jfurDetails.log.length = 0; document.querySelector('#itemDetailPage:not(.hide) .mainDetailButtons .btnPlay').focus(); return __jfurDetails.active();"
+    },
+    {
+      "name": "desktop: Tab 1",
+      "key": "Tab",
+      "if": "!__jfurDetails.onSlider()"
+    },
+    {
+      "name": "desktop: Tab 2",
+      "key": "Tab",
+      "if": "!__jfurDetails.onSlider()"
+    },
+    {
+      "name": "desktop: Tab 3",
+      "key": "Tab",
+      "if": "!__jfurDetails.onSlider()"
+    },
+    {
+      "name": "desktop: Tab 4",
+      "key": "Tab",
+      "if": "!__jfurDetails.onSlider()"
+    },
+    {
+      "name": "desktop: Tab 5",
+      "key": "Tab",
+      "if": "!__jfurDetails.onSlider()"
+    },
+    {
+      "name": "desktop: Tab 6",
+      "key": "Tab",
+      "if": "!__jfurDetails.onSlider()"
+    },
+    {
+      "name": "desktop: Tab 7",
+      "key": "Tab",
+      "if": "!__jfurDetails.onSlider()"
+    },
+    {
+      "name": "desktop: Tab 8",
+      "key": "Tab",
+      "if": "!__jfurDetails.onSlider()"
+    },
+    {
+      "name": "desktop: Tab 9",
+      "key": "Tab",
+      "if": "!__jfurDetails.onSlider()"
+    },
+    {
+      "name": "desktop: Tab 10",
+      "key": "Tab",
+      "if": "!__jfurDetails.onSlider()"
+    },
+    {
+      "name": "desktop: Tab 11",
+      "key": "Tab",
+      "if": "!__jfurDetails.onSlider()"
+    },
+    {
+      "name": "desktop: Tab 12",
+      "key": "Tab",
+      "if": "!__jfurDetails.onSlider()"
+    },
+    {
+      "name": "desktop: Tab's path to the slider",
+      "eval": "({ onSlider: __jfurDetails.onSlider(), tabs: __jfurDetails.log.filter(e => e.kind === 'key-capture' && e.key === 'Tab').length, path: __jfurDetails.log.filter(e => e.kind === 'focus').map(f => f.target) })",
+      "save": "tabReach",
+      "full": true
+    },
+    {
+      "name": "desktop: Tab reached the slider, the section's title on the way",
+      "assert": "__jfurDetails.onSlider() && __vars.tabReach.tabs <= 8 && __vars.tabReach.path.some(p => p.indexOf('jfur-section-toggle') >= 0)"
+    },
+    {
+      "name": "desktop Right ×7, Enter: mark",
+      "script": "window.__mark = __jfurDetails.requests.length; window.__keys = __jfurDetails.log.length; return true;"
+    },
+    {
+      "name": "desktop: Right 1",
+      "key": "ArrowRight"
+    },
+    {
+      "name": "desktop: Right 2",
+      "key": "ArrowRight"
+    },
+    {
+      "name": "desktop: Right 3",
+      "key": "ArrowRight"
+    },
+    {
+      "name": "desktop: Right 4",
+      "key": "ArrowRight"
+    },
+    {
+      "name": "desktop: Right 5",
+      "key": "ArrowRight"
+    },
+    {
+      "name": "desktop: Right 6",
+      "key": "ArrowRight"
+    },
+    {
+      "name": "desktop: Right 7",
+      "key": "ArrowRight"
+    },
+    {
+      "name": "desktop: \"3.5 out of 5 stars\"",
+      "assert": "__jfurDetails.state().valuetext === '3.5 out of 5 stars'"
+    },
+    {
+      "name": "desktop: Enter",
+      "key": "Enter"
+    },
+    {
+      "sleep": 500
+    },
+    {
+      "name": "desktop Enter: the section's requests since",
+      "eval": "__jfurDetails.since(window.__mark)",
+      "save": "enterRequests",
+      "full": true
+    },
+    {
+      "name": "desktop: after Enter",
+      "eval": "__jfurDetails.state()",
+      "save": "afterEnter",
+      "full": true
+    },
+    {
+      "name": "the server: after Enter",
+      "eval": "__jfurDetails.mine(__vars.movieId)",
+      "save": "afterEnterServer",
+      "full": true
+    },
+    {
+      "name": "desktop: one PUT Mine/Rating of 3.5, saved; \"Saved: 3.5 stars\"; the summary from its answer; Clear on the next row",
+      "assert": "__vars.enterRequests.length === 1 && __vars.enterRequests[0] === 'PUT /UserRatings/Items/' + __vars.movieId + '/Mine/Rating 200' && __jfurDetails.requests[__jfurDetails.requests.length - 1].body.Stars === 3.5 && __vars.afterEnterServer.stars === 3.5 && __vars.afterEnter.live === 'Saved: 3.5 stars' && __vars.afterEnter.average === 'Member average 3.5 out of 5, 1 rating' && __vars.afterEnter.clear && __vars.afterEnter.value === 3.5"
+    },
+    {
+      "name": "desktop mouse: mark",
+      "script": "window.__mark = __jfurDetails.requests.length; window.__keys = __jfurDetails.log.length; return true;"
+    },
+    {
+      "name": "desktop: the stars in view",
+      "script": "__jfurDetails.slider().scrollIntoView({ block: 'center' }); await new Promise(r => setTimeout(r, 400)); return true;"
+    },
+    {
+      "cdp": "Input.dispatchMouseEvent",
+      "params": "(() => { const b = __jfurDetails.box(__jfurDetails.slider()); return { type: 'mouseMoved', x: __jfurDetails.xFor(2.5), y: b.cy, button: 'none', clickCount: 0 }; })()"
+    },
+    {
+      "cdp": "Input.dispatchMouseEvent",
+      "params": "(() => { const b = __jfurDetails.box(__jfurDetails.slider()); return { type: 'mousePressed', x: __jfurDetails.xFor(2.5), y: b.cy, button: 'left', clickCount: 1 }; })()"
+    },
+    {
+      "cdp": "Input.dispatchMouseEvent",
+      "params": "(() => { const b = __jfurDetails.box(__jfurDetails.slider()); return { type: 'mouseReleased', x: __jfurDetails.xFor(2.5), y: b.cy, button: 'left', clickCount: 1 }; })()"
+    },
+    {
+      "sleep": 1000
+    },
+    {
+      "name": "desktop mouse: the section's requests since",
+      "eval": "__jfurDetails.since(window.__mark)",
+      "save": "mouseRequests",
+      "full": true
+    },
+    {
+      "name": "the server: after the click",
+      "eval": "__jfurDetails.mine(__vars.movieId)",
+      "save": "afterClick",
+      "full": true
+    },
+    {
+      "name": "desktop: a real click on the middle of star 3 is 2.5, saved 600 ms later",
+      "assert": "__jfurDetails.state().value === 2.5 && __vars.mouseRequests.length === 1 && __vars.afterClick.stars === 2.5"
+    },
+    {
+      "name": "the server: before the review",
+      "eval": "__jfurDetails.mine(__vars.movieId)",
+      "save": "beforeReview",
+      "full": true
+    },
+    {
+      "name": "desktop review: mark",
+      "script": "window.__mark = __jfurDetails.requests.length; window.__keys = __jfurDetails.log.length; return true;"
+    },
+    {
+      "name": "desktop: Write a review",
+      "click": "#itemDetailPage:not(.hide) .jfur-section .jfur-write"
+    },
+    {
+      "sleep": 200
+    },
+    {
+      "name": "desktop: the form: its limit and counter",
+      "eval": "(() => { const f = __jfurDetails.section().querySelector('.jfur-review-form'); return { max: f.querySelector('textarea').getAttribute('maxlength'), counter: f.querySelector('.jfur-review-counter').textContent, save: f.querySelector('.jfur-review-save').disabled, label: f.querySelector('label').textContent }; })()",
+      "save": "form",
+      "full": true
+    },
+    {
+      "name": "desktop: maxlength 5000, \"0 / 5000\", Save off while empty, labelled \"Your review\"",
+      "assert": "__vars.form.max === '5000' && __vars.form.counter === '0 / 5000' && __vars.form.save === true && __vars.form.label === 'Your review'"
+    },
+    {
+      "name": "desktop: the text area has the focus",
+      "assert": "document.activeElement && document.activeElement.matches('#itemDetailPage:not(.hide) .jfur-section .jfur-review-form textarea')"
+    },
+    {
+      "name": "desktop: type",
+      "type": "A synthetic review of the test clip."
+    },
+    {
+      "name": "desktop: a new line",
+      "key": "Enter"
+    },
+    {
+      "name": "desktop: type more",
+      "type": "Second line, שלום ‮open."
+    },
+    {
+      "name": "desktop: the counter follows",
+      "assert": "__jfurDetails.section().querySelector('.jfur-review-counter').textContent === document.activeElement.value.length + ' / 5000'"
+    },
+    {
+      "name": "desktop: Save",
+      "click": "#itemDetailPage:not(.hide) .jfur-section .jfur-review-save"
+    },
+    {
+      "sleep": 700
+    },
+    {
+      "name": "desktop review: the section's requests since",
+      "eval": "__jfurDetails.since(window.__mark)",
+      "save": "reviewRequests",
+      "full": true
+    },
+    {
+      "name": "desktop: after Save",
+      "eval": "__jfurDetails.state()",
+      "save": "afterReview",
+      "full": true
+    },
+    {
+      "name": "the server: after Save",
+      "eval": "__jfurDetails.mine(__vars.movieId)",
+      "save": "afterReviewServer",
+      "full": true
+    },
+    {
+      "name": "desktop: PUT Mine/Review with the text and IfNoReview (a first review on a row of stars); the own card; \"Review saved\"; the focus on Edit",
+      "assert": "__vars.reviewRequests.length === 1 && / 200$/.test(__vars.reviewRequests[0]) && __vars.beforeReview.text === null && __jfurDetails.requests[__jfurDetails.requests.length - 1].body.IfNoReview === true && !('IfUpdatedUtc' in __jfurDetails.requests[__jfurDetails.requests.length - 1].body) && !('IfReviewUpdatedUtc' in __jfurDetails.requests[__jfurDetails.requests.length - 1].body) && __jfurDetails.requests[__jfurDetails.requests.length - 1].body.IsSpoiler === false && __vars.afterReviewServer.text === 'A synthetic review of the test clip.\\nSecond line, שלום ‮open.' && __vars.afterReview.own === __vars.afterReviewServer.text && !__vars.afterReview.form && __vars.afterReview.sectionLive === 'Review saved' && document.activeElement.matches('#itemDetailPage:not(.hide) .jfur-section .jfur-own-edit')"
+    },
+    {
+      "name": "desktop: the own review isolated, its line breaks kept",
+      "eval": "(() => { const n = __jfurDetails.section().querySelector('.jfur-own .jfur-review-text'); return { dir: n.getAttribute('dir'), bidi: getComputedStyle(n).unicodeBidi, ws: getComputedStyle(n).whiteSpace }; })()",
+      "save": "ownStyles",
+      "full": true
+    },
+    {
+      "name": "desktop: dir=\"auto\", unicode-bidi: isolate, pre-line",
+      "assert": "__vars.ownStyles.dir === 'auto' && __vars.ownStyles.bidi === 'isolate' && __vars.ownStyles.ws === 'pre-line'"
+    },
+    {
+      "name": "desktop: Edit",
+      "click": "#itemDetailPage:not(.hide) .jfur-section .jfur-own-edit"
+    },
+    {
+      "sleep": 200
+    },
+    {
+      "name": "desktop: the form holds the text as saved",
+      "assert": "__jfurDetails.state().formText === __vars.afterReviewServer.text"
+    },
+    {
+      "name": "desktop: the caret at the end",
+      "script": "const a = document.activeElement; a.selectionStart = a.selectionEnd = a.value.length; return a.tagName;"
+    },
+    {
+      "name": "desktop: add to it",
+      "type": " Edited."
+    },
+    {
+      "name": "desktop: Save the edit",
+      "click": "#itemDetailPage:not(.hide) .jfur-section .jfur-review-save"
+    },
+    {
+      "sleep": 700
+    },
+    {
+      "name": "desktop: after the edit",
+      "eval": "__jfurDetails.state()",
+      "save": "afterEdit",
+      "full": true
+    },
+    {
+      "name": "the server: after the edit",
+      "eval": "__jfurDetails.mine(__vars.movieId)",
+      "save": "afterEditServer",
+      "full": true
+    },
+    {
+      "name": "desktop: what the edit sent",
+      "eval": "(__jfurDetails.requests.filter(r => r.method === 'PUT' && /Mine\\/Review$/.test(r.path)).pop() || { body: null }).body",
+      "save": "editBody",
+      "full": true
+    },
+    {
+      "name": "desktop: the edit saved, \"(edited)\" shown; it sent the review's own time as the form read it (IfReviewUpdatedUtc), not the row's",
+      "assert": "__vars.afterEdit.ownEdited && __vars.afterEditServer.edited === true && /Edited\\.$/.test(__vars.afterEditServer.text) && __vars.afterEdit.own === __vars.afterEditServer.text && __vars.editBody.IfReviewUpdatedUtc === __vars.afterReviewServer.reviewUpdated && !('IfUpdatedUtc' in __vars.editBody) && !('IfNoReview' in __vars.editBody)"
+    },
+    {
+      "name": "desktop Clear: mark",
+      "script": "window.__mark = __jfurDetails.requests.length; window.__keys = __jfurDetails.log.length; return true;"
+    },
+    {
+      "name": "desktop: Clear",
+      "click": "#itemDetailPage:not(.hide) .jfur-section .jfur-clear"
+    },
+    {
+      "sleep": 300
+    },
+    {
+      "name": "desktop: the question",
+      "eval": "(() => { const p = document.querySelector('.jfur-backdrop .jfur-panel'); return p && { title: p.querySelector('h3').textContent, text: p.querySelector('p').textContent, buttons: Array.prototype.map.call(p.querySelectorAll('.jfur-actions button'), b => b.textContent), focused: document.activeElement === p.querySelector('.jfur-dialog-cancel') }; })()",
+      "save": "clearDialog",
+      "full": true
+    },
+    {
+      "name": "desktop: \"Keep the review without stars?\", Cancel first and focused",
+      "assert": "__vars.clearDialog.title === 'Keep the review without stars?' && __vars.clearDialog.buttons.join() === 'Cancel,Clear the stars' && __vars.clearDialog.focused"
+    },
+    {
+      "name": "desktop: Clear the stars",
+      "click": ".jfur-backdrop .jfur-dialog-confirm"
+    },
+    {
+      "sleep": 600
+    },
+    {
+      "name": "desktop Clear: the section's requests since",
+      "eval": "__jfurDetails.since(window.__mark)",
+      "save": "clearRequests",
+      "full": true
+    },
+    {
+      "name": "desktop: after Clear",
+      "eval": "__jfurDetails.state()",
+      "save": "afterClear",
+      "full": true
+    },
+    {
+      "name": "the server: after Clear",
+      "eval": "__jfurDetails.mine(__vars.movieId)",
+      "save": "afterClearServer",
+      "full": true
+    },
+    {
+      "name": "desktop: DELETE Mine/Rating; \"Not rated\", \"Rating cleared\"; the review kept (clear stars on a reviewed row)",
+      "assert": "__vars.clearRequests.length === 1 && __vars.clearRequests[0] === 'DELETE /UserRatings/Items/' + __vars.movieId + '/Mine/Rating 200' && __vars.afterClear.value === 0 && __vars.afterClear.live === 'Rating cleared' && __vars.afterClear.own === __vars.afterEditServer.text && __vars.afterClearServer.stars === null && __vars.afterClearServer.text === __vars.afterEditServer.text"
+    },
+    {
+      "name": "desktop 503: mark",
+      "script": "window.__mark = __jfurDetails.requests.length; window.__keys = __jfurDetails.log.length; return true;"
+    },
+    {
+      "name": "desktop: the next PUT Mine/Rating answered 503 \"busy\" by the probe (the server not reached)",
+      "eval": "__jfurDetails.inject({ method: 'PUT', path: 'Mine/Rating$', mode: 'stub', status: 503, body: { title: 'Service Unavailable', status: 503, detail: \"The database is busy; try again in a moment.\" } })"
+    },
+    {
+      "name": "the slider focused",
+      "script": "__jfurDetails.slider().focus(); return __jfurDetails.onSlider();"
+    },
+    {
+      "name": "desktop: End",
+      "key": "End"
+    },
+    {
+      "name": "desktop: Enter",
+      "key": "Enter"
+    },
+    {
+      "sleep": 400
+    },
+    {
+      "name": "desktop: after the 503",
+      "eval": "__jfurDetails.state()",
+      "save": "after503",
+      "full": true
+    },
+    {
+      "name": "the server: after the 503",
+      "eval": "__jfurDetails.mine(__vars.movieId)",
+      "save": "after503Server",
+      "full": true
+    },
+    {
+      "name": "desktop: the stars back at \"Not rated\", \"Your rating wasn't saved.\" with the server's sentence and Try again; nothing saved",
+      "assert": "__vars.after503.value === 0 && __vars.after503.notices.length === 1 && __vars.after503.notices[0].role === 'alert' && __vars.after503.notices[0].text === \"Your rating wasn't saved. The database is busy; try again in a moment.\" && __vars.after503.notices[0].action === 'Try again' && __vars.after503Server.stars === null"
+    },
+    {
+      "name": "desktop: Try again",
+      "click": "#itemDetailPage:not(.hide) .jfur-section .jfur-mine-message button"
+    },
+    {
+      "sleep": 600
+    },
+    {
+      "name": "desktop: after Try again",
+      "eval": "__jfurDetails.state()",
+      "save": "afterRetry",
+      "full": true
+    },
+    {
+      "name": "the server: after Try again",
+      "eval": "__jfurDetails.mine(__vars.movieId)",
+      "save": "afterRetryServer",
+      "full": true
+    },
+    {
+      "name": "desktop: saved, the slider at 5, the notice gone",
+      "assert": "__vars.afterRetry.value === 5 && __vars.afterRetry.notices.length === 0 && __vars.afterRetryServer.stars === 5"
+    },
+    {
+      "name": "desktop: Edit again",
+      "click": "#itemDetailPage:not(.hide) .jfur-section .jfur-own-edit"
+    },
+    {
+      "sleep": 200
+    },
+    {
+      "name": "desktop: the caret at the end again",
+      "script": "const a = document.activeElement; a.selectionStart = a.selectionEnd = a.value.length; return a.tagName;"
+    },
+    {
+      "name": "desktop: add more",
+      "type": " Busy."
+    },
+    {
+      "name": "desktop: the next PUT Mine/Review answered 503 by the probe",
+      "eval": "__jfurDetails.inject({ method: 'PUT', path: 'Mine/Review$', mode: 'stub', status: 503, body: { title: 'Service Unavailable', status: 503, detail: \"The database is busy; try again in a moment.\" } })"
+    },
+    {
+      "name": "desktop: Save (503)",
+      "click": "#itemDetailPage:not(.hide) .jfur-section .jfur-review-save"
+    },
+    {
+      "sleep": 500
+    },
+    {
+      "name": "desktop: after the review's 503",
+      "eval": "__jfurDetails.state()",
+      "save": "reviewBusy",
+      "full": true
+    },
+    {
+      "name": "the server: after the review's 503",
+      "eval": "__jfurDetails.mine(__vars.movieId)",
+      "save": "reviewBusyServer",
+      "full": true
+    },
+    {
+      "name": "desktop: the form and its text kept, the sentence and Try again, nothing saved",
+      "assert": "__vars.reviewBusy.form && /Busy\\.$/.test(__vars.reviewBusy.formText) && __vars.reviewBusy.notices.some(n => n.text === \"Your review wasn't saved. The database is busy; try again in a moment.\" && n.action === 'Try again') && __vars.reviewBusyServer.text === __vars.afterEditServer.text"
+    },
+    {
+      "name": "desktop: Try again (the review)",
+      "click": "#itemDetailPage:not(.hide) .jfur-section .jfur-review-form .jfur-notice button"
+    },
+    {
+      "sleep": 700
+    },
+    {
+      "name": "the server: after the review's Try again",
+      "eval": "__jfurDetails.mine(__vars.movieId)",
+      "save": "reviewRetryServer",
+      "full": true
+    },
+    {
+      "name": "desktop: the review saved",
+      "assert": "/Busy\\.$/.test(__vars.reviewRetryServer.text) && !__jfurDetails.state().form && __jfurDetails.state().own === __vars.reviewRetryServer.text"
+    },
+    {
+      "name": "desktop: before the partial answer",
+      "eval": "__jfurDetails.state()",
+      "save": "beforePartial",
+      "full": true
+    },
+    {
+      "name": "desktop IsPartial: mark",
+      "script": "window.__mark = __jfurDetails.requests.length; window.__keys = __jfurDetails.log.length; return true;"
+    },
+    {
+      "name": "desktop: the next PUT Mine/Rating reaches the server and its answer comes back as IsPartial",
+      "eval": "__jfurDetails.inject({ method: 'PUT', path: 'Mine/Rating$', mode: 'partial' })"
+    },
+    {
+      "name": "the slider focused",
+      "script": "__jfurDetails.slider().focus(); return __jfurDetails.onSlider();"
+    },
+    {
+      "name": "desktop: Home",
+      "key": "Home"
+    },
+    {
+      "name": "desktop: Enter (partial)",
+      "key": "Enter"
+    },
+    {
+      "sleep": 500
+    },
+    {
+      "name": "desktop IsPartial: the section's requests since",
+      "eval": "__jfurDetails.since(window.__mark)",
+      "save": "partialRequests",
+      "full": true
+    },
+    {
+      "name": "desktop: after the partial answer",
+      "eval": "__jfurDetails.state()",
+      "save": "afterPartial",
+      "full": true
+    },
+    {
+      "name": "the server: after the partial answer",
+      "eval": "__jfurDetails.mine(__vars.movieId)",
+      "save": "afterPartialServer",
+      "full": true
+    },
+    {
+      "name": "desktop: saved; the own row as written (0.5), the summary as it was, no error",
+      "assert": "__vars.partialRequests[0].indexOf('partial (injected; server 200)') > 0 && __vars.afterPartial.value === 0.5 && __vars.afterPartialServer.stars === 0.5 && __vars.afterPartial.summary === __vars.beforePartial.summary && __vars.afterPartial.notices.length === 0"
+    },
+    {
+      "name": "desktop 404 after the write: mark",
+      "script": "window.__mark = __jfurDetails.requests.length; window.__keys = __jfurDetails.log.length; return true;"
+    },
+    {
+      "name": "desktop: the next PUT Mine/Rating reaches the server and is answered 404 (the item taken away after the write)",
+      "eval": "__jfurDetails.inject({ method: 'PUT', path: 'Mine/Rating$', mode: 'after', status: 404, body: { title: 'Not Found', status: 404, detail: \"This item wasn't found, or it can't be rated.\" } })"
+    },
+    {
+      "name": "the slider focused",
+      "script": "__jfurDetails.slider().focus(); return __jfurDetails.onSlider();"
+    },
+    {
+      "name": "desktop: End (404)",
+      "key": "End"
+    },
+    {
+      "name": "desktop: Enter (404)",
+      "key": "Enter"
+    },
+    {
+      "sleep": 600
+    },
+    {
+      "name": "desktop 404: the section's requests since",
+      "eval": "__jfurDetails.since(window.__mark)",
+      "save": "goneRequests",
+      "full": true
+    },
+    {
+      "name": "desktop: after the 404",
+      "eval": "__jfurDetails.state()",
+      "save": "afterGone",
+      "full": true
+    },
+    {
+      "name": "the server: after the 404",
+      "eval": "__jfurDetails.mine(__vars.movieId)",
+      "save": "afterGoneServer",
+      "full": true
+    },
+    {
+      "name": "desktop: the write saved (5), the section gone, no \"couldn't save\", nothing read again",
+      "assert": "__vars.goneRequests.length === 1 && __vars.goneRequests[0].indexOf('404 (injected; server 200)') > 0 && __vars.afterGoneServer.stars === 5 && !__vars.afterGone.mounted && __vars.afterGone.sections === 0 && Array.prototype.filter.call(document.querySelectorAll('.jfur-section [role=\"alert\"], .jfur-toast'), n => __jfurDetails.displayed(n)).length === 0"
+    },
+    {
+      "name": "desktop: to Tagged Movie and back, so Long Test Movie's section is there again",
+      "script": "location.hash = '#/details?id=' + __vars.taggedId; return true;"
+    },
+    {
+      "waitFor": "(() => { const s = __jfurDetails.section(); return !!s && s.getAttribute('data-jfur-item') === __vars.taggedId && !!s.querySelector('.jfur-summary[data-jfur-summary]'); })()",
+      "timeout": 15000
+    },
+    {
+      "name": "desktop: Back",
+      "script": "history.back(); return true;"
+    },
+    {
+      "waitFor": "(() => { const s = __jfurDetails.section(); return !!s && s.getAttribute('data-jfur-item') === __vars.movieId && !!s.querySelector('.jfur-summary[data-jfur-summary]'); })()",
+      "timeout": 15000
+    },
+    {
+      "sleep": 500
+    },
+    {
+      "name": "desktop: Long Test Movie's section again",
+      "eval": "__jfurDetails.state()",
+      "save": "backAgain",
+      "full": true
+    },
+    {
+      "name": "desktop: read again: the server's 5",
+      "assert": "__vars.backAgain.value === 5 && __vars.backAgain.sections === 1"
+    },
+    {
+      "name": "desktop item to item: mark",
+      "script": "window.__mark = __jfurDetails.requests.length; window.__keys = __jfurDetails.log.length; return true;"
+    },
+    {
+      "name": "the slider focused",
+      "script": "__jfurDetails.slider().focus(); return __jfurDetails.onSlider();"
+    },
+    {
+      "name": "desktop: Left (a change waiting 600 ms)",
+      "key": "ArrowLeft"
+    },
+    {
+      "name": "desktop: to Tagged Movie at once, without a reload",
+      "script": "location.hash = '#/details?id=' + __vars.taggedId; return true;"
+    },
+    {
+      "name": "desktop: Tagged Movie's section mounted",
+      "waitFor": "(() => { const s = __jfurDetails.section(); return !!s && s.getAttribute('data-jfur-item') === __vars.taggedId && !!s.querySelector('.jfur-summary[data-jfur-summary]'); })()",
+      "timeout": 15000
+    },
+    {
+      "sleep": 1200
+    },
+    {
+      "name": "desktop item to item: the section's requests since",
+      "eval": "__jfurDetails.since(window.__mark)",
+      "save": "itemRequests",
+      "full": true
+    },
+    {
+      "name": "desktop: on Tagged Movie",
+      "eval": "__jfurDetails.state()",
+      "save": "onTagged",
+      "full": true
+    },
+    {
+      "name": "the server: Long Test Movie after leaving it",
+      "eval": "__jfurDetails.mine(__vars.movieId)",
+      "save": "leftServer",
+      "full": true
+    },
+    {
+      "name": "the server: Tagged Movie",
+      "eval": "__jfurDetails.mine(__vars.taggedId)",
+      "save": "taggedServer",
+      "full": true
+    },
+    {
+      "name": "desktop: one section, Tagged Movie's; the waiting change saved once, for Long Test Movie; Tagged Movie read",
+      "assert": "__vars.onTagged.sections === 1 && __vars.onTagged.item === __vars.taggedId && __vars.itemRequests.filter(r => r.indexOf('PUT ') === 0).length === 1 && __vars.itemRequests.indexOf('PUT /UserRatings/Items/' + __vars.movieId + '/Mine/Rating 200') >= 0 && __vars.itemRequests.indexOf('GET /UserRatings/Items/' + __vars.taggedId + ' 200') >= 0 && __vars.leftServer.stars === 4.5 && __vars.taggedServer.stars === null"
+    },
+    {
+      "name": "desktop Back: mark",
+      "script": "window.__mark = __jfurDetails.requests.length; window.__keys = __jfurDetails.log.length; return true;"
+    },
+    {
+      "name": "desktop: Back",
+      "script": "history.back(); return true;"
+    },
+    {
+      "name": "desktop: Long Test Movie's section again",
+      "waitFor": "(() => { const s = __jfurDetails.section(); return !!s && s.getAttribute('data-jfur-item') === __vars.movieId && !!s.querySelector('.jfur-summary[data-jfur-summary]'); })()",
+      "timeout": 15000
+    },
+    {
+      "sleep": 600
+    },
+    {
+      "name": "desktop Back: the section's requests since",
+      "eval": "__jfurDetails.since(window.__mark)",
+      "save": "backRequests",
+      "full": true
+    },
+    {
+      "name": "desktop: back on Long Test Movie",
+      "eval": "__jfurDetails.state()",
+      "save": "back",
+      "full": true
+    },
+    {
+      "name": "desktop: read again (a restored view), the server's value, one section",
+      "assert": "__vars.back.sections === 1 && __vars.back.value === 4.5 && __vars.backRequests.indexOf('GET /UserRatings/Items/' + __vars.movieId + ' 200') >= 0"
+    },
+    {
+      "name": "desktop Delete: mark",
+      "script": "window.__mark = __jfurDetails.requests.length; window.__keys = __jfurDetails.log.length; return true;"
+    },
+    {
+      "name": "desktop: Delete",
+      "click": "#itemDetailPage:not(.hide) .jfur-section .jfur-own-delete"
+    },
+    {
+      "sleep": 300
+    },
+    {
+      "name": "desktop: the question (Delete)",
+      "eval": "(() => { const p = document.querySelector('.jfur-backdrop .jfur-panel'); return p && { title: p.querySelector('h3').textContent, focused: document.activeElement === p.querySelector('.jfur-dialog-cancel') }; })()",
+      "save": "deleteDialog",
+      "full": true
+    },
+    {
+      "name": "desktop: \"Delete your rating and review?\", Cancel focused",
+      "assert": "__vars.deleteDialog.title === 'Delete your rating and review?' && __vars.deleteDialog.focused"
+    },
+    {
+      "name": "desktop: Delete (confirm)",
+      "click": ".jfur-backdrop .jfur-dialog-confirm"
+    },
+    {
+      "sleep": 800
+    },
+    {
+      "name": "desktop Delete: the section's requests since",
+      "eval": "__jfurDetails.since(window.__mark)",
+      "save": "deleteRequests",
+      "full": true
+    },
+    {
+      "name": "desktop: after Delete",
+      "eval": "__jfurDetails.state()",
+      "save": "afterDelete",
+      "full": true
+    },
+    {
+      "name": "the server: after Delete",
+      "eval": "__jfurDetails.mine(__vars.movieId)",
+      "save": "afterDeleteServer",
+      "full": true
+    },
+    {
+      "name": "desktop: DELETE Mine (204), the item read again; no own card, \"Not rated\", \"Your rating and review were deleted\" (delete)",
+      "assert": "__vars.deleteRequests[0] === 'DELETE /UserRatings/Items/' + __vars.movieId + '/Mine 204' && __vars.deleteRequests.indexOf('GET /UserRatings/Items/' + __vars.movieId + ' 200') > 0 && __vars.afterDelete.own === null && __vars.afterDelete.value === 0 && __vars.afterDelete.write && __vars.afterDelete.sectionLive === 'Your rating and review were deleted' && __vars.afterDeleteServer.stars === null && __vars.afterDeleteServer.text === null && __vars.afterDeleteServer.count === 0"
+    },
+    {
+      "name": "desktop: the title collapses the section",
+      "click": "#itemDetailPage:not(.hide) .jfur-section .jfur-section-toggle"
+    },
+    {
+      "name": "desktop: collapsed",
+      "assert": "__jfurDetails.state().expanded === 'false' && !__jfurDetails.displayed(__jfurDetails.section().querySelector('.jfur-section-body'))"
+    },
+    {
+      "name": "desktop: and opens it",
+      "click": "#itemDetailPage:not(.hide) .jfur-section .jfur-section-toggle"
+    },
+    {
+      "name": "desktop: open",
+      "assert": "__jfurDetails.state().expanded === 'true' && __jfurDetails.displayed(__jfurDetails.section().querySelector('.jfur-section-body'))"
+    },
+    {
+      "name": "screenshot (desktop)",
+      "screenshot": "userratings-details-desktop.png"
+    },
+    {
+      "name": "clean: Long Test Movie at the end without a rating of this member",
+      "script": "const r = await __jfurDetails.server('DELETE', 'UserRatings/Items/' + __vars.movieId + '/Mine'); return r.status;",
+      "save": "cleaned"
+    },
+    {
+      "name": "clean: Tagged Movie at the end without a rating of this member",
+      "script": "const r = await __jfurDetails.server('DELETE', 'UserRatings/Items/' + __vars.taggedId + '/Mine'); return r.status;",
+      "save": "cleaned"
+    },
+    {
+      "name": "the default layout again",
+      "eval": "(localStorage.removeItem('layout'), true)"
+    },
+    {
+      "name": "no uncaught exception",
+      "noExceptions": true,
+      "ignore": "/CustomRatings/script|^Error: player cannot be null"
+    },
+    {
+      "name": "every request of the section",
+      "eval": "__jfurDetails.since(0)",
+      "full": true
+    }
+  ]
+}

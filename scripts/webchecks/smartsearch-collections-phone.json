@@ -1,0 +1,107 @@
+{
+  "name": "Smart Search's Auto-collections tab on a phone (390x844, touch, the mobile layout), as admin: an auto-collection WC AC Phone made through the API; the list, tabs, filter, row actions and names at least 40 px and within the screen; the editor takes the whole width, nothing in it wider than the screen, its buttons at least 36 px. Screenshots smartsearch-collections-phone*.png.",
+  "failOnException": false,
+  "timeout": 30000,
+  "steps": [
+    {
+      "name": "a phone: 390x844, touch",
+      "emulate": {
+        "width": 390,
+        "height": 844,
+        "deviceScaleFactor": 1,
+        "mobile": true,
+        "touch": true
+      }
+    },
+    {
+      "name": "page helpers (admin)",
+      "initScript": "\nwindow.__ss = {\n  root: () => [...document.querySelectorAll('[data-jfss-page=\"search\"][data-jfss-mounted] .jfss-search')].find(x => x.getClientRects().length > 0) || null,\n  q: (s) => { const r = window.__ss.root(); return r ? r.querySelector(s) : null; },\n  all: (s) => { const r = window.__ss.root(); return r ? [...r.querySelectorAll(s)] : []; },\n  noHScroll: () => document.documentElement.scrollWidth <= innerWidth && window.__ss.root().scrollWidth <= window.__ss.root().clientWidth + 1,\n  box: (e) => { const r = e.getBoundingClientRect(); return [Math.round(r.width), Math.round(r.height)]; },\n  api: async (method, path, body) => { const r = await fetch(ApiClient.getUrl(path), { method, headers: { 'X-Emby-Token': ApiClient.accessToken(), 'Content-Type': 'application/json' }, body: body === undefined ? undefined : JSON.stringify(body) }); const t = await r.text(); return { status: r.status, body: t ? JSON.parse(t) : null }; },\n  cleanup: async (prefix) => { let n = 0; const acs = (await window.__ss.api('GET', 'SmartSearch/AutoCollections')).body || []; for (const a of acs) { if (a.Name.indexOf(prefix) === 0) { await window.__ss.api('DELETE', 'SmartSearch/AutoCollections/' + a.Id + '?deleteCollection=true'); n++; } } const list = (await window.__ss.api('GET', 'SmartSearch/Queries?scope=Mine&limit=500')).body.Items; for (const q of list) { if (q.Name.indexOf(prefix) === 0) { await window.__ss.api('DELETE', 'SmartSearch/Queries/' + q.Id + '?detachAutoCollections=true'); n++; } } return n; },\n  movies: async (name) => { const libs = (await window.__ss.api('GET', 'SmartSearch/Libraries')).body; const movies = libs.find(l => l.Name === 'Movies').Id; return (await window.__ss.api('POST', 'SmartSearch/Queries', { Name: name, Description: '', Shared: false, Query: { Version: 1, Scope: { ItemKinds: ['Movie'], LibraryIds: [movies], IncludeMissing: false }, Where: { Match: 'All', Children: [] }, Sort: [{ Key: 'SortName', Order: 'Ascending' }] } })).body; },\n  dialog: () => { const d = [...document.querySelectorAll('[role=\"dialog\"]')].filter(x => x.getClientRects().length > 0); return d[d.length - 1] || null; },\n  dq: (s) => { const d = window.__ss.dialog(); return d ? d.querySelector(s) : null; },\n  dset: (s, v) => { const e = window.__ss.dq(s); e.value = v; e.dispatchEvent(new Event('input', { bubbles: true })); e.dispatchEvent(new Event('change', { bubbles: true })); return true; },\n  dbutton: (text) => { const d = window.__ss.dialog(); return d ? [...d.querySelectorAll('button')].find(b => b.textContent === text) || null : null; },\n  rows: () => window.__ss.all('.jfss-ac-row'),\n  names: () => window.__ss.rows().map(r => r.querySelector('.jfss-ac-open').textContent),\n  row: (name) => window.__ss.rows().find(r => r.querySelector('.jfss-ac-open').textContent === name) || null,\n  status: (name) => { const r = window.__ss.row(name); return r ? r.querySelector('.jfss-ac-status').textContent : null; },\n  action: (name, cls) => { const r = window.__ss.row(name); return r ? r.querySelector(cls) : null; },\n  savedRow: (name) => window.__ss.all('.jfss-saved-row').find(r => r.querySelector('.jfss-saved-open').textContent === name) || null,\n  toast: () => [...document.querySelectorAll('.jfss-toast')].map(t => t.textContent.replace(/[\\u2066-\\u2069]/g, '')).join(' | '),\n  ready: () => !!window.__ss.q('.jfss-collections-panel') && !!window.__ss.q('.jfss-ac-count') && /auto-collection/.test(window.__ss.q('.jfss-ac-count').textContent + (window.__ss.q('.jfss-ac-notices') || {}).textContent)\n};\n"
+    },
+    {
+      "name": "sign in as admin",
+      "login": "admin"
+    },
+    {
+      "name": "the Smart Search script ran (admin)",
+      "waitFor": "!!window.__jfkit && !!window.__jfkit.jfss && !!window.ApiClient && !!ApiClient.getCurrentUserId()",
+      "timeout": 20000
+    },
+    {
+      "name": "an auto-collection of admin's",
+      "script": "await __ss.cleanup('WC AC Phone'); const q = await __ss.movies('WC AC Phone'); const preview = (await __ss.api('POST', 'SmartSearch/AutoCollections/Preview', { Definition: { Name: 'WC AC Phone', Source: { SavedQueryId: q.Id } } })).body; const r = await __ss.api('POST', 'SmartSearch/AutoCollections', { Definition: { Name: 'WC AC Phone', Source: { SavedQueryId: q.Id } }, AcceptedPreviewHash: preview.PreviewHash }); return r.status;",
+      "save": "made"
+    },
+    {
+      "name": "mobile layout for this browser",
+      "eval": "(localStorage.setItem('layout', 'mobile'), true)"
+    },
+    {
+      "name": "reload (mobile)",
+      "reload": true
+    },
+    {
+      "name": "mobile layout applied",
+      "waitFor": "document.documentElement.classList.contains('layout-mobile') && !!window.__jfkit && !!window.__jfkit.jfss && !!window.ApiClient && !!ApiClient.getCurrentUserId()",
+      "timeout": 20000
+    },
+    {
+      "goto": "/web/index.html#/jfss-search?tab=collections"
+    },
+    {
+      "name": "the list (phone)",
+      "waitFor": "!!window.__ss && __ss.ready() && __ss.status('WC AC Phone') === 'Up to date'",
+      "timeout": 60000
+    },
+    {
+      "name": "the phone list",
+      "eval": "({ noHScroll: __ss.noHScroll(), tabs: __ss.all('[role=\"tab\"]').map(__ss.box), filters: __ss.all('.jfss-ac-filter').map(__ss.box), actions: __ss.all('.jfss-ac-action').filter(b => b.getClientRects().length > 0).map(__ss.box), names: __ss.all('.jfss-ac-open').map(__ss.box), rowsInside: __ss.rows().every(r => r.getBoundingClientRect().right <= innerWidth + 1) })",
+      "save": "list",
+      "full": true
+    },
+    {
+      "name": "within the screen, touch-sized",
+      "assert": "__vars.list.noHScroll && __vars.list.rowsInside && __vars.list.tabs.every(b => b[1] >= 40) && __vars.list.filters.every(b => b[1] >= 40) && __vars.list.actions.length > 0 && __vars.list.actions.every(b => b[0] >= 40 && b[1] >= 40) && __vars.list.names.every(b => b[1] >= 40)"
+    },
+    {
+      "screenshot": "smartsearch-collections-phone.png"
+    },
+    {
+      "name": "Edit (phone)",
+      "script": "__ss.action('WC AC Phone', '.jfss-ac-edit').click(); return true;"
+    },
+    {
+      "name": "the editor (phone), previewed",
+      "waitFor": "!!__ss.dq('.jfss-ac-name') && /items/.test(__ss.dq('.jfss-ac-preview-state').textContent)",
+      "timeout": 20000
+    },
+    {
+      "name": "the editor's size",
+      "eval": "(() => { const d = __ss.dialog(); const r = d.getBoundingClientRect(); return { left: r.left, right: r.right, width: innerWidth, top: r.top, fields: [...d.querySelectorAll('input:not([type=checkbox]), select, textarea')].filter(e => e.getClientRects().length > 0).every(e => e.getBoundingClientRect().right <= innerWidth + 1), buttons: [...d.querySelectorAll('button')].filter(e => e.getClientRects().length > 0 && !e.closest('.jfss-ac-sample-row')).map(__ss.box), scrollsSideways: d.scrollWidth > d.clientWidth + 1 }; })()",
+      "save": "dialog",
+      "full": true
+    },
+    {
+      "name": "the whole screen, nothing wider, buttons touch-sized",
+      "assert": "__vars.dialog.left >= -1 && __vars.dialog.right <= __vars.dialog.width + 1 && __vars.dialog.right - __vars.dialog.left >= __vars.dialog.width - 2 && __vars.dialog.fields && !__vars.dialog.scrollsSideways && __vars.dialog.buttons.every(b => b[1] >= 36)"
+    },
+    {
+      "screenshot": "smartsearch-collections-phone-editor.png"
+    },
+    {
+      "key": "Escape"
+    },
+    {
+      "name": "closed",
+      "waitFor": "!__ss.dialog()"
+    },
+    {
+      "name": "remove it",
+      "script": "return await __ss.cleanup('WC AC Phone');"
+    },
+    {
+      "name": "no uncaught exception (the stale CustomRatings tag is known noise)",
+      "noExceptions": true,
+      "ignore": "CustomRatings"
+    }
+  ]
+}

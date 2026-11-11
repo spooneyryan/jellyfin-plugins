@@ -1,0 +1,330 @@
+{
+  "name": "Move in the move sandbox on a phone (375 x 812, touch): the ⋮ entry by tap, the dialog's picker and preview by tap and typing, nothing wider than the screen",
+  "timeout": 30000,
+  "steps": [
+    {
+      "name": "the helpers (a log of Library Maintenance's requests, short names)",
+      "initScript": {
+        "file": "probes/librarymaintenance-move-helpers.js"
+      }
+    },
+    {
+      "name": "sign in as admin",
+      "login": "admin"
+    },
+    {
+      "name": "home page and Library Maintenance's script",
+      "waitFor": "!!document.querySelector('.homePage:not(.hide) .card') && !!window.__jfkit && !!window.__jfkit.jflm && __lmm.log('/LibraryMaintenance/Capabilities').length > 0",
+      "timeout": 60000
+    },
+    {
+      "name": "the move sandbox's seeded items (by name)",
+      "script": "const u = ApiClient.getCurrentUserId(); const q = async (o) => (await ApiClient.getItems(u, Object.assign({ Recursive: true }, o))).Items; const views = (await ApiClient.getUserViews({}, u)).Items; const view = (n) => (views.find((v) => v.Name === n) || {}).Id; const m1 = await q({ ParentId: view('Movies'), IncludeItemTypes: 'Movie' }); const m2 = await q({ ParentId: view('Movies 2'), IncludeItemTypes: 'Movie', Fields: 'MediaSources' }); const eps = await q({ ParentId: view('Shows'), IncludeItemTypes: 'Episode' }); const by = (list, name) => list.find((i) => i.Name === name) || {}; const versions = by(m2, 'Versions Film (2015)'); const ep = by(eps, 'Sample Show S01E03'); if (!view('Movies') || !view('Movies 2') || !view('Shows') || !ep.Id || !versions.Id) throw new Error('not the move sandbox\\'s layout'); return { movies: view('Movies'), shows: view('Shows'), plain: by(m1, 'Plain Loose').Id, tagged: by(m1, 'Tagged Loose').Id, looseOne: by(m2, 'Loose One').Id, folderMovie: by(m2, 'Folder Movie (2008)').Id, versions: versions.Id, versionSources: (versions.MediaSources || []).map((s) => s.Id), episode: ep.Id, season: ep.SeasonId };",
+      "save": "ids",
+      "full": true
+    },
+    {
+      "name": "a phone: 375 x 812, touch",
+      "emulate": {
+        "width": 375,
+        "height": 812,
+        "deviceScaleFactor": 2,
+        "mobile": true,
+        "touch": true
+      }
+    },
+    {
+      "reload": true
+    },
+    {
+      "name": "home page and Library Maintenance's script",
+      "waitFor": "!!document.querySelector('.homePage:not(.hide) .card') && !!window.__jfkit && !!window.__jfkit.jflm && __lmm.log('/LibraryMaintenance/Capabilities').length > 0 && !document.documentElement.classList.contains('layout-tv')",
+      "timeout": 60000
+    },
+    {
+      "sleep": 1000
+    },
+    {
+      "name": "phone, movie: the Movies library",
+      "script": "location.hash = '#/movies?topParentId=' + __vars.ids.movies + '&collectionType=movies'; return location.hash;"
+    },
+    {
+      "waitFor": "!!__lmm.page().querySelector('.card[data-id=\"' + __vars.ids.plain + '\"] .itemAction[data-action=menu]')"
+    },
+    {
+      "sleep": 500
+    },
+    {
+      "name": "phone, movie: its card's ⋮",
+      "script": "__s.hash = location.hash; return __lmm.menu(__lmm.page().querySelector('.card[data-id=\"' + __vars.ids.plain + '\"]'));"
+    },
+    {
+      "waitFor": "!!__lmm.sheet() && __lmm.afterRefresh('jflm-move')"
+    },
+    {
+      "sleep": 300
+    },
+    {
+      "name": "a real click on Move media to new location",
+      "click": ".dialogContainer > .actionSheet [data-id=\"jflm-move\"]"
+    },
+    {
+      "name": "the sheet closes, the Move dialog opens and loads",
+      "waitFor": "!__lmm.sheet() && !!__lmm.dialog() && __lmm.loaded()"
+    },
+    {
+      "sleep": 500
+    },
+    {
+      "name": "phone: the dialog as opened",
+      "eval": "__lmm.fits()",
+      "save": "fitOpen",
+      "full": true
+    },
+    {
+      "name": "notice on the phone: the preview-only notice as the dialog opens, no scrolling",
+      "eval": "__lmm.notice()",
+      "save": "phoneNoticeOpen",
+      "full": true
+    },
+    {
+      "name": "375 px wide: the intro's lead and the footer's note in view and on top",
+      "assert": "(() => { const n = __vars.phoneNoticeOpen; return n.view[0] === 375 && n.lead.text === 'Preview only: nothing is moved.' && __lmm.seen(n.lead) && __lmm.seen(n.note) && __lmm.seen(n.close) && n.contentScrollTop === 0; })()"
+    },
+    {
+      "assert": "__vars.fitOpen.wide.length === 0 && __vars.fitOpen.dialogScroll <= __vars.fitOpen.dialogClient + 1 && __vars.fitOpen.docScroll <= 376"
+    },
+    {
+      "screenshot": "lm-move-phone-f1-open.png"
+    },
+    {
+      "script": "__s.plans = __lmm.log('/LibraryMaintenance/Move/Plan').length; return __s.plans;"
+    },
+    {
+      "name": "phone: Big Folders",
+      "eval": "__lmm.library('Big Folders')"
+    },
+    {
+      "name": "the preview settled on a new plan",
+      "waitFor": "__lmm.log('/LibraryMaintenance/Move/Plan').length > __s.plans && __lmm.settled()"
+    },
+    {
+      "waitFor": "/^Showing \\d+ of 1999 folders\\.$/.test(__lmm.text('.jflm-move-count') || '')"
+    },
+    {
+      "name": "phone: the filter (typed)",
+      "type": "0123",
+      "selector": ".dialogContainer .jflm-move-dialog input.jflm-searchbox",
+      "clear": true
+    },
+    {
+      "waitFor": "__lmm.text('.jflm-move-count') === '1 folder.'"
+    },
+    {
+      "script": "__s.plans = __lmm.log('/LibraryMaintenance/Move/Plan').length; return __s.plans;"
+    },
+    {
+      "name": "phone: New folder (typed)",
+      "type": "A rather long new folder name for a narrow phone screen",
+      "selector": ".dialogContainer .jflm-move-dialog input.jflm-move-new-folder",
+      "clear": true
+    },
+    {
+      "name": "the preview settled on a new plan",
+      "waitFor": "__lmm.log('/LibraryMaintenance/Move/Plan').length > __s.plans && __lmm.settled()"
+    },
+    {
+      "name": "phone: the preview, one column; nothing wider than the screen",
+      "eval": "Object.assign({ columns: getComputedStyle(__lmm.q('dl.jflm-move-facts')).gridTemplateColumns.split(' ').length, facts: __lmm.facts() }, __lmm.fits())",
+      "save": "fitPlan",
+      "full": true
+    },
+    {
+      "assert": "__vars.fitPlan.wide.length === 0 && __vars.fitPlan.dialogScroll <= __vars.fitPlan.dialogClient + 1 && __vars.fitPlan.columns === 1 && __lmm.tail(__vars.fitPlan.facts.Creates.split('; ')[0], 1) === 'A rather long new folder name for a narrow phone screen'"
+    },
+    {
+      "name": "phone: the preview in view",
+      "script": "__lmm.q('.jflm-move-preview-output').scrollIntoView({ block: 'start', behavior: 'instant' }); return true;"
+    },
+    {
+      "sleep": 300
+    },
+    {
+      "name": "notice on the phone: the notice with the preview scrolled into view",
+      "eval": "__lmm.notice()",
+      "save": "phoneNoticePlan",
+      "full": true
+    },
+    {
+      "name": "the content scrolled to the preview; the footer's note stays in view and on top",
+      "assert": "(() => { const n = __vars.phoneNoticePlan; return n.contentScrollTop > 0 && __lmm.seen(n.note) && __lmm.seen(n.close); })()"
+    },
+    {
+      "sleep": 300
+    },
+    {
+      "screenshot": "lm-move-phone-f1-preview.png"
+    },
+    {
+      "name": "phone: the footer in view",
+      "script": "__lmm.q('.jflm-move-footer').scrollIntoView({ block: 'end', behavior: 'instant' }); return true;"
+    },
+    {
+      "sleep": 300
+    },
+    {
+      "name": "phone: the footer (preview-only note, Close; no Move)",
+      "eval": "(() => { const c = __lmm.q('.jflm-move-close').getBoundingClientRect(); return { close: [Math.round(c.left), Math.round(c.right), Math.round(c.height)], note: __lmm.state().noteShown, run: __lmm.state().runShown }; })()",
+      "save": "footer",
+      "full": true
+    },
+    {
+      "assert": "__vars.footer.close[0] >= 0 && __vars.footer.close[1] <= 376 && __vars.footer.close[2] >= 36 && __vars.footer.note && !__vars.footer.run"
+    },
+    {
+      "screenshot": "lm-move-phone-f1-footer.png"
+    },
+    {
+      "script": "const el = document.querySelector(\".dialogContainer .jflm-move-dialog .jflm-move-close\"); if (el) el.scrollIntoView({ block: 'center', behavior: 'instant' }); return !!el;"
+    },
+    {
+      "sleep": 200
+    },
+    {
+      "name": "phone: a tap on Close",
+      "click": ".dialogContainer .jflm-move-dialog .jflm-move-close"
+    },
+    {
+      "waitFor": "!__lmm.dialog()"
+    },
+    {
+      "name": "phone, episode: its details page",
+      "script": "location.hash = '#/details?id=' + __vars.ids.episode; return location.hash;"
+    },
+    {
+      "waitFor": "location.hash.indexOf(__vars.ids.episode) >= 0 && !!document.querySelector('.itemDetailPage:not(.hide) .btnMoreCommands:not(.hide)')"
+    },
+    {
+      "sleep": 1000
+    },
+    {
+      "name": "phone, episode: More",
+      "script": "__s.hash = location.hash; document.querySelector('.itemDetailPage:not(.hide) .btnMoreCommands').click(); return true;"
+    },
+    {
+      "waitFor": "!!__lmm.sheet() && __lmm.afterRefresh('jflm-move')"
+    },
+    {
+      "sleep": 300
+    },
+    {
+      "name": "a real click on Move media to new location",
+      "click": ".dialogContainer > .actionSheet [data-id=\"jflm-move\"]"
+    },
+    {
+      "name": "the sheet closes, the Move dialog opens and loads",
+      "waitFor": "!__lmm.sheet() && !!__lmm.dialog() && __lmm.loaded()"
+    },
+    {
+      "script": "__s.plans = __lmm.log('/LibraryMaintenance/Move/Plan').length; return __s.plans;"
+    },
+    {
+      "name": "phone, episode: a tap on its series' folder",
+      "script": "const b = __lmm.folder(\"Sample Show (2020) [tvdbid-920001]\"); if (b) b.scrollIntoView({ block: 'center', behavior: 'instant' }); return __lmm.target(b, 'folder');"
+    },
+    {
+      "sleep": 200
+    },
+    {
+      "script": "const el = document.querySelector(\"[data-lmm-target=\\\"folder\\\"]\"); if (el) el.scrollIntoView({ block: 'center', behavior: 'instant' }); return !!el;"
+    },
+    {
+      "sleep": 200
+    },
+    {
+      "click": "[data-lmm-target=\"folder\"]"
+    },
+    {
+      "name": "the preview settled on a new plan",
+      "waitFor": "__lmm.log('/LibraryMaintenance/Move/Plan').length > __s.plans && __lmm.settled()"
+    },
+    {
+      "waitFor": "__lmm.text('.jflm-move-count') === '2 folders.'"
+    },
+    {
+      "script": "__s.plans = __lmm.log('/LibraryMaintenance/Move/Plan').length; return __s.plans;"
+    },
+    {
+      "name": "phone, episode: a tap on Season 02",
+      "script": "const b = __lmm.folder(\"Season 02\"); if (b) b.scrollIntoView({ block: 'center', behavior: 'instant' }); return __lmm.target(b, 'folder');"
+    },
+    {
+      "sleep": 200
+    },
+    {
+      "script": "const el = document.querySelector(\"[data-lmm-target=\\\"folder\\\"]\"); if (el) el.scrollIntoView({ block: 'center', behavior: 'instant' }); return !!el;"
+    },
+    {
+      "sleep": 200
+    },
+    {
+      "click": "[data-lmm-target=\"folder\"]"
+    },
+    {
+      "name": "the preview settled on a new plan",
+      "waitFor": "__lmm.log('/LibraryMaintenance/Move/Plan').length > __s.plans && __lmm.settled()"
+    },
+    {
+      "name": "phone, episode: the warning, nothing wider than the screen",
+      "eval": "Object.assign({ warnings: __lmm.issues('warning').map((w) => w.code), crumbs: __lmm.state().crumbs }, __lmm.fits())",
+      "save": "fitEp",
+      "full": true
+    },
+    {
+      "assert": "__vars.fitEp.wide.length === 0 && __vars.fitEp.dialogScroll <= __vars.fitEp.dialogClient + 1 && __vars.fitEp.warnings.length === 1 && __vars.fitEp.crumbs.length === 3"
+    },
+    {
+      "name": "phone, episode: the breadcrumb and the warning in view",
+      "script": "__lmm.q('.jflm-move-crumbs').scrollIntoView({ block: 'start', behavior: 'instant' }); return true;"
+    },
+    {
+      "sleep": 300
+    },
+    {
+      "screenshot": "lm-move-phone-f2-crumbs.png"
+    },
+    {
+      "script": "__lmm.q('.jflm-move-preview-output').scrollIntoView({ block: 'start', behavior: 'instant' }); return true;"
+    },
+    {
+      "sleep": 300
+    },
+    {
+      "screenshot": "lm-move-phone-f2-warning.png"
+    },
+    {
+      "script": "const el = document.querySelector(\".dialogContainer .jflm-move-dialog .jflm-move-close\"); if (el) el.scrollIntoView({ block: 'center', behavior: 'instant' }); return !!el;"
+    },
+    {
+      "sleep": 200
+    },
+    {
+      "name": "phone, episode: a tap on Close",
+      "click": ".dialogContainer .jflm-move-dialog .jflm-move-close"
+    },
+    {
+      "waitFor": "!__lmm.dialog()"
+    },
+    {
+      "emulate": "desktop",
+      "finally": true
+    },
+    {
+      "name": "no kit health miss",
+      "assert": "Array.isArray(__lmm.health()) && __lmm.health().length === 0"
+    },
+    {
+      "noExceptions": true
+    }
+  ]
+}

@@ -1,0 +1,403 @@
+{
+  "name": "User Ratings 1.0.2.0, a 409 with two windows: as viewer in two browser contexts (two windows of the same member): window A opens Edit on its review of Long Test Movie; window B saves another review; window A then changes its stars, whose answer carries window B's row; window A's Save sends the review's time its form started from (IfReviewUpdatedUtc) and gets the 409, window B's review stays and window A's text stays in its form, with the form saying so (the reviewer's overwrite), and the 409 shows window B's review as it is now, read-only. The control, on Tagged Movie: this window's stars and then another window's (through the API) move the row's time but never the review's, and Save goes through with the review's own time. The member's rows are deleted at the end.",
+  "failOnException": false,
+  "timeout": 30000,
+  "steps": [
+    {
+      "name": "the details probe in every document (it watches the section the served script mounts)",
+      "initScript": {
+        "file": "probes/userratings-details-probe.js"
+      }
+    },
+    {
+      "name": "sign in as viewer",
+      "login": "viewer"
+    },
+    {
+      "name": "desktop layout",
+      "eval": "(localStorage.removeItem('layout'), true)"
+    },
+    {
+      "name": "reload",
+      "reload": true
+    },
+    {
+      "name": "the layout applied, User Ratings 1.0.2.0 started",
+      "waitFor": "document.documentElement.classList.contains('layout-desktop') && !!window.ApiClient && !!ApiClient.getCurrentUserId() && !!(window.__jfkit && window.__jfkit.jfur)",
+      "timeout": 40000
+    },
+    {
+      "name": "the served script is 1.0.2.0",
+      "assert": "window.__jfkit.jfur.version === '1.0.2.0'",
+      "message": "User Ratings 1.0.2.0 is not the script the page loaded"
+    },
+    {
+      "name": "Long Test Movie",
+      "eval": "(await ApiClient.getItems(ApiClient.getCurrentUserId(), { IncludeItemTypes: 'Movie', Recursive: true, SearchTerm: \"Long Test Movie\", Limit: 1 })).Items[0].Id",
+      "save": "movieId"
+    },
+    {
+      "name": "clean: Long Test Movie without a rating of this member",
+      "script": "const r = await __jfurDetails.server('DELETE', 'UserRatings/Items/' + __vars.movieId + '/Mine'); return r.status;",
+      "save": "cleaned"
+    },
+    {
+      "name": "Tagged Movie",
+      "eval": "(await ApiClient.getItems(ApiClient.getCurrentUserId(), { IncludeItemTypes: 'Movie', Recursive: true, SearchTerm: \"Tagged Movie\", Limit: 1 })).Items[0].Id",
+      "save": "taggedId"
+    },
+    {
+      "name": "clean: Tagged Movie without a rating of this member",
+      "script": "const r = await __jfurDetails.server('DELETE', 'UserRatings/Items/' + __vars.taggedId + '/Mine'); return r.status;",
+      "save": "cleaned"
+    },
+    {
+      "name": "Long Test Movie: the member's 3 stars and review, through the API",
+      "script": "const a = await __jfurDetails.server('PUT', 'UserRatings/Items/' + __vars.movieId + '/Mine/Rating', { Stars: 3 }); const b = await __jfurDetails.server('PUT', 'UserRatings/Items/' + __vars.movieId + '/Mine/Review', { Text: \"Window A original\", IsSpoiler: false }); return [a.status, b.status];"
+    },
+    {
+      "name": "the server: Long Test Movie as seeded",
+      "eval": "__jfurDetails.mine(__vars.movieId)",
+      "save": "seeded",
+      "full": true
+    },
+    {
+      "name": "window A: Long Test Movie: its details page",
+      "script": "location.hash = '#/details?id=' + __vars.movieId; return true;"
+    },
+    {
+      "name": "window A: Long Test Movie: drawn",
+      "waitFor": "(() => { const p = document.querySelector('#itemDetailPage:not(.hide)'); return !!p && location.hash.indexOf(__vars.movieId) > 0 && !!p.querySelector('.mainDetailButtons .btnPlay:not(.hide)'); })()",
+      "timeout": 30000
+    },
+    {
+      "name": "window A: Long Test Movie: the section mounted for it",
+      "waitFor": "(() => { const s = __jfurDetails.section(); return !!s && s.getAttribute('data-jfur-item') === __vars.movieId && !!s.querySelector('.jfur-summary[data-jfur-summary]'); })()",
+      "timeout": 15000
+    },
+    {
+      "sleep": 400
+    },
+    {
+      "name": "window A: Edit",
+      "click": "#itemDetailPage:not(.hide) .jfur-section .jfur-own-edit"
+    },
+    {
+      "sleep": 300
+    },
+    {
+      "name": "window A: the caret at the end",
+      "script": "const a = document.activeElement; a.selectionStart = a.selectionEnd = a.value.length; return a.tagName;"
+    },
+    {
+      "name": "window A: type",
+      "type": ", edited in window A"
+    },
+    {
+      "name": "window-b: a browser context of its own",
+      "context": "window-b"
+    },
+    {
+      "name": "window-b: the details probe there too",
+      "initScript": {
+        "file": "probes/userratings-details-probe.js"
+      }
+    },
+    {
+      "name": "window-b: sign in as viewer",
+      "login": "viewer"
+    },
+    {
+      "name": "window-b: desktop layout",
+      "eval": "(localStorage.removeItem('layout'), true)"
+    },
+    {
+      "name": "window-b: reload",
+      "reload": true
+    },
+    {
+      "name": "window-b: User Ratings 1.0.2.0 started",
+      "waitFor": "!!window.ApiClient && !!ApiClient.getCurrentUserId() && !!(window.__jfkit && window.__jfkit.jfur)",
+      "timeout": 40000
+    },
+    {
+      "name": "window B: Long Test Movie: its details page",
+      "script": "location.hash = '#/details?id=' + __vars.movieId; return true;"
+    },
+    {
+      "name": "window B: Long Test Movie: drawn",
+      "waitFor": "(() => { const p = document.querySelector('#itemDetailPage:not(.hide)'); return !!p && location.hash.indexOf(__vars.movieId) > 0 && !!p.querySelector('.mainDetailButtons .btnPlay:not(.hide)'); })()",
+      "timeout": 30000
+    },
+    {
+      "name": "window B: Long Test Movie: the section mounted for it",
+      "waitFor": "(() => { const s = __jfurDetails.section(); return !!s && s.getAttribute('data-jfur-item') === __vars.movieId && !!s.querySelector('.jfur-summary[data-jfur-summary]'); })()",
+      "timeout": 15000
+    },
+    {
+      "sleep": 400
+    },
+    {
+      "name": "window B: Edit",
+      "click": "#itemDetailPage:not(.hide) .jfur-section .jfur-own-edit"
+    },
+    {
+      "sleep": 300
+    },
+    {
+      "name": "window B: its own text",
+      "script": "const a = document.activeElement; a.select(); return a.tagName;"
+    },
+    {
+      "name": "window B: type over it",
+      "type": "WINDOW B REVIEW"
+    },
+    {
+      "name": "window B: Save",
+      "click": "#itemDetailPage:not(.hide) .jfur-section .jfur-review-save"
+    },
+    {
+      "sleep": 900
+    },
+    {
+      "name": "the server: after window B saved",
+      "eval": "__jfurDetails.mine(__vars.movieId)",
+      "save": "afterB",
+      "full": true
+    },
+    {
+      "name": "window B: saved, a 200",
+      "assert": "__vars.afterB.text === 'WINDOW B REVIEW' && !__jfurDetails.state().form && __jfurDetails.state().own === 'WINDOW B REVIEW'"
+    },
+    {
+      "name": "back to window A",
+      "context": "main"
+    },
+    {
+      "name": "window A rating: mark",
+      "script": "window.__mark = __jfurDetails.requests.length; window.__keys = __jfurDetails.log.length; return true;"
+    },
+    {
+      "name": "the slider focused",
+      "script": "__jfurDetails.slider().focus(); return __jfurDetails.onSlider();"
+    },
+    {
+      "name": "window A: Right (3.5)",
+      "key": "ArrowRight"
+    },
+    {
+      "name": "window A: Enter",
+      "key": "Enter"
+    },
+    {
+      "sleep": 900
+    },
+    {
+      "name": "window A rating: the section's requests since",
+      "eval": "__jfurDetails.since(window.__mark)",
+      "save": "aRating",
+      "full": true
+    },
+    {
+      "name": "window A after its rating",
+      "eval": "__jfurDetails.state()",
+      "save": "aAfterRating",
+      "full": true
+    },
+    {
+      "name": "window A: the rating saved, its answer carrying window B's row; the form keeps window A's text and says the review was changed in another window",
+      "assert": "__vars.aRating.length === 1 && / 200$/.test(__vars.aRating[0]) && __vars.aAfterRating.form && __vars.aAfterRating.formText === 'Window A original, edited in window A' && __vars.aAfterRating.notices.some(n => /changed in another window/.test(n.text))"
+    },
+    {
+      "name": "window A Save: mark",
+      "script": "window.__mark = __jfurDetails.requests.length; window.__keys = __jfurDetails.log.length; return true;"
+    },
+    {
+      "name": "window A: Save",
+      "click": "#itemDetailPage:not(.hide) .jfur-section .jfur-review-save"
+    },
+    {
+      "sleep": 900
+    },
+    {
+      "name": "window A Save: the section's requests since",
+      "eval": "__jfurDetails.since(window.__mark)",
+      "save": "aSave",
+      "full": true
+    },
+    {
+      "name": "window A after Save",
+      "eval": "__jfurDetails.state()",
+      "save": "aAfterSave",
+      "full": true
+    },
+    {
+      "name": "the server: after window A's Save",
+      "eval": "__jfurDetails.mine(__vars.movieId)",
+      "save": "afterA",
+      "full": true
+    },
+    {
+      "name": "window A's Save",
+      "eval": "(__jfurDetails.requests.filter(r => r.method === 'PUT' && /Mine\\/Review$/.test(r.path)).pop() || { body: null }).body",
+      "save": "aSaveBody",
+      "full": true
+    },
+    {
+      "name": "window A: Save sent the review's time its form started from (IfReviewUpdatedUtc), the server answered 409 and still holds window B's review; window A's text kept in its form, said; the item read for the 409's panel (before the fix: the rating's answer gave B's time, the Save was a 200 and B's text was gone)",
+      "assert": "__vars.aSave.length === 2 && / 409$/.test(__vars.aSave[0]) && __vars.aSave[1] === 'GET /UserRatings/Items/' + __vars.movieId + ' 200' && __vars.aSaveBody.IfReviewUpdatedUtc === __vars.seeded.reviewUpdated && !('IfUpdatedUtc' in __vars.aSaveBody) && __vars.afterA.text === 'WINDOW B REVIEW' && __vars.aAfterSave.form && __vars.aAfterSave.formText === 'Window A original, edited in window A' && __vars.aAfterSave.notices.some(n => /changed in another window/.test(n.text))"
+    },
+    {
+      "name": "window A: the 409 shows window B's review as it is now, read-only and isolated, and Overwrite once it is read",
+      "assert": "(c => !!c && c.label === 'Your review as it is now:' && c.text === 'WINDOW B REVIEW' && c.dir === 'auto' && c.editable === 0 && c.status === null)(__vars.aAfterSave.conflictPanel) && __vars.aAfterSave.overwrite"
+    },
+    {
+      "name": "Tagged Movie: the member's 2 stars and review, through the API",
+      "script": "const a = await __jfurDetails.server('PUT', 'UserRatings/Items/' + __vars.taggedId + '/Mine/Rating', { Stars: 2 }); const b = await __jfurDetails.server('PUT', 'UserRatings/Items/' + __vars.taggedId + '/Mine/Review', { Text: \"Control original\", IsSpoiler: false }); return [a.status, b.status];"
+    },
+    {
+      "name": "the server: Tagged Movie as seeded",
+      "eval": "__jfurDetails.mine(__vars.taggedId)",
+      "save": "controlSeeded",
+      "full": true
+    },
+    {
+      "name": "window A: Tagged Movie: its details page",
+      "script": "location.hash = '#/details?id=' + __vars.taggedId; return true;"
+    },
+    {
+      "name": "window A: Tagged Movie: drawn",
+      "waitFor": "(() => { const p = document.querySelector('#itemDetailPage:not(.hide)'); return !!p && location.hash.indexOf(__vars.taggedId) > 0 && !!p.querySelector('.mainDetailButtons .btnPlay:not(.hide)'); })()",
+      "timeout": 30000
+    },
+    {
+      "name": "window A: Tagged Movie: the section mounted for it",
+      "waitFor": "(() => { const s = __jfurDetails.section(); return !!s && s.getAttribute('data-jfur-item') === __vars.taggedId && !!s.querySelector('.jfur-summary[data-jfur-summary]'); })()",
+      "timeout": 15000
+    },
+    {
+      "sleep": 400
+    },
+    {
+      "name": "control: Edit",
+      "click": "#itemDetailPage:not(.hide) .jfur-section .jfur-own-edit"
+    },
+    {
+      "sleep": 300
+    },
+    {
+      "name": "control: the caret at the end",
+      "script": "const a = document.activeElement; a.selectionStart = a.selectionEnd = a.value.length; return a.tagName;"
+    },
+    {
+      "name": "control: type",
+      "type": ", edited"
+    },
+    {
+      "name": "the slider focused",
+      "script": "__jfurDetails.slider().focus(); return __jfurDetails.onSlider();"
+    },
+    {
+      "name": "control: Right (2.5)",
+      "key": "ArrowRight"
+    },
+    {
+      "name": "control: Enter",
+      "key": "Enter"
+    },
+    {
+      "sleep": 900
+    },
+    {
+      "name": "the server: after the control's rating",
+      "eval": "__jfurDetails.mine(__vars.taggedId)",
+      "save": "controlRated",
+      "full": true
+    },
+    {
+      "name": "control after its rating",
+      "eval": "__jfurDetails.state()",
+      "save": "controlAfterRating",
+      "full": true
+    },
+    {
+      "name": "control: nothing to say, the form as typed; the stars moved the row's time, never the review's",
+      "assert": "__vars.controlRated.stars === 2.5 && __vars.controlAfterRating.form && !__vars.controlAfterRating.notices.some(n => /another window/.test(n.text)) && __vars.controlRated.updated !== __vars.controlSeeded.updated && __vars.controlRated.reviewUpdated === __vars.controlSeeded.reviewUpdated"
+    },
+    {
+      "name": "stars elsewhere: the stars changed in another window (PUT Mine/Rating through the API)",
+      "script": "const r = await __jfurDetails.server('PUT', 'UserRatings/Items/' + __vars.taggedId + '/Mine/Rating', { Stars: 4 }); return r.status;",
+      "save": "otherStars"
+    },
+    {
+      "name": "stars elsewhere: saved there",
+      "assert": "__vars.otherStars === 200"
+    },
+    {
+      "name": "control Save: mark",
+      "script": "window.__mark = __jfurDetails.requests.length; window.__keys = __jfurDetails.log.length; return true;"
+    },
+    {
+      "name": "control: Save",
+      "click": "#itemDetailPage:not(.hide) .jfur-section .jfur-review-save"
+    },
+    {
+      "sleep": 900
+    },
+    {
+      "name": "control Save: the section's requests since",
+      "eval": "__jfurDetails.since(window.__mark)",
+      "save": "controlSave",
+      "full": true
+    },
+    {
+      "name": "the server: after the control's Save",
+      "eval": "__jfurDetails.mine(__vars.taggedId)",
+      "save": "controlSaved",
+      "full": true
+    },
+    {
+      "name": "control's Save",
+      "eval": "(__jfurDetails.requests.filter(r => r.method === 'PUT' && /Mine\\/Review$/.test(r.path)).pop() || { body: null }).body",
+      "save": "controlBody",
+      "full": true
+    },
+    {
+      "name": "control and stars elsewhere: Save sent the review's own time as the form read it, a 200 although the row moved twice since (this window's stars, then another's); the text saved, the other window's stars kept",
+      "assert": "__vars.controlSave.length === 1 && / 200$/.test(__vars.controlSave[0]) && __vars.controlBody.IfReviewUpdatedUtc === __vars.controlSeeded.reviewUpdated && !('IfUpdatedUtc' in __vars.controlBody) && __vars.controlSaved.text === 'Control original, edited' && __vars.controlSaved.stars === 4"
+    },
+    {
+      "name": "window A: screenshot",
+      "screenshot": "userratings-details-windows.png"
+    },
+    {
+      "name": "clean: Long Test Movie at the end without a rating of this member",
+      "script": "const r = await __jfurDetails.server('DELETE', 'UserRatings/Items/' + __vars.movieId + '/Mine'); return r.status;",
+      "save": "cleaned"
+    },
+    {
+      "name": "clean: Tagged Movie at the end without a rating of this member",
+      "script": "const r = await __jfurDetails.server('DELETE', 'UserRatings/Items/' + __vars.taggedId + '/Mine'); return r.status;",
+      "save": "cleaned"
+    },
+    {
+      "name": "window A: no uncaught exception",
+      "noExceptions": true,
+      "ignore": "/CustomRatings/script|^Error: player cannot be null"
+    },
+    {
+      "name": "window A: every request of the section",
+      "eval": "__jfurDetails.since(0)",
+      "full": true
+    },
+    {
+      "name": "window B again",
+      "context": "window-b"
+    },
+    {
+      "name": "window B: every request of the section",
+      "eval": "__jfurDetails.since(0)",
+      "full": true
+    }
+  ]
+}

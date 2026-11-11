@@ -1,0 +1,345 @@
+{
+  "name": "Smart Search's advanced form on a desktop (1366x900), as admin and as viewer2 (limited to every library but Movies 2). As admin it seeds synthetic metadata (genres, tags, a studio, ratings, dates, an original title, overviews, an IMDb id, a lock, a show's status; the same every run) and each user marks their own watch state on three movies. Keyboard only: Advanced, Add rule (Enter), the field and condition chosen with the arrow keys, From and To typed, a None-of group added with its rule, Enter searches; the results are what /Items finds. Then every field of the catalogue: a rule built in the editor's controls (the show picker's suggestion, chips typed, choices, libraries, yes or no, providers), searched, and its results compared with what core /Items gives the same user for the same rule (Path only as admin; viewer2's list never offers it). Inline checks: an empty value stops the search with the message under its rule. A saved advanced query opens again in the advanced form. Screenshots smartsearch-advanced-*.png. Needs a sandbox seeded by Initialize-Sandbox.ps1.",
+  "failOnException": false,
+  "timeout": 30000,
+  "steps": [
+    {
+      "name": "a desktop screen",
+      "emulate": "desktop"
+    },
+    {
+      "name": "page helpers (admin)",
+      "initScript": "\n// Every search request is counted from the resource timings, which stop at 250 entries by default.\ntry { performance.setResourceTimingBufferSize(100000); } catch (e) { }\nwindow.__ss = {\n  root: () => [...document.querySelectorAll('[data-jfss-page=\"search\"][data-jfss-mounted] .jfss-search')].find(x => x.getClientRects().length > 0) || null,\n  q: (s) => { const r = window.__ss.root(); return r ? r.querySelector(s) : null; },\n  all: (s) => { const r = window.__ss.root(); return r ? [...r.querySelectorAll(s)] : []; },\n  ready: () => !!window.__ss.q('.jfss-scope') && !!window.__ss.q('.jfss-search-button'),\n  done: () => { const c = window.__ss.q('.jfss-count'); const n = window.__ss.q('.jfss-notices'); if (c && c.textContent && !/Searching/.test(c.textContent)) return c.textContent; if (n && n.textContent) return n.textContent; return false; },\n  ids: () => window.__ss.all('.jfss-card, .jfss-row').map(x => x.getAttribute('data-id')),\n  norm: (ids) => ids.map(i => String(i).replace(/-/g, '').toLowerCase()).sort().join(),\n  pressed: (s) => window.__ss.all(s).filter(b => b.getAttribute('aria-pressed') === 'true').map(b => b.textContent),\n  noHScroll: () => document.documentElement.scrollWidth <= innerWidth && window.__ss.root().scrollWidth <= window.__ss.root().clientWidth + 1,\n  box: (e) => { const r = e.getBoundingClientRect(); return [Math.round(r.width), Math.round(r.height)]; },\n  api: async (method, path, body) => { const r = await fetch(ApiClient.getUrl(path), { method, headers: { 'X-Emby-Token': ApiClient.accessToken(), 'Content-Type': 'application/json' }, body: body === undefined ? undefined : JSON.stringify(body) }); const t = await r.text(); return { status: r.status, body: t ? JSON.parse(t) : null }; },\n  cleanup: async (prefix) => { const list = (await window.__ss.api('GET', 'SmartSearch/Queries?scope=Mine&limit=500')).body.Items; let n = 0; for (const q of list) { if (q.Name.indexOf(prefix) === 0) { await window.__ss.api('DELETE', 'SmartSearch/Queries/' + q.Id); n++; } } return n; },\n  dialog: () => { const d = [...document.querySelectorAll('[role=\"dialog\"]')].filter(x => x.getClientRects().length > 0); return d[d.length - 1] || null; },\n  active: () => { const a = document.activeElement; return a ? (a.getAttribute('data-jfss-focus') || a.className) : ''; },\n  focusPart: () => { const a = document.activeElement; const f = a && a.getAttribute('data-jfss-focus'); return f ? f.split(':')[1] : ''; }\n};\nwindow.__adv = {\n  sleep: (ms) => new Promise(r => setTimeout(r, ms)),\n  until: async (fn, ms) => { const t = Date.now(); while (Date.now() - t < (ms || 20000)) { try { const v = fn(); if (v) return v; } catch (e) { } await window.__adv.sleep(50); } throw new Error('timed out: ' + fn); },\n  fire: (e, v) => { e.value = v; e.dispatchEvent(new Event('input', { bubbles: true })); e.dispatchEvent(new Event('change', { bubbles: true })); },\n  last: () => window.__ss.all('.jfss-rule').at(-1),\n  advanced: () => { const b = window.__ss.q('.jfss-mode[data-jfss-mode=\"advanced\"]'); if (b.getAttribute('aria-pressed') !== 'true') b.click(); return b.getAttribute('aria-pressed') === 'true'; },\n  kinds: (want) => { const all = window.__ss.all('.jfss-kind'); all.filter(b => want.includes(b.getAttribute('data-jfss-kind')) && b.getAttribute('aria-pressed') !== 'true').forEach(b => b.click()); all.filter(b => !want.includes(b.getAttribute('data-jfss-kind')) && b.getAttribute('aria-pressed') === 'true').forEach(b => b.click()); return window.__ss.all('.jfss-kind').filter(b => b.getAttribute('aria-pressed') === 'true').map(b => b.getAttribute('data-jfss-kind')); },\n  // One rule added to the root group through the editor's own controls, as a user would set them.\n  build: async (spec) => {\n    const A = window.__adv;\n    window.__ss.q('.jfss-group-root > .jfss-group-add .jfss-add-rule').click();\n    A.fire(A.last().querySelector('.jfss-rule-field'), spec.field);\n    if (A.last().querySelector('.jfss-rule-field').value !== spec.field) throw new Error('no field ' + spec.field);\n    A.fire(A.last().querySelector('.jfss-rule-op'), spec.op);\n    const r = A.last();\n    if (spec.value !== undefined) A.fire(r.querySelector('.jfss-rule-input.jfss-rule-value, .jfss-picker-single .jfss-picker-input'), String(spec.value));\n    if (spec.from !== undefined) A.fire(r.querySelector('.jfss-rule-from'), String(spec.from));\n    if (spec.to !== undefined) A.fire(r.querySelector('.jfss-rule-to'), String(spec.to));\n    if (spec.amount !== undefined) A.fire(r.querySelector('.jfss-rule-amount'), String(spec.amount));\n    if (spec.unit !== undefined) A.fire(r.querySelector('.jfss-rule-unit'), spec.unit);\n    if (spec.bool !== undefined) A.fire(r.querySelector('.jfss-rule-bool'), String(spec.bool));\n    if (spec.provider !== undefined) A.fire(r.querySelector('.jfss-rule-provider'), spec.provider);\n    if (spec.orig) { const box = r.querySelector('.jfss-rule-original'); box.checked = true; box.dispatchEvent(new Event('change', { bubbles: true })); }\n    for (const label of spec.choices || []) { const b = [...r.querySelectorAll('.jfss-choice')].find(x => x.textContent === label); if (!b) throw new Error('no choice ' + label); b.click(); }\n    for (const text of spec.typed || []) { const input = r.querySelector('.jfss-picker-input'); input.focus(); input.value = String(text); input.dispatchEvent(new Event('input', { bubbles: true })); input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true })); }\n    if (spec.series) {\n      const input = r.querySelector('.jfss-picker-input'); input.focus(); input.value = spec.series; input.dispatchEvent(new Event('input', { bubbles: true }));\n      const s = await A.until(() => [...r.querySelectorAll('.jfss-suggestion')].find(x => x.textContent.indexOf(spec.pick) === 0));\n      s.click();\n    }\n    return true;\n  },\n  search: async () => {\n    const before = performance.getEntriesByType('resource').filter(e => /SmartSearch\\/Search$/.test(e.name)).length;\n    window.__ss.q('.jfss-search-button').click();\n    const note = window.__ss.q('.jfss-form-error');\n    await window.__adv.until(() => (note && note.textContent) || (performance.getEntriesByType('resource').filter(e => /SmartSearch\\/Search$/.test(e.name)).length > before && window.__ss.done()));\n    await window.__adv.sleep(150);\n    return { ids: window.__ss.norm(window.__ss.ids()), error: note ? note.textContent : '', count: (window.__ss.q('.jfss-count') || {}).textContent || '', notice: (window.__ss.q('.jfss-notices') || {}).textContent || '' };\n  },\n  // The user's items as core /Items gives them, with the facts the oracles read.\n  items: async () => {\n    const uid = ApiClient.getCurrentUserId();\n    const fields = 'Path,Overview,OriginalTitle,DateCreated,PremiereDate,Genres,Tags,Studios,OfficialRating,ProviderIds,MediaSources,ParentId,ProductionYear,Settings';\n    const all = (await ApiClient.getItems(uid, { Recursive: true, IncludeItemTypes: 'Movie,Series,Episode,MusicVideo,Video,BoxSet', Fields: fields, EnableUserData: true, IsMissing: false, Limit: 2000 })).Items;\n    const libs = (await window.__ss.api('GET', 'SmartSearch/Libraries')).body;\n    const byLib = {};\n    for (const l of libs) { byLib[l.Name] = new Set((await ApiClient.getItems(uid, { Recursive: true, ParentId: l.Id, IncludeItemTypes: 'Movie,Series,Episode,MusicVideo,Video,BoxSet', Limit: 2000 })).Items.map(i => window.__ss.norm([i.Id]))); }\n    const ended = new Set((await ApiClient.getItems(uid, { Recursive: true, IncludeItemTypes: 'Series', SeriesStatus: 'Ended' })).Items.map(i => window.__ss.norm([i.Id])));\n    return { all, byLib, ended, now: Date.now() };\n  },\n  fold: (t) => String(t || '').normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase(),\n  source: (i) => (i.MediaSources || [])[0] || {},\n  width: (i) => { const v = (window.__adv.source(i).MediaStreams || []).find(s => s.Type === 'Video'); return v ? v.Width || 0 : 0; },\n  res: (w) => w >= 3800 ? '2160p' : w >= 2500 ? '1440p' : w >= 1900 ? '1080p' : w >= 1200 ? '720p' : w > 0 ? 'SD' : 'Unknown',\n  minutes: (i) => i.RunTimeTicks > 0 ? Math.max(1, Math.round(i.RunTimeTicks / 6e8)) : null,\n  pid: (i, p) => { const ids = i.ProviderIds || {}; const k = Object.keys(ids).find(x => x.toLowerCase() === p.toLowerCase()); return k ? ids[k] : ''; },\n  // Every field: a rule built in the editor, the kinds searched, and what /Items says it should find.\n  cases: () => {\n    const A = window.__adv;\n    const MEV = ['Movie', 'Episode', 'Video'];\n    return [\n      { name: 'Title contains, accents ignored', kinds: ['Movie'], spec: { field: 'Title', op: 'Contains', value: 'amelie' }, want: (i) => A.fold(i.Name).includes('amelie') },\n      { name: 'Title contains, original title too', kinds: ['Movie'], spec: { field: 'Title', op: 'Contains', value: 'wc original', orig: true }, want: (i) => A.fold(i.Name).includes('wc original') || A.fold(i.OriginalTitle).includes('wc original') },\n      { name: 'Original title is not empty', kinds: ['Movie'], spec: { field: 'OriginalTitle', op: 'IsNotEmpty' }, want: (i) => !!i.OriginalTitle },\n      { name: 'Overview contains', kinds: ['Movie'], spec: { field: 'Overview', op: 'Contains', value: 'synthetic' }, want: (i) => A.fold(i.Overview).includes('synthetic') },\n      { name: 'Series name starts with', kinds: ['Episode'], spec: { field: 'SeriesName', op: 'StartsWith', value: 'test' }, want: (i) => A.fold(i.SeriesName).startsWith('test') },\n      { name: 'Series is any of (the show picker)', kinds: ['Episode'], spec: { field: 'Series', op: 'AnyOf', series: 'test', pick: 'Test Series' }, want: (i) => A.fold(i.SeriesName).startsWith('test series') },\n      { name: 'Path contains (administrators)', admin: true, kinds: ['Movie'], spec: { field: 'Path', op: 'Contains', value: 'Movies 2' }, want: (i) => A.fold(i.Path).includes('movies 2') },\n      { name: 'Year between', kinds: ['Movie', 'Series'], spec: { field: 'Year', op: 'Between', from: 2001, to: 2010 }, want: (i) => i.ProductionYear >= 2001 && i.ProductionYear <= 2010 },\n      { name: 'Year is any of (typed)', kinds: ['Movie'], spec: { field: 'Year', op: 'AnyOf', typed: [2001, 2020] }, want: (i) => i.ProductionYear === 2001 || i.ProductionYear === 2020 },\n      { name: 'Release date before', kinds: ['Movie'], spec: { field: 'PremiereDate', op: 'Before', value: '2000-01-01' }, want: (i) => !!i.PremiereDate && Date.parse(i.PremiereDate) < Date.parse('2000-01-01T00:00:00Z') },\n      { name: 'Date added after', kinds: MEV.concat(['Series']), spec: { field: 'DateAdded', op: 'After', value: '2026-11-05' }, want: (i) => Date.parse(i.DateCreated) >= Date.parse('2026-11-06T00:00:00Z') },\n      { name: 'Date added in the last 3650 days', kinds: MEV, spec: { field: 'DateAdded', op: 'InLast', amount: 3650, unit: 'Days' }, want: (i, c) => Date.parse(i.DateCreated) >= c.now - 3650 * 864e5 },\n      { name: 'Library is any of', kinds: ['Movie'], spec: { field: 'Library', op: 'AnyOf', choices: ['Movies'] }, want: (i, c) => c.byLib.Movies.has(window.__ss.norm([i.Id])) },\n      { name: 'Item type is none of', kinds: MEV.concat(['Series']), spec: { field: 'ItemType', op: 'NoneOf', choices: ['Episode'] }, want: (i) => i.Type !== 'Episode' },\n      { name: 'Genres has any of', kinds: ['Movie'], spec: { field: 'Genres', op: 'AnyOf', typed: ['Science Fiction'] }, want: (i) => (i.Genres || []).some(g => A.fold(g) === 'science fiction') },\n      { name: 'Tags has all of', kinds: ['Movie'], spec: { field: 'Tags', op: 'AllOf', typed: ['wc-noir', 'wc-classic'] }, want: (i) => ['wc-noir', 'wc-classic'].every(t => (i.Tags || []).some(x => A.fold(x) === t)) },\n      { name: 'Studios has none of', kinds: ['Movie'], spec: { field: 'Studios', op: 'NoneOf', typed: ['WC Studio'] }, want: (i) => !(i.Studios || []).some(s => A.fold(s.Name) === 'wc studio') },\n      { name: 'Parental rating is any of', kinds: ['Movie'], spec: { field: 'OfficialRating', op: 'AnyOf', typed: ['R'] }, want: (i) => i.OfficialRating === 'R' },\n      { name: 'Show status is any of', kinds: ['Series'], spec: { field: 'SeriesStatus', op: 'AnyOf', choices: ['Ended'] }, want: (i, c) => c.ended.has(window.__ss.norm([i.Id])) },\n      { name: 'Community rating at least', kinds: ['Movie'], spec: { field: 'CommunityRating', op: 'Ge', value: 7 }, want: (i) => i.CommunityRating >= 7 },\n      { name: 'Critic rating is not empty', kinds: ['Movie'], spec: { field: 'CriticRating', op: 'IsNotEmpty' }, want: (i) => typeof i.CriticRating === 'number' },\n      { name: 'Runtime at least', kinds: MEV, spec: { field: 'Runtime', op: 'Ge', value: 2 }, want: (i) => A.minutes(i) >= 2 },\n      { name: 'Resolution is any of', kinds: MEV, spec: { field: 'Resolution', op: 'AnyOf', choices: ['720p', '1080p'] }, want: (i) => ['720p', '1080p'].includes(A.res(A.width(i))) },\n      { name: 'Container is any of', kinds: MEV, spec: { field: 'Container', op: 'AnyOf', typed: ['mp4'] }, want: (i) => String(i.Container || '').toLowerCase().split(',').includes('mp4') },\n      { name: 'Video type is any of', kinds: MEV, spec: { field: 'VideoType', op: 'AnyOf', choices: ['Video file'] }, want: (i) => i.VideoType === 'VideoFile' },\n      { name: '3D is no', kinds: MEV, spec: { field: 'Is3D', op: 'Is', bool: false }, want: (i) => !i.Video3DFormat },\n      { name: 'File size more than', kinds: MEV, spec: { field: 'FileSize', op: 'Gt', value: 0.003 }, want: (i) => (A.source(i).Size || 0) > 0.003 * 1073741824 },\n      { name: 'Bitrate more than', kinds: MEV, spec: { field: 'Bitrate', op: 'Gt', value: 0.8 }, want: (i) => (A.source(i).Bitrate || 0) > 0.8e6 },\n      { name: 'Played is yes', kinds: MEV, spec: { field: 'Played', op: 'Is', bool: true }, want: (i) => !!(i.UserData && i.UserData.Played) },\n      { name: 'Favorite is yes', kinds: MEV.concat(['Series']), spec: { field: 'Favorite', op: 'Is', bool: true }, want: (i) => !!(i.UserData && i.UserData.IsFavorite) },\n      { name: 'In progress is yes', kinds: MEV, spec: { field: 'InProgress', op: 'Is', bool: true }, want: (i) => !!(i.UserData && i.UserData.PlaybackPositionTicks > 0) },\n      { name: 'Play count at least', kinds: MEV, spec: { field: 'PlayCount', op: 'Ge', value: 1 }, want: (i) => !!(i.UserData && i.UserData.PlayCount >= 1) },\n      { name: 'Last played in the last 30 days', kinds: MEV, spec: { field: 'LastPlayed', op: 'InLast', amount: 30, unit: 'Days' }, want: (i, c) => !!(i.UserData && i.UserData.LastPlayedDate && Date.parse(i.UserData.LastPlayedDate) >= c.now - 30 * 864e5) },\n      { name: 'Has an IMDb id', kinds: ['Movie', 'Series', 'Episode'], spec: { field: 'HasProviderId', op: 'Is', bool: true, provider: 'Imdb' }, want: (i) => !!A.pid(i, 'Imdb') },\n      { name: 'Provider id is', kinds: ['Movie'], spec: { field: 'ProviderId', op: 'Eq', value: 'tt9005010', provider: 'Imdb' }, want: (i) => A.pid(i, 'Imdb') === 'tt9005010' },\n      { name: 'Locked is yes', kinds: ['Movie', 'Series'], spec: { field: 'Locked', op: 'Is', bool: true }, want: (i) => i.LockData === true }\n    ];\n  },\n  // Each case: Reset, the kinds, the rule built, Search; its results against the oracle's over the same user's items.\n  runAll: async (isAdmin) => {\n    const A = window.__adv;\n    const ctx = await A.items();\n    const out = [];\n    for (const c of A.cases()) {\n      if (c.admin && !isAdmin) continue;\n      window.__ss.q('.jfss-reset').click();\n      await A.sleep(50);\n      A.kinds(c.kinds);\n      let error = '';\n      try { await A.build(c.spec); } catch (e) { error = String(e && e.message || e); }\n      const got = error ? { ids: '', error } : await A.search();\n      const server = window.__ss.norm(ctx.all.filter(i => c.kinds.includes(i.Type) && c.want(i, ctx)).map(i => i.Id));\n      const n = server ? server.split(',').length : 0;\n      out.push({ name: c.name, ok: !got.error && got.ids === server, found: got.ids ? got.ids.split(',').length : 0, expected: n, error: got.error, notice: got.notice });\n    }\n    return out;\n  }\n};\n"
+    },
+    {
+      "name": "sign in as admin",
+      "login": "admin"
+    },
+    {
+      "name": "the Smart Search script ran",
+      "waitFor": "!!window.__jfkit && !!window.__jfkit.jfss && !!window.ApiClient && !!ApiClient.getCurrentUserId()",
+      "timeout": 20000
+    },
+    {
+      "goto": "/web/index.html#/jfss-search"
+    },
+    {
+      "name": "the page's form (admin)",
+      "waitFor": "!!window.__ss && __ss.ready()",
+      "timeout": 20000
+    },
+    {
+      "name": "seed: synthetic metadata on three movies and the show, viewer2 limited",
+      "script": "\nconst uid = ApiClient.getCurrentUserId();\nconst find = async (name, type) => (await ApiClient.getItems(uid, { IncludeItemTypes: type || 'Movie', Recursive: true, SearchTerm: name, Fields: 'Path,ProviderIds,Tags,Studios,Genres,Overview,OriginalTitle', Limit: 20 })).Items.filter(i => i.Name === name);\nconst edits = {\n  'Blade Runner (1982)': { Genres: ['Science Fiction', 'Thriller'], Tags: ['wc-noir', 'wc-classic'], Studios: ['WC Studio'], CommunityRating: 8.1, CriticRating: 89, OfficialRating: 'R', PremiereDate: '1982-06-25T00:00:00.0000000Z', OriginalTitle: 'WC Original Runner', Overview: 'A synthetic overview for the webcheck.', LockData: true, Imdb: 'tt9000082' },\n  'Remake Story (1990) [tmdbid-900101]': { Tags: ['wc-noir'], Studios: ['WC Studio'], CommunityRating: 6.5, PremiereDate: '1990-01-01T00:00:00.0000000Z', Overview: 'Another synthetic overview.' },\n  'Big Buck Test (2008)': { Tags: ['wc-noir', 'wc-classic'], CommunityRating: 9, CriticRating: 70 }\n};\nconst out = {};\nfor (const name of Object.keys(edits)) {\n  for (const f of await find(name)) {\n    const item = await ApiClient.getItem(uid, f.Id);\n    const e = edits[name];\n    Object.assign(item, { Genres: e.Genres || item.Genres, GenreItems: (e.Genres || item.Genres || []).map(g => ({ Name: g })), Tags: e.Tags || item.Tags, Studios: (e.Studios || []).map(s => ({ Name: s })), CommunityRating: e.CommunityRating, CriticRating: e.CriticRating, OfficialRating: e.OfficialRating || item.OfficialRating, PremiereDate: e.PremiereDate || item.PremiereDate, OriginalTitle: e.OriginalTitle || item.OriginalTitle, Overview: e.Overview || item.Overview, LockData: !!e.LockData });\n    if (e.Imdb) item.ProviderIds = Object.assign({}, item.ProviderIds, { Imdb: e.Imdb });\n    const r = await __ss.api('POST', 'Items/' + f.Id, item);\n    out[name] = (out[name] || []).concat([r.status]);\n  }\n}\nconst series = (await ApiClient.getItems(uid, { IncludeItemTypes: 'Series', Recursive: true })).Items;\nfor (const s of series) { const item = await ApiClient.getItem(uid, s.Id); item.Status = 'Ended'; out[s.Name] = (await __ss.api('POST', 'Items/' + s.Id, item)).status; }\n// viewer2 limited to every library but Movies 2.\nconst users = (await __ss.api('GET', 'Users')).body;\nconst v2 = users.find(u => u.Name === 'viewer2');\nconst folders = (await __ss.api('GET', 'Library/MediaFolders')).body.Items.filter(f => f.Name !== 'Movies 2').map(f => f.Id);\nout.policy = (await __ss.api('POST', 'Users/' + v2.Id + '/Policy', Object.assign({}, v2.Policy, { EnableAllFolders: false, EnabledFolders: folders }))).status;\nreturn out;\n",
+      "save": "seeded",
+      "full": true
+    },
+    {
+      "name": "seeded",
+      "assert": "__vars.seeded.policy === 204 && Object.keys(__vars.seeded).length >= 4"
+    },
+    {
+      "name": "admin's watch state",
+      "script": "\nconst uid = ApiClient.getCurrentUserId();\nconst one = async (name) => (await ApiClient.getItems(uid, { IncludeItemTypes: 'Movie', Recursive: true, SearchTerm: name, Limit: 20 })).Items.filter(i => i.Name === name && !/Movies 2/.test(i.Path || ''))[0];\nconst played = await one('Remake Story (1990) [tmdbid-900101]');\nconst fav = await one('Test Pattern (2020)');\nconst resume = await one('Long Test Movie (2021)');\nconst a = await __ss.api('POST', 'UserPlayedItems/' + played.Id);\nconst b = await __ss.api('POST', 'UserFavoriteItems/' + fav.Id);\nconst c = await __ss.api('POST', 'UserItems/' + resume.Id + '/UserData', { PlaybackPositionTicks: 600000000, Played: false });\nreturn { played: a.status, favorite: b.status, resume: c.status };\n",
+      "save": "watch",
+      "full": true
+    },
+    {
+      "name": "watch state set",
+      "assert": "__vars.watch.played === 200 && __vars.watch.favorite === 200 && __vars.watch.resume < 300"
+    },
+    {
+      "name": "the Advanced button",
+      "script": "await __ss.cleanup('WC Advanced'); __ss.q('.jfss-reset').click(); const b = __ss.q('.jfss-mode[data-jfss-mode=\"advanced\"]'); b.focus(); return document.activeElement === b;",
+      "save": "modeFocus"
+    },
+    {
+      "name": "Enter on Advanced",
+      "key": "Enter"
+    },
+    {
+      "name": "the advanced form, empty: Add rule",
+      "waitFor": "__ss.pressed('.jfss-mode').join() === 'Advanced' && !__ss.q('.jfss-advanced').classList.contains('hide') && __ss.all('.jfss-rule').length === 0"
+    },
+    {
+      "name": "kinds: Movies only",
+      "script": "__adv.kinds(['Movie']); const b = __ss.q('.jfss-group-root > .jfss-group-add .jfss-add-rule'); b.focus(); return document.activeElement === b;"
+    },
+    {
+      "name": "Enter on Add rule",
+      "key": "Enter"
+    },
+    {
+      "name": "the new rule's field has the focus",
+      "waitFor": "__ss.all('.jfss-rule').length === 1 && __ss.focusPart() === 'field' && document.activeElement.value === 'Title'"
+    },
+    {
+      "name": "ArrowDown to Year, in the server's groups (admin: Title, Original title, Overview, Series name, Path; Series, Library, Item type; Year)",
+      "key": "ArrowDown"
+    },
+    {
+      "key": "ArrowDown"
+    },
+    {
+      "key": "ArrowDown"
+    },
+    {
+      "key": "ArrowDown"
+    },
+    {
+      "key": "ArrowDown"
+    },
+    {
+      "key": "ArrowDown"
+    },
+    {
+      "key": "ArrowDown"
+    },
+    {
+      "key": "ArrowDown"
+    },
+    {
+      "name": "Year chosen, the focus kept on the field",
+      "waitFor": "__ss.focusPart() === 'field' && document.activeElement.value === 'Year'"
+    },
+    {
+      "name": "Tab to the condition",
+      "key": "Tab"
+    },
+    {
+      "name": "the condition: \"is any of\" kept from the fields passed on the way (Year takes it)",
+      "waitFor": "__ss.focusPart() === 'op' && document.activeElement.value === 'AnyOf'"
+    },
+    {
+      "name": "ArrowUp to \"is between\" (... Between, IsEmpty, IsNotEmpty, AnyOf)",
+      "key": "ArrowUp"
+    },
+    {
+      "key": "ArrowUp"
+    },
+    {
+      "key": "ArrowUp"
+    },
+    {
+      "name": "Between, From and To shown",
+      "waitFor": "__ss.focusPart() === 'op' && document.activeElement.value === 'Between' && !!__ss.q('.jfss-rule-from')"
+    },
+    {
+      "key": "Tab"
+    },
+    {
+      "name": "From",
+      "waitFor": "__ss.focusPart() === 'from'"
+    },
+    {
+      "type": "2001"
+    },
+    {
+      "key": "Tab"
+    },
+    {
+      "name": "To",
+      "waitFor": "__ss.focusPart() === 'to'"
+    },
+    {
+      "type": "2010"
+    },
+    {
+      "name": "Add group, from the keyboard",
+      "script": "const b = __ss.q('.jfss-group-root > .jfss-group-add .jfss-add-group'); b.focus(); return document.activeElement === b;"
+    },
+    {
+      "key": "Enter"
+    },
+    {
+      "name": "the new group's match has the focus",
+      "waitFor": "__ss.all('.jfss-group').length === 2 && __ss.focusPart() === 'match' && document.activeElement.value === 'Any'"
+    },
+    {
+      "name": "ArrowDown to \"None of the following\"",
+      "key": "ArrowDown"
+    },
+    {
+      "name": "None of",
+      "waitFor": "document.activeElement.value === 'None' && /None of/.test(__ss.all('.jfss-group')[1].getAttribute('aria-label'))"
+    },
+    {
+      "name": "Tab to the group's rule: past Duplicate, Ungroup and Remove",
+      "key": "Tab"
+    },
+    {
+      "key": "Tab"
+    },
+    {
+      "key": "Tab"
+    },
+    {
+      "key": "Tab"
+    },
+    {
+      "name": "the group's rule's field",
+      "waitFor": "__ss.focusPart() === 'field' && document.activeElement.closest('.jfss-group:not(.jfss-group-root)') !== null"
+    },
+    {
+      "key": "Tab"
+    },
+    {
+      "key": "Tab"
+    },
+    {
+      "name": "its value",
+      "waitFor": "__ss.focusPart() === 'value'"
+    },
+    {
+      "type": "blade"
+    },
+    {
+      "name": "Enter searches",
+      "key": "Enter"
+    },
+    {
+      "name": "the results",
+      "waitFor": "!!__ss.done()",
+      "timeout": 25000
+    },
+    {
+      "name": "the keyboard-built query against /Items",
+      "eval": "(async () => { const uid = ApiClient.getCurrentUserId(); const a = (await ApiClient.getItems(uid, { Recursive: true, IncludeItemTypes: 'Movie', Years: '2001,2002,2003,2004,2005,2006,2007,2008,2009,2010' })).Items.filter(i => !/blade/i.test(i.Name)); return { mine: __ss.norm(__ss.ids()), server: __ss.norm(a.map(i => i.Id)), hash: decodeURIComponent(location.hash), noHScroll: __ss.noHScroll() }; })()",
+      "save": "kbd",
+      "full": true
+    },
+    {
+      "name": "the same items; the tree in the hash",
+      "assert": "__vars.kbd.mine === __vars.kbd.server && __vars.kbd.mine.length > 0 && /mode=adv/.test(__vars.kbd.hash) && /\"Negate\":true/.test(__vars.kbd.hash)"
+    },
+    {
+      "name": "nothing wider than the screen once the results are drawn",
+      "waitFor": "__ss.noHScroll()",
+      "timeout": 5000
+    },
+    {
+      "name": "screenshot",
+      "screenshot": "smartsearch-advanced-desktop.png"
+    },
+    {
+      "name": "an empty value: the check under its rule, nothing sent",
+      "script": "__ss.q('.jfss-reset').click(); __ss.q('.jfss-group-root > .jfss-group-add .jfss-add-rule').click(); const n = performance.getEntriesByType('resource').filter(e => /SmartSearch\\/Search$/.test(e.name)).length; __ss.q('.jfss-search-button').click(); return await new Promise(r => setTimeout(() => r({ error: __ss.q('.jfss-rule .jfss-node-error').textContent, note: __ss.q('.jfss-form-error').textContent, invalid: document.activeElement.getAttribute('aria-invalid'), sent: performance.getEntriesByType('resource').filter(e => /SmartSearch\\/Search$/.test(e.name)).length - n }), 400));",
+      "save": "check",
+      "full": true
+    },
+    {
+      "name": "Enter a value., focused, nothing sent",
+      "assert": "__vars.check.error === 'Enter a value.' && __vars.check.note === 'Check the rules marked above.' && __vars.check.invalid === 'true' && __vars.check.sent === 0"
+    },
+    {
+      "name": "screenshot (check)",
+      "screenshot": "smartsearch-advanced-check.png"
+    },
+    {
+      "name": "every field, as admin: the editor's rule against /Items",
+      "script": "return await __adv.runAll(true);",
+      "save": "admin",
+      "full": true,
+      "timeout": 240000
+    },
+    {
+      "name": "every case as /Items finds it (admin)",
+      "assert": "__vars.admin.length === __adv.cases().length && __vars.admin.every(c => c.ok) && __vars.admin.filter(c => c.expected > 0).length >= __vars.admin.length - 2"
+    },
+    {
+      "name": "save an advanced query and open its link again",
+      "script": "__ss.q('.jfss-reset').click(); __adv.kinds(['Movie']); await __adv.build({ field: 'Tags', op: 'AllOf', typed: ['wc-noir'] }); await __adv.build({ field: 'CommunityRating', op: 'Ge', value: 7 }); const r = await __ss.api('POST', 'SmartSearch/Queries', { Name: 'WC Advanced', Description: '', Shared: false, Query: { Version: 1, Scope: { ItemKinds: ['Movie'], LibraryIds: [], IncludeMissing: false }, Where: { Match: 'Any', Children: [{ Field: 'Tags', Op: 'AllOf', Values: ['wc-noir'] }, { Match: 'All', Negate: true, Children: [{ Field: 'CommunityRating', Op: 'Ge', Value: 7 }] }] }, Sort: [{ Key: 'SortName', Order: 'Ascending' }] } }); location.hash = '#/jfss-search?query=' + r.body.Id; return { status: r.status, id: r.body.Id };",
+      "save": "saved",
+      "full": true
+    },
+    {
+      "name": "it opened in the advanced form and ran",
+      "waitFor": "!!__ss.q('.jfss-saved-name') && __ss.q('.jfss-saved-name').textContent === 'WC Advanced' && __ss.pressed('.jfss-mode').join() === 'Advanced' && __ss.all('.jfss-rule').length === 2 && __ss.all('.jfss-match')[0].value === 'Any' && __ss.all('.jfss-match')[1].value === 'NotAll' && !!__ss.done()",
+      "timeout": 25000
+    },
+    {
+      "name": "an edit turns Save on; Save keeps it",
+      "script": "__adv.fire(__ss.all('.jfss-match')[0], 'All'); const on = !__ss.q('.jfss-save').disabled; __ss.q('.jfss-save').click(); await __adv.until(() => __ss.q('.jfss-save').disabled); const q = (await __ss.api('GET', 'SmartSearch/Queries/' + __vars.saved.id)).body; return { on, match: q.Query.Where.Match, children: q.Query.Where.Children.length };",
+      "save": "edited",
+      "full": true
+    },
+    {
+      "name": "saved with All",
+      "assert": "__vars.edited.on && __vars.edited.match === 'All' && __vars.edited.children === 2"
+    },
+    {
+      "name": "viewer2, in a browser of its own",
+      "context": "viewer2"
+    },
+    {
+      "name": "a desktop screen (viewer2)",
+      "emulate": "desktop"
+    },
+    {
+      "name": "page helpers (viewer2)",
+      "initScript": "\n// Every search request is counted from the resource timings, which stop at 250 entries by default.\ntry { performance.setResourceTimingBufferSize(100000); } catch (e) { }\nwindow.__ss = {\n  root: () => [...document.querySelectorAll('[data-jfss-page=\"search\"][data-jfss-mounted] .jfss-search')].find(x => x.getClientRects().length > 0) || null,\n  q: (s) => { const r = window.__ss.root(); return r ? r.querySelector(s) : null; },\n  all: (s) => { const r = window.__ss.root(); return r ? [...r.querySelectorAll(s)] : []; },\n  ready: () => !!window.__ss.q('.jfss-scope') && !!window.__ss.q('.jfss-search-button'),\n  done: () => { const c = window.__ss.q('.jfss-count'); const n = window.__ss.q('.jfss-notices'); if (c && c.textContent && !/Searching/.test(c.textContent)) return c.textContent; if (n && n.textContent) return n.textContent; return false; },\n  ids: () => window.__ss.all('.jfss-card, .jfss-row').map(x => x.getAttribute('data-id')),\n  norm: (ids) => ids.map(i => String(i).replace(/-/g, '').toLowerCase()).sort().join(),\n  pressed: (s) => window.__ss.all(s).filter(b => b.getAttribute('aria-pressed') === 'true').map(b => b.textContent),\n  noHScroll: () => document.documentElement.scrollWidth <= innerWidth && window.__ss.root().scrollWidth <= window.__ss.root().clientWidth + 1,\n  box: (e) => { const r = e.getBoundingClientRect(); return [Math.round(r.width), Math.round(r.height)]; },\n  api: async (method, path, body) => { const r = await fetch(ApiClient.getUrl(path), { method, headers: { 'X-Emby-Token': ApiClient.accessToken(), 'Content-Type': 'application/json' }, body: body === undefined ? undefined : JSON.stringify(body) }); const t = await r.text(); return { status: r.status, body: t ? JSON.parse(t) : null }; },\n  cleanup: async (prefix) => { const list = (await window.__ss.api('GET', 'SmartSearch/Queries?scope=Mine&limit=500')).body.Items; let n = 0; for (const q of list) { if (q.Name.indexOf(prefix) === 0) { await window.__ss.api('DELETE', 'SmartSearch/Queries/' + q.Id); n++; } } return n; },\n  dialog: () => { const d = [...document.querySelectorAll('[role=\"dialog\"]')].filter(x => x.getClientRects().length > 0); return d[d.length - 1] || null; },\n  active: () => { const a = document.activeElement; return a ? (a.getAttribute('data-jfss-focus') || a.className) : ''; },\n  focusPart: () => { const a = document.activeElement; const f = a && a.getAttribute('data-jfss-focus'); return f ? f.split(':')[1] : ''; }\n};\nwindow.__adv = {\n  sleep: (ms) => new Promise(r => setTimeout(r, ms)),\n  until: async (fn, ms) => { const t = Date.now(); while (Date.now() - t < (ms || 20000)) { try { const v = fn(); if (v) return v; } catch (e) { } await window.__adv.sleep(50); } throw new Error('timed out: ' + fn); },\n  fire: (e, v) => { e.value = v; e.dispatchEvent(new Event('input', { bubbles: true })); e.dispatchEvent(new Event('change', { bubbles: true })); },\n  last: () => window.__ss.all('.jfss-rule').at(-1),\n  advanced: () => { const b = window.__ss.q('.jfss-mode[data-jfss-mode=\"advanced\"]'); if (b.getAttribute('aria-pressed') !== 'true') b.click(); return b.getAttribute('aria-pressed') === 'true'; },\n  kinds: (want) => { const all = window.__ss.all('.jfss-kind'); all.filter(b => want.includes(b.getAttribute('data-jfss-kind')) && b.getAttribute('aria-pressed') !== 'true').forEach(b => b.click()); all.filter(b => !want.includes(b.getAttribute('data-jfss-kind')) && b.getAttribute('aria-pressed') === 'true').forEach(b => b.click()); return window.__ss.all('.jfss-kind').filter(b => b.getAttribute('aria-pressed') === 'true').map(b => b.getAttribute('data-jfss-kind')); },\n  // One rule added to the root group through the editor's own controls, as a user would set them.\n  build: async (spec) => {\n    const A = window.__adv;\n    window.__ss.q('.jfss-group-root > .jfss-group-add .jfss-add-rule').click();\n    A.fire(A.last().querySelector('.jfss-rule-field'), spec.field);\n    if (A.last().querySelector('.jfss-rule-field').value !== spec.field) throw new Error('no field ' + spec.field);\n    A.fire(A.last().querySelector('.jfss-rule-op'), spec.op);\n    const r = A.last();\n    if (spec.value !== undefined) A.fire(r.querySelector('.jfss-rule-input.jfss-rule-value, .jfss-picker-single .jfss-picker-input'), String(spec.value));\n    if (spec.from !== undefined) A.fire(r.querySelector('.jfss-rule-from'), String(spec.from));\n    if (spec.to !== undefined) A.fire(r.querySelector('.jfss-rule-to'), String(spec.to));\n    if (spec.amount !== undefined) A.fire(r.querySelector('.jfss-rule-amount'), String(spec.amount));\n    if (spec.unit !== undefined) A.fire(r.querySelector('.jfss-rule-unit'), spec.unit);\n    if (spec.bool !== undefined) A.fire(r.querySelector('.jfss-rule-bool'), String(spec.bool));\n    if (spec.provider !== undefined) A.fire(r.querySelector('.jfss-rule-provider'), spec.provider);\n    if (spec.orig) { const box = r.querySelector('.jfss-rule-original'); box.checked = true; box.dispatchEvent(new Event('change', { bubbles: true })); }\n    for (const label of spec.choices || []) { const b = [...r.querySelectorAll('.jfss-choice')].find(x => x.textContent === label); if (!b) throw new Error('no choice ' + label); b.click(); }\n    for (const text of spec.typed || []) { const input = r.querySelector('.jfss-picker-input'); input.focus(); input.value = String(text); input.dispatchEvent(new Event('input', { bubbles: true })); input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true })); }\n    if (spec.series) {\n      const input = r.querySelector('.jfss-picker-input'); input.focus(); input.value = spec.series; input.dispatchEvent(new Event('input', { bubbles: true }));\n      const s = await A.until(() => [...r.querySelectorAll('.jfss-suggestion')].find(x => x.textContent.indexOf(spec.pick) === 0));\n      s.click();\n    }\n    return true;\n  },\n  search: async () => {\n    const before = performance.getEntriesByType('resource').filter(e => /SmartSearch\\/Search$/.test(e.name)).length;\n    window.__ss.q('.jfss-search-button').click();\n    const note = window.__ss.q('.jfss-form-error');\n    await window.__adv.until(() => (note && note.textContent) || (performance.getEntriesByType('resource').filter(e => /SmartSearch\\/Search$/.test(e.name)).length > before && window.__ss.done()));\n    await window.__adv.sleep(150);\n    return { ids: window.__ss.norm(window.__ss.ids()), error: note ? note.textContent : '', count: (window.__ss.q('.jfss-count') || {}).textContent || '', notice: (window.__ss.q('.jfss-notices') || {}).textContent || '' };\n  },\n  // The user's items as core /Items gives them, with the facts the oracles read.\n  items: async () => {\n    const uid = ApiClient.getCurrentUserId();\n    const fields = 'Path,Overview,OriginalTitle,DateCreated,PremiereDate,Genres,Tags,Studios,OfficialRating,ProviderIds,MediaSources,ParentId,ProductionYear,Settings';\n    const all = (await ApiClient.getItems(uid, { Recursive: true, IncludeItemTypes: 'Movie,Series,Episode,MusicVideo,Video,BoxSet', Fields: fields, EnableUserData: true, IsMissing: false, Limit: 2000 })).Items;\n    const libs = (await window.__ss.api('GET', 'SmartSearch/Libraries')).body;\n    const byLib = {};\n    for (const l of libs) { byLib[l.Name] = new Set((await ApiClient.getItems(uid, { Recursive: true, ParentId: l.Id, IncludeItemTypes: 'Movie,Series,Episode,MusicVideo,Video,BoxSet', Limit: 2000 })).Items.map(i => window.__ss.norm([i.Id]))); }\n    const ended = new Set((await ApiClient.getItems(uid, { Recursive: true, IncludeItemTypes: 'Series', SeriesStatus: 'Ended' })).Items.map(i => window.__ss.norm([i.Id])));\n    return { all, byLib, ended, now: Date.now() };\n  },\n  fold: (t) => String(t || '').normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase(),\n  source: (i) => (i.MediaSources || [])[0] || {},\n  width: (i) => { const v = (window.__adv.source(i).MediaStreams || []).find(s => s.Type === 'Video'); return v ? v.Width || 0 : 0; },\n  res: (w) => w >= 3800 ? '2160p' : w >= 2500 ? '1440p' : w >= 1900 ? '1080p' : w >= 1200 ? '720p' : w > 0 ? 'SD' : 'Unknown',\n  minutes: (i) => i.RunTimeTicks > 0 ? Math.max(1, Math.round(i.RunTimeTicks / 6e8)) : null,\n  pid: (i, p) => { const ids = i.ProviderIds || {}; const k = Object.keys(ids).find(x => x.toLowerCase() === p.toLowerCase()); return k ? ids[k] : ''; },\n  // Every field: a rule built in the editor, the kinds searched, and what /Items says it should find.\n  cases: () => {\n    const A = window.__adv;\n    const MEV = ['Movie', 'Episode', 'Video'];\n    return [\n      { name: 'Title contains, accents ignored', kinds: ['Movie'], spec: { field: 'Title', op: 'Contains', value: 'amelie' }, want: (i) => A.fold(i.Name).includes('amelie') },\n      { name: 'Title contains, original title too', kinds: ['Movie'], spec: { field: 'Title', op: 'Contains', value: 'wc original', orig: true }, want: (i) => A.fold(i.Name).includes('wc original') || A.fold(i.OriginalTitle).includes('wc original') },\n      { name: 'Original title is not empty', kinds: ['Movie'], spec: { field: 'OriginalTitle', op: 'IsNotEmpty' }, want: (i) => !!i.OriginalTitle },\n      { name: 'Overview contains', kinds: ['Movie'], spec: { field: 'Overview', op: 'Contains', value: 'synthetic' }, want: (i) => A.fold(i.Overview).includes('synthetic') },\n      { name: 'Series name starts with', kinds: ['Episode'], spec: { field: 'SeriesName', op: 'StartsWith', value: 'test' }, want: (i) => A.fold(i.SeriesName).startsWith('test') },\n      { name: 'Series is any of (the show picker)', kinds: ['Episode'], spec: { field: 'Series', op: 'AnyOf', series: 'test', pick: 'Test Series' }, want: (i) => A.fold(i.SeriesName).startsWith('test series') },\n      { name: 'Path contains (administrators)', admin: true, kinds: ['Movie'], spec: { field: 'Path', op: 'Contains', value: 'Movies 2' }, want: (i) => A.fold(i.Path).includes('movies 2') },\n      { name: 'Year between', kinds: ['Movie', 'Series'], spec: { field: 'Year', op: 'Between', from: 2001, to: 2010 }, want: (i) => i.ProductionYear >= 2001 && i.ProductionYear <= 2010 },\n      { name: 'Year is any of (typed)', kinds: ['Movie'], spec: { field: 'Year', op: 'AnyOf', typed: [2001, 2020] }, want: (i) => i.ProductionYear === 2001 || i.ProductionYear === 2020 },\n      { name: 'Release date before', kinds: ['Movie'], spec: { field: 'PremiereDate', op: 'Before', value: '2000-01-01' }, want: (i) => !!i.PremiereDate && Date.parse(i.PremiereDate) < Date.parse('2000-01-01T00:00:00Z') },\n      { name: 'Date added after', kinds: MEV.concat(['Series']), spec: { field: 'DateAdded', op: 'After', value: '2026-11-05' }, want: (i) => Date.parse(i.DateCreated) >= Date.parse('2026-11-06T00:00:00Z') },\n      { name: 'Date added in the last 3650 days', kinds: MEV, spec: { field: 'DateAdded', op: 'InLast', amount: 3650, unit: 'Days' }, want: (i, c) => Date.parse(i.DateCreated) >= c.now - 3650 * 864e5 },\n      { name: 'Library is any of', kinds: ['Movie'], spec: { field: 'Library', op: 'AnyOf', choices: ['Movies'] }, want: (i, c) => c.byLib.Movies.has(window.__ss.norm([i.Id])) },\n      { name: 'Item type is none of', kinds: MEV.concat(['Series']), spec: { field: 'ItemType', op: 'NoneOf', choices: ['Episode'] }, want: (i) => i.Type !== 'Episode' },\n      { name: 'Genres has any of', kinds: ['Movie'], spec: { field: 'Genres', op: 'AnyOf', typed: ['Science Fiction'] }, want: (i) => (i.Genres || []).some(g => A.fold(g) === 'science fiction') },\n      { name: 'Tags has all of', kinds: ['Movie'], spec: { field: 'Tags', op: 'AllOf', typed: ['wc-noir', 'wc-classic'] }, want: (i) => ['wc-noir', 'wc-classic'].every(t => (i.Tags || []).some(x => A.fold(x) === t)) },\n      { name: 'Studios has none of', kinds: ['Movie'], spec: { field: 'Studios', op: 'NoneOf', typed: ['WC Studio'] }, want: (i) => !(i.Studios || []).some(s => A.fold(s.Name) === 'wc studio') },\n      { name: 'Parental rating is any of', kinds: ['Movie'], spec: { field: 'OfficialRating', op: 'AnyOf', typed: ['R'] }, want: (i) => i.OfficialRating === 'R' },\n      { name: 'Show status is any of', kinds: ['Series'], spec: { field: 'SeriesStatus', op: 'AnyOf', choices: ['Ended'] }, want: (i, c) => c.ended.has(window.__ss.norm([i.Id])) },\n      { name: 'Community rating at least', kinds: ['Movie'], spec: { field: 'CommunityRating', op: 'Ge', value: 7 }, want: (i) => i.CommunityRating >= 7 },\n      { name: 'Critic rating is not empty', kinds: ['Movie'], spec: { field: 'CriticRating', op: 'IsNotEmpty' }, want: (i) => typeof i.CriticRating === 'number' },\n      { name: 'Runtime at least', kinds: MEV, spec: { field: 'Runtime', op: 'Ge', value: 2 }, want: (i) => A.minutes(i) >= 2 },\n      { name: 'Resolution is any of', kinds: MEV, spec: { field: 'Resolution', op: 'AnyOf', choices: ['720p', '1080p'] }, want: (i) => ['720p', '1080p'].includes(A.res(A.width(i))) },\n      { name: 'Container is any of', kinds: MEV, spec: { field: 'Container', op: 'AnyOf', typed: ['mp4'] }, want: (i) => String(i.Container || '').toLowerCase().split(',').includes('mp4') },\n      { name: 'Video type is any of', kinds: MEV, spec: { field: 'VideoType', op: 'AnyOf', choices: ['Video file'] }, want: (i) => i.VideoType === 'VideoFile' },\n      { name: '3D is no', kinds: MEV, spec: { field: 'Is3D', op: 'Is', bool: false }, want: (i) => !i.Video3DFormat },\n      { name: 'File size more than', kinds: MEV, spec: { field: 'FileSize', op: 'Gt', value: 0.003 }, want: (i) => (A.source(i).Size || 0) > 0.003 * 1073741824 },\n      { name: 'Bitrate more than', kinds: MEV, spec: { field: 'Bitrate', op: 'Gt', value: 0.8 }, want: (i) => (A.source(i).Bitrate || 0) > 0.8e6 },\n      { name: 'Played is yes', kinds: MEV, spec: { field: 'Played', op: 'Is', bool: true }, want: (i) => !!(i.UserData && i.UserData.Played) },\n      { name: 'Favorite is yes', kinds: MEV.concat(['Series']), spec: { field: 'Favorite', op: 'Is', bool: true }, want: (i) => !!(i.UserData && i.UserData.IsFavorite) },\n      { name: 'In progress is yes', kinds: MEV, spec: { field: 'InProgress', op: 'Is', bool: true }, want: (i) => !!(i.UserData && i.UserData.PlaybackPositionTicks > 0) },\n      { name: 'Play count at least', kinds: MEV, spec: { field: 'PlayCount', op: 'Ge', value: 1 }, want: (i) => !!(i.UserData && i.UserData.PlayCount >= 1) },\n      { name: 'Last played in the last 30 days', kinds: MEV, spec: { field: 'LastPlayed', op: 'InLast', amount: 30, unit: 'Days' }, want: (i, c) => !!(i.UserData && i.UserData.LastPlayedDate && Date.parse(i.UserData.LastPlayedDate) >= c.now - 30 * 864e5) },\n      { name: 'Has an IMDb id', kinds: ['Movie', 'Series', 'Episode'], spec: { field: 'HasProviderId', op: 'Is', bool: true, provider: 'Imdb' }, want: (i) => !!A.pid(i, 'Imdb') },\n      { name: 'Provider id is', kinds: ['Movie'], spec: { field: 'ProviderId', op: 'Eq', value: 'tt9005010', provider: 'Imdb' }, want: (i) => A.pid(i, 'Imdb') === 'tt9005010' },\n      { name: 'Locked is yes', kinds: ['Movie', 'Series'], spec: { field: 'Locked', op: 'Is', bool: true }, want: (i) => i.LockData === true }\n    ];\n  },\n  // Each case: Reset, the kinds, the rule built, Search; its results against the oracle's over the same user's items.\n  runAll: async (isAdmin) => {\n    const A = window.__adv;\n    const ctx = await A.items();\n    const out = [];\n    for (const c of A.cases()) {\n      if (c.admin && !isAdmin) continue;\n      window.__ss.q('.jfss-reset').click();\n      await A.sleep(50);\n      A.kinds(c.kinds);\n      let error = '';\n      try { await A.build(c.spec); } catch (e) { error = String(e && e.message || e); }\n      const got = error ? { ids: '', error } : await A.search();\n      const server = window.__ss.norm(ctx.all.filter(i => c.kinds.includes(i.Type) && c.want(i, ctx)).map(i => i.Id));\n      const n = server ? server.split(',').length : 0;\n      out.push({ name: c.name, ok: !got.error && got.ids === server, found: got.ids ? got.ids.split(',').length : 0, expected: n, error: got.error, notice: got.notice });\n    }\n    return out;\n  }\n};\n"
+    },
+    {
+      "name": "sign in as viewer2",
+      "login": "viewer2"
+    },
+    {
+      "name": "the Smart Search script ran",
+      "waitFor": "!!window.__jfkit && !!window.__jfkit.jfss && !!window.ApiClient && !!ApiClient.getCurrentUserId()",
+      "timeout": 20000
+    },
+    {
+      "goto": "/web/index.html#/jfss-search"
+    },
+    {
+      "name": "the page's form (viewer2)",
+      "waitFor": "!!window.__ss && __ss.ready()",
+      "timeout": 20000
+    },
+    {
+      "name": "viewer2's watch state",
+      "script": "\nconst uid = ApiClient.getCurrentUserId();\nconst one = async (name) => (await ApiClient.getItems(uid, { IncludeItemTypes: 'Movie', Recursive: true, SearchTerm: name, Limit: 20 })).Items.filter(i => i.Name === name && !/Movies 2/.test(i.Path || ''))[0];\nconst played = await one('Remake Story (1990) [tmdbid-900101]');\nconst fav = await one('Test Pattern (2020)');\nconst resume = await one('Long Test Movie (2021)');\nconst a = await __ss.api('POST', 'UserPlayedItems/' + played.Id);\nconst b = await __ss.api('POST', 'UserFavoriteItems/' + fav.Id);\nconst c = await __ss.api('POST', 'UserItems/' + resume.Id + '/UserData', { PlaybackPositionTicks: 600000000, Played: false });\nreturn { played: a.status, favorite: b.status, resume: c.status };\n",
+      "save": "watch2",
+      "full": true
+    },
+    {
+      "name": "Advanced (viewer2)",
+      "script": "return __adv.advanced();"
+    },
+    {
+      "name": "viewer2's field list: no Path",
+      "eval": "(__ss.q('.jfss-group-root > .jfss-group-add .jfss-add-rule').click(), [...__ss.q('.jfss-rule-field').options].map(o => o.value))",
+      "save": "fields2",
+      "full": true
+    },
+    {
+      "name": "every field but Path",
+      "assert": "__vars.fields2.length === 32 && !__vars.fields2.includes('Path')"
+    },
+    {
+      "name": "every field, as viewer2: the editor's rule against /Items",
+      "script": "return await __adv.runAll(false);",
+      "save": "viewer2",
+      "full": true,
+      "timeout": 240000
+    },
+    {
+      "name": "every case as /Items finds it (viewer2), never an item of Movies 2",
+      "assert": "__vars.viewer2.length === __adv.cases().length - 1 && __vars.viewer2.every(c => c.ok)"
+    },
+    {
+      "name": "the libraries viewer2 sees: Movies 2 is not offered",
+      "eval": "(__ss.q('.jfss-reset').click(), __adv.build({ field: 'Library', op: 'AnyOf' }).then(() => __adv.last().querySelectorAll('.jfss-choice')).then(b => [...b].map(x => x.textContent)))",
+      "save": "libs2",
+      "full": true
+    },
+    {
+      "name": "no Movies 2",
+      "assert": "__vars.libs2.length > 0 && !__vars.libs2.includes('Movies 2')"
+    },
+    {
+      "name": "no uncaught exception of ours",
+      "noExceptions": true
+    }
+  ]
+}

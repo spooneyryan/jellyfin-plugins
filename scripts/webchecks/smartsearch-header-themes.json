@@ -1,0 +1,189 @@
+{
+  "name": "Smart Search's header button in Dark, Light, Apple TV and Purple Haze (localStorage '<userId>-appTheme', then a reload), as viewer: one button right before jellyfin-web's search button, in its colour and size in every theme. Screenshots smartsearch-header-theme-*.png.",
+  "failOnException": false,
+  "timeout": 30000,
+  "steps": [
+    {
+      "name": "a desktop screen",
+      "emulate": "desktop"
+    },
+    {
+      "name": "header helpers",
+      "initScript": "\nwindow.__warns = [];\n(function () { const w = console.warn; console.warn = function () { try { window.__warns.push([].slice.call(arguments).map(String).join(' ')); } catch (e) {} return w.apply(this, arguments); }; })();\nwindow.__hb = {\n  ours: () => [...document.querySelectorAll('button[data-jfss-header]')],\n  shown: () => window.__hb.ours().filter(b => b.getClientRects().length > 0),\n  native: () => document.querySelector('.skinHeader .headerRight .headerSearchButton'),\n  visible: (e) => !!e && e.getClientRects().length > 0,\n  box: (e) => { const r = e.getBoundingClientRect(); return [Math.round(r.left), Math.round(r.top), Math.round(r.width), Math.round(r.height)]; },\n  state: () => { const o = window.__hb.ours(); const n = window.__hb.native(); const b = o[0]; return { count: o.length, shown: window.__hb.shown().length, nativeShown: window.__hb.visible(n), before: !!b && b.nextElementSibling === n, label: b ? b.getAttribute('aria-label') : null, icon: b ? (b.querySelector('.material-icons') || {}).className : null, hidden: b ? b.classList.contains('hide') : null, same: !!b && !!n && b.classList.contains('hide') === n.classList.contains('hide') }; },\n  anchorWarnings: () => window.__warns.filter(w => w.indexOf('web anchor') >= 0),\n  pageShown: () => { const r = [...document.querySelectorAll('#fallbackPage > [data-jfss-page=\"search\"][data-jfss-mounted]')].find(x => x.getClientRects().length > 0); return !!r && !!r.querySelector('.jfss-search .jfss-scope') && location.hash.indexOf('#/jfss-search') === 0; },\n  noHScroll: () => document.documentElement.scrollWidth <= innerWidth\n};\n"
+    },
+    {
+      "name": "sign in as viewer",
+      "login": "viewer"
+    },
+    {
+      "name": "the Smart Search script ran",
+      "waitFor": "!!window.__jfkit && !!window.__jfkit.jfss && !!window.ApiClient && !!ApiClient.getCurrentUserId()",
+      "timeout": 20000
+    },
+    {
+      "name": "Dark for this browser",
+      "eval": "(localStorage.setItem(ApiClient.getCurrentUserId() + '-appTheme', 'dark'), true)"
+    },
+    {
+      "name": "reload (Dark)",
+      "reload": true
+    },
+    {
+      "name": "the Smart Search script ran",
+      "waitFor": "!!window.__jfkit && !!window.__jfkit.jfss && !!window.ApiClient && !!ApiClient.getCurrentUserId()",
+      "timeout": 20000
+    },
+    {
+      "name": "one header button, shown right before jellyfin-web's search button (Dark)",
+      "waitFor": "(() => { const s = __hb.state(); return s.count === 1 && s.shown === 1 && s.nativeShown && s.before ? s : false; })()",
+      "timeout": 15000,
+      "save": "state",
+      "full": true
+    },
+    {
+      "name": "let the header's colour transition end (Dark)",
+      "sleep": 1500
+    },
+    {
+      "name": "the button takes the theme's header colours (Dark)",
+      "eval": "(() => { const b = __hb.ours()[0], n = __hb.native(); const cs = (e) => getComputedStyle(e); return { color: cs(b).color, nativeColor: cs(n).color, size: __hb.box(b).slice(2).join(), nativeSize: __hb.box(n).slice(2).join(), theme: [...document.querySelectorAll('link[href*=\"themes/\"], link[href*=\"theme\"]')].map(l => l.getAttribute('href')).join(' ') }; })()",
+      "save": "theme_dark",
+      "full": true
+    },
+    {
+      "name": "as the search button (Dark)",
+      "assert": "__vars.theme_dark.color === __vars.theme_dark.nativeColor && __vars.theme_dark.size === __vars.theme_dark.nativeSize"
+    },
+    {
+      "screenshot": "smartsearch-header-theme-dark.png"
+    },
+    {
+      "name": "Light for this browser",
+      "eval": "(localStorage.setItem(ApiClient.getCurrentUserId() + '-appTheme', 'light'), true)"
+    },
+    {
+      "name": "reload (Light)",
+      "reload": true
+    },
+    {
+      "name": "the Smart Search script ran",
+      "waitFor": "!!window.__jfkit && !!window.__jfkit.jfss && !!window.ApiClient && !!ApiClient.getCurrentUserId()",
+      "timeout": 20000
+    },
+    {
+      "name": "one header button, shown right before jellyfin-web's search button (Light)",
+      "waitFor": "(() => { const s = __hb.state(); return s.count === 1 && s.shown === 1 && s.nativeShown && s.before ? s : false; })()",
+      "timeout": 15000,
+      "save": "state",
+      "full": true
+    },
+    {
+      "name": "let the header's colour transition end (Light)",
+      "sleep": 1500
+    },
+    {
+      "name": "the button takes the theme's header colours (Light)",
+      "eval": "(() => { const b = __hb.ours()[0], n = __hb.native(); const cs = (e) => getComputedStyle(e); return { color: cs(b).color, nativeColor: cs(n).color, size: __hb.box(b).slice(2).join(), nativeSize: __hb.box(n).slice(2).join(), theme: [...document.querySelectorAll('link[href*=\"themes/\"], link[href*=\"theme\"]')].map(l => l.getAttribute('href')).join(' ') }; })()",
+      "save": "theme_light",
+      "full": true
+    },
+    {
+      "name": "as the search button (Light)",
+      "assert": "__vars.theme_light.color === __vars.theme_light.nativeColor && __vars.theme_light.size === __vars.theme_light.nativeSize"
+    },
+    {
+      "screenshot": "smartsearch-header-theme-light.png"
+    },
+    {
+      "name": "Apple TV for this browser",
+      "eval": "(localStorage.setItem(ApiClient.getCurrentUserId() + '-appTheme', 'appletv'), true)"
+    },
+    {
+      "name": "reload (Apple TV)",
+      "reload": true
+    },
+    {
+      "name": "the Smart Search script ran",
+      "waitFor": "!!window.__jfkit && !!window.__jfkit.jfss && !!window.ApiClient && !!ApiClient.getCurrentUserId()",
+      "timeout": 20000
+    },
+    {
+      "name": "one header button, shown right before jellyfin-web's search button (Apple TV)",
+      "waitFor": "(() => { const s = __hb.state(); return s.count === 1 && s.shown === 1 && s.nativeShown && s.before ? s : false; })()",
+      "timeout": 15000,
+      "save": "state",
+      "full": true
+    },
+    {
+      "name": "let the header's colour transition end (Apple TV)",
+      "sleep": 1500
+    },
+    {
+      "name": "the button takes the theme's header colours (Apple TV)",
+      "eval": "(() => { const b = __hb.ours()[0], n = __hb.native(); const cs = (e) => getComputedStyle(e); return { color: cs(b).color, nativeColor: cs(n).color, size: __hb.box(b).slice(2).join(), nativeSize: __hb.box(n).slice(2).join(), theme: [...document.querySelectorAll('link[href*=\"themes/\"], link[href*=\"theme\"]')].map(l => l.getAttribute('href')).join(' ') }; })()",
+      "save": "theme_appletv",
+      "full": true
+    },
+    {
+      "name": "as the search button (Apple TV)",
+      "assert": "__vars.theme_appletv.color === __vars.theme_appletv.nativeColor && __vars.theme_appletv.size === __vars.theme_appletv.nativeSize"
+    },
+    {
+      "screenshot": "smartsearch-header-theme-appletv.png"
+    },
+    {
+      "name": "Purple Haze for this browser",
+      "eval": "(localStorage.setItem(ApiClient.getCurrentUserId() + '-appTheme', 'purplehaze'), true)"
+    },
+    {
+      "name": "reload (Purple Haze)",
+      "reload": true
+    },
+    {
+      "name": "the Smart Search script ran",
+      "waitFor": "!!window.__jfkit && !!window.__jfkit.jfss && !!window.ApiClient && !!ApiClient.getCurrentUserId()",
+      "timeout": 20000
+    },
+    {
+      "name": "one header button, shown right before jellyfin-web's search button (Purple Haze)",
+      "waitFor": "(() => { const s = __hb.state(); return s.count === 1 && s.shown === 1 && s.nativeShown && s.before ? s : false; })()",
+      "timeout": 15000,
+      "save": "state",
+      "full": true
+    },
+    {
+      "name": "let the header's colour transition end (Purple Haze)",
+      "sleep": 1500
+    },
+    {
+      "name": "the button takes the theme's header colours (Purple Haze)",
+      "eval": "(() => { const b = __hb.ours()[0], n = __hb.native(); const cs = (e) => getComputedStyle(e); return { color: cs(b).color, nativeColor: cs(n).color, size: __hb.box(b).slice(2).join(), nativeSize: __hb.box(n).slice(2).join(), theme: [...document.querySelectorAll('link[href*=\"themes/\"], link[href*=\"theme\"]')].map(l => l.getAttribute('href')).join(' ') }; })()",
+      "save": "theme_purplehaze",
+      "full": true
+    },
+    {
+      "name": "as the search button (Purple Haze)",
+      "assert": "__vars.theme_purplehaze.color === __vars.theme_purplehaze.nativeColor && __vars.theme_purplehaze.size === __vars.theme_purplehaze.nativeSize"
+    },
+    {
+      "screenshot": "smartsearch-header-theme-purplehaze.png"
+    },
+    {
+      "name": "colours differ between themes (the theme applied)",
+      "assert": "new Set(['dark', 'light', 'appletv', 'purplehaze'].map(t => __vars['theme_' + t].color)).size >= 2"
+    },
+    {
+      "name": "no anchor warning",
+      "assert": "__hb.anchorWarnings().length === 0"
+    },
+    {
+      "name": "Dark again",
+      "eval": "(localStorage.setItem(ApiClient.getCurrentUserId() + '-appTheme', 'dark'), true)"
+    },
+    {
+      "name": "no uncaught exception (the stale CustomRatings tag of the sandbox's index.html is known noise)",
+      "noExceptions": true,
+      "ignore": "CustomRatings"
+    }
+  ]
+}

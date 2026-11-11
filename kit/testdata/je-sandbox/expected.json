@@ -1,0 +1,73 @@
+{
+  "description": "What Initialize-Sandbox.ps1 -Name je reads back from the running sandbox. It fails when any value differs, so coexistence checks never pass on Jellyfin Enhanced defaults.",
+  "jellyfinEnhanced": {
+    "pluginId": "f69e946a-4b3c-4e9a-8f0a-8d7c1b2c4d9b",
+    "settings": {
+      "ShowUserReviews": true,
+      "ShowReviews": true,
+      "HideReviewsFromHiddenUsers": true,
+      "ShowUserRatingOnPosters": false,
+      "RatingTagsEnabled": true,
+      "QualityTagsEnabled": true,
+      "BookmarksEnabled": true,
+      "BookmarksUsePluginPages": true,
+      "BookmarksUseCustomTabs": true,
+      "BookmarksUseNativeTab": false,
+      "BookmarksAutoCreateCustomTab": true,
+      "BookmarksCustomTabJeOwned": true,
+      "DisableAllShortcuts": false,
+      "RemoveContinueWatchingEnabled": true,
+      "ShowCollectionsInSearch": true,
+      "JellyseerrEnabled": false,
+      "HiddenContentEnabled": false,
+      "SpoilerBlurEnabled": false,
+      "ActivityFeedEnabled": false,
+      "DisableScriptInjectionMiddleware": false,
+      "AnalyticsEnabled": false
+    },
+    "shortcuts": {
+      "JumpToPercentage": "0-9",
+      "OpenSearch": "/",
+      "GoToHome": "Shift+H",
+      "GoToDashboard": "D",
+      "QuickConnect": "Q",
+      "PlayRandomItem": "R",
+      "CycleAspectRatio": "A",
+      "ShowPlaybackInfo": "I",
+      "SubtitleMenu": "S",
+      "CycleSubtitleTracks": "C",
+      "CycleAudioTracks": "V",
+      "IncreasePlaybackSpeed": "+",
+      "DecreasePlaybackSpeed": "-",
+      "ResetPlaybackSpeed": "R",
+      "BookmarkCurrentTime": "B",
+      "OpenEpisodePreview": "P",
+      "SkipIntroOutro": "O",
+      "FrameStepBack": ",",
+      "FrameStepForward": ".",
+      "JumpToLastPosition": "Z"
+    }
+  },
+  "pluginPages": {
+    "pages": [
+      {
+        "Id": "Jellyfin.Plugin.JellyfinEnhanced.BookmarksPage",
+        "Url": "/JellyfinEnhanced/bookmarksPage",
+        "DisplayText": "Bookmarks"
+      }
+    ]
+  },
+  "customTabs": {
+    "pluginId": "fbacd0b6-fd46-4a05-b0a4-2045d6a135b0",
+    "tabs": [
+      {
+        "Title": "Bookmarks",
+        "ContentHtml": "<div class=\"sections bookmarks\"></div>"
+      }
+    ]
+  },
+  "javaScriptInjector": {
+    "pluginId": "f5a34f7b-2e8a-4e6a-a722-3a216a81b374",
+    "note": "Installed with its defaults (no scripts); only its being Active is asserted. It adds its own index.html middleware (JavaScriptInjector/public.js), which sorts before Jellyfin Enhanced's."
+  }
+}

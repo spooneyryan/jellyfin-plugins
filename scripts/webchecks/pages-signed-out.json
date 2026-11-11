@@ -1,0 +1,69 @@
+{
+  "name": "A signed-out fallback deep link (#/jfbm-demo-b?tab=deep) goes to the login page and back, with no \"Page not found\" frame. Needs EnablePageDemo on (pages-fallback.json turns it on).",
+  "failOnException": false,
+  "timeout": 30000,
+  "steps": [
+    {
+      "name": "frame probe in every document (probes/pages-probe.js)",
+      "initScript": {
+        "file": "probes/pages-probe.js"
+      }
+    },
+    {
+      "name": "open the deep link signed out",
+      "goto": "/web/index.html#/jfbm-demo-b?tab=deep"
+    },
+    {
+      "name": "redirected to the login page with url=",
+      "waitFor": "location.hash.startsWith('#/login') && !!document.querySelector('#txtManualName') && location.hash",
+      "save": "loginHash"
+    },
+    {
+      "name": "the url parameter holds the deep link",
+      "assert": "decodeURIComponent((location.hash.split('url=')[1] || '').split('&')[0]) === '/jfbm-demo-b?tab=deep'"
+    },
+    {
+      "name": "probe before sign-in",
+      "eval": "__pagesProbe.summary()",
+      "save": "probeBeforeLogin"
+    },
+    {
+      "screenshot": "pages-signed-out-login.png"
+    },
+    {
+      "name": "reset the probe",
+      "eval": "__pagesProbe.reset(), true"
+    },
+    {
+      "name": "sign in on that login page",
+      "login": "admin",
+      "stay": true
+    },
+    {
+      "name": "back on Demo page B (fallback host) with the extra parameter",
+      "waitFor": "(() => { const r = [...document.querySelectorAll(\"#fallbackPage > [data-jfbm-page=\\\"demo-b\\\"][data-jfbm-mounted]\")].find(x => x.getClientRects().length > 0); const t = (document.querySelector('.skinHeader .pageTitle') || { textContent: '' }).textContent.trim(); const title = r && r.querySelector('.jfbm-demo-title'); const user = r && r.querySelector('[data-jfbm-demo=\"user\"]'); if (!r || !title || title.textContent !== \"Demo page B\" || [...document.querySelectorAll('#fallbackPage > :not([data-jfbm-page]) h1')].some(h => h.getClientRects().length > 0) || t !== \"Demo page B\" || !user || user.textContent === '…') return false; if (JSON.parse(r.querySelector('[data-jfbm-demo=\"params\"]').textContent).tab !== 'deep') return false; return { hash: location.hash, render: Number(r.getAttribute('data-jfbm-render')), reason: r.getAttribute('data-jfbm-reason'), host: r.getAttribute('data-jfbm-host'), params: JSON.parse(r.querySelector('[data-jfbm-demo=\"params\"]').textContent), user: user.textContent, admin: r.querySelector('[data-jfbm-demo=\"admin\"]').textContent, headerTitle: t, documentTitle: document.title, historyLength: history.length }; })()",
+      "save": "afterLogin"
+    },
+    {
+      "sleep": 400
+    },
+    {
+      "name": "probe: probeAfterLogin",
+      "eval": "__pagesProbe.summary()",
+      "save": "probeAfterLogin"
+    },
+    {
+      "screenshot": "pages-signed-out-after.png"
+    },
+    {
+      "name": "every navigation above: 0 \"Page not found\" frames on our routes",
+      "assert": "[__vars.probeBeforeLogin, __vars.probeAfterLogin].every(p => p && p.flashFrames === 0)",
+      "message": "a probe counted \"Page not found\" frames on a demo route"
+    },
+    {
+      "name": "no uncaught exceptions",
+      "noExceptions": true,
+      "ignore": "/CustomRatings/script|^Error: player cannot be null"
+    }
+  ]
+}

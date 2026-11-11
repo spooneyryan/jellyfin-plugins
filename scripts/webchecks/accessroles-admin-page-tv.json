@@ -1,0 +1,138 @@
+{
+  "description": "The D-pad on Access Roles' dashboard page in the TV layout (localStorage 'layout' = 'tv', html.layout-tv), as admin, reading only, with the Users tab remembered from an earlier visit (kit storage jfar:adminTab), which the page opens on: every tab is the D-pad's to reach (tabindex 0) and OK opens it; the Users tab's name buttons are focusable; OK on pageprobe-teen's name opens the panel with the focus inside it; the D-pad moves the focus through the panel (the kit's scopedKeys); OK on a role's checkbox ticks it and OK again unticks it; Back (Escape) closes the panel without saving and the focus is back on the name. accessroles-admin-page-probe.mjs gives pageprobe-teen the probe's lock-only role \"Page probe Guest\" first.",
+  "timeout": 30000,
+  "steps": [
+    {
+      "name": "the TV layout, and the Users tab remembered from an earlier visit",
+      "initScript": "localStorage.setItem('layout', 'tv'); localStorage.setItem('jfar:adminTab', JSON.stringify('Users'))"
+    },
+    {
+      "name": "sign in as admin",
+      "login": "admin"
+    },
+    {
+      "name": "the web client is ready",
+      "waitFor": "!!window.ApiClient && !!ApiClient.getCurrentUserId()"
+    },
+    {
+      "name": "open Access Roles' page",
+      "goto": "/web/index.html#/configurationpage?name=AccessRoles"
+    },
+    {
+      "name": "the module mounted: the tabs, the status loaded, the loading note hidden",
+      "waitFor": "(() => { const p = document.querySelector('#AccessRolesConfigPage:not(.hide)'); return !!p && p.querySelectorAll('[role=\"tab\"]').length === 8 && p.querySelectorAll('#AccessRolesStatus table').length === 5 && p.querySelector('#AccessRolesScriptNote').hidden === true; })()",
+      "timeout": 30000
+    },
+    {
+      "name": "the check's helpers",
+      "script": "window.__arPage = {\n  page: () => document.querySelector('#AccessRolesConfigPage:not(.hide)'),\n  panels: () => [...document.querySelectorAll('.jfar-backdrop .jfar-panel')],\n  top: () => __arPage.panels().pop() || null,\n  title: () => { const t = __arPage.top(); return t ? t.querySelector('.jfar-panel-header h3').textContent : null; },\n  buttons: (root) => [...(root || document).querySelectorAll('button')],\n  button: (root, text) => __arPage.buttons(root).find(b => b.textContent === text) || null,\n  press: (root, text) => { const b = __arPage.button(root, text); if (!b) throw new Error('no button ' + text); if (b.disabled) throw new Error(text + ' is disabled'); b.click(); return true; },\n  user: (name) => [...__arPage.page().querySelectorAll('.jfar-page-user')].find(r => r.querySelector('.jfar-page-user-name').textContent === name) || null,\n  role: (name) => [...__arPage.page().querySelectorAll('.jfar-page-role')].find(r => r.querySelector('.jfar-page-role-name').textContent === name) || null,\n  check: (root, text) => { const l = [...root.querySelectorAll('label')].find(l => l.textContent.startsWith(text)); return l ? l.querySelector('input') : null; },\n  shown: (el) => !!el && el.getClientRects().length > 0 && !el.closest('[hidden]'),\n  seen: [],\n  toasts: () => __arPage.seen.concat([...document.querySelectorAll('.jfar-toast')].map(t => t.textContent))\n};\n// Every toast's text as it comes (a toast goes after 4 s, maybe before a wait sees it).\nnew MutationObserver(() => { document.querySelectorAll('.jfar-toast').forEach(t => { if (!__arPage.seen.includes(t.textContent)) __arPage.seen.push(t.textContent); }); }).observe(document.body, { childList: true, subtree: true });\nreturn true;"
+    },
+    {
+      "name": "TV layout applied",
+      "assert": "document.documentElement.classList.contains('layout-tv')"
+    },
+    {
+      "name": "the page opened on the remembered Users tab (no import offered, no restore hold)",
+      "assert": "document.querySelector('#AccessRolesTabUsers').getAttribute('aria-selected') === 'true' && __arPage.shown(document.querySelector('#AccessRolesPanelUsers'))"
+    },
+    {
+      "name": "every tab in the D-pad's reach",
+      "assert": "[...__arPage.page().querySelectorAll('[role=\"tab\"]')].every(t => t.getAttribute('tabindex') === '0')"
+    },
+    {
+      "name": "the focus on the Users tab",
+      "script": "document.querySelector('#AccessRolesTabUsers').focus(); return document.activeElement.id;"
+    },
+    {
+      "name": "OK",
+      "key": "Enter"
+    },
+    {
+      "name": "the Users tab open",
+      "waitFor": "document.querySelector('#AccessRolesTabUsers').getAttribute('aria-selected') === 'true' && __arPage.shown(document.querySelector('#AccessRolesPanelUsers')) && !!__arPage.user(\"pageprobe-teen\")"
+    },
+    {
+      "name": "the focus on pageprobe-teen's name",
+      "script": "__arPage.user(\"pageprobe-teen\").querySelector('.jfar-page-user-name').focus(); return document.activeElement.textContent;",
+      "save": "focused"
+    },
+    {
+      "name": "OK opens the panel",
+      "key": "Enter"
+    },
+    {
+      "name": "the panel, the focus inside it",
+      "waitFor": "__arPage.title() === \"pageprobe-teen\" && !!__arPage.top().querySelector('#AccessRolesEffective') && __arPage.top().contains(document.activeElement)",
+      "timeout": 20000
+    },
+    {
+      "name": "the role is shown ticked, its locks by the role",
+      "assert": "__arPage.check(__arPage.top(), \"Page probe Guest\").checked === true && [...__arPage.top().querySelectorAll('#AccessRolesUserOverrides .jfar-page-check-hint')].some(h => h.textContent === \"Now: Locked by role Page probe Guest\")"
+    },
+    {
+      "name": "where the focus starts",
+      "eval": "document.activeElement.outerHTML.slice(0, 120)",
+      "save": "start"
+    },
+    {
+      "name": "ArrowDown",
+      "key": "ArrowDown"
+    },
+    {
+      "name": "the D-pad moved the focus inside the panel",
+      "waitFor": "__arPage.top().contains(document.activeElement) && document.activeElement.outerHTML.slice(0, 120) !== __vars.start",
+      "timeout": 3000
+    },
+    {
+      "name": "the focus on the \"Page probe Guest\" checkbox",
+      "script": "__arPage.check(__arPage.top(), \"Page probe Guest\").focus(); return document.activeElement.type;"
+    },
+    {
+      "name": "OK unticks it",
+      "key": "Enter"
+    },
+    {
+      "name": "unticked",
+      "waitFor": "__arPage.check(__arPage.top(), \"Page probe Guest\").checked === false",
+      "timeout": 3000
+    },
+    {
+      "name": "OK ticks it again",
+      "key": "Enter"
+    },
+    {
+      "name": "ticked",
+      "waitFor": "__arPage.check(__arPage.top(), \"Page probe Guest\").checked === true",
+      "timeout": 3000
+    },
+    {
+      "sleep": 200
+    },
+    {
+      "screenshot": "accessroles-admin-page-tv-panel.png"
+    },
+    {
+      "name": "Back (Escape) closes it without saving",
+      "key": "Escape"
+    },
+    {
+      "name": "closed, the focus back on the name",
+      "waitFor": "__arPage.panels().length === 0 && document.activeElement === __arPage.user(\"pageprobe-teen\").querySelector('.jfar-page-user-name')",
+      "timeout": 5000
+    },
+    {
+      "name": "nothing was saved",
+      "eval": "(async () => { const r = await ApiClient.getJSON(ApiClient.getUrl('AccessRoles/Admin/Users')); const u = r.find(x => x.Name === \"pageprobe-teen\"); return u.RoleIds.length; })()",
+      "save": "roles"
+    },
+    {
+      "name": "still one role",
+      "assert": "__vars.roles === 1"
+    },
+    {
+      "name": "no uncaught exceptions (the stale CustomRatings tag excepted)",
+      "noExceptions": true,
+      "ignore": "/CustomRatings/script"
+    }
+  ]
+}

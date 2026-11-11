@@ -1,0 +1,228 @@
+{
+  "Version": 2,
+  "ClipRoots": [
+    "C:\\ProgramData\\Jellyfin\\Server\\data\\bookmarks\\clips",
+    "D:\\Clips"
+  ],
+  "UserPreferences": {
+    "9fa5c6778cf74a94bff0c82a60581ccf": {
+      "AskForName": true,
+      "PauseWhileNaming": false
+    },
+    "ff71b896f20545ff936ac2393f6091f6": {
+      "PauseWhileNaming": true
+    }
+  },
+  "ImportLedger": {
+    "je:9fa5c6778cf74a94bff0c82a60581ccf:Bm_1779400000000": {
+      "BookmarkId": "2b12464b-6f44-46a2-9eb2-c8b89caf60bd",
+      "SourceUpdatedAt": "2026-05-22T21:23:40.598Z",
+      "ImportedAt": "2026-09-29T12:00:01Z",
+      "Outcome": "Imported"
+    }
+  },
+  "KnownUsers": {
+    "9fa5c6778cf74a94bff0c82a60581ccf": "alice",
+    "ff71b896f20545ff936ac2393f6091f6": "bob"
+  },
+  "MoveJournalId": "6d0e1c9f-0a4b-4e57-9c1e-2b3a4c5d6e7f",
+  "LastMoveSeq": 17,
+  "PendingFileDeletes": [
+    {
+      "Path": "C:\\ProgramData\\Jellyfin\\Server\\data\\bookmarks\\clips\\alice\\Heat (1995) - Bank job [01.02.03-01.05.00] (2).mp4",
+      "SinceUtc": "2026-10-02T12:00:00Z",
+      "Attempts": 3
+    }
+  ],
+  "Bookmarks": [
+    {
+      "Id": "5f7ef9bc-14bc-4e9a-a9c6-07c0b46a9210",
+      "UserId": "9fa5c677-8cf7-4a94-bff0-c82a60581ccf",
+      "ItemId": "ba7ef8f5-0757-f5f6-0cae-61b9b7fd19f5",
+      "MediaSourceId": "ba7ef8f50757f5f60cae61b9b7fd19f5",
+      "AudioStreamIndex": 1,
+      "StartTicks": 37230000000,
+      "EndTicks": 39000000000,
+      "Name": "Bank job",
+      "Note": "Watch the reflection in the \u0022window\u0022",
+      "ItemName": "Heat (1995)",
+      "Identity": {
+        "ItemId": "ba7ef8f5-0757-f5f6-0cae-61b9b7fd19f5",
+        "Kind": "Movie",
+        "Name": "Heat",
+        "Year": 1995,
+        "ProviderIds": {
+          "Imdb": "tt0113277",
+          "Tmdb": "949"
+        },
+        "RunTimeTicks": 102000000000,
+        "Path": "Q:\\Video\\Movies\\Heat (1995)\\Heat (1995).mkv",
+        "FutureIdentityField": "kept"
+      },
+      "Origin": "Native",
+      "AttachedUtc": "2026-09-29T12:00:00Z",
+      "CreatedAt": "2026-09-29T12:00:00Z",
+      "UpdatedAt": "2026-09-29T12:05:00Z",
+      "Clip": {
+        "Status": "Completed",
+        "Mode": "Accurate",
+        "StartTicks": 37230000000,
+        "EndTicks": 39000000000,
+        "RequestedAt": "2026-09-29T12:01:00Z",
+        "CompletedAt": "2026-09-29T12:02:00Z",
+        "FilePath": "C:\\ProgramData\\Jellyfin\\Server\\data\\bookmarks\\clips\\alice\\Heat (1995) - Bank job [01.02.03-01.05.00].mp4",
+        "FileSize": 47185920,
+        "FileStartTicks": 37230000000,
+        "FileEndTicks": 39000000000,
+        "EstimatedBytes": 7000000,
+        "FutureClipField": [
+          1,
+          "two"
+        ]
+      },
+      "FutureRecordField": {
+        "Kept": true
+      }
+    },
+    {
+      "Id": "2b12464b-6f44-46a2-9eb2-c8b89caf60bd",
+      "UserId": "9fa5c677-8cf7-4a94-bff0-c82a60581ccf",
+      "ItemId": "f5e2dac7-e7d1-5e15-d5fa-edd7093f1514",
+      "StartTicks": 1205000000,
+      "Name": "Imported from JE",
+      "ItemName": "Tagged Movie (2012)",
+      "Identity": {
+        "ItemId": "f5e2dac7-e7d1-5e15-d5fa-edd7093f1514",
+        "Kind": "Movie",
+        "Name": "Tagged Movie",
+        "ProviderIds": {
+          "Tmdb": "900001"
+        }
+      },
+      "Origin": "JellyfinEnhanced",
+      "DetachedUtc": "2026-09-30T12:00:00Z",
+      "CreatedAt": "2026-09-29T12:00:01Z",
+      "UpdatedAt": "2026-09-29T12:00:01Z"
+    },
+    {
+      "Id": "41f2477c-3533-468a-a0f0-591efcc3153a",
+      "UserId": "ff71b896-f205-45ff-936a-c2393f6091f6",
+      "ItemId": "b0000000-0000-4000-8000-000000000001",
+      "StartTicks": 120000000,
+      "Name": "Relinked",
+      "ItemName": "Test Series S01E01 - Pilot",
+      "Identity": {
+        "ItemId": "b0000000-0000-4000-8000-000000000001",
+        "Kind": "Episode",
+        "Name": "Pilot",
+        "Year": 2020,
+        "ProviderIds": {
+          "Tvdb": "900402"
+        },
+        "SeriesProviderIds": {
+          "Tvdb": "900401"
+        },
+        "SeriesName": "Test Series",
+        "Season": 1,
+        "Episode": 1,
+        "SeriesId": "875cdbff-06b8-0e74-6730-a035117b0ebc",
+        "SeasonId": "5ea50000-0000-4000-8000-000000000001",
+        "RunTimeTicks": 600000000,
+        "Path": "Q:\\Video\\TV\\Test Series\\Season 01\\Test Series S01E01.mkv"
+      },
+      "Origin": "Native",
+      "AttachedUtc": "2026-10-01T12:00:00Z",
+      "RelinkedUtc": "2026-10-01T12:00:00Z",
+      "RelinkStrength": "Strong",
+      "CreatedAt": "2026-09-29T12:00:02Z",
+      "UpdatedAt": "2026-09-29T12:00:02Z"
+    },
+    {
+      "Id": "c4d65a56-3c29-4c94-b049-c51c01bd40f6",
+      "UserId": "9fa5c677-8cf7-4a94-bff0-c82a60581ccf",
+      "ItemId": "ba7ef8f5-0757-f5f6-0cae-61b9b7fd19f5",
+      "StartTicks": 0,
+      "EndTicks": 100000000,
+      "Name": "Kept clip",
+      "ItemName": "Heat (1995)",
+      "Identity": {
+        "ItemId": "ba7ef8f5-0757-f5f6-0cae-61b9b7fd19f5",
+        "Kind": "Movie",
+        "Name": "Heat",
+        "Year": 1995,
+        "ProviderIds": {}
+      },
+      "Origin": "Native",
+      "AttachedUtc": "2026-09-29T12:00:03Z",
+      "DeletedUtc": "2026-10-03T12:00:00Z",
+      "CreatedAt": "2026-09-29T12:00:03Z",
+      "UpdatedAt": "2026-10-03T12:00:00Z",
+      "Clip": {
+        "Status": "Completed",
+        "Mode": "Fast",
+        "StartTicks": 0,
+        "EndTicks": 100000000,
+        "RequestedAt": "2026-09-29T12:00:04Z",
+        "CompletedAt": "2026-09-29T12:00:05Z",
+        "FilePath": "D:\\Clips\\alice\\Heat (1995) - Kept clip [00.00.00-00.00.10].mkv",
+        "FileSize": 3591129,
+        "FileStartTicks": 0,
+        "FileEndTicks": 100000000,
+        "MissingSinceUtc": "2026-10-04T12:00:00Z"
+      }
+    },
+    {
+      "Id": "0b12c492-e988-44b7-b1d7-54b6d0721618",
+      "UserId": "9fa5c677-8cf7-4a94-bff0-c82a60581ccf",
+      "ItemId": "00000000-0000-0000-0000-000000000000",
+      "StartTicks": 0,
+      "EndTicks": 150000000,
+      "Name": "Adopted clip",
+      "ItemName": "Old clip",
+      "Identity": {
+        "ItemId": "00000000-0000-0000-0000-000000000000",
+        "Kind": "Video",
+        "Name": "Old clip",
+        "ProviderIds": {}
+      },
+      "Origin": "Adopted",
+      "CreatedAt": "2026-09-29T12:00:06Z",
+      "UpdatedAt": "2026-09-29T12:00:06Z",
+      "Clip": {
+        "Status": "Completed",
+        "Mode": "Accurate",
+        "StartTicks": 0,
+        "EndTicks": 150000000,
+        "RequestedAt": "2026-09-29T12:00:06Z",
+        "CompletedAt": "2026-09-29T12:00:06Z",
+        "FilePath": "D:\\Clips\\alice\\Old clip.mp4",
+        "FileSize": 1000000,
+        "FileStartTicks": 0,
+        "FileEndTicks": 150000000
+      }
+    },
+    {
+      "Id": "72863457-d86e-4215-bbc4-cebb8e3b9c5f",
+      "UserId": "ff71b896-f205-45ff-936a-c2393f6091f6",
+      "ItemId": "ba7ef8f5-0757-f5f6-0cae-61b9b7fd19f5",
+      "StartTicks": 200000000,
+      "Note": "A note that stays a note\non two lines",
+      "ItemName": "Heat (1995)",
+      "Identity": {
+        "ItemId": "ba7ef8f5-0757-f5f6-0cae-61b9b7fd19f5",
+        "Kind": "Movie",
+        "Name": "Heat (1995)",
+        "ProviderIds": {}
+      },
+      "Origin": "Native",
+      "AttachedUtc": "2026-09-29T12:00:07Z",
+      "CreatedAt": "2026-09-29T12:00:07Z",
+      "UpdatedAt": "2026-09-29T12:00:07Z"
+    }
+  ],
+  "FutureDocumentField": {
+    "Kept": [
+      "yes"
+    ]
+  }
+}

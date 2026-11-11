@@ -1,0 +1,1020 @@
+{
+  "name": "The Move dialog's preview in the move sandbox: a loose movie (its sidecars, wrap and new folder), an own-folder movie and a version, an episode, another drive and an item playing; nothing moves",
+  "timeout": 30000,
+  "steps": [
+    {
+      "name": "the helpers (a log of Library Maintenance's requests, short names)",
+      "initScript": {
+        "file": "probes/librarymaintenance-move-helpers.js"
+      }
+    },
+    {
+      "name": "sign in as admin",
+      "login": "admin"
+    },
+    {
+      "name": "home page and Library Maintenance's script",
+      "waitFor": "!!document.querySelector('.homePage:not(.hide) .card') && !!window.__jfkit && !!window.__jfkit.jflm && __lmm.log('/LibraryMaintenance/Capabilities').length > 0",
+      "timeout": 60000
+    },
+    {
+      "name": "the move sandbox's seeded items (by name)",
+      "script": "const u = ApiClient.getCurrentUserId(); const q = async (o) => (await ApiClient.getItems(u, Object.assign({ Recursive: true }, o))).Items; const views = (await ApiClient.getUserViews({}, u)).Items; const view = (n) => (views.find((v) => v.Name === n) || {}).Id; const m1 = await q({ ParentId: view('Movies'), IncludeItemTypes: 'Movie' }); const m2 = await q({ ParentId: view('Movies 2'), IncludeItemTypes: 'Movie', Fields: 'MediaSources' }); const eps = await q({ ParentId: view('Shows'), IncludeItemTypes: 'Episode' }); const by = (list, name) => list.find((i) => i.Name === name) || {}; const versions = by(m2, 'Versions Film (2015)'); const ep = by(eps, 'Sample Show S01E03'); if (!view('Movies') || !view('Movies 2') || !view('Shows') || !ep.Id || !versions.Id) throw new Error('not the move sandbox\\'s layout'); return { movies: view('Movies'), shows: view('Shows'), plain: by(m1, 'Plain Loose').Id, tagged: by(m1, 'Tagged Loose').Id, looseOne: by(m2, 'Loose One').Id, folderMovie: by(m2, 'Folder Movie (2008)').Id, versions: versions.Id, versionSources: (versions.MediaSources || []).map((s) => s.Id), episode: ep.Id, season: ep.SeasonId };",
+      "save": "ids",
+      "full": true
+    },
+    {
+      "name": "movie: the Movies library",
+      "script": "location.hash = '#/movies?topParentId=' + __vars.ids.movies + '&collectionType=movies'; return location.hash;"
+    },
+    {
+      "waitFor": "!!__lmm.page().querySelector('.card[data-id=\"' + __vars.ids.plain + '\"] .itemAction[data-action=menu]')"
+    },
+    {
+      "sleep": 500
+    },
+    {
+      "name": "movie: its card's ⋮",
+      "script": "__s.hash = location.hash; return __lmm.menu(__lmm.page().querySelector('.card[data-id=\"' + __vars.ids.plain + '\"]'));"
+    },
+    {
+      "waitFor": "!!__lmm.sheet() && __lmm.afterRefresh('jflm-move')"
+    },
+    {
+      "sleep": 300
+    },
+    {
+      "name": "a real click on Move media to new location",
+      "click": ".dialogContainer > .actionSheet [data-id=\"jflm-move\"]"
+    },
+    {
+      "name": "the sheet closes, the Move dialog opens and loads",
+      "waitFor": "!__lmm.sheet() && !!__lmm.dialog() && __lmm.loaded()"
+    },
+    {
+      "name": "movie: what moves, where it can go; no plan before the admin asks",
+      "eval": "__lmm.state()",
+      "save": "f1open",
+      "full": true
+    },
+    {
+      "name": "notice at 1366 x 900: the preview-only notice as the dialog opens, no scrolling",
+      "eval": "__lmm.notice()",
+      "save": "noticeOpen",
+      "full": true
+    },
+    {
+      "name": "the intro starts with Preview only; the intro's lead and the footer's note are in view, on top; the page didn't scroll",
+      "assert": "(() => { const n = __vars.noticeOpen; return n.view[0] === 1366 && n.view[1] === 900 && n.lead.text === 'Preview only: nothing is moved.' && __lmm.text('.jflm-move-intro').indexOf('Preview only: nothing is moved.') === 0 && __lmm.seen(n.lead) && __lmm.seen(n.note) && /only previews moves/.test(n.note.text) && __lmm.seen(n.close) && n.contentScrollTop === 0 && n.pageScrollY === 0; })()"
+    },
+    {
+      "name": "notice: the dialog's content scrolled to its end",
+      "script": "const c = __lmm.q('.formDialogContent'); c.scrollTop = c.scrollHeight; return c.scrollTop;"
+    },
+    {
+      "sleep": 300
+    },
+    {
+      "name": "notice: the notice with the content scrolled to its end",
+      "eval": "__lmm.notice()",
+      "save": "noticeEnd",
+      "full": true
+    },
+    {
+      "name": "the footer's note and Close stay in view and on top however far the content scrolls",
+      "assert": "(() => { const n = __vars.noticeEnd; return __lmm.seen(n.note) && __lmm.seen(n.close) && (!n.contentScrolls || n.contentScrollTop > 0) && n.pageScrollY === 0; })()"
+    },
+    {
+      "name": "notice: the content back at its top",
+      "script": "const c = __lmm.q('.formDialogContent'); c.scrollTop = 0; return c.scrollTop;"
+    },
+    {
+      "assert": "__vars.f1open.item === 'Plain Loose (2005)' && __vars.f1open.chip === 'Movie' && /^In Movies: /.test(__vars.f1open.where) && __lmm.tail(__vars.f1open.where, 2) === 'Movies/Plain Loose (2005).mkv' && /^This file moves: /.test(__vars.f1open.summary) && __vars.f1open.lists.length === 0"
+    },
+    {
+      "assert": "JSON.stringify(__vars.f1open.libraries) === JSON.stringify(['Movies (its library now)', 'Big Folders', 'Big Loose', 'Movies 2 (can\\'t be chosen)', 'Watch']) && __vars.f1open.library === 'Movies (its library now)' && !__vars.f1open.locationShown"
+    },
+    {
+      "assert": "__vars.f1open.count === 'No folders here.' && JSON.stringify(__vars.f1open.crumbs) === JSON.stringify(['Movies']) && __vars.f1open.newFolderLabel === 'New folder (optional)' && __vars.f1open.wrapShown && __vars.f1open.wrapChecked === false"
+    },
+    {
+      "assert": "__vars.f1open.plans === 0 && __vars.f1open.status === 'Choose where it goes, then the preview shows what the move would do.' && __vars.f1open.again === 'Preview this folder' && !__vars.f1open.runShown && __vars.f1open.noteShown"
+    },
+    {
+      "script": "__s.plans = __lmm.log('/LibraryMaintenance/Move/Plan').length; return __s.plans;"
+    },
+    {
+      "script": "const el = document.querySelector(\".dialogContainer .jflm-move-dialog .jflm-move-preview-again\"); if (el) el.scrollIntoView({ block: 'center', behavior: 'instant' }); return !!el;"
+    },
+    {
+      "sleep": 200
+    },
+    {
+      "name": "movie: Preview this folder (its own folder: a real click)",
+      "click": ".dialogContainer .jflm-move-dialog .jflm-move-preview-again"
+    },
+    {
+      "name": "the preview settled on a new plan",
+      "waitFor": "__lmm.log('/LibraryMaintenance/Move/Plan').length > __s.plans && __lmm.settled()"
+    },
+    {
+      "name": "what the dialog shows",
+      "eval": "__lmm.state()",
+      "save": "f1same",
+      "full": true
+    },
+    {
+      "assert": "__vars.f1same.blockers.length === 1 && __vars.f1same.blockers[0].code === 'move.destination-invalid' && __vars.f1same.blockers[0].title === 'This destination can\\'t be used' && !!__vars.f1same.blockers[0].message && __vars.f1same.status === '1 blocker: it can\\'t move there now.' && __vars.f1same.again === 'Check again'"
+    },
+    {
+      "script": "__s.plans = __lmm.log('/LibraryMaintenance/Move/Plan').length; return __s.plans;"
+    },
+    {
+      "name": "movie: Big Loose (a loose-file library on the same drive)",
+      "eval": "__lmm.library('Big Loose')"
+    },
+    {
+      "name": "the preview settled on a new plan",
+      "waitFor": "__lmm.log('/LibraryMaintenance/Move/Plan').length > __s.plans && __lmm.settled()"
+    },
+    {
+      "name": "what the dialog shows",
+      "eval": "__lmm.state()",
+      "save": "f1loose",
+      "full": true
+    },
+    {
+      "assert": "__vars.f1loose.blockers.length === 0 && __vars.f1loose.warnings.length === 0 && __vars.f1loose.status === 'It could move there: nothing stands in the way.' && __vars.f1loose.again === 'Preview again'"
+    },
+    {
+      "name": "notice: the content, with a preview, scrolled to its end",
+      "script": "const c = __lmm.q('.formDialogContent'); c.scrollTop = c.scrollHeight; return c.scrollTop;"
+    },
+    {
+      "sleep": 300
+    },
+    {
+      "name": "notice: the notice with a preview, scrolled to its end",
+      "eval": "__lmm.notice()",
+      "save": "noticePlan",
+      "full": true
+    },
+    {
+      "name": "the content scrolls, and the footer's note stays in view and on top",
+      "assert": "(() => { const n = __vars.noticePlan; return n.contentScrolls && n.contentScrollTop > 0 && __lmm.seen(n.note) && __lmm.seen(n.close) && n.pageScrollY === 0; })()"
+    },
+    {
+      "name": "notice: the content back at its top (with a preview)",
+      "script": "const c = __lmm.q('.formDialogContent'); c.scrollTop = 0; return c.scrollTop;"
+    },
+    {
+      "assert": "__lmm.tail(__vars.f1loose.facts.From, 1) === 'Movies' && __lmm.tail(__vars.f1loose.facts.To, 1) === 'Big Loose' && __vars.f1loose.facts.How === 'Instant rename (the same drive)' && /^1 file, /.test(__vars.f1loose.facts.Moves) && __vars.f1loose.facts.Space.indexOf(': no extra space needed (a rename), ') > 0 && __vars.f1loose.facts.Creates === 'No new folder' && !('Its own folder' in __vars.f1loose.facts)"
+    },
+    {
+      "assert": "__vars.f1loose.wrapShown && __vars.f1loose.wrapChecked === false && __vars.f1loose.wrapState === 'As the settings say for this folder.' && !__vars.f1loose.wrapReset && __vars.f1loose.kept.some((k) => k.indexOf('Kept (counted now') === 0) && __vars.f1loose.kept.some((k) => k.indexOf('Regenerated or lost') === 0)"
+    },
+    {
+      "script": "__s.plans = __lmm.log('/LibraryMaintenance/Move/Plan').length; return __s.plans;"
+    },
+    {
+      "name": "movie: Big Folders (a library of movie folders)",
+      "eval": "__lmm.library('Big Folders')"
+    },
+    {
+      "name": "the preview settled on a new plan",
+      "waitFor": "__lmm.log('/LibraryMaintenance/Move/Plan').length > __s.plans && __lmm.settled()"
+    },
+    {
+      "waitFor": "/^Showing \\d+ of 1999 folders\\.$/.test(__lmm.text('.jflm-move-count') || '')"
+    },
+    {
+      "name": "what the dialog shows",
+      "eval": "__lmm.state()",
+      "save": "f1folders",
+      "full": true
+    },
+    {
+      "assert": "__vars.f1folders.blockers.length === 0 && __lmm.tail(__vars.f1folders.facts.To, 2) === 'Big Folders/Plain Loose (2005)' && __lmm.tail(__vars.f1folders.facts.Creates, 2) === 'Big Folders/Plain Loose (2005)' && __vars.f1folders.facts['Its own folder'] === 'Plain Loose (2005)'"
+    },
+    {
+      "assert": "__vars.f1folders.wrapChecked === true && __vars.f1folders.wrapState === 'As the settings say for this folder.' && __vars.f1folders.wrapNameShown && __vars.f1folders.wrapNamePlaceholder === 'Plain Loose (2005)'"
+    },
+    {
+      "assert": "__vars.f1folders.folders[0].name === 'Big Folder 0001 (1951)' && __vars.f1folders.folders[0].badge === 'Movie folder' && __vars.f1folders.folders[0].disabled && /movie's folder can't hold another/.test(__vars.f1folders.folders[0].reason) && __vars.f1folders.folders.length % 200 === 0 && __vars.f1folders.more"
+    },
+    {
+      "screenshot": "lm-move-f1-big-folders.png"
+    },
+    {
+      "name": "movie: More folders (a real click)",
+      "script": "__s.rows = __lmm.folderRows().length; __lmm.q('.jflm-pager-more').scrollIntoView({ block: 'center', behavior: 'instant' }); return __s.rows;"
+    },
+    {
+      "sleep": 300
+    },
+    {
+      "script": "const el = document.querySelector(\".dialogContainer .jflm-move-dialog .jflm-pager-more\"); if (el) el.scrollIntoView({ block: 'center', behavior: 'instant' }); return !!el;"
+    },
+    {
+      "sleep": 200
+    },
+    {
+      "click": ".dialogContainer .jflm-move-dialog .jflm-pager-more"
+    },
+    {
+      "waitFor": "__lmm.folderRows().length >= __s.rows + 200 && __lmm.text('.jflm-move-count') === 'Showing ' + __lmm.folderRows().length + ' of 1999 folders.'"
+    },
+    {
+      "name": "movie: the filter (typed)",
+      "type": "0123",
+      "selector": ".dialogContainer .jflm-move-dialog input.jflm-searchbox",
+      "clear": true
+    },
+    {
+      "waitFor": "__lmm.text('.jflm-move-count') === '1 folder.' && __lmm.folderRows().length === 1 && __lmm.folderRows()[0].name === 'Big Folder 0123 (2003)'"
+    },
+    {
+      "name": "movie: a filter that matches nothing",
+      "type": "no such folder",
+      "selector": ".dialogContainer .jflm-move-dialog input.jflm-searchbox",
+      "clear": true
+    },
+    {
+      "waitFor": "__lmm.text('.jflm-move-count') === 'No folder here matches \"no such folder\".' && __lmm.folderRows().length === 0"
+    },
+    {
+      "script": "return __lmm.input('input.jflm-searchbox', '');"
+    },
+    {
+      "waitFor": "/^Showing \\d+ of 1999 folders\\.$/.test(__lmm.text('.jflm-move-count') || '')"
+    },
+    {
+      "script": "__s.plans = __lmm.log('/LibraryMaintenance/Move/Plan').length; return __s.plans;"
+    },
+    {
+      "name": "movie: Put it in its own folder: off (a real click)",
+      "script": "__lmm.q('input.jflm-move-wrap').scrollIntoView({ block: 'center', behavior: 'instant' }); return true;"
+    },
+    {
+      "script": "const el = document.querySelector(\".dialogContainer .jflm-move-dialog input.jflm-move-wrap\"); if (el) el.scrollIntoView({ block: 'center', behavior: 'instant' }); return !!el;"
+    },
+    {
+      "sleep": 200
+    },
+    {
+      "click": ".dialogContainer .jflm-move-dialog input.jflm-move-wrap"
+    },
+    {
+      "name": "the preview settled on a new plan",
+      "waitFor": "__lmm.log('/LibraryMaintenance/Move/Plan').length > __s.plans && __lmm.settled()"
+    },
+    {
+      "name": "what the dialog shows",
+      "eval": "__lmm.state()",
+      "save": "f1nowrap",
+      "full": true
+    },
+    {
+      "assert": "__vars.f1nowrap.wrapChecked === false && __vars.f1nowrap.wrapReset && __vars.f1nowrap.wrapState === '' && __lmm.tail(__vars.f1nowrap.facts.To, 1) === 'Big Folders' && __vars.f1nowrap.facts.Creates === 'No new folder' && __lmm.log('/LibraryMaintenance/Move/Plan').length === __s.plans + 1"
+    },
+    {
+      "script": "__s.plans = __lmm.log('/LibraryMaintenance/Move/Plan').length; return __s.plans;"
+    },
+    {
+      "script": "const el = document.querySelector(\".dialogContainer .jflm-move-dialog .jflm-move-wrap-reset\"); if (el) el.scrollIntoView({ block: 'center', behavior: 'instant' }); return !!el;"
+    },
+    {
+      "sleep": 200
+    },
+    {
+      "name": "movie: Use the default (a real click)",
+      "click": ".dialogContainer .jflm-move-dialog .jflm-move-wrap-reset"
+    },
+    {
+      "name": "the preview settled on a new plan",
+      "waitFor": "__lmm.log('/LibraryMaintenance/Move/Plan').length > __s.plans && __lmm.settled()"
+    },
+    {
+      "name": "what the dialog shows",
+      "eval": "__lmm.state()",
+      "save": "f1default",
+      "full": true
+    },
+    {
+      "assert": "__vars.f1default.wrapChecked === true && !__vars.f1default.wrapReset && __vars.f1default.facts['Its own folder'] === 'Plain Loose (2005)'"
+    },
+    {
+      "script": "__s.plans = __lmm.log('/LibraryMaintenance/Move/Plan').length; return __s.plans;"
+    },
+    {
+      "name": "movie: its folder's name (typed)",
+      "type": "Plain Loose Shelf",
+      "selector": ".dialogContainer .jflm-move-dialog input.jflm-move-wrap-name",
+      "clear": true
+    },
+    {
+      "name": "the preview settled on a new plan",
+      "waitFor": "__lmm.log('/LibraryMaintenance/Move/Plan').length > __s.plans && __lmm.settled()"
+    },
+    {
+      "name": "what the dialog shows",
+      "eval": "__lmm.state()",
+      "save": "f1wrapname",
+      "full": true
+    },
+    {
+      "assert": "__vars.f1wrapname.facts['Its own folder'] === 'Plain Loose Shelf' && __lmm.tail(__vars.f1wrapname.facts.To, 2) === 'Big Folders/Plain Loose Shelf'"
+    },
+    {
+      "script": "__s.plans = __lmm.log('/LibraryMaintenance/Move/Plan').length; return __lmm.input('input.jflm-move-wrap-name', '');"
+    },
+    {
+      "name": "the preview settled on a new plan",
+      "waitFor": "__lmm.log('/LibraryMaintenance/Move/Plan').length > __s.plans && __lmm.settled()"
+    },
+    {
+      "script": "__s.plans = __lmm.log('/LibraryMaintenance/Move/Plan').length; return __s.plans;"
+    },
+    {
+      "name": "movie: New folder (typed)",
+      "type": "New Shelf",
+      "selector": ".dialogContainer .jflm-move-dialog input.jflm-move-new-folder",
+      "clear": true
+    },
+    {
+      "name": "the preview settled on a new plan",
+      "waitFor": "__lmm.log('/LibraryMaintenance/Move/Plan').length > __s.plans && __lmm.settled()"
+    },
+    {
+      "name": "what the dialog shows",
+      "eval": "__lmm.state()",
+      "save": "f1new",
+      "full": true
+    },
+    {
+      "assert": "__vars.f1new.blockers.length === 0 && __lmm.tail(__vars.f1new.facts.To, 2) === 'Big Folders/New Shelf' && !('Its own folder' in __vars.f1new.facts) && __vars.f1new.facts.Creates.split('; ').map((p) => __lmm.tail(p, 2)).indexOf('Big Folders/New Shelf') >= 0 && __lmm.log('/LibraryMaintenance/Move/Plan').length === __s.plans + 1"
+    },
+    {
+      "screenshot": "lm-move-f1-new-folder.png"
+    },
+    {
+      "name": "movie: a folder name Windows refuses (typed)",
+      "type": "Bad:Name",
+      "selector": ".dialogContainer .jflm-move-dialog input.jflm-move-new-folder",
+      "clear": true
+    },
+    {
+      "name": "no plan: the place can't be previewed",
+      "waitFor": "__lmm.text('.jflm-move-preview-status') === 'This place can\\'t be previewed; choose another.'"
+    },
+    {
+      "name": "what the dialog shows",
+      "eval": "__lmm.state()",
+      "save": "f1bad",
+      "full": true
+    },
+    {
+      "assert": "__vars.f1bad.newFolderError === 'A folder name can\\'t hold any of < > : \" / \\\\ | ? *.' && __vars.f1bad.newFolderInvalid === 'true' && Object.keys(__vars.f1bad.facts).length === 0"
+    },
+    {
+      "script": "__s.plans = __lmm.log('/LibraryMaintenance/Move/Plan').length; return __lmm.input('input.jflm-move-new-folder', '');"
+    },
+    {
+      "name": "the preview settled on a new plan",
+      "waitFor": "__lmm.log('/LibraryMaintenance/Move/Plan').length > __s.plans && __lmm.settled()"
+    },
+    {
+      "name": "another drive: Movies 2",
+      "eval": "__lmm.library('Movies 2')"
+    },
+    {
+      "name": "no plan: the place can't be previewed",
+      "waitFor": "__lmm.text('.jflm-move-preview-status') === 'This place can\\'t be previewed; choose another.'"
+    },
+    {
+      "name": "what the dialog shows",
+      "eval": "__lmm.state()",
+      "save": "f3",
+      "full": true
+    },
+    {
+      "assert": "__vars.f3.library === 'Movies 2 (can\\'t be chosen)' && /^Movies 2 \\(.+\\) can't be chosen\\. It is on another drive\\. Moving between drives comes with series and season moves, in a later version\\.$/.test(__vars.f3.locationNote) && !__vars.f3.browseShown && !__vars.f3.newFolderShown && !__vars.f3.wrapShown && Object.keys(__vars.f3.facts).length === 0"
+    },
+    {
+      "screenshot": "lm-move-f3-other-drive.png"
+    },
+    {
+      "script": "const el = document.querySelector(\".dialogContainer .jflm-move-dialog .jflm-move-close\"); if (el) el.scrollIntoView({ block: 'center', behavior: 'instant' }); return !!el;"
+    },
+    {
+      "sleep": 200
+    },
+    {
+      "name": "movie: Close (a real click)",
+      "click": ".dialogContainer .jflm-move-dialog .jflm-move-close"
+    },
+    {
+      "waitFor": "!__lmm.dialog()"
+    },
+    {
+      "assert": "location.hash === __s.hash",
+      "message": "Close left the page"
+    },
+    {
+      "name": "sidecars: its details page",
+      "script": "location.hash = '#/details?id=' + __vars.ids.looseOne; return location.hash;"
+    },
+    {
+      "waitFor": "location.hash.indexOf(__vars.ids.looseOne) >= 0 && !!document.querySelector('.itemDetailPage:not(.hide) .btnMoreCommands:not(.hide)')"
+    },
+    {
+      "sleep": 1000
+    },
+    {
+      "name": "sidecars: More",
+      "script": "__s.hash = location.hash; document.querySelector('.itemDetailPage:not(.hide) .btnMoreCommands').click(); return true;"
+    },
+    {
+      "waitFor": "!!__lmm.sheet() && __lmm.afterRefresh('jflm-move')"
+    },
+    {
+      "sleep": 300
+    },
+    {
+      "name": "a real click on Move media to new location",
+      "click": ".dialogContainer > .actionSheet [data-id=\"jflm-move\"]"
+    },
+    {
+      "name": "the sheet closes, the Move dialog opens and loads",
+      "waitFor": "!__lmm.sheet() && !!__lmm.dialog() && __lmm.loaded()"
+    },
+    {
+      "name": "what the dialog shows",
+      "eval": "__lmm.state()",
+      "save": "f1s",
+      "full": true
+    },
+    {
+      "assert": "__vars.f1s.item === 'Loose One (2001)' && /^This file and 3 sidecar files move together: /.test(__vars.f1s.summary) && JSON.stringify(__vars.f1s.lists) === JSON.stringify(['Sidecar files (3)']) && __vars.f1s.libraries[0] === 'Movies 2 (its library now)' && __vars.f1s.libraries.slice(1).every((l) => / \\(can't be chosen\\)$/.test(l))"
+    },
+    {
+      "assert": "__vars.f1s.count === '11 folders.' && __vars.f1s.folders.every((f) => f.badge === 'Movie folder' && f.disabled && !!f.reason)"
+    },
+    {
+      "script": "__s.plans = __lmm.log('/LibraryMaintenance/Move/Plan').length; return __s.plans;"
+    },
+    {
+      "name": "sidecars: New folder Loose One (2001) (typed)",
+      "type": "Loose One (2001)",
+      "selector": ".dialogContainer .jflm-move-dialog input.jflm-move-new-folder",
+      "clear": true
+    },
+    {
+      "name": "the preview settled on a new plan",
+      "waitFor": "__lmm.log('/LibraryMaintenance/Move/Plan').length > __s.plans && __lmm.settled()"
+    },
+    {
+      "name": "what the dialog shows",
+      "eval": "__lmm.state()",
+      "save": "f1snew",
+      "full": true
+    },
+    {
+      "assert": "__vars.f1snew.blockers.length === 0 && /^4 files, /.test(__vars.f1snew.facts.Moves) && __lmm.tail(__vars.f1snew.facts.Creates, 2) === 'Movies 2/Loose One (2001)' && __lmm.tail(__vars.f1snew.facts.To, 2) === 'Movies 2/Loose One (2001)' && __vars.f1snew.facts.How === 'Instant rename (the same drive)'"
+    },
+    {
+      "screenshot": "lm-move-f1-sidecars.png"
+    },
+    {
+      "script": "const el = document.querySelector(\".dialogContainer .jflm-move-dialog .jflm-move-close\"); if (el) el.scrollIntoView({ block: 'center', behavior: 'instant' }); return !!el;"
+    },
+    {
+      "sleep": 200
+    },
+    {
+      "name": "Close (a real click)",
+      "click": ".dialogContainer .jflm-move-dialog .jflm-move-close"
+    },
+    {
+      "waitFor": "!__lmm.dialog()"
+    },
+    {
+      "assert": "location.hash === __s.hash",
+      "message": "Close left the details page"
+    },
+    {
+      "name": "own folder: its details page",
+      "script": "location.hash = '#/details?id=' + __vars.ids.folderMovie; return location.hash;"
+    },
+    {
+      "waitFor": "location.hash.indexOf(__vars.ids.folderMovie) >= 0 && !!document.querySelector('.itemDetailPage:not(.hide) .btnMoreCommands:not(.hide)')"
+    },
+    {
+      "sleep": 1000
+    },
+    {
+      "name": "own folder: More",
+      "script": "__s.hash = location.hash; document.querySelector('.itemDetailPage:not(.hide) .btnMoreCommands').click(); return true;"
+    },
+    {
+      "waitFor": "!!__lmm.sheet() && __lmm.afterRefresh('jflm-move')"
+    },
+    {
+      "sleep": 300
+    },
+    {
+      "name": "a real click on Move media to new location",
+      "click": ".dialogContainer > .actionSheet [data-id=\"jflm-move\"]"
+    },
+    {
+      "name": "the sheet closes, the Move dialog opens and loads",
+      "waitFor": "!__lmm.sheet() && !!__lmm.dialog() && __lmm.loaded()"
+    },
+    {
+      "name": "what the dialog shows",
+      "eval": "__lmm.state()",
+      "save": "f1b",
+      "full": true
+    },
+    {
+      "assert": "__vars.f1b.item === 'Folder Movie (2008)' && /^The whole folder Folder Movie \\(2008\\) moves: 1 file, 0 subfolders, /.test(__vars.f1b.summary) && !__vars.f1b.wrapShown"
+    },
+    {
+      "assert": "(() => { const own = __vars.f1b.folders.find((f) => f.name === 'Folder Movie (2008)'); const other = __vars.f1b.folders.find((f) => f.name === 'Other Folder (2011)'); return own && own.badge === 'This item\\'s folder' && own.disabled && own.reason === 'This is the item\\'s own folder.' && other && other.badge === 'Movie folder' && other.disabled; })()"
+    },
+    {
+      "script": "__s.plans = __lmm.log('/LibraryMaintenance/Move/Plan').length; return __s.plans;"
+    },
+    {
+      "name": "own folder: a real click on another movie's folder does nothing",
+      "script": "const b = __lmm.folder(\"Other Folder (2011)\"); if (b) b.scrollIntoView({ block: 'center', behavior: 'instant' }); return __lmm.target(b, 'folder');"
+    },
+    {
+      "sleep": 200
+    },
+    {
+      "script": "const el = document.querySelector(\"[data-lmm-target=\\\"folder\\\"]\"); if (el) el.scrollIntoView({ block: 'center', behavior: 'instant' }); return !!el;"
+    },
+    {
+      "sleep": 200
+    },
+    {
+      "click": "[data-lmm-target=\"folder\"]"
+    },
+    {
+      "sleep": 500
+    },
+    {
+      "assert": "JSON.stringify(__lmm.state().crumbs) === JSON.stringify(['Movies 2']) && __lmm.log('/LibraryMaintenance/Move/Plan').length === __s.plans"
+    },
+    {
+      "script": "__s.plans = __lmm.log('/LibraryMaintenance/Move/Plan').length; return __s.plans;"
+    },
+    {
+      "name": "own folder: New folder Shelf (typed)",
+      "type": "Shelf",
+      "selector": ".dialogContainer .jflm-move-dialog input.jflm-move-new-folder",
+      "clear": true
+    },
+    {
+      "name": "the preview settled on a new plan",
+      "waitFor": "__lmm.log('/LibraryMaintenance/Move/Plan').length > __s.plans && __lmm.settled()"
+    },
+    {
+      "name": "what the dialog shows",
+      "eval": "__lmm.state()",
+      "save": "f1bnew",
+      "full": true
+    },
+    {
+      "assert": "__vars.f1bnew.blockers.length === 0 && __lmm.tail(__vars.f1bnew.facts.To, 3) === 'Movies 2/Shelf/Folder Movie (2008)' && __lmm.tail(__vars.f1bnew.facts.Creates, 2) === 'Movies 2/Shelf' && /^1 file, /.test(__vars.f1bnew.facts.Moves)"
+    },
+    {
+      "screenshot": "lm-move-f1b-folder.png"
+    },
+    {
+      "script": "const el = document.querySelector(\".dialogContainer .jflm-move-dialog .jflm-move-close\"); if (el) el.scrollIntoView({ block: 'center', behavior: 'instant' }); return !!el;"
+    },
+    {
+      "sleep": 200
+    },
+    {
+      "name": "Close (a real click)",
+      "click": ".dialogContainer .jflm-move-dialog .jflm-move-close"
+    },
+    {
+      "waitFor": "!__lmm.dialog()"
+    },
+    {
+      "name": "versions: its details page",
+      "script": "location.hash = '#/details?id=' + __vars.ids.versions; return location.hash;"
+    },
+    {
+      "waitFor": "location.hash.indexOf(__vars.ids.versions) >= 0 && !!document.querySelector('.itemDetailPage:not(.hide) .btnMoreCommands:not(.hide)') && document.querySelectorAll('.itemDetailPage:not(.hide) select.selectSource option').length === 2"
+    },
+    {
+      "sleep": 800
+    },
+    {
+      "name": "versions: the other version chosen",
+      "script": "const sel = document.querySelector('.itemDetailPage:not(.hide) select.selectSource'); const other = [...sel.options].map((o) => o.value).find((v) => v !== sel.value); __s.v2 = { before: sel.value, chosen: other }; sel.value = other; sel.dispatchEvent(new Event('change', { bubbles: true })); return __s.v2;",
+      "save": "v2",
+      "full": true
+    },
+    {
+      "sleep": 800
+    },
+    {
+      "script": "document.querySelector('.itemDetailPage:not(.hide) .btnMoreCommands').click(); return true;"
+    },
+    {
+      "waitFor": "!!__lmm.sheet() && __lmm.afterRefresh('jflm-move')"
+    },
+    {
+      "sleep": 300
+    },
+    {
+      "name": "a real click on Move media to new location",
+      "click": ".dialogContainer > .actionSheet [data-id=\"jflm-move\"]"
+    },
+    {
+      "name": "the sheet closes, the Move dialog opens and loads",
+      "waitFor": "!__lmm.sheet() && !!__lmm.dialog() && __lmm.loaded()"
+    },
+    {
+      "name": "what the dialog shows",
+      "eval": "__lmm.state()",
+      "save": "f1bv",
+      "full": true
+    },
+    {
+      "assert": "__lmm.key(__lmm.log('/LibraryMaintenance/Move/Source').slice(-1)[0].query.itemId) === __lmm.key(__vars.v2.chosen) && __vars.v2.chosen !== __vars.v2.before && !!__vars.f1bv.retargeted && /^The whole folder Versions Film \\(2015\\) moves: 2 files, /.test(__vars.f1bv.summary) && JSON.stringify(__vars.f1bv.lists) === JSON.stringify(['Versions (1)'])"
+    },
+    {
+      "screenshot": "lm-move-f1b-version.png"
+    },
+    {
+      "script": "const el = document.querySelector(\".dialogContainer .jflm-move-dialog .jflm-move-close\"); if (el) el.scrollIntoView({ block: 'center', behavior: 'instant' }); return !!el;"
+    },
+    {
+      "sleep": 200
+    },
+    {
+      "name": "Close (a real click)",
+      "click": ".dialogContainer .jflm-move-dialog .jflm-move-close"
+    },
+    {
+      "waitFor": "!__lmm.dialog()"
+    },
+    {
+      "name": "episode: the season's page",
+      "script": "location.hash = '#/details?id=' + __vars.ids.season; return location.hash;"
+    },
+    {
+      "waitFor": "location.hash.indexOf(__vars.ids.season) >= 0 && !!document.querySelector('.itemDetailPage:not(.hide) .listItem[data-id=\"' + __vars.ids.episode + '\"] .itemAction[data-action=menu]')"
+    },
+    {
+      "sleep": 800
+    },
+    {
+      "name": "episode: the episode row's ⋮",
+      "script": "__s.hash = location.hash; const row = document.querySelector('.itemDetailPage:not(.hide) .listItem[data-id=\"' + __vars.ids.episode + '\"]'); row.querySelector('.itemAction[data-action=menu]').click(); return row.getAttribute('data-id');"
+    },
+    {
+      "waitFor": "!!__lmm.sheet() && __lmm.afterRefresh('jflm-move')"
+    },
+    {
+      "sleep": 300
+    },
+    {
+      "name": "a real click on Move media to new location",
+      "click": ".dialogContainer > .actionSheet [data-id=\"jflm-move\"]"
+    },
+    {
+      "name": "the sheet closes, the Move dialog opens and loads",
+      "waitFor": "!__lmm.sheet() && !!__lmm.dialog() && __lmm.loaded()"
+    },
+    {
+      "name": "what the dialog shows",
+      "eval": "__lmm.state()",
+      "save": "f2",
+      "full": true
+    },
+    {
+      "assert": "__vars.f2.chip === 'Episode' && /^This file moves: /.test(__vars.f2.summary) && JSON.stringify(__vars.f2.libraries) === JSON.stringify(['Shows (its library now)']) && __vars.f2.newFolderLabel === 'New series folder (optional)' && __vars.f2.newFolderPlaceholder === 'Sample Show (2020) [tvdbid-920001]' && !__vars.f2.wrapShown"
+    },
+    {
+      "assert": "__vars.f2.folders.length === 2 && __vars.f2.folders.every((f) => f.badge === 'Series' && !f.disabled)"
+    },
+    {
+      "script": "__s.plans = __lmm.log('/LibraryMaintenance/Move/Plan').length; return __s.plans;"
+    },
+    {
+      "script": "const el = document.querySelector(\".dialogContainer .jflm-move-dialog .jflm-move-preview-again\"); if (el) el.scrollIntoView({ block: 'center', behavior: 'instant' }); return !!el;"
+    },
+    {
+      "sleep": 200
+    },
+    {
+      "name": "episode: Preview this folder (the library folder)",
+      "click": ".dialogContainer .jflm-move-dialog .jflm-move-preview-again"
+    },
+    {
+      "name": "the preview settled on a new plan",
+      "waitFor": "__lmm.log('/LibraryMaintenance/Move/Plan').length > __s.plans && __lmm.settled()"
+    },
+    {
+      "name": "what the dialog shows",
+      "eval": "__lmm.state()",
+      "save": "f2root",
+      "full": true
+    },
+    {
+      "assert": "__vars.f2root.blockers.length === 1 && __vars.f2root.blockers[0].code === 'move.episode-needs-series' && __vars.f2root.blockers[0].title === 'An episode needs a series folder'"
+    },
+    {
+      "script": "__s.plans = __lmm.log('/LibraryMaintenance/Move/Plan').length; return __s.plans;"
+    },
+    {
+      "name": "episode: New series folder (typed)",
+      "type": "Sample Show Two (2024)",
+      "selector": ".dialogContainer .jflm-move-dialog input.jflm-move-new-folder",
+      "clear": true
+    },
+    {
+      "name": "the preview settled on a new plan",
+      "waitFor": "__lmm.log('/LibraryMaintenance/Move/Plan').length > __s.plans && __lmm.settled()"
+    },
+    {
+      "name": "what the dialog shows",
+      "eval": "__lmm.state()",
+      "save": "f2new",
+      "full": true
+    },
+    {
+      "assert": "__vars.f2new.blockers.length === 0 && __vars.f2new.warnings.length === 1 && __vars.f2new.warnings[0].code === 'move.new-series' && __vars.f2new.warnings[0].title === 'This makes a new series' && __vars.f2new.status === 'It could move there, with 1 warning.'"
+    },
+    {
+      "screenshot": "lm-move-f2-new-series.png"
+    },
+    {
+      "script": "__s.plans = __lmm.log('/LibraryMaintenance/Move/Plan').length; return __lmm.input('input.jflm-move-new-folder', '');"
+    },
+    {
+      "name": "the preview settled on a new plan",
+      "waitFor": "__lmm.log('/LibraryMaintenance/Move/Plan').length > __s.plans && __lmm.settled()"
+    },
+    {
+      "script": "__s.plans = __lmm.log('/LibraryMaintenance/Move/Plan').length; return __s.plans;"
+    },
+    {
+      "name": "episode: a real click on its series' folder",
+      "script": "const b = __lmm.folder(\"Sample Show (2020) [tvdbid-920001]\"); if (b) b.scrollIntoView({ block: 'center', behavior: 'instant' }); return __lmm.target(b, 'folder');"
+    },
+    {
+      "sleep": 200
+    },
+    {
+      "script": "const el = document.querySelector(\"[data-lmm-target=\\\"folder\\\"]\"); if (el) el.scrollIntoView({ block: 'center', behavior: 'instant' }); return !!el;"
+    },
+    {
+      "sleep": 200
+    },
+    {
+      "click": "[data-lmm-target=\"folder\"]"
+    },
+    {
+      "name": "the preview settled on a new plan",
+      "waitFor": "__lmm.log('/LibraryMaintenance/Move/Plan').length > __s.plans && __lmm.settled()"
+    },
+    {
+      "waitFor": "__lmm.text('.jflm-move-count') === '2 folders.'"
+    },
+    {
+      "name": "what the dialog shows",
+      "eval": "__lmm.state()",
+      "save": "f2series",
+      "full": true
+    },
+    {
+      "assert": "JSON.stringify(__vars.f2series.crumbs) === JSON.stringify(['Shows', 'Sample Show (2020) [tvdbid-920001]']) && __vars.f2series.newFolderLabel === 'New folder (optional)' && __vars.f2series.blockers.length === 0"
+    },
+    {
+      "assert": "(() => { const s1 = __vars.f2series.folders.find((f) => f.name === 'Season 01'); const s2 = __vars.f2series.folders.find((f) => f.name === 'Season 02'); return s1 && s1.badge === 'Where it is now' && s2 && s2.badge === 'Season' && !s2.disabled; })()"
+    },
+    {
+      "script": "__s.plans = __lmm.log('/LibraryMaintenance/Move/Plan').length; return __s.plans;"
+    },
+    {
+      "name": "episode: a real click on Season 02",
+      "script": "const b = __lmm.folder(\"Season 02\"); if (b) b.scrollIntoView({ block: 'center', behavior: 'instant' }); return __lmm.target(b, 'folder');"
+    },
+    {
+      "sleep": 200
+    },
+    {
+      "script": "const el = document.querySelector(\"[data-lmm-target=\\\"folder\\\"]\"); if (el) el.scrollIntoView({ block: 'center', behavior: 'instant' }); return !!el;"
+    },
+    {
+      "sleep": 200
+    },
+    {
+      "click": "[data-lmm-target=\"folder\"]"
+    },
+    {
+      "name": "the preview settled on a new plan",
+      "waitFor": "__lmm.log('/LibraryMaintenance/Move/Plan').length > __s.plans && __lmm.settled()"
+    },
+    {
+      "name": "what the dialog shows",
+      "eval": "__lmm.state()",
+      "save": "f2s2",
+      "full": true
+    },
+    {
+      "assert": "JSON.stringify(__vars.f2s2.crumbs) === JSON.stringify(['Shows', 'Sample Show (2020) [tvdbid-920001]', 'Season 02']) && __vars.f2s2.blockers.length === 0 && __vars.f2s2.warnings.length === 1 && __vars.f2s2.warnings[0].title === 'The season will come from the folder\\'s name' && __lmm.tail(__vars.f2s2.facts.To, 2) === 'Sample Show (2020) [tvdbid-920001]/Season 02'"
+    },
+    {
+      "screenshot": "lm-move-f2-season.png"
+    },
+    {
+      "script": "__s.plans = __lmm.log('/LibraryMaintenance/Move/Plan').length; return __s.plans;"
+    },
+    {
+      "name": "episode: the breadcrumb back to Shows (a real click)",
+      "script": "return __lmm.target(__lmm.all('.jflm-move-crumb')[0], 'crumb');"
+    },
+    {
+      "script": "const el = document.querySelector(\"[data-lmm-target=\\\"crumb\\\"]\"); if (el) el.scrollIntoView({ block: 'center', behavior: 'instant' }); return !!el;"
+    },
+    {
+      "sleep": 200
+    },
+    {
+      "click": "[data-lmm-target=\"crumb\"]"
+    },
+    {
+      "name": "the preview settled on a new plan",
+      "waitFor": "__lmm.log('/LibraryMaintenance/Move/Plan').length > __s.plans && __lmm.settled()"
+    },
+    {
+      "assert": "JSON.stringify(__lmm.state().crumbs) === JSON.stringify(['Shows']) && __lmm.state().blockers.some((b) => b.code === 'move.episode-needs-series')"
+    },
+    {
+      "script": "const el = document.querySelector(\".dialogContainer .jflm-move-dialog .jflm-move-close\"); if (el) el.scrollIntoView({ block: 'center', behavior: 'instant' }); return !!el;"
+    },
+    {
+      "sleep": 200
+    },
+    {
+      "name": "Close (a real click)",
+      "click": ".dialogContainer .jflm-move-dialog .jflm-move-close"
+    },
+    {
+      "waitFor": "!__lmm.dialog()"
+    },
+    {
+      "assert": "location.hash === __s.hash",
+      "message": "Close left the season's page"
+    },
+    {
+      "name": "playing: the Movies library",
+      "script": "location.hash = '#/movies?topParentId=' + __vars.ids.movies + '&collectionType=movies'; return location.hash;"
+    },
+    {
+      "waitFor": "!!__lmm.page().querySelector('.card[data-id=\"' + __vars.ids.plain + '\"] .itemAction[data-action=menu]')"
+    },
+    {
+      "sleep": 500
+    },
+    {
+      "name": "playing: its card's ⋮",
+      "script": "__s.hash = location.hash; return __lmm.menu(__lmm.page().querySelector('.card[data-id=\"' + __vars.ids.plain + '\"]'));"
+    },
+    {
+      "waitFor": "!!__lmm.sheet() && __lmm.afterRefresh('jflm-move')"
+    },
+    {
+      "sleep": 300
+    },
+    {
+      "name": "a real click on Move media to new location",
+      "click": ".dialogContainer > .actionSheet [data-id=\"jflm-move\"]"
+    },
+    {
+      "name": "the sheet closes, the Move dialog opens and loads",
+      "waitFor": "!__lmm.sheet() && !!__lmm.dialog() && __lmm.loaded()"
+    },
+    {
+      "script": "__s.plans = __lmm.log('/LibraryMaintenance/Move/Plan').length; return __s.plans;"
+    },
+    {
+      "eval": "__lmm.library('Big Loose')"
+    },
+    {
+      "name": "the preview settled on a new plan",
+      "waitFor": "__lmm.log('/LibraryMaintenance/Move/Plan').length > __s.plans && __lmm.settled()"
+    },
+    {
+      "assert": "__lmm.state().blockers.length === 0"
+    },
+    {
+      "name": "playing: this session starts playing it (paused at 0)",
+      "script": "await ApiClient.ajax({ type: 'POST', url: ApiClient.getUrl('Sessions/Playing'), data: JSON.stringify({ ItemId: __vars.ids.plain, MediaSourceId: __vars.ids.plain, PlaySessionId: 'jflm-move-webcheck', PositionTicks: 0, IsPaused: true, CanSeek: false, PlayMethod: 'DirectPlay' }), contentType: 'application/json' }); __s.playing = true; return true;"
+    },
+    {
+      "sleep": 500
+    },
+    {
+      "script": "__s.plans = __lmm.log('/LibraryMaintenance/Move/Plan').length; return __s.plans;"
+    },
+    {
+      "script": "const el = document.querySelector(\".dialogContainer .jflm-move-dialog .jflm-move-preview-again\"); if (el) el.scrollIntoView({ block: 'center', behavior: 'instant' }); return !!el;"
+    },
+    {
+      "sleep": 200
+    },
+    {
+      "name": "playing: Preview again (a real click)",
+      "click": ".dialogContainer .jflm-move-dialog .jflm-move-preview-again"
+    },
+    {
+      "name": "the preview settled on a new plan",
+      "waitFor": "__lmm.log('/LibraryMaintenance/Move/Plan').length > __s.plans && __lmm.settled()"
+    },
+    {
+      "name": "what the dialog shows",
+      "eval": "__lmm.state()",
+      "save": "f4playing",
+      "full": true
+    },
+    {
+      "assert": "__vars.f4playing.blockers.length === 1 && __vars.f4playing.blockers[0].code === 'move.playing' && __vars.f4playing.blockers[0].title === 'Someone is playing it' && /^Playing on .+; stop playback first\\.$/.test(__vars.f4playing.blockers[0].message) && __vars.f4playing.again === 'Check again'"
+    },
+    {
+      "screenshot": "lm-move-f4-playing.png"
+    },
+    {
+      "name": "playing: playback stops",
+      "script": "await ApiClient.ajax({ type: 'POST', url: ApiClient.getUrl('Sessions/Playing/Stopped'), data: JSON.stringify({ ItemId: __vars.ids.plain, MediaSourceId: __vars.ids.plain, PlaySessionId: 'jflm-move-webcheck', PositionTicks: 0 }), contentType: 'application/json' }); __s.playing = false; return true;"
+    },
+    {
+      "sleep": 500
+    },
+    {
+      "script": "__s.plans = __lmm.log('/LibraryMaintenance/Move/Plan').length; return __s.plans;"
+    },
+    {
+      "script": "const el = document.querySelector(\".dialogContainer .jflm-move-dialog .jflm-move-preview-again\"); if (el) el.scrollIntoView({ block: 'center', behavior: 'instant' }); return !!el;"
+    },
+    {
+      "sleep": 200
+    },
+    {
+      "name": "playing: Check again (a real click)",
+      "click": ".dialogContainer .jflm-move-dialog .jflm-move-preview-again"
+    },
+    {
+      "name": "the preview settled on a new plan",
+      "waitFor": "__lmm.log('/LibraryMaintenance/Move/Plan').length > __s.plans && __lmm.settled()"
+    },
+    {
+      "assert": "__lmm.state().blockers.length === 0 && __lmm.state().status === 'It could move there: nothing stands in the way.'"
+    },
+    {
+      "script": "const el = document.querySelector(\".dialogContainer .jflm-move-dialog .jflm-move-close\"); if (el) el.scrollIntoView({ block: 'center', behavior: 'instant' }); return !!el;"
+    },
+    {
+      "sleep": 200
+    },
+    {
+      "name": "Close (a real click)",
+      "click": ".dialogContainer .jflm-move-dialog .jflm-move-close"
+    },
+    {
+      "waitFor": "!__lmm.dialog()"
+    },
+    {
+      "name": "playback stopped in any case",
+      "if": "!!__s.playing",
+      "script": "await ApiClient.ajax({ type: 'POST', url: ApiClient.getUrl('Sessions/Playing/Stopped'), data: JSON.stringify({ ItemId: __vars.ids.plain, MediaSourceId: __vars.ids.plain, PlaySessionId: 'jflm-move-webcheck', PositionTicks: 0 }), contentType: 'application/json' }); return true;",
+      "finally": true
+    },
+    {
+      "name": "the dialog asked only to read: Source, Destinations, Folders, Plan, Capabilities, Eligibility",
+      "eval": "[...new Set(__lmm.log().map((e) => e.method + ' ' + e.path.replace(/\\?.*$/, '')))]",
+      "save": "routes",
+      "full": true
+    },
+    {
+      "assert": "__vars.routes.every((r) => /^(GET \\/LibraryMaintenance\\/(Capabilities|Move\\/(Eligibility|Source|Destinations|Folders))|POST \\/LibraryMaintenance\\/Move\\/Plan|POST \\/LibraryMaintenance\\/Diagnostics\\/ClientHealth)$/.test(r)) && __vars.routes.indexOf('POST /LibraryMaintenance/Move/Plan') >= 0"
+    },
+    {
+      "name": "no kit health miss",
+      "assert": "Array.isArray(__lmm.health()) && __lmm.health().length === 0"
+    },
+    {
+      "noExceptions": true
+    }
+  ]
+}

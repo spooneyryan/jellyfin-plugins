@@ -1,0 +1,25 @@
+{
+  "description": "The kit's health check with every anchor there: with a normal build every anchor Bookmarks expects is there, so on the details page and in the player the health check finds nothing: no console warning and no ClientHealth report. As admin, on Long Test Movie.",
+  "steps": [
+    { "name": "health probe in every document", "initScript": { "file": "probes/health-probe.js" } },
+    { "name": "sign in as admin", "login": "admin" },
+    { "name": "the Bookmarks script ran", "waitFor": "!!window.__healthProbe && !!window.__jfkit && !!window.__jfkit.jfbm" },
+    { "name": "a normal build: no renamed anchor", "assert": "window.__jfkit.jfbm.instance.anchors.get('detailButtons').css[0] === '.mainDetailButtons'" },
+    { "name": "find Long Test Movie", "eval": "(await ApiClient.getItems(ApiClient.getCurrentUserId(), { IncludeItemTypes: 'Movie', Recursive: true, SearchTerm: 'Long Test Movie', Limit: 1 })).Items[0].Id", "save": "movieId" },
+    { "name": "open the details page", "goto": "/web/index.html#/details?id=${movieId}" },
+    { "name": "the Add bookmark button and the section", "waitFor": "!!document.querySelector('#itemDetailPage:not(.hide) .mainDetailButtons .btnBookmarkItem') && !!document.querySelector('#itemDetailPage:not(.hide) .jfbm-section')", "timeout": 20000 },
+    { "sleep": 6000 },
+    { "name": "nothing missing on details", "assert": "window.__jfkit.jfbm.health.missing().length === 0" },
+    { "name": "details page with a Play button", "waitFor": "!!document.querySelector('#itemDetailPage:not(.hide) .mainDetailButtons .btnPlay:not(.hide)')", "timeout": 20000 },
+    { "name": "start playback", "click": "#itemDetailPage:not(.hide) .mainDetailButtons .btnPlay:not(.hide)" },
+    { "name": "video page, video playing", "waitFor": "location.hash.indexOf('#/video') === 0 && (v => !!v && !v.paused && v.currentTime > 1)(document.querySelector('.videoPlayerContainer video'))", "timeout": 60000 },
+    { "name": "the three player buttons", "waitFor": "document.querySelectorAll('.videoOsdBottom .buttons .btnBookmarkAdd, .videoOsdBottom .buttons .btnBookmarkRange, .videoOsdBottom .buttons .btnBookmarkList').length === 3", "timeout": 20000 },
+    { "sleep": 6000 },
+    { "name": "nothing missing in the player either", "assert": "window.__jfkit.jfbm.health.missing().length === 0" },
+    { "name": "leave the player", "goto": "/web/index.html#/details?id=${movieId}" },
+    { "name": "details page again", "waitFor": "!!document.querySelector('#itemDetailPage:not(.hide) .jfbm-section')", "timeout": 20000 },
+    { "sleep": 3000 },
+    { "name": "no warning from the health check and no report at all", "assert": "!window.__healthProbe.warnings.some(w => w.indexOf('web anchor') >= 0) && window.__healthProbe.posts.length === 0 && window.__jfkit.jfbm.health.reports() === 0 && window.__jfkit.jfbm.health.missing().length === 0" },
+    { "name": "no uncaught exceptions (the stale CustomRatings tag, and jellyfin-web's own 'player cannot be null' when the player is left, excepted)", "noExceptions": true, "ignore": "/CustomRatings/script|^Error: player cannot be null" }
+  ]
+}

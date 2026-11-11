@@ -1,0 +1,304 @@
+{
+  "description": "Library Maintenance's page in jellyfin-web's TV layout as admin. From every tab, OK opens it and the D-pad's Down lands in its panel (Rebuild on Duplicates, Find duplicate movies' switch on Settings, Refresh on Diagnostics), never in the dashboard's drawer; Up from Rebuild goes back to the tabs. OK on Rebuild keeps the focus on Rebuild while the build runs and after it, and Down then stays in the page. Then the desktop layout: Enter on Rebuild keeps the keyboard's focus there too. Changes only the plugin's in-memory index (two rebuilds).",
+  "timeout": 30000,
+  "steps": [
+    {
+      "name": "sign in as admin",
+      "login": "admin"
+    },
+    {
+      "name": "the web client is ready",
+      "waitFor": "!!window.ApiClient && !!ApiClient.getCurrentUserId()"
+    },
+    {
+      "name": "an index to show: built once if the server has none yet",
+      "eval": "(async () => { const api = async (method, path) => { const r = await fetch(ApiClient.getUrl(path), { method, headers: { Authorization: 'MediaBrowser Token=\"' + ApiClient.accessToken() + '\"', Accept: 'application/json' } }); return { status: r.status, body: r.status === 204 ? null : await r.json() }; }; let index = (await api('GET', 'LibraryMaintenance/Duplicates/Index')).body; if (!index.Version) { await api('POST', 'LibraryMaintenance/Duplicates/Index/Rebuild'); for (let i = 0; i < 300 && (!index.Version || index.Rebuilding); i++) { await new Promise(r => setTimeout(r, 100)); index = (await api('GET', 'LibraryMaintenance/Duplicates/Index')).body; } } return { version: index.Version, movies: index.Movies }; })()",
+      "save": "first",
+      "full": true
+    },
+    {
+      "name": "an index",
+      "assert": "__vars.first.version >= 1"
+    },
+    {
+      "name": "TV layout for this browser",
+      "eval": "(localStorage.setItem('layout', 'tv'), true)"
+    },
+    {
+      "name": "reload (TV)",
+      "reload": true
+    },
+    {
+      "name": "TV layout applied",
+      "waitFor": "document.documentElement.classList.contains('layout-tv') && !!window.ApiClient && !!ApiClient.getCurrentUserId()"
+    },
+    {
+      "name": "the page (TV)",
+      "goto": "/web/index.html#/configurationpage?name=LibraryMaintenance"
+    },
+    {
+      "name": "helpers",
+      "script": "window.__lmtv = {\n  page: () => document.querySelector('#LibraryMaintenanceConfigPage:not(.hide)'),\n  q: (s) => (__lmtv.page() || document).querySelector(s),\n  status: () => (__lmtv.q('#LibraryMaintenanceDuplicatesStatus') || {}).textContent || '',\n  rebuild: () => __lmtv.q('#LibraryMaintenanceDuplicatesRebuild'),\n  off: () => { const b = __lmtv.rebuild(); return !b || b.disabled || b.getAttribute('aria-disabled') === 'true'; },\n  selected: () => [...(__lmtv.page() || document).querySelectorAll('[role=tab][aria-selected=true]')].map(t => t.getAttribute('data-tab')),\n  shown: (name) => { const p = __lmtv.q('#LibraryMaintenancePanel' + name); return !!p && !p.hasAttribute('hidden'); },\n  focusOn: (selector) => { const e = __lmtv.q(selector); if (!e) { return false; } e.focus(); return document.activeElement === e; },\n  where: () => { const a = document.activeElement; const r = a && a.getBoundingClientRect ? a.getBoundingClientRect() : null; const panel = a && a.closest ? a.closest('[role=tabpanel]') : null; return { id: (a && a.id) || null, tag: a ? a.tagName : null, text: a ? (a.textContent || '').trim().slice(0, 30) : null, body: !a || a === document.body, inApp: !!(a && a.closest && a.closest('.jflm-page-app')), panel: panel ? panel.id.replace('LibraryMaintenancePanel', '') : null, rect: r ? [Math.round(r.left), Math.round(r.top), Math.round(r.width), Math.round(r.height)] : null, off: __lmtv.off() }; },\n  index: async () => (await (await fetch(ApiClient.getUrl('LibraryMaintenance/Duplicates/Index'), { headers: { Authorization: 'MediaBrowser Token=\"' + ApiClient.accessToken() + '\"', Accept: 'application/json' } })).json()),\n  posts: () => performance.getEntriesByType('resource').filter(e => e.name.indexOf('/Duplicates/Index/Rebuild') >= 0).length\n};\nreturn true;"
+    },
+    {
+      "name": "the page on the TV: its tabs and its status line",
+      "waitFor": "!!__lmtv.q('#LibraryMaintenanceTabDuplicates') && /^Index: /.test(__lmtv.status()) && !__lmtv.off()",
+      "timeout": 20000
+    },
+    {
+      "name": "TV: the Duplicates tab focused",
+      "assert": "__lmtv.focusOn('#LibraryMaintenanceTabDuplicates')"
+    },
+    {
+      "name": "TV: OK (Enter) opens Duplicates",
+      "key": "Enter"
+    },
+    {
+      "name": "Duplicates open",
+      "waitFor": "__lmtv.selected().join() === 'Duplicates' && __lmtv.shown('Duplicates')",
+      "timeout": 3000
+    },
+    {
+      "name": "TV: Down (the D-pad) from the Duplicates tab",
+      "key": "ArrowDown"
+    },
+    {
+      "sleep": 300
+    },
+    {
+      "name": "where the focus is after Down from Duplicates",
+      "eval": "__lmtv.where()",
+      "save": "downDuplicates",
+      "full": true
+    },
+    {
+      "name": "on Rebuild, in the Duplicates panel (not the drawer)",
+      "assert": "__vars.downDuplicates.inApp && __vars.downDuplicates.panel === 'Duplicates' && __vars.downDuplicates.id === 'LibraryMaintenanceDuplicatesRebuild'"
+    },
+    {
+      "name": "TV: Up from Rebuild",
+      "key": "ArrowUp"
+    },
+    {
+      "sleep": 300
+    },
+    {
+      "name": "where the focus is after Up from Rebuild",
+      "eval": "__lmtv.where()",
+      "save": "upRebuild",
+      "full": true
+    },
+    {
+      "name": "back on a tab",
+      "assert": "__vars.upRebuild.inApp && /^LibraryMaintenanceTab/.test(__vars.upRebuild.id || '')"
+    },
+    {
+      "name": "TV: Down again",
+      "key": "ArrowDown"
+    },
+    {
+      "sleep": 300
+    },
+    {
+      "name": "on Rebuild again",
+      "assert": "document.activeElement === __lmtv.rebuild()"
+    },
+    {
+      "name": "before OK on Rebuild",
+      "eval": "(async () => ({ version: (await __lmtv.index()).Version, posts: __lmtv.posts() }))()",
+      "save": "tvBefore",
+      "full": true
+    },
+    {
+      "name": "TV: OK (Enter) on Rebuild",
+      "key": "Enter"
+    },
+    {
+      "sleep": 100
+    },
+    {
+      "name": "where the focus is right after OK",
+      "eval": "__lmtv.where()",
+      "save": "okNow",
+      "full": true
+    },
+    {
+      "name": "the focus stayed on Rebuild (not dropped to the page's body)",
+      "assert": "__vars.okNow.id === 'LibraryMaintenanceDuplicatesRebuild' && !__vars.okNow.body"
+    },
+    {
+      "name": "the build done and shown",
+      "waitFor": "(async () => { const index = await __lmtv.index(); return index.Version > __vars.tvBefore.version && !index.Rebuilding && !__lmtv.off() && /^Index: /.test(__lmtv.status()); })()",
+      "timeout": 30000
+    },
+    {
+      "name": "where the focus is after the build",
+      "eval": "(() => ({ where: __lmtv.where(), posts: __lmtv.posts() - __vars.tvBefore.posts }))()",
+      "save": "okAfter",
+      "full": true
+    },
+    {
+      "name": "one POST; the focus still on Rebuild",
+      "assert": "__vars.okAfter.posts === 1 && __vars.okAfter.where.id === 'LibraryMaintenanceDuplicatesRebuild' && !__vars.okAfter.where.off"
+    },
+    {
+      "name": "TV: Down after the build",
+      "key": "ArrowDown"
+    },
+    {
+      "sleep": 300
+    },
+    {
+      "name": "where the focus is after Down after the build",
+      "eval": "__lmtv.where()",
+      "save": "okDown",
+      "full": true
+    },
+    {
+      "name": "still in the page (not the drawer, not the header)",
+      "assert": "__vars.okDown.inApp && !__vars.okDown.body"
+    },
+    {
+      "screenshot": "librarymaintenance-tv-duplicates.png"
+    },
+    {
+      "name": "TV: the Settings tab focused",
+      "assert": "__lmtv.focusOn('#LibraryMaintenanceTabSettings')"
+    },
+    {
+      "name": "TV: OK (Enter) opens Settings",
+      "key": "Enter"
+    },
+    {
+      "name": "Settings open",
+      "waitFor": "__lmtv.selected().join() === 'Settings' && __lmtv.shown('Settings')",
+      "timeout": 3000
+    },
+    {
+      "name": "TV: Down from the Settings tab",
+      "key": "ArrowDown"
+    },
+    {
+      "sleep": 300
+    },
+    {
+      "name": "where the focus is after Down from Settings",
+      "eval": "__lmtv.where()",
+      "save": "downSettings",
+      "full": true
+    },
+    {
+      "name": "on Find duplicate movies' switch, in the Settings panel",
+      "assert": "__vars.downSettings.inApp && __vars.downSettings.panel === 'Settings' && __vars.downSettings.id === 'LibraryMaintenanceSettingsDuplicatesEnabled'"
+    },
+    {
+      "screenshot": "librarymaintenance-tv-settings.png"
+    },
+    {
+      "name": "TV: the Diagnostics tab focused",
+      "assert": "__lmtv.focusOn('#LibraryMaintenanceTabDiagnostics')"
+    },
+    {
+      "name": "TV: OK (Enter) opens Diagnostics",
+      "key": "Enter"
+    },
+    {
+      "name": "Diagnostics open",
+      "waitFor": "__lmtv.selected().join() === 'Diagnostics' && __lmtv.shown('Diagnostics')",
+      "timeout": 3000
+    },
+    {
+      "name": "TV: Down from the Diagnostics tab",
+      "key": "ArrowDown"
+    },
+    {
+      "sleep": 300
+    },
+    {
+      "name": "where the focus is after Down from Diagnostics",
+      "eval": "__lmtv.where()",
+      "save": "downDiagnostics",
+      "full": true
+    },
+    {
+      "name": "in the Diagnostics panel",
+      "assert": "__vars.downDiagnostics.inApp && __vars.downDiagnostics.panel === 'Diagnostics'"
+    },
+    {
+      "name": "the desktop layout for this browser",
+      "eval": "(localStorage.setItem('layout', 'desktop'), true)"
+    },
+    {
+      "name": "reload (desktop)",
+      "reload": true
+    },
+    {
+      "name": "desktop layout applied",
+      "waitFor": "!document.documentElement.classList.contains('layout-tv') && !!window.ApiClient && !!ApiClient.getCurrentUserId()"
+    },
+    {
+      "name": "the page (desktop)",
+      "goto": "/web/index.html#/configurationpage?name=LibraryMaintenance"
+    },
+    {
+      "name": "helpers (desktop)",
+      "script": "window.__lmtv = {\n  page: () => document.querySelector('#LibraryMaintenanceConfigPage:not(.hide)'),\n  q: (s) => (__lmtv.page() || document).querySelector(s),\n  status: () => (__lmtv.q('#LibraryMaintenanceDuplicatesStatus') || {}).textContent || '',\n  rebuild: () => __lmtv.q('#LibraryMaintenanceDuplicatesRebuild'),\n  off: () => { const b = __lmtv.rebuild(); return !b || b.disabled || b.getAttribute('aria-disabled') === 'true'; },\n  focusOn: (selector) => { const e = __lmtv.q(selector); if (!e) { return false; } e.focus(); return document.activeElement === e; },\n  where: () => { const a = document.activeElement; const panel = a && a.closest ? a.closest('[role=tabpanel]') : null; return { id: (a && a.id) || null, tag: a ? a.tagName : null, body: !a || a === document.body, inApp: !!(a && a.closest && a.closest('.jflm-page-app')), panel: panel ? panel.id.replace('LibraryMaintenancePanel', '') : null, off: __lmtv.off() }; },\n  index: async () => (await (await fetch(ApiClient.getUrl('LibraryMaintenance/Duplicates/Index'), { headers: { Authorization: 'MediaBrowser Token=\"' + ApiClient.accessToken() + '\"', Accept: 'application/json' } })).json())\n};\nreturn true;"
+    },
+    {
+      "name": "the page on the desktop",
+      "waitFor": "!!__lmtv.rebuild() && /^Index: /.test(__lmtv.status()) && !__lmtv.off()",
+      "timeout": 20000
+    },
+    {
+      "name": "before Enter on Rebuild",
+      "eval": "(async () => ({ version: (await __lmtv.index()).Version }))()",
+      "save": "deskBefore",
+      "full": true
+    },
+    {
+      "name": "the keyboard's focus on Rebuild",
+      "assert": "__lmtv.focusOn('#LibraryMaintenanceDuplicatesRebuild')"
+    },
+    {
+      "name": "Enter on Rebuild",
+      "key": "Enter"
+    },
+    {
+      "sleep": 100
+    },
+    {
+      "name": "where the focus is right after Enter",
+      "eval": "__lmtv.where()",
+      "save": "enterNow",
+      "full": true
+    },
+    {
+      "name": "the focus stayed on Rebuild",
+      "assert": "__vars.enterNow.id === 'LibraryMaintenanceDuplicatesRebuild' && !__vars.enterNow.body"
+    },
+    {
+      "name": "the desktop build done and shown",
+      "waitFor": "(async () => { const index = await __lmtv.index(); return index.Version > __vars.deskBefore.version && !index.Rebuilding && !__lmtv.off() && /^Index: /.test(__lmtv.status()); })()",
+      "timeout": 30000
+    },
+    {
+      "name": "where the focus is after the desktop build",
+      "eval": "__lmtv.where()",
+      "save": "enterAfter",
+      "full": true
+    },
+    {
+      "name": "the focus still on Rebuild, which acts again",
+      "assert": "__vars.enterAfter.id === 'LibraryMaintenanceDuplicatesRebuild' && !__vars.enterAfter.off"
+    },
+    {
+      "name": "this browser back to the automatic layout",
+      "eval": "(localStorage.removeItem('layout'), true)"
+    },
+    {
+      "name": "no uncaught exception of ours",
+      "noExceptions": true,
+      "ignore": "/CustomRatings/script|^Error: player cannot be null"
+    }
+  ]
+}

@@ -1,0 +1,597 @@
+{
+  "name": "Smart Search's Auto-collections tab on a desktop (1366x900). As admin: earlier runs' WC AC auto-collections and queries removed, viewer2 allowed to manage collections, a query over Movies saved. The tab third, with New, Refresh all and the All, Needs review, Errors filter; New auto-collection: Save off until a preview, the user's queries offered, locked and Keep my manual changes by default; the query chosen names it, the name is free, the preview counts and shows posters; Save makes it, up to date, with a link to its collection (a locked BoxSet of that name), its query, members and last change, and Refresh, Edit, Turn off, History, Delete. A second New with the same name: taken, with free names to pick. Edit: unlocking leaves only Release date and waits for a new preview; Save. Refresh now with its toast; History newest first; Turn off and on; the Errors filter; the Saved queries tab's Create an auto-collection opens the editor on that query. As viewer2 (a manager): admin's auto-collection without Turn off, its name and query locked in the editor. As viewer: no tab, no create button. As admin again: Refresh now ends in a '+N −M' toast without a reload; the source query edited to match nothing through the API, and the run that would empty the collection is held (shown once the window's focus reads the list again) (Needs review, its filter, Wait folds the panel and Review removals opens it, Apply asks first, Keep these items pins them and it is up to date); the query restored; the collection deleted outside the plugin shows Collection deleted without a link, and Recreate makes a new one; the source query refused to a plain delete, then removed by a forced import, shows Query missing with its last error and Choose another query. Delete keeps the collection by default; deleting it too removes the BoxSet. Screenshots smartsearch-collections-*.png. Needs a sandbox seeded by Initialize-Sandbox.ps1.",
+  "failOnException": false,
+  "timeout": 30000,
+  "steps": [
+    {
+      "name": "a desktop screen",
+      "emulate": "desktop"
+    },
+    {
+      "name": "page helpers (admin)",
+      "initScript": "\nwindow.__ss = {\n  root: () => [...document.querySelectorAll('[data-jfss-page=\"search\"][data-jfss-mounted] .jfss-search')].find(x => x.getClientRects().length > 0) || null,\n  q: (s) => { const r = window.__ss.root(); return r ? r.querySelector(s) : null; },\n  all: (s) => { const r = window.__ss.root(); return r ? [...r.querySelectorAll(s)] : []; },\n  noHScroll: () => document.documentElement.scrollWidth <= innerWidth && window.__ss.root().scrollWidth <= window.__ss.root().clientWidth + 1,\n  box: (e) => { const r = e.getBoundingClientRect(); return [Math.round(r.width), Math.round(r.height)]; },\n  api: async (method, path, body) => { const r = await fetch(ApiClient.getUrl(path), { method, headers: { 'X-Emby-Token': ApiClient.accessToken(), 'Content-Type': 'application/json' }, body: body === undefined ? undefined : JSON.stringify(body) }); const t = await r.text(); return { status: r.status, body: t ? JSON.parse(t) : null }; },\n  cleanup: async (prefix) => { let n = 0; const acs = (await window.__ss.api('GET', 'SmartSearch/AutoCollections')).body || []; for (const a of acs) { if (a.Name.indexOf(prefix) === 0) { await window.__ss.api('DELETE', 'SmartSearch/AutoCollections/' + a.Id + '?deleteCollection=true'); n++; } } const list = (await window.__ss.api('GET', 'SmartSearch/Queries?scope=Mine&limit=500')).body.Items; for (const q of list) { if (q.Name.indexOf(prefix) === 0) { await window.__ss.api('DELETE', 'SmartSearch/Queries/' + q.Id + '?detachAutoCollections=true'); n++; } } return n; },\n  movies: async (name) => { const libs = (await window.__ss.api('GET', 'SmartSearch/Libraries')).body; const movies = libs.find(l => l.Name === 'Movies').Id; return (await window.__ss.api('POST', 'SmartSearch/Queries', { Name: name, Description: '', Shared: false, Query: { Version: 1, Scope: { ItemKinds: ['Movie'], LibraryIds: [movies], IncludeMissing: false }, Where: { Match: 'All', Children: [] }, Sort: [{ Key: 'SortName', Order: 'Ascending' }] } })).body; },\n  dialog: () => { const d = [...document.querySelectorAll('[role=\"dialog\"]')].filter(x => x.getClientRects().length > 0); return d[d.length - 1] || null; },\n  dq: (s) => { const d = window.__ss.dialog(); return d ? d.querySelector(s) : null; },\n  dset: (s, v) => { const e = window.__ss.dq(s); e.value = v; e.dispatchEvent(new Event('input', { bubbles: true })); e.dispatchEvent(new Event('change', { bubbles: true })); return true; },\n  dbutton: (text) => { const d = window.__ss.dialog(); return d ? [...d.querySelectorAll('button')].find(b => b.textContent === text) || null : null; },\n  rows: () => window.__ss.all('.jfss-ac-row'),\n  names: () => window.__ss.rows().map(r => r.querySelector('.jfss-ac-open').textContent),\n  row: (name) => window.__ss.rows().find(r => r.querySelector('.jfss-ac-open').textContent === name) || null,\n  status: (name) => { const r = window.__ss.row(name); return r ? r.querySelector('.jfss-ac-status').textContent : null; },\n  action: (name, cls) => { const r = window.__ss.row(name); return r ? r.querySelector(cls) : null; },\n  savedRow: (name) => window.__ss.all('.jfss-saved-row').find(r => r.querySelector('.jfss-saved-open').textContent === name) || null,\n  toast: () => [...document.querySelectorAll('.jfss-toast')].map(t => t.textContent.replace(/[\\u2066-\\u2069]/g, '')).join(' | '),\n  ready: () => !!window.__ss.q('.jfss-collections-panel') && !!window.__ss.q('.jfss-ac-count') && /auto-collection/.test(window.__ss.q('.jfss-ac-count').textContent + (window.__ss.q('.jfss-ac-notices') || {}).textContent)\n};\n"
+    },
+    {
+      "name": "sign in as admin",
+      "login": "admin"
+    },
+    {
+      "name": "the Smart Search script ran (admin)",
+      "waitFor": "!!window.__jfkit && !!window.__jfkit.jfss && !!window.ApiClient && !!ApiClient.getCurrentUserId()",
+      "timeout": 20000
+    },
+    {
+      "name": "admin: earlier runs' auto-collections (with their collections) and queries removed, viewer2 allowed to manage collections, a query over Movies saved",
+      "script": "const removed = await __ss.cleanup('WC AC'); const users = (await __ss.api('GET', 'Users')).body; const v2 = users.find(u => u.Name === 'viewer2'); const p = await __ss.api('POST', 'Users/' + v2.Id + '/Policy', Object.assign({}, v2.Policy, { EnableCollectionManagement: true })); const q = await __ss.movies('WC AC Movies'); return { removed, policy: p.status, query: q.Id };",
+      "save": "setup"
+    },
+    {
+      "name": "the setup",
+      "assert": "__vars.setup.policy === 204 && !!__vars.setup.query"
+    },
+    {
+      "goto": "/web/index.html#/jfss-search?tab=collections"
+    },
+    {
+      "name": "the Auto-collections tab",
+      "waitFor": "!!window.__ss && __ss.ready()",
+      "timeout": 20000
+    },
+    {
+      "name": "the tabs and the empty list",
+      "eval": "({ tabs: __ss.all('[role=\"tab\"]').map(t => [t.textContent, t.getAttribute('aria-selected')]), names: __ss.names(), buttons: [__ss.q('.jfss-ac-new').textContent, __ss.q('.jfss-ac-refresh-all').textContent], filters: __ss.all('.jfss-ac-filter').map(b => b.textContent), noHScroll: __ss.noHScroll() })",
+      "save": "tab",
+      "full": true
+    },
+    {
+      "name": "three tabs, Auto-collections selected; New and Refresh all; All, Needs review, Errors",
+      "assert": "JSON.stringify(__vars.tab.tabs) === JSON.stringify([['Search', 'false'], ['Saved queries', 'false'], ['Auto-collections', 'true']]) && !__vars.tab.names.some(n => n.indexOf('WC AC') === 0) && __vars.tab.buttons[0] === 'New auto-collection' && __vars.tab.filters.join() === 'All,Needs review,Errors' && __vars.tab.noHScroll"
+    },
+    {
+      "name": "New auto-collection",
+      "script": "__ss.q('.jfss-ac-new').click(); return true;"
+    },
+    {
+      "name": "the editor",
+      "waitFor": "!!__ss.dq('.jfss-ac-form') && !!__ss.dq('.jfss-ac-source-select')",
+      "timeout": 15000
+    },
+    {
+      "name": "the editor at first",
+      "eval": "({ save: __ss.dq('.jfss-ac-save').disabled, groups: [...__ss.dq('.jfss-ac-source-select').querySelectorAll('optgroup')].map(g => g.label), lock: __ss.dq('.jfss-ac-lock').checked, mode: __ss.dq('.jfss-ac-edits-mode').value })",
+      "save": "editor0"
+    },
+    {
+      "name": "Save off until a preview; my queries offered; locked; manual changes kept",
+      "assert": "__vars.editor0.save === true && __vars.editor0.groups[0] === 'My queries' && __vars.editor0.lock === true && __vars.editor0.mode === 'Respect'"
+    },
+    {
+      "name": "choose WC AC Movies",
+      "script": "return __ss.dset('.jfss-ac-source-select', 'q:' + __vars.setup.query.replace(/-/g, '').toLowerCase());"
+    },
+    {
+      "name": "the name from the query, free, and a preview",
+      "waitFor": "__ss.dq('.jfss-ac-name').value === 'WC AC Movies' && !!__ss.dq('.jfss-ac-name-free') && /Will create a collection with \\d+ items/.test(__ss.dq('.jfss-ac-preview-state').textContent) && !__ss.dq('.jfss-ac-save').disabled",
+      "timeout": 20000
+    },
+    {
+      "name": "the preview's posters",
+      "eval": "({ posters: __ss.dialog().querySelectorAll('.jfss-ac-sample-row > *').length, state: __ss.dq('.jfss-ac-preview-state').textContent })",
+      "save": "preview"
+    },
+    {
+      "name": "posters of what will be added",
+      "assert": "__vars.preview.posters > 0 && __vars.preview.posters <= 20"
+    },
+    {
+      "screenshot": "smartsearch-collections-editor.png"
+    },
+    {
+      "name": "Save",
+      "script": "__ss.dq('.jfss-ac-save').click(); return true;"
+    },
+    {
+      "name": "made, and up to date",
+      "waitFor": "!__ss.dialog() && __ss.status('WC AC Movies') === 'Up to date'",
+      "timeout": 60000
+    },
+    {
+      "name": "the row",
+      "eval": "(() => { const r = __ss.row('WC AC Movies'); return { href: r.querySelector('a.jfss-ac-open') ? r.querySelector('a.jfss-ac-open').getAttribute('href') : null, meta: [...r.querySelectorAll('.jfss-ac-meta > span')].map(s => s.textContent), actions: [...r.querySelectorAll('.jfss-ac-action')].map(b => b.getAttribute('aria-label')), toast: __ss.toast() }; })()",
+      "save": "row",
+      "full": true
+    },
+    {
+      "name": "a link to the collection; its query, members and last change; Refresh, Edit, Turn off, History, Delete",
+      "assert": "/#\\/details\\?id=/.test(__vars.row.href) && __vars.row.meta.includes('From WC AC Movies') && __vars.row.meta.some(m => /^\\d+ items · \\+\\d+ −0$/.test(m)) && __vars.row.actions.join('|') === 'Refresh WC AC Movies now|Edit WC AC Movies|Turn WC AC Movies off|History of WC AC Movies|Delete WC AC Movies'"
+    },
+    {
+      "screenshot": "smartsearch-collections-desktop.png"
+    },
+    {
+      "name": "the collection on the server: the plugin's, locked",
+      "script": "const id = new URLSearchParams(__vars.row.href.split('?')[1]).get('id'); const item = (await __ss.api('GET', 'Users/' + ApiClient.getCurrentUserId() + '/Items/' + id)).body; return { type: item.Type, name: item.Name, locked: item.LockData };",
+      "save": "box"
+    },
+    {
+      "name": "a BoxSet of that name",
+      "assert": "__vars.box.type === 'BoxSet' && __vars.box.name === 'WC AC Movies' && __vars.box.locked === true"
+    },
+    {
+      "name": "New again, the same name",
+      "script": "__ss.q('.jfss-ac-new').click(); return true;"
+    },
+    {
+      "name": "the editor (2)",
+      "waitFor": "!!__ss.dq('.jfss-ac-source-select')",
+      "timeout": 15000
+    },
+    {
+      "name": "the same query",
+      "script": "return __ss.dset('.jfss-ac-source-select', 'q:' + __vars.setup.query.replace(/-/g, '').toLowerCase());"
+    },
+    {
+      "name": "taken, with free names to pick",
+      "waitFor": "!!__ss.dq('.jfss-ac-name-taken') && __ss.dialog().querySelectorAll('.jfss-ac-suggestion').length > 0",
+      "timeout": 15000
+    },
+    {
+      "name": "pick the first",
+      "script": "const b = __ss.dialog().querySelector('.jfss-ac-suggestion'); const t = b.textContent; b.click(); return t;",
+      "save": "suggestion"
+    },
+    {
+      "name": "the suggestion is the name, and free",
+      "waitFor": "__ss.dq('.jfss-ac-name').value === __vars.suggestion && !!__ss.dq('.jfss-ac-name-free')",
+      "timeout": 15000
+    },
+    {
+      "key": "Escape"
+    },
+    {
+      "name": "closed, nothing made",
+      "waitFor": "!__ss.dialog() && __ss.names().filter(n => n.indexOf('WC AC') === 0).length === 1"
+    },
+    {
+      "name": "Edit",
+      "script": "__ss.action('WC AC Movies', '.jfss-ac-edit').click(); return true;"
+    },
+    {
+      "name": "the editor (edit), previewed",
+      "waitFor": "!!__ss.dq('.jfss-ac-name') && __ss.dq('.jfss-ac-name').value === 'WC AC Movies' && /items/.test(__ss.dq('.jfss-ac-preview-state').textContent) && !__ss.dq('.jfss-ac-save').disabled",
+      "timeout": 20000
+    },
+    {
+      "name": "unlock: only Release date",
+      "script": "const l = __ss.dq('.jfss-ac-lock'); l.click(); return { sort: __ss.dq('.jfss-ac-sort').value, disabled: [...__ss.dq('.jfss-ac-sort').querySelectorAll('option')].filter(o => o.disabled).map(o => o.value), save: __ss.dq('.jfss-ac-save').disabled, note: __ss.dq('.jfss-ac-lock-note').textContent };",
+      "save": "unlock"
+    },
+    {
+      "name": "Release date only, Save waits for the next preview, the note says what unlocking means",
+      "assert": "__vars.unlock.sort === 'PremiereDate' && __vars.unlock.disabled.join() === 'QueryOrder,SortName' && __vars.unlock.save === true && /online metadata/.test(__vars.unlock.note)"
+    },
+    {
+      "name": "lock again, previewed",
+      "script": "__ss.dq('.jfss-ac-lock').click(); return true;"
+    },
+    {
+      "name": "Save on again",
+      "waitFor": "!__ss.dq('.jfss-ac-save').disabled",
+      "timeout": 20000
+    },
+    {
+      "name": "Save (edit)",
+      "script": "__ss.dq('.jfss-ac-save').click(); return true;"
+    },
+    {
+      "name": "saved",
+      "waitFor": "!__ss.dialog() && /Saved WC AC Movies/.test(__ss.toast())",
+      "timeout": 20000
+    },
+    {
+      "name": "settled",
+      "waitFor": "__ss.status('WC AC Movies') === 'Up to date'",
+      "timeout": 60000
+    },
+    {
+      "name": "Refresh now",
+      "script": "__ss.action('WC AC Movies', '.jfss-ac-refresh').click(); return true;"
+    },
+    {
+      "name": "queued, said in a toast",
+      "waitFor": "/WC AC Movies will update/.test(__ss.toast())",
+      "timeout": 15000
+    },
+    {
+      "name": "then up to date",
+      "waitFor": "__ss.status('WC AC Movies') === 'Up to date'",
+      "timeout": 60000
+    },
+    {
+      "name": "History",
+      "script": "__ss.action('WC AC Movies', '.jfss-ac-history').click(); return true;"
+    },
+    {
+      "name": "the runs",
+      "waitFor": "!!__ss.dialog() && __ss.dialog().querySelectorAll('.jfss-ac-history-line').length >= 2",
+      "timeout": 15000
+    },
+    {
+      "name": "the lines",
+      "eval": "[...__ss.dialog().querySelectorAll('.jfss-ac-history-line')].map(l => l.textContent)",
+      "save": "history",
+      "full": true
+    },
+    {
+      "name": "newest first: by hand, then saved, then made",
+      "assert": "/· by hand ·/.test(__vars.history[0]) && /· collection made ·/.test(__vars.history[__vars.history.length - 1])"
+    },
+    {
+      "screenshot": "smartsearch-collections-history.png"
+    },
+    {
+      "key": "Escape"
+    },
+    {
+      "name": "Turn off",
+      "script": "__ss.action('WC AC Movies', '.jfss-ac-toggle').click(); return true;"
+    },
+    {
+      "name": "off",
+      "waitFor": "__ss.status('WC AC Movies') === 'Disabled' && !!__ss.action('WC AC Movies', '.jfss-ac-toggle') && __ss.action('WC AC Movies', '.jfss-ac-toggle').getAttribute('aria-label') === 'Turn WC AC Movies on'",
+      "timeout": 20000
+    },
+    {
+      "name": "Turn on",
+      "script": "__ss.action('WC AC Movies', '.jfss-ac-toggle').click(); return true;"
+    },
+    {
+      "name": "on and up to date",
+      "waitFor": "__ss.status('WC AC Movies') === 'Up to date'",
+      "timeout": 60000
+    },
+    {
+      "name": "the Errors filter hides it",
+      "script": "__ss.q('[data-jfss-ac-filter=\"errors\"]').click(); const hidden = __ss.row('WC AC Movies') === null; __ss.q('[data-jfss-ac-filter=\"all\"]').click(); return hidden && __ss.row('WC AC Movies') !== null;"
+    },
+    {
+      "name": "the Saved queries tab: Create an auto-collection from WC AC Movies",
+      "goto": "/web/index.html#/jfss-search?tab=saved"
+    },
+    {
+      "name": "the saved list",
+      "waitFor": "!!window.__ss && !!__ss.savedRow('WC AC Movies')",
+      "timeout": 20000
+    },
+    {
+      "name": "the row's create button",
+      "script": "const b = __ss.savedRow('WC AC Movies').querySelector('.jfss-create-collection'); const label = b.getAttribute('aria-label'); b.click(); return label;",
+      "save": "createLabel"
+    },
+    {
+      "name": "the editor on that query",
+      "waitFor": "!!__ss.dq('.jfss-ac-source-select') && __ss.dq('.jfss-ac-source-select').value === 'q:' + __vars.setup.query.replace(/-/g, '').toLowerCase()",
+      "timeout": 15000
+    },
+    {
+      "name": "named for the query",
+      "assert": "__vars.createLabel === 'Create an auto-collection from WC AC Movies'"
+    },
+    {
+      "key": "Escape"
+    },
+    {
+      "name": "viewer2, in a browser of its own",
+      "context": "viewer2"
+    },
+    {
+      "name": "a desktop screen (viewer2)",
+      "emulate": "desktop"
+    },
+    {
+      "name": "page helpers (viewer2)",
+      "initScript": "\nwindow.__ss = {\n  root: () => [...document.querySelectorAll('[data-jfss-page=\"search\"][data-jfss-mounted] .jfss-search')].find(x => x.getClientRects().length > 0) || null,\n  q: (s) => { const r = window.__ss.root(); return r ? r.querySelector(s) : null; },\n  all: (s) => { const r = window.__ss.root(); return r ? [...r.querySelectorAll(s)] : []; },\n  noHScroll: () => document.documentElement.scrollWidth <= innerWidth && window.__ss.root().scrollWidth <= window.__ss.root().clientWidth + 1,\n  box: (e) => { const r = e.getBoundingClientRect(); return [Math.round(r.width), Math.round(r.height)]; },\n  api: async (method, path, body) => { const r = await fetch(ApiClient.getUrl(path), { method, headers: { 'X-Emby-Token': ApiClient.accessToken(), 'Content-Type': 'application/json' }, body: body === undefined ? undefined : JSON.stringify(body) }); const t = await r.text(); return { status: r.status, body: t ? JSON.parse(t) : null }; },\n  cleanup: async (prefix) => { let n = 0; const acs = (await window.__ss.api('GET', 'SmartSearch/AutoCollections')).body || []; for (const a of acs) { if (a.Name.indexOf(prefix) === 0) { await window.__ss.api('DELETE', 'SmartSearch/AutoCollections/' + a.Id + '?deleteCollection=true'); n++; } } const list = (await window.__ss.api('GET', 'SmartSearch/Queries?scope=Mine&limit=500')).body.Items; for (const q of list) { if (q.Name.indexOf(prefix) === 0) { await window.__ss.api('DELETE', 'SmartSearch/Queries/' + q.Id + '?detachAutoCollections=true'); n++; } } return n; },\n  movies: async (name) => { const libs = (await window.__ss.api('GET', 'SmartSearch/Libraries')).body; const movies = libs.find(l => l.Name === 'Movies').Id; return (await window.__ss.api('POST', 'SmartSearch/Queries', { Name: name, Description: '', Shared: false, Query: { Version: 1, Scope: { ItemKinds: ['Movie'], LibraryIds: [movies], IncludeMissing: false }, Where: { Match: 'All', Children: [] }, Sort: [{ Key: 'SortName', Order: 'Ascending' }] } })).body; },\n  dialog: () => { const d = [...document.querySelectorAll('[role=\"dialog\"]')].filter(x => x.getClientRects().length > 0); return d[d.length - 1] || null; },\n  dq: (s) => { const d = window.__ss.dialog(); return d ? d.querySelector(s) : null; },\n  dset: (s, v) => { const e = window.__ss.dq(s); e.value = v; e.dispatchEvent(new Event('input', { bubbles: true })); e.dispatchEvent(new Event('change', { bubbles: true })); return true; },\n  dbutton: (text) => { const d = window.__ss.dialog(); return d ? [...d.querySelectorAll('button')].find(b => b.textContent === text) || null : null; },\n  rows: () => window.__ss.all('.jfss-ac-row'),\n  names: () => window.__ss.rows().map(r => r.querySelector('.jfss-ac-open').textContent),\n  row: (name) => window.__ss.rows().find(r => r.querySelector('.jfss-ac-open').textContent === name) || null,\n  status: (name) => { const r = window.__ss.row(name); return r ? r.querySelector('.jfss-ac-status').textContent : null; },\n  action: (name, cls) => { const r = window.__ss.row(name); return r ? r.querySelector(cls) : null; },\n  savedRow: (name) => window.__ss.all('.jfss-saved-row').find(r => r.querySelector('.jfss-saved-open').textContent === name) || null,\n  toast: () => [...document.querySelectorAll('.jfss-toast')].map(t => t.textContent.replace(/[\\u2066-\\u2069]/g, '')).join(' | '),\n  ready: () => !!window.__ss.q('.jfss-collections-panel') && !!window.__ss.q('.jfss-ac-count') && /auto-collection/.test(window.__ss.q('.jfss-ac-count').textContent + (window.__ss.q('.jfss-ac-notices') || {}).textContent)\n};\n"
+    },
+    {
+      "name": "sign in as viewer2",
+      "login": "viewer2"
+    },
+    {
+      "name": "the Smart Search script ran (viewer2)",
+      "waitFor": "!!window.__jfkit && !!window.__jfkit.jfss && !!window.ApiClient && !!ApiClient.getCurrentUserId()",
+      "timeout": 20000
+    },
+    {
+      "goto": "/web/index.html#/jfss-search?tab=collections"
+    },
+    {
+      "name": "the tab (viewer2)",
+      "waitFor": "!!window.__ss && __ss.ready() && !!__ss.row('WC AC Movies')",
+      "timeout": 20000
+    },
+    {
+      "name": "admin's auto-collection for viewer2",
+      "eval": "({ actions: [...__ss.row('WC AC Movies').querySelectorAll('.jfss-ac-action')].map(b => b.getAttribute('aria-label')) })",
+      "save": "v2row"
+    },
+    {
+      "name": "no Turn off for someone else's",
+      "assert": "__vars.v2row.actions.join('|') === 'Refresh WC AC Movies now|Edit WC AC Movies|History of WC AC Movies|Delete WC AC Movies'"
+    },
+    {
+      "name": "Edit (viewer2)",
+      "script": "__ss.action('WC AC Movies', '.jfss-ac-edit').click(); return true;"
+    },
+    {
+      "name": "the editor (viewer2)",
+      "waitFor": "!!__ss.dq('.jfss-ac-name')",
+      "timeout": 15000
+    },
+    {
+      "name": "the creator's fields",
+      "eval": "({ name: __ss.dq('.jfss-ac-name').disabled, source: __ss.dq('.jfss-ac-source-select').disabled, lock: __ss.dq('.jfss-ac-lock').disabled, notice: __ss.dialog().textContent.indexOf('Only its creator or an administrator') >= 0 })",
+      "save": "v2editor"
+    },
+    {
+      "name": "name and query locked for viewer2, the look not; the notice says why",
+      "assert": "__vars.v2editor.name && __vars.v2editor.source && !__vars.v2editor.lock && __vars.v2editor.notice"
+    },
+    {
+      "key": "Escape"
+    },
+    {
+      "name": "viewer, in a browser of its own",
+      "context": "viewer"
+    },
+    {
+      "name": "a desktop screen (viewer)",
+      "emulate": "desktop"
+    },
+    {
+      "name": "page helpers (viewer)",
+      "initScript": "\nwindow.__ss = {\n  root: () => [...document.querySelectorAll('[data-jfss-page=\"search\"][data-jfss-mounted] .jfss-search')].find(x => x.getClientRects().length > 0) || null,\n  q: (s) => { const r = window.__ss.root(); return r ? r.querySelector(s) : null; },\n  all: (s) => { const r = window.__ss.root(); return r ? [...r.querySelectorAll(s)] : []; },\n  noHScroll: () => document.documentElement.scrollWidth <= innerWidth && window.__ss.root().scrollWidth <= window.__ss.root().clientWidth + 1,\n  box: (e) => { const r = e.getBoundingClientRect(); return [Math.round(r.width), Math.round(r.height)]; },\n  api: async (method, path, body) => { const r = await fetch(ApiClient.getUrl(path), { method, headers: { 'X-Emby-Token': ApiClient.accessToken(), 'Content-Type': 'application/json' }, body: body === undefined ? undefined : JSON.stringify(body) }); const t = await r.text(); return { status: r.status, body: t ? JSON.parse(t) : null }; },\n  cleanup: async (prefix) => { let n = 0; const acs = (await window.__ss.api('GET', 'SmartSearch/AutoCollections')).body || []; for (const a of acs) { if (a.Name.indexOf(prefix) === 0) { await window.__ss.api('DELETE', 'SmartSearch/AutoCollections/' + a.Id + '?deleteCollection=true'); n++; } } const list = (await window.__ss.api('GET', 'SmartSearch/Queries?scope=Mine&limit=500')).body.Items; for (const q of list) { if (q.Name.indexOf(prefix) === 0) { await window.__ss.api('DELETE', 'SmartSearch/Queries/' + q.Id + '?detachAutoCollections=true'); n++; } } return n; },\n  movies: async (name) => { const libs = (await window.__ss.api('GET', 'SmartSearch/Libraries')).body; const movies = libs.find(l => l.Name === 'Movies').Id; return (await window.__ss.api('POST', 'SmartSearch/Queries', { Name: name, Description: '', Shared: false, Query: { Version: 1, Scope: { ItemKinds: ['Movie'], LibraryIds: [movies], IncludeMissing: false }, Where: { Match: 'All', Children: [] }, Sort: [{ Key: 'SortName', Order: 'Ascending' }] } })).body; },\n  dialog: () => { const d = [...document.querySelectorAll('[role=\"dialog\"]')].filter(x => x.getClientRects().length > 0); return d[d.length - 1] || null; },\n  dq: (s) => { const d = window.__ss.dialog(); return d ? d.querySelector(s) : null; },\n  dset: (s, v) => { const e = window.__ss.dq(s); e.value = v; e.dispatchEvent(new Event('input', { bubbles: true })); e.dispatchEvent(new Event('change', { bubbles: true })); return true; },\n  dbutton: (text) => { const d = window.__ss.dialog(); return d ? [...d.querySelectorAll('button')].find(b => b.textContent === text) || null : null; },\n  rows: () => window.__ss.all('.jfss-ac-row'),\n  names: () => window.__ss.rows().map(r => r.querySelector('.jfss-ac-open').textContent),\n  row: (name) => window.__ss.rows().find(r => r.querySelector('.jfss-ac-open').textContent === name) || null,\n  status: (name) => { const r = window.__ss.row(name); return r ? r.querySelector('.jfss-ac-status').textContent : null; },\n  action: (name, cls) => { const r = window.__ss.row(name); return r ? r.querySelector(cls) : null; },\n  savedRow: (name) => window.__ss.all('.jfss-saved-row').find(r => r.querySelector('.jfss-saved-open').textContent === name) || null,\n  toast: () => [...document.querySelectorAll('.jfss-toast')].map(t => t.textContent.replace(/[\\u2066-\\u2069]/g, '')).join(' | '),\n  ready: () => !!window.__ss.q('.jfss-collections-panel') && !!window.__ss.q('.jfss-ac-count') && /auto-collection/.test(window.__ss.q('.jfss-ac-count').textContent + (window.__ss.q('.jfss-ac-notices') || {}).textContent)\n};\n"
+    },
+    {
+      "name": "sign in as viewer",
+      "login": "viewer"
+    },
+    {
+      "name": "the Smart Search script ran (viewer)",
+      "waitFor": "!!window.__jfkit && !!window.__jfkit.jfss && !!window.ApiClient && !!ApiClient.getCurrentUserId()",
+      "timeout": 20000
+    },
+    {
+      "goto": "/web/index.html#/jfss-search?tab=collections"
+    },
+    {
+      "name": "the page (viewer)",
+      "waitFor": "!!window.__ss && !!__ss.q('.jfss-search-button')",
+      "timeout": 20000
+    },
+    {
+      "name": "viewer's page",
+      "eval": "({ tabs: __ss.all('[role=\"tab\"]').map(t => t.textContent), panel: !!__ss.q('.jfss-collections-panel'), create: !!__ss.q('.jfss-create-collection') })",
+      "save": "viewer"
+    },
+    {
+      "name": "no Auto-collections tab and no create button for a user who doesn't manage collections",
+      "assert": "__vars.viewer.tabs.join() === 'Search,Saved queries' && !__vars.viewer.panel && !__vars.viewer.create"
+    },
+    {
+      "name": "back to admin",
+      "context": "main"
+    },
+    {
+      "goto": "/web/index.html#/jfss-search?tab=collections"
+    },
+    {
+      "name": "the tab (admin, again)",
+      "waitFor": "!!window.__ss && __ss.ready() && !!__ss.row('WC AC Movies')",
+      "timeout": 20000
+    },
+    {
+      "name": "Refresh now, its result in a toast",
+      "script": "__ss.action('WC AC Movies', '.jfss-ac-refresh').click(); return true;"
+    },
+    {
+      "name": "the result toast, without a reload",
+      "waitFor": "/WC AC Movies: \\+\\d+ −\\d+/.test(__ss.toast()) && __ss.status('WC AC Movies') === 'Up to date'",
+      "timeout": 60000
+    },
+    {
+      "name": "the source query edited to match nothing",
+      "script": "const q = (await __ss.api('GET', 'SmartSearch/Queries/' + __vars.setup.query)).body; const where = { Match: 'All', Children: [{ Field: 'Title', Op: 'Contains', Value: 'wc-nothing-matches-this' }] }; const r = await __ss.api('PUT', 'SmartSearch/Queries/' + q.Id, { Name: q.Name, Description: q.Description, Shared: q.Shared, Query: Object.assign({}, q.Query, { Where: where }), IfUpdatedAt: q.UpdatedUtc }); return { status: r.status, affected: ((r.body && r.body.AffectedAutoCollections) || []).map(a => a.Name), original: q.Query.Where };",
+      "save": "edited",
+      "full": true
+    },
+    {
+      "name": "saved",
+      "assert": "__vars.edited.status === 200"
+    },
+    {
+      "name": "it would empty the collection: held for review (the window's focus reads the list again, as when the user comes back)",
+      "waitFor": "(window.dispatchEvent(new Event('focus')), true) && __ss.status('WC AC Movies') === 'Needs review' && !!__ss.action('WC AC Movies', '.jfss-ac-guard-keep')",
+      "timeout": 60000
+    },
+    {
+      "name": "the guard panel",
+      "eval": "(() => { const r = __ss.row('WC AC Movies'); return { text: r.querySelector('.jfss-ac-guard-text').textContent, buttons: [...r.querySelectorAll('.jfss-ac-panel button')].map(b => b.textContent) }; })()",
+      "save": "guard",
+      "full": true
+    },
+    {
+      "name": "how many would go, and Keep, Apply, Wait",
+      "assert": "/^Would remove \\d+ of its items\\.$/.test(__vars.guard.text) && __vars.guard.buttons.join() === 'Keep these items,Apply removals,Wait'"
+    },
+    {
+      "screenshot": "smartsearch-collections-guard.png"
+    },
+    {
+      "name": "the Needs review filter shows it",
+      "script": "__ss.q('[data-jfss-ac-filter=\"review\"]').click(); const shown = __ss.names().includes('WC AC Movies'); __ss.q('[data-jfss-ac-filter=\"all\"]').click(); return shown;",
+      "save": "reviewFilter"
+    },
+    {
+      "name": "Wait folds the panel",
+      "script": "__ss.action('WC AC Movies', '.jfss-ac-guard-wait').click(); return { keep: !!__ss.action('WC AC Movies', '.jfss-ac-guard-keep'), review: !!__ss.action('WC AC Movies', '.jfss-ac-guard-review') };",
+      "save": "waited"
+    },
+    {
+      "name": "Review removals opens it again",
+      "script": "__ss.action('WC AC Movies', '.jfss-ac-guard-review').click(); return !!__ss.action('WC AC Movies', '.jfss-ac-guard-keep');",
+      "save": "reviewed"
+    },
+    {
+      "name": "filter, Wait and Review",
+      "assert": "__vars.reviewFilter === true && __vars.waited.keep === false && __vars.waited.review === true && __vars.reviewed === true"
+    },
+    {
+      "name": "Apply removals asks first",
+      "script": "__ss.action('WC AC Movies', '.jfss-ac-guard-apply').click(); return true;"
+    },
+    {
+      "name": "the question",
+      "waitFor": "!!__ss.dialog() && /Remove \\d+ items from WC AC Movies\\?/.test(__ss.dialog().textContent.replace(/[\\u2066-\\u2069]/g, ''))"
+    },
+    {
+      "name": "Cancel",
+      "script": "__ss.dbutton('Cancel').click(); return true;"
+    },
+    {
+      "name": "nothing applied",
+      "waitFor": "!__ss.dialog() && __ss.status('WC AC Movies') === 'Needs review'"
+    },
+    {
+      "name": "Keep these items",
+      "script": "__ss.action('WC AC Movies', '.jfss-ac-guard-keep').click(); return true;"
+    },
+    {
+      "name": "kept, said in a toast",
+      "waitFor": "/held items of WC AC Movies are kept/.test(__ss.toast())",
+      "timeout": 15000
+    },
+    {
+      "name": "kept as pins: up to date again",
+      "waitFor": "__ss.status('WC AC Movies') === 'Up to date'",
+      "timeout": 60000
+    },
+    {
+      "name": "the pins",
+      "script": "const list = (await __ss.api('GET', 'SmartSearch/AutoCollections')).body; const id = list.find(a => a.Name === 'WC AC Movies').Id; const d = (await __ss.api('GET', 'SmartSearch/AutoCollections/' + id)).body; return { pinned: d.ManualEdits.Pinned.length, members: d.State.LastMemberCount, id };",
+      "save": "pins"
+    },
+    {
+      "name": "every held item pinned, none removed",
+      "assert": "__vars.pins.pinned > 0 && __vars.pins.pinned === __vars.pins.members"
+    },
+    {
+      "name": "the query as it was",
+      "script": "const q = (await __ss.api('GET', 'SmartSearch/Queries/' + __vars.setup.query)).body; return (await __ss.api('PUT', 'SmartSearch/Queries/' + q.Id, { Name: q.Name, Description: q.Description, Shared: q.Shared, Query: Object.assign({}, q.Query, { Where: __vars.edited.original }), IfUpdatedAt: q.UpdatedUtc })).status;",
+      "save": "restored"
+    },
+    {
+      "name": "settled after the query's restore",
+      "waitFor": "(window.dispatchEvent(new Event('focus')), true) && __vars.restored === 200 && __ss.status('WC AC Movies') === 'Up to date'",
+      "timeout": 60000
+    },
+    {
+      "name": "the collection deleted outside the plugin",
+      "script": "const r = __ss.row('WC AC Movies').querySelector('a.jfss-ac-open').getAttribute('href'); const id = new URLSearchParams(r.split('?')[1]).get('id'); return (await __ss.api('DELETE', 'Items/' + id)).status;",
+      "save": "nativeDelete"
+    },
+    {
+      "name": "the list read again",
+      "script": "location.hash = '#/jfss-search?tab=saved'; await new Promise(r => setTimeout(r, 1500)); location.hash = '#/jfss-search?tab=collections'; return __vars.nativeDelete;"
+    },
+    {
+      "name": "Collection deleted (after the event trigger's quiet minute), with Recreate and no link",
+      "waitFor": "(window.dispatchEvent(new Event('focus')), true) && __ss.status('WC AC Movies') === 'Collection deleted' && !!__ss.action('WC AC Movies', '.jfss-ac-recreate') && !__ss.row('WC AC Movies').querySelector('a.jfss-ac-open')",
+      "timeout": 180000
+    },
+    {
+      "screenshot": "smartsearch-collections-orphaned.png"
+    },
+    {
+      "name": "Recreate",
+      "script": "__ss.action('WC AC Movies', '.jfss-ac-recreate').click(); return true;"
+    },
+    {
+      "name": "made again, with a link",
+      "waitFor": "__ss.status('WC AC Movies') === 'Up to date' && !!__ss.row('WC AC Movies').querySelector('a.jfss-ac-open')",
+      "timeout": 60000
+    },
+    {
+      "name": "the new collection",
+      "eval": "__ss.row('WC AC Movies').querySelector('a.jfss-ac-open').getAttribute('href')",
+      "save": "recreated"
+    },
+    {
+      "name": "on the server again (the same id: Jellyfin derives it from the folder)",
+      "script": "const id = new URLSearchParams(__vars.recreated.split('?')[1]).get('id'); const r = await __ss.api('GET', 'Users/' + ApiClient.getCurrentUserId() + '/Items/' + id); return { status: r.status, type: r.body && r.body.Type };",
+      "save": "recreatedBox"
+    },
+    {
+      "name": "a BoxSet again",
+      "assert": "__vars.nativeDelete === 204 && __vars.recreatedBox.status === 200 && __vars.recreatedBox.type === 'BoxSet'"
+    },
+    {
+      "name": "the source query refused to a plain delete (auto-collections use it), then removed by a forced import that leaves it out",
+      "script": "const plain = (await __ss.api('DELETE', 'SmartSearch/Queries/' + __vars.setup.query)).status; const r = await fetch(ApiClient.getUrl('SmartSearch/Admin/Export'), { headers: { 'X-Emby-Token': ApiClient.accessToken() } }); const exp = await r.json(); const norm = (x) => String(x).replace(/-/g, '').toLowerCase(); exp.Data.Queries = exp.Data.Queries.filter(q => norm(q.Id) !== norm(__vars.setup.query)); const imported = (await __ss.api('POST', 'SmartSearch/Admin/Import?mode=Replace&dryRun=false&force=true', exp)).status; return { plain, imported };",
+      "save": "queryDeleted"
+    },
+    {
+      "name": "the list read again (2)",
+      "script": "location.hash = '#/jfss-search?tab=saved'; await new Promise(r => setTimeout(r, 1500)); location.hash = '#/jfss-search?tab=collections'; return true;"
+    },
+    {
+      "name": "Query missing, with its last error and Choose another query",
+      "waitFor": "(window.dispatchEvent(new Event('focus')), true) && __ss.status('WC AC Movies') === 'Query missing' && !!__ss.action('WC AC Movies', '.jfss-ac-choose') && /^Last error: /.test(__ss.action('WC AC Movies', '.jfss-ac-error').textContent) && !__ss.action('WC AC Movies', '.jfss-ac-source')",
+      "timeout": 60000
+    },
+    {
+      "name": "409 to the plain delete, 200 to the forced import",
+      "assert": "__vars.queryDeleted.plain === 409 && __vars.queryDeleted.imported === 200"
+    },
+    {
+      "name": "Delete",
+      "script": "__ss.action('WC AC Movies', '.jfss-ac-delete').click(); return true;"
+    },
+    {
+      "name": "the delete dialog",
+      "waitFor": "!!__ss.dq('.jfss-ac-delete-keep')"
+    },
+    {
+      "name": "keep is the default; delete the collection too",
+      "script": "const kept = __ss.dq('.jfss-ac-delete-keep').checked; __ss.dq('.jfss-ac-delete-too').click(); __ss.dq('.jfss-ac-delete-confirm').click(); return kept;",
+      "save": "keptDefault"
+    },
+    {
+      "name": "gone",
+      "waitFor": "!__ss.dialog() && !__ss.row('WC AC Movies')",
+      "timeout": 20000
+    },
+    {
+      "name": "the collection too",
+      "script": "const id = new URLSearchParams(__vars.recreated.split('?')[1]).get('id'); return (await __ss.api('GET', 'Users/' + ApiClient.getCurrentUserId() + '/Items/' + id)).status;",
+      "save": "boxAfter"
+    },
+    {
+      "name": "keep was the default, and the collection is deleted",
+      "assert": "__vars.keptDefault === true && __vars.boxAfter === 404"
+    },
+    {
+      "name": "admin: viewer2 back as it was, the query removed",
+      "script": "const users = (await __ss.api('GET', 'Users')).body; const v2 = users.find(u => u.Name === 'viewer2'); const p = await __ss.api('POST', 'Users/' + v2.Id + '/Policy', Object.assign({}, v2.Policy, { EnableCollectionManagement: false })); return { policy: p.status, removed: await __ss.cleanup('WC AC') };",
+      "save": "teardown"
+    },
+    {
+      "name": "cleaned up",
+      "assert": "__vars.teardown.policy === 204"
+    },
+    {
+      "name": "no uncaught exception (the stale CustomRatings tag is known noise)",
+      "noExceptions": true,
+      "ignore": "CustomRatings"
+    }
+  ]
+}

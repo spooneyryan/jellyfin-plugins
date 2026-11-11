@@ -1,0 +1,22 @@
+{
+  "name": "Names from an upgrade ('upgrade a sandbox holding v1 data to 1.1 → names appear') after the first start of 1.1 on a bookmark file written by Bookmarks 1.0.0: as admin, every bookmark the upgrade named (a 1.0 note of at most 100 characters on one line) shows that name as its title on My Bookmarks (flat view) and in a video's 'My bookmarks (n)' section, and a longer or multi-line note stays the note (its first line the title). The expectations come from the API's own list, so the check holds for any upgraded file.",
+  "failOnException": false,
+  "timeout": 30000,
+  "steps": [
+    { "name": "sign in as admin", "login": "admin" },
+    { "name": "the Bookmarks script ran", "waitFor": "!!window.__jfkit && !!window.__jfkit.jfbm && !!window.ApiClient && !!ApiClient.getCurrentUserId()" },
+    { "name": "admin's bookmarks as the API lists them", "eval": "(await ApiClient.getJSON(ApiClient.getUrl('Bookmarks/Query', { limit: 200 }))).Items.map(b => ({ id: b.Id, item: b.ItemId, name: b.Name || null, note: b.Note || null }))", "save": "api", "full": true },
+    { "name": "the upgrade named some and kept notes", "assert": "__vars.api.length > 0 && __vars.api.some(b => b.name) && __vars.api.every(b => !b.name || b.name.length <= 100)" },
+    { "name": "My Bookmarks, flat", "goto": "/web/index.html#/jfbm-bookmarks?view=flat" },
+    { "name": "the rows rendered", "waitFor": "(() => { const p = document.querySelector('#fallbackPage [data-jfbm-page=\"bookmarks\"]'); return !!p && !p.querySelector('.jfbm-page-content').hasAttribute('aria-busy') && p.querySelectorAll('.jfbm-row').length === __vars.api.length; })()", "timeout": 20000 },
+    { "name": "each row's title", "eval": "Array.from(document.querySelectorAll('#fallbackPage [data-jfbm-page=\"bookmarks\"] .jfbm-row')).map(r => ({ id: r.getAttribute('data-id'), title: r.querySelector('.jfbm-row-title').textContent }))", "save": "rows", "full": true },
+    { "name": "a named bookmark's title is its name; an unnamed one with a note shows the note's first line", "assert": "__vars.api.every(b => { const r = __vars.rows.find(x => x.id === b.id); if (!r) return false; if (b.name) return r.title === b.name; if (b.note) return r.title === b.note.split(/\\r?\\n/)[0].slice(0, 80) || b.note.split(/\\r?\\n/)[0].startsWith(r.title.replace(/…$/, '')); return /^(Bookmark at|Range) /.test(r.title); })" },
+    { "sleep": 300 },
+    { "screenshot": "upgrade-names-flat.png" },
+    { "name": "a video with a named bookmark", "eval": "__vars.api.find(b => b.name).item", "save": "itemId" },
+    { "name": "its details page", "goto": "/web/index.html#/details?id=${itemId}" },
+    { "name": "'My bookmarks (n)' with the rows' titles", "waitFor": "(() => { const s = document.querySelector('#itemDetailPage:not(.hide) .jfbm-section'); if (!s || s.classList.contains('hide')) return false; const rows = Array.from(s.querySelectorAll('.jfbm-row')); return rows.length > 0 ? rows.map(r => ({ id: r.getAttribute('data-id'), title: r.querySelector('.jfbm-row-title').textContent })) : false; })()", "timeout": 20000, "save": "section", "full": true },
+    { "name": "the named ones under their names there too", "assert": "__vars.api.filter(b => b.item === __vars.itemId && b.name).every(b => __vars.section.some(r => r.id === b.id && r.title === b.name))" },
+    { "name": "no uncaught exceptions (the stale CustomRatings tag excepted)", "noExceptions": true, "ignore": "/CustomRatings/script|^TypeError: t\\.value\\.pause is not a function" }
+  ]
+}

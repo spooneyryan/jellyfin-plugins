@@ -1,0 +1,34 @@
+{
+  "name": "The My Clips page in the TV layout, as admin in jellyfin-web's TV layout (localStorage.layout = 'tv'): the My Clips page over the probe's clips (bookmarks-clips-page-probe.mjs): the page body carries jfbm-page-tv, the toolbar fits on at most two lines at 1366 px, every control of it and every row's video link is a focusable element (a field, a select, a box or a link; the poster box is out of the focus order), and the keyboard moves through the toolbar with Tab. Run by bookmarks-clips-page-probe.mjs.",
+  "failOnException": false,
+  "timeout": 30000,
+  "steps": [
+    { "name": "sign in as admin", "login": "admin" },
+    { "name": "the Bookmarks script ran", "waitFor": "!!window.__jfkit && !!window.__jfkit.jfbm && !!window.ApiClient && !!ApiClient.getCurrentUserId()" },
+    { "name": "TV layout for this browser", "eval": "(localStorage.setItem('layout', 'tv'), true)" },
+    { "name": "reload (TV)", "reload": true },
+    { "name": "TV layout applied", "waitFor": "document.documentElement.classList.contains('layout-tv') && !!window.__jfkit && !!window.__jfkit.jfbm && !!ApiClient.getCurrentUserId()" },
+    { "name": "My Clips with the probe's clips", "goto": "/web/index.html#/jfbm-clips?q=clips-page-probe" },
+    {
+      "name": "TV: the page with jfbm-page-tv, the toolbar's controls on its lines, every control and video link focusable",
+      "waitFor": "(() => { const r = document.querySelector('#fallbackPage > [data-jfbm-page=\"clips\"]'); const k = (id) => String(id || '').replace(/-/g, '').toLowerCase(); const row = (id) => r && id ? r.querySelector('.jfbm-clips-row[data-jfbm-clip=\"' + k(id) + '\"]') : null; if (!((() => { const r = document.querySelector('#fallbackPage > [data-jfbm-page=\"clips\"]'); const k = (id) => String(id || '').replace(/-/g, '').toLowerCase(); const row = (id) => r && id ? r.querySelector('.jfbm-clips-row[data-jfbm-clip=\"' + k(id) + '\"]') : null; if (!r || r.getAttribute('data-jfbm-state') !== 'on') return false; const c = r.querySelector('.jfbm-clips-content'); return !!c && !c.hasAttribute('aria-busy') && (!!c.querySelector('.jfbm-clips-row') || !!c.querySelector('.jfbm-notice')); })())) return false; const body = r.querySelector('.jfbm-clips-page'); const t = r.querySelector('.jfbm-clips-toolbar'); const controls = [...t.querySelectorAll('input, select')]; const tops = [...t.children].filter(c => c.getClientRects().length > 0).map(c => c.getBoundingClientRect().top).sort((a, b) => a - b); let lines = 0; let lineTop = -1e9; for (const top of tops) { if (top > lineTop + 20) { lines++; lineTop = top; } } const rows = [...r.querySelectorAll('.jfbm-clips-row')]; return { tv: body.classList.contains('jfbm-page-tv'), viewport: innerWidth, lines, controls: controls.map(c => [c.tagName, c.type || null, c.tabIndex]), rows: rows.length, links: rows.map(x => { const a = x.querySelector('.jfbm-clip-item-link'); return a ? a.tabIndex : null; }), thumbs: rows.map(x => x.querySelector('.jfbm-clip-thumb').getAttribute('tabindex')), header: (r.querySelector('.jfbm-clips-bookmarks-link') || { tabIndex: null }).tabIndex }; })()",
+      "timeout": 20000,
+      "save": "tv",
+      "full": true
+    },
+    {
+      "name": "as expected (every control a focusable element)",
+      "assert": "__vars.tv.tv && __vars.tv.viewport === 1366 && __vars.tv.lines <= 2 && JSON.stringify(__vars.tv.controls.map(c => c[0])) === JSON.stringify(['INPUT', 'SELECT', 'SELECT', 'SELECT', 'SELECT', 'INPUT']) && __vars.tv.controls.every(c => c[2] >= 0) && __vars.tv.rows >= 3 && __vars.tv.links.every(t => t === null || t >= 0) && __vars.tv.links.filter(t => t !== null).length >= 3 && __vars.tv.header >= 0"
+    },
+    { "name": "TV: the deleted bookmarks' box at least 24 px square (the native box was small to see from a sofa)", "eval": "(() => { const b = document.querySelector('#fallbackPage [data-jfbm-page=clips] .jfbm-clips-deleted').getBoundingClientRect(); return [Math.round(b.width), Math.round(b.height)]; })()", "save": "tvBox" },
+    { "name": "as expected: the box at TV size", "assert": "__vars.tvBox[0] >= 24 && __vars.tvBox[1] >= 24" },
+    { "name": "the search field focused", "script": "document.querySelector('#fallbackPage [data-jfbm-page=\"clips\"] .jfbm-clips-toolbar input[type=\"search\"]').focus(); return true;" },
+    { "name": "Tab", "key": "Tab" },
+    { "name": "the State select has the focus", "waitFor": "document.activeElement && document.activeElement.classList.contains('jfbm-clips-state-select')" },
+    { "name": "Tab", "key": "Tab" },
+    { "name": "the Mode select has the focus", "waitFor": "document.activeElement && document.activeElement.classList.contains('jfbm-clips-mode-select')" },
+    { "sleep": 300 },
+    { "screenshot": "page-clips-tv.png" },
+    { "name": "no uncaught exception of ours", "noExceptions": true, "ignore": "/CustomRatings/script|^Error: player cannot be null" }
+  ]
+}

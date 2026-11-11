@@ -1,0 +1,31 @@
+{
+  "name": "Bookmarks with EnableWebUi turned off and on again: no tag and no script on the next page load, both back after turning it on, no restart. Signs in as admin and changes the setting through the API; a failed run can leave it off, and index-probe.mjs turns it back on",
+  "failOnException": false,
+  "timeout": 30000,
+  "steps": [
+    { "name": "sign in as admin through the login form", "login": "admin" },
+    { "name": "the home page is shown", "waitFor": "!!document.querySelector('.homePage:not(.hide)')" },
+    {
+      "name": "turn the Bookmarks web UI off",
+      "script": "const id = 'd0ee1b2a-7f71-4654-8ff2-163a81441b03'; const c = await ApiClient.getPluginConfiguration(id); c.EnableWebUi = false; await ApiClient.updatePluginConfiguration(id, c); return (await ApiClient.getPluginConfiguration(id)).EnableWebUi;"
+    },
+    { "name": "reload with the web UI off", "reload": true },
+    { "name": "the home page is shown without Bookmarks", "waitFor": "!!document.querySelector('.homePage:not(.hide)')" },
+    { "sleep": 1500 },
+    {
+      "name": "no Bookmarks tag and no Bookmarks script",
+      "assert": "document.querySelectorAll('script[data-jfbm-plugin]').length === 0 && !document.getElementById('jfbm-styles') && performance.getEntriesByType('resource').every(e => !e.name.includes('/Bookmarks/ClientScript'))"
+    },
+    { "screenshot": "bookmarks-injection-off.png" },
+    {
+      "name": "turn the Bookmarks web UI on again",
+      "script": "const id = 'd0ee1b2a-7f71-4654-8ff2-163a81441b03'; const c = await ApiClient.getPluginConfiguration(id); c.EnableWebUi = true; await ApiClient.updatePluginConfiguration(id, c); return (await ApiClient.getPluginConfiguration(id)).EnableWebUi;"
+    },
+    { "name": "reload with the web UI on", "reload": true },
+    {
+      "name": "one tag and the Bookmarks script are back",
+      "waitFor": "!!document.querySelector('.homePage:not(.hide)') && document.querySelectorAll('script[data-jfbm-plugin]').length === 1 && !!document.getElementById('jfbm-styles')"
+    },
+    { "name": "no uncaught exceptions (the stale CustomRatings tag excepted)", "noExceptions": true, "ignore": "/CustomRatings/script" }
+  ]
+}

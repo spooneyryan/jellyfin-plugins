@@ -1,0 +1,57 @@
+<Project>
+  <!--
+    Central package versions. Versions match the Bookmarks 1.0.0 projects where they
+    overlap; the others match Jellyfin 10.11.5's own Directory.Packages.props (9.0.11).
+  -->
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+
+  <!-- Server packages. Plugin projects reference them with ExcludeAssets="runtime"; the server ships them. -->
+  <ItemGroup>
+    <PackageVersion Include="Jellyfin.Controller" Version="10.11.5" />
+    <PackageVersion Include="Jellyfin.Model" Version="10.11.5" />
+    <PackageVersion Include="Microsoft.Data.Sqlite.Core" Version="9.0.11" />
+  </ItemGroup>
+
+  <!--
+    Test projects with KitUseSqlite only (kit/build/TestSupport.props): the full package, whose bundle_e_sqlite3 is
+    the native SQLite 3.46.1 build the server ships. Plugins never reference it.
+  -->
+  <ItemGroup>
+    <PackageVersion Include="Microsoft.Data.Sqlite" Version="9.0.11" />
+  </ItemGroup>
+
+  <!-- Analyzers (every non-test project, see Directory.Build.props). -->
+  <ItemGroup>
+    <PackageVersion Include="SerilogAnalyzer" Version="0.15.0" />
+    <PackageVersion Include="SmartAnalyzers.MultithreadingAnalyzer" Version="1.1.31" />
+    <PackageVersion Include="StyleCop.Analyzers" Version="1.2.0-beta.556" />
+  </ItemGroup>
+
+  <!-- Tests (kit/build/TestSupport.props). -->
+  <ItemGroup>
+    <PackageVersion Include="Microsoft.AspNetCore.TestHost" Version="9.0.11" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.9.0" />
+    <PackageVersion Include="Moq" Version="4.18.4" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.5" />
+    <PackageVersion Include="xunit.v3" Version="3.2.2" />
+  </ItemGroup>
+
+  <!--
+    Kit.Tests only: the versions Jellyfin 10.11.5 ships (Serilog.dll 4.2.0; Swashbuckle.AspNetCore 6.2.3 in its
+    Directory.Packages.props), so the kit's startup log and the schema-prefix walker are checked against the real thing.
+  -->
+  <ItemGroup>
+    <PackageVersion Include="Serilog" Version="4.2.0" />
+    <PackageVersion Include="Swashbuckle.AspNetCore.SwaggerGen" Version="6.2.3" />
+  </ItemGroup>
+
+  <!--
+    SmartSearch.Tests only: EF Core's SQLite provider at the version Jellyfin 10.11.5 ships (9.0.11), so the planner's own
+    database reads (DatabasePushdownFacts) are translated and run by the real thing.
+  -->
+  <ItemGroup>
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Sqlite" Version="9.0.11" />
+  </ItemGroup>
+</Project>

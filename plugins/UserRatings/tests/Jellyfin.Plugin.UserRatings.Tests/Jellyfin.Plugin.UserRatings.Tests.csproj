@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    KitUseSqlite: TestSupport.props then references the full Microsoft.Data.Sqlite 9.0.11,
+    whose bundle_e_sqlite3 is the server's own native build (SQLite 3.46.1), in the test output only; the plugin's own
+    reference is PrivateAssets=all, so nothing flows from it. Set before the import, which reads it.
+  -->
+  <PropertyGroup>
+    <KitUseSqlite>true</KitUseSqlite>
+  </PropertyGroup>
+
+  <!-- xunit v3, Moq, Jellyfin.Controller with runtime assets and RollForward=Major come from TestSupport.props. -->
+  <Import Project="$(KitRoot)build\TestSupport.props" />
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Jellyfin.Plugin.UserRatings\Jellyfin.Plugin.UserRatings.csproj" />
+  </ItemGroup>
+
+</Project>

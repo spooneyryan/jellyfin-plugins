@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- xunit v3, Moq, Jellyfin.Controller with runtime assets and RollForward=Major come from TestSupport.props. -->
+  <Import Project="$(KitRoot)build\TestSupport.props" />
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Jellyfin.Plugin.TagCloud\Jellyfin.Plugin.TagCloud.csproj" />
+  </ItemGroup>
+
+  <!-- Saved-cloud files as earlier releases wrote them, for the store conformance suite. -->
+  <ItemGroup>
+    <EmbeddedResource Include="Fixtures\*.json" LogicalName="Fixtures.%(Filename)%(Extension)" />
+  </ItemGroup>
+
+</Project>

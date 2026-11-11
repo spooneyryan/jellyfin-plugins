@@ -1,0 +1,220 @@
+{
+  "description": "The Libraries, Audit, Settings, Data and Diagnostics tabs on a phone: Access Roles' dashboard page at 375x812 with touch (pointer: coarse) and jellyfin-web's mobile layout, as admin, reading only. On the Libraries, Audit, Settings, Data and Diagnostics tabs nothing is past the screen's right edge and the page doesn't scroll sideways, and every button, checkbox row, select and text field is at least 44 px tall; the probe's 81-character library name (one unbroken word after \"Tabs probe \") wraps inside the screen, isolated, and so does its rename warning; the Audit filters are one column; the rule tables' headings are hidden. accessroles-admin-tabs-probe.mjs --webcheck runs it.",
+  "steps": [
+    {
+      "name": "a phone: 375x812, touch",
+      "emulate": {
+        "width": 375,
+        "height": 812,
+        "deviceScaleFactor": 1,
+        "mobile": true,
+        "touch": true
+      }
+    },
+    {
+      "name": "the mobile layout",
+      "initScript": "localStorage.setItem('layout', 'mobile')"
+    },
+    {
+      "name": "sign in as admin",
+      "login": "admin"
+    },
+    {
+      "name": "the web client is ready",
+      "waitFor": "!!window.ApiClient && !!ApiClient.getCurrentUserId()"
+    },
+    {
+      "name": "open Access Roles' page",
+      "goto": "/web/index.html#/configurationpage?name=AccessRoles"
+    },
+    {
+      "name": "the module mounted: the tabs, the status loaded, the chips, the loading note hidden",
+      "waitFor": "(() => { const p = document.querySelector('#AccessRolesConfigPage:not(.hide)'); return !!p && p.querySelectorAll('[role=\"tab\"]').length === 8 && p.querySelectorAll('#AccessRolesStatus table').length === 5 && p.querySelector('#AccessRolesScriptNote').hidden === true && p.querySelectorAll('#AccessRolesChips [data-chip]').length >= 10; })()",
+      "timeout": 30000
+    },
+    {
+      "name": "the check's helpers",
+      "script": "window.__arTabs = {\n  page: () => document.querySelector('#AccessRolesConfigPage:not(.hide)'),\n  panels: () => [...document.querySelectorAll('.jfar-backdrop .jfar-panel')],\n  top: () => __arTabs.panels().pop() || null,\n  title: () => { const t = __arTabs.top(); return t ? t.querySelector('.jfar-panel-header h3').textContent : null; },\n  button: (root, text) => [...(root || document).querySelectorAll('button')].find(b => b.textContent === text) || null,\n  press: (root, text) => { const b = __arTabs.button(root, text); if (!b) throw new Error('no button ' + text); if (b.disabled) throw new Error(text + ' is disabled'); b.click(); return true; },\n  shown: (el) => !!el && el.getClientRects().length > 0 && !el.closest('[hidden]'),\n  chip: (id) => __arTabs.page().querySelector('#AccessRolesChips [data-chip=\"' + id + '\"]'),\n  card: (name) => [...__arTabs.page().querySelectorAll('.jfar-page-library')].find(c => c.querySelector('.jfar-page-library-name').textContent === name) || null,\n  setting: (name) => __arTabs.page().querySelector('[data-setting=\"' + name + '\"]'),\n  set: (el, value) => { el.value = String(value); el.dispatchEvent(new Event('input', { bubbles: true })); el.dispatchEvent(new Event('change', { bubbles: true })); return el.value; },\n  id: (x) => String(x || '').replace(/-/g, '').toLowerCase(),\n  seen: [],\n  toasts: () => __arTabs.seen.concat([...document.querySelectorAll('.jfar-toast')].map(t => t.textContent))\n};\n// Every toast's text as it comes (a toast goes after 4 s, maybe before a wait sees it).\nnew MutationObserver(() => { document.querySelectorAll('.jfar-toast').forEach(t => { if (!__arTabs.seen.includes(t.textContent)) __arTabs.seen.push(t.textContent); }); }).observe(document.body, { childList: true, subtree: true });\nreturn true;"
+    },
+    {
+      "name": "the measures",
+      "script": "window.__arTabsWide = (root) => { const W = innerWidth; return [...root.querySelectorAll('*')].filter(e => e.getClientRects().length > 0 && Math.round(e.getBoundingClientRect().right) > W + 1).slice(0, 5).map(e => e.tagName + '.' + e.className + ' ' + Math.round(e.getBoundingClientRect().right)); };\n// Buttons, checkbox rows, selects and text fields under 44 px tall.\nwindow.__arTabsSmall = (root) => [...root.querySelectorAll('button, input, select')].filter(e => e.getClientRects().length > 0 && e.type !== 'hidden').map(e => { const t = e.tagName === 'INPUT' && e.type === 'checkbox' ? e.closest('label') : e; const r = t.getBoundingClientRect(); return { what: t.tagName + ' ' + (t.getAttribute('data-setting') || t.getAttribute('data-audit-filter') || t.textContent || '').slice(0, 30), height: Math.round(r.height) }; }).filter(x => x.height < 44).slice(0, 5);\nwindow.__arTabsMeasure = (name) => ({ wide: __arTabsWide(__arTabs.page()), small: __arTabsSmall(document.querySelector('#AccessRolesPanel' + name)).concat(__arTabsSmall(__arTabs.page().querySelector('[role=\"tablist\"]'))), scroll: document.scrollingElement.scrollWidth });\nreturn true;"
+    },
+    {
+      "name": "the mobile layout at 375 px, a coarse pointer",
+      "assert": "document.documentElement.classList.contains('layout-mobile') && innerWidth === 375 && matchMedia('(pointer: coarse)').matches"
+    },
+    {
+      "name": "the Libraries tab",
+      "click": "#AccessRolesTabLibraries"
+    },
+    {
+      "name": "the Libraries panel shown",
+      "waitFor": "document.querySelector('#AccessRolesTabLibraries').getAttribute('aria-selected') === 'true' && __arTabs.shown(document.querySelector('#AccessRolesPanelLibraries'))"
+    },
+    {
+      "name": "Libraries: loaded",
+      "waitFor": "!!__arTabs.card(\"Tabs probe NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN\") && !!__arTabs.card('Tabs probe Gone')",
+      "timeout": 20000
+    },
+    {
+      "sleep": 200
+    },
+    {
+      "name": "Libraries: past the right edge, and controls under 44 px",
+      "eval": "__arTabsMeasure('Libraries')",
+      "save": "phoneLibraries",
+      "full": true
+    },
+    {
+      "name": "Libraries: it fits and every control is 44 px tall",
+      "assert": "__vars.phoneLibraries.wide.length === 0 && __vars.phoneLibraries.small.length === 0 && __vars.phoneLibraries.scroll <= 375"
+    },
+    {
+      "screenshot": "accessroles-admin-tabs-phone-libraries.png"
+    },
+    {
+      "name": "the 81-character library name, wrapped inside the screen",
+      "eval": "(() => { const e = __arTabs.card(\"Tabs probe NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN\").querySelector('.jfar-page-library-name'); const r = e.getBoundingClientRect(); return { right: Math.round(r.right), twoLines: r.height > parseFloat(getComputedStyle(e).lineHeight || getComputedStyle(e).fontSize) * 1.5, dir: !!e.querySelector('[dir=\"auto\"], bdi') }; })()",
+      "save": "longName",
+      "full": true
+    },
+    {
+      "name": "inside the screen, on more than one line, isolated",
+      "assert": "__vars.longName.right <= 375 && __vars.longName.twoLines === true && __vars.longName.dir === true"
+    },
+    {
+      "name": "the rename's warning wraps too",
+      "assert": "[...__arTabs.card(\"Tabs probe NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN\").querySelectorAll('.jfar-page-library-warning')].every(w => Math.round(w.getBoundingClientRect().right) <= 375)"
+    },
+    {
+      "name": "the Audit tab",
+      "click": "#AccessRolesTabAudit"
+    },
+    {
+      "name": "the Audit panel shown",
+      "waitFor": "document.querySelector('#AccessRolesTabAudit').getAttribute('aria-selected') === 'true' && __arTabs.shown(document.querySelector('#AccessRolesPanelAudit'))"
+    },
+    {
+      "name": "Audit: loaded",
+      "waitFor": "document.querySelectorAll('#AccessRolesAuditList .jfar-page-audit-entry').length > 0",
+      "timeout": 20000
+    },
+    {
+      "sleep": 200
+    },
+    {
+      "name": "Audit: past the right edge, and controls under 44 px",
+      "eval": "__arTabsMeasure('Audit')",
+      "save": "phoneAudit",
+      "full": true
+    },
+    {
+      "name": "Audit: it fits and every control is 44 px tall",
+      "assert": "__vars.phoneAudit.wide.length === 0 && __vars.phoneAudit.small.length === 0 && __vars.phoneAudit.scroll <= 375"
+    },
+    {
+      "screenshot": "accessroles-admin-tabs-phone-audit.png"
+    },
+    {
+      "name": "the filters in one column",
+      "assert": "(() => { const cells = [...__arTabs.page().querySelector('.jfar-page-filters').children].map(e => e.getBoundingClientRect()); return cells.length >= 5 && cells.every(r => Math.round(r.left) === Math.round(cells[0].left)) && cells.every((r, i) => i === 0 || r.top >= cells[i - 1].bottom - 1); })()"
+    },
+    {
+      "name": "the Settings tab",
+      "click": "#AccessRolesTabSettings"
+    },
+    {
+      "name": "the Settings panel shown",
+      "waitFor": "document.querySelector('#AccessRolesTabSettings').getAttribute('aria-selected') === 'true' && __arTabs.shown(document.querySelector('#AccessRolesPanelSettings'))"
+    },
+    {
+      "name": "Settings: loaded",
+      "waitFor": "__arTabs.shown(document.querySelector('#AccessRolesSettingsForm'))",
+      "timeout": 20000
+    },
+    {
+      "sleep": 200
+    },
+    {
+      "name": "Settings: past the right edge, and controls under 44 px",
+      "eval": "__arTabsMeasure('Settings')",
+      "save": "phoneSettings",
+      "full": true
+    },
+    {
+      "name": "Settings: it fits and every control is 44 px tall",
+      "assert": "__vars.phoneSettings.wide.length === 0 && __vars.phoneSettings.small.length === 0 && __vars.phoneSettings.scroll <= 375"
+    },
+    {
+      "screenshot": "accessroles-admin-tabs-phone-settings.png"
+    },
+    {
+      "name": "the Data tab",
+      "click": "#AccessRolesTabData"
+    },
+    {
+      "name": "the Data panel shown",
+      "waitFor": "document.querySelector('#AccessRolesTabData').getAttribute('aria-selected') === 'true' && __arTabs.shown(document.querySelector('#AccessRolesPanelData'))"
+    },
+    {
+      "name": "Data: loaded",
+      "waitFor": "document.querySelectorAll('#AccessRolesPanelData table').length >= 2",
+      "timeout": 20000
+    },
+    {
+      "sleep": 200
+    },
+    {
+      "name": "Data: past the right edge, and controls under 44 px",
+      "eval": "__arTabsMeasure('Data')",
+      "save": "phoneData",
+      "full": true
+    },
+    {
+      "name": "Data: it fits and every control is 44 px tall",
+      "assert": "__vars.phoneData.wide.length === 0 && __vars.phoneData.small.length === 0 && __vars.phoneData.scroll <= 375"
+    },
+    {
+      "screenshot": "accessroles-admin-tabs-phone-data.png"
+    },
+    {
+      "name": "the Diagnostics tab",
+      "click": "#AccessRolesTabDiagnostics"
+    },
+    {
+      "name": "the Diagnostics panel shown",
+      "waitFor": "document.querySelector('#AccessRolesTabDiagnostics').getAttribute('aria-selected') === 'true' && __arTabs.shown(document.querySelector('#AccessRolesPanelDiagnostics'))"
+    },
+    {
+      "name": "Diagnostics: loaded",
+      "waitFor": "document.querySelectorAll('#AccessRolesPanelDiagnostics #AccessRolesStatus table').length === 5",
+      "timeout": 20000
+    },
+    {
+      "sleep": 200
+    },
+    {
+      "name": "Diagnostics: past the right edge, and controls under 44 px",
+      "eval": "__arTabsMeasure('Diagnostics')",
+      "save": "phoneDiagnostics",
+      "full": true
+    },
+    {
+      "name": "Diagnostics: it fits and every control is 44 px tall",
+      "assert": "__vars.phoneDiagnostics.wide.length === 0 && __vars.phoneDiagnostics.small.length === 0 && __vars.phoneDiagnostics.scroll <= 375"
+    },
+    {
+      "screenshot": "accessroles-admin-tabs-phone-diagnostics.png"
+    },
+    {
+      "name": "the rule tables' headings hidden on a phone",
+      "assert": "[...document.querySelectorAll('#AccessRolesRules thead')].every(h => getComputedStyle(h).display === 'none')"
+    },
+    {
+      "name": "no uncaught exceptions (the stale CustomRatings tag excepted)",
+      "noExceptions": true,
+      "ignore": "/CustomRatings/script"
+    }
+  ]
+}

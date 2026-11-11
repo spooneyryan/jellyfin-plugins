@@ -1,0 +1,100 @@
+{
+  "name": "The player's Set end time (Bookmarks 1.2.0): the fourth button, between the scissors and Bookmarks; it lists the video's bookmarks, the nearest start before the position first and focused, one that starts later listed but not choosable; Down and Enter choose the next, which is saved with the position as its end (the bookmark read back), the toast offering Make a clip; and the console shows no error or warning from our scripts. As admin, on Long Test Movie; its bookmarks reset first and removed at the end.",
+  "failOnException": false,
+  "timeout": 30000,
+  "steps": [
+    { "name": "console probe in every document", "initScript": { "file": "probes/console-probe.js" } },
+    { "name": "sign in as admin", "login": "admin" },
+    { "name": "the home page", "waitFor": "!!document.querySelector('.homePage:not(.hide)')" },
+    {
+      "name": "find Long Test Movie and its runtime",
+      "eval": "(async () => { const m = (await ApiClient.getItems(ApiClient.getCurrentUserId(), { IncludeItemTypes: 'Movie', Recursive: true, SearchTerm: 'Long Test Movie', Limit: 1, Fields: 'RunTimeTicks' })).Items[0]; return { id: m.Id, runtime: m.RunTimeTicks }; })()",
+      "save": "movie"
+    },
+    { "name": "its id", "eval": "__vars.movie.id", "save": "movieId" },
+    {
+      "name": "reset the movie's bookmarks to 'Set end A' (a point at 0:01), 'Set end R' (the range 0:02-0:03) and 'Set end C' (a point 10 s before the end)",
+      "script": "const itemId = __vars.movie.id; const url = (p, q) => ApiClient.getUrl(p, q); for (const b of await ApiClient.getJSON(url('Bookmarks', { itemId }))) { await ApiClient.ajax({ type: 'DELETE', url: url('Bookmarks/' + b.Id, { deleteClip: 'true' }) }); } for (const body of [{ ItemId: itemId, StartTicks: 10000000, Name: 'Set end A' }, { ItemId: itemId, StartTicks: 20000000, EndTicks: 30000000, Name: 'Set end R' }, { ItemId: itemId, StartTicks: __vars.movie.runtime - 100000000, Name: 'Set end C' }]) { await ApiClient.ajax({ type: 'POST', url: url('Bookmarks'), data: JSON.stringify(body), contentType: 'application/json' }); } return (await ApiClient.getJSON(url('Bookmarks', { itemId }))).map(b => b.Name + ' ' + b.StartTicks + (b.EndTicks ? '-' + b.EndTicks : ''));",
+      "full": true
+    },
+    { "name": "open the details page", "goto": "/web/index.html#/details?id=${movieId}" },
+    { "name": "details page with a Play button", "waitFor": "!!document.querySelector('#itemDetailPage:not(.hide) .mainDetailButtons .btnPlay:not(.hide)')", "timeout": 20000 },
+    { "name": "start playback", "click": "#itemDetailPage:not(.hide) .mainDetailButtons .btnPlay:not(.hide)" },
+    { "name": "video page, past 0:05", "waitFor": "location.hash.indexOf('#/video') === 0 && (v => !!v && !v.paused && v.currentTime > 5)(document.querySelector('.videoPlayerContainer video'))", "timeout": 60000 },
+    {
+      "name": "the four player buttons, Set end time between the scissors and Bookmarks",
+      "waitFor": "(() => { const e = document.querySelector('.videoOsdBottom .buttons .btnBookmarkEnd'); return document.querySelectorAll('.videoOsdBottom .buttons .btnBookmarkAdd, .videoOsdBottom .buttons .btnBookmarkRange, .videoOsdBottom .buttons .btnBookmarkEnd, .videoOsdBottom .buttons .btnBookmarkList').length === 4 && !!e && e.previousElementSibling.classList.contains('btnBookmarkRange') && e.nextElementSibling.classList.contains('btnBookmarkList') && e.getAttribute('title') === 'Set end time' && !!e.querySelector('.material-icons.last_page'); })()",
+      "timeout": 20000
+    },
+    { "name": "Set end time", "click": ".videoOsdBottom .buttons .btnBookmarkEnd", "js": true },
+    {
+      "name": "the chooser: R (nearest before) focused, then A, then C (later) not choosable",
+      "waitFor": "(() => { const p = [...document.querySelectorAll('.jfbm-backdrop .jfbm-panel')].find(x => /^Set end time to \\d+:\\d\\d$/.test(x.querySelector('h3').textContent)); if (!p) return false; const items = [...p.querySelectorAll('.jfbm-end-item')]; const rows = items.map(i => i.querySelector('.jfbm-end-item-title').textContent + '|' + i.querySelector('.jfbm-end-item-detail').textContent + '|' + i.disabled); if (rows.length !== 3 || document.activeElement !== items[0]) return false; return { heading: p.querySelector('h3').textContent, rows }; })()",
+      "save": "chooser",
+      "full": true
+    },
+    {
+      "name": "the rows say the range each would get",
+      "assert": "/^Set end R\\|From 0:02, 0:0\\d long \\(ends at 0:03 now\\)\\|false$/.test(__vars.chooser.rows[0]) && /^Set end A\\|From 0:01, 0:\\d\\d long\\|false$/.test(__vars.chooser.rows[1]) && /^Set end C\\|Starts at \\d+:\\d\\d(:\\d\\d)?, after this moment\\|true$/.test(__vars.chooser.rows[2])",
+      "message": "the chooser's rows aren't R, A and C with their ranges"
+    },
+    { "screenshot": "player-set-end-chooser.png" },
+    { "name": "Down to A", "key": "ArrowDown" },
+    { "name": "A has the focus", "waitFor": "document.activeElement && document.activeElement.classList.contains('jfbm-end-item') && document.activeElement.querySelector('.jfbm-end-item-title').textContent === 'Set end A'" },
+    { "name": "Enter chooses it", "key": "Enter" },
+    {
+      "name": "the chooser closed, the toast says A's end and offers Make a clip",
+      "waitFor": "!document.querySelector('.jfbm-backdrop') && [...document.querySelectorAll('.jfbm-toast')].some(t => t.textContent === '\"Set end A\" now ends at ' + __vars.chooser.heading.replace('Set end time to ', '') + '.Make a clip')",
+      "timeout": 10000
+    },
+    {
+      "name": "A read back: a range from 0:01 to the position at the click, the others as they were",
+      "eval": "(async () => { const list = await ApiClient.getJSON(ApiClient.getUrl('Bookmarks', { itemId: __vars.movie.id })); return list.map(b => ({ name: b.Name, start: b.StartTicks, end: b.EndTicks })); })()",
+      "save": "after",
+      "full": true
+    },
+    {
+      "name": "A ends between 0:05 and 2:00, R still ends at 0:03, C still has no end",
+      "assert": "(() => { const by = n => __vars.after.find(b => b.name === n); const a = by('Set end A'), r = by('Set end R'), c = by('Set end C'); return a.start === 10000000 && a.end > 50000000 && a.end < 1200000000 && r.end === 30000000 && (c.end === null || c.end === undefined); })()",
+      "message": "the saved ends aren't what the chooser said"
+    },
+    { "name": "leave the player", "goto": "/web/index.html#/details?id=${movieId}" },
+    { "name": "details page again", "waitFor": "!!document.querySelector('#itemDetailPage:not(.hide) .mainDetailButtons .btnPlay')", "timeout": 20000 },
+    { "name": "a phone: 375x812, touch", "emulate": { "width": 375, "height": 812, "deviceScaleFactor": 1, "mobile": true, "touch": true } },
+    { "name": "mobile layout for this browser", "eval": "(localStorage.setItem('layout', 'mobile'), true)" },
+    { "name": "reload (mobile)", "reload": true },
+    { "name": "mobile layout applied at 375 px", "waitFor": "document.documentElement.classList.contains('layout-mobile') && innerWidth === 375 && !!window.__jfkit && !!window.__jfkit.jfbm", "timeout": 20000 },
+    { "name": "mobile: details page with a Play button", "waitFor": "!!document.querySelector('#itemDetailPage:not(.hide) .mainDetailButtons .btnPlay:not(.hide)')", "timeout": 20000 },
+    { "name": "mobile: start playback", "click": "#itemDetailPage:not(.hide) .mainDetailButtons .btnPlay:not(.hide)", "js": true },
+    { "name": "mobile: video page, playing past 0:05", "waitFor": "location.hash.indexOf('#/video') === 0 && (v => !!v && !v.paused && v.currentTime > 5)(document.querySelector('.videoPlayerContainer video'))", "timeout": 60000 },
+    { "name": "mobile: the four player buttons", "waitFor": "document.querySelectorAll('.videoOsdBottom .buttons .btnBookmarkAdd, .videoOsdBottom .buttons .btnBookmarkRange, .videoOsdBottom .buttons .btnBookmarkEnd, .videoOsdBottom .buttons .btnBookmarkList').length === 4", "timeout": 20000 },
+    {
+      "name": "mobile: the button row, ours and jellyfin-web's, with where each sits (measured with the controls shown: they hide themselves after a few seconds)",
+      "eval": "(() => { const osd = document.querySelector('.videoOsdBottom'); const hidden = ['hide', 'videoOsdBottom-hidden'].filter(c => osd.classList.contains(c)); osd.classList.remove(...hidden); const row = [...document.querySelector('.videoOsdBottom .buttons .btnBookmarkEnd').parentElement.children].map(b => { const r = b.getBoundingClientRect(); return { cls: b.className.split(' ')[0], shown: r.width > 0 && getComputedStyle(b).display !== 'none', left: Math.round(r.left), right: Math.round(r.right), top: Math.round(r.top) }; }).filter(b => b.shown); osd.classList.add(...hidden); return row; })()",
+      "save": "mobileRow",
+      "full": true
+    },
+    {
+      "name": "mobile: our four buttons are inside the 375 px screen",
+      "assert": "['btnBookmarkAdd', 'btnBookmarkRange', 'btnBookmarkEnd', 'btnBookmarkList'].every(c => { const b = __vars.mobileRow.find(x => x.cls === c); return !!b && b.left >= 0 && b.right <= 375; })",
+      "message": "a bookmark button is off the phone's screen (see the button row step)"
+    },
+    { "name": "mobile: Set end time", "click": ".videoOsdBottom .buttons .btnBookmarkEnd", "js": true },
+    { "name": "mobile: the chooser", "waitFor": "(() => { const p = document.querySelector('.jfbm-backdrop .jfbm-panel'); return !!p && /^Set end time to /.test(p.querySelector('h3').textContent) && p.querySelectorAll('.jfbm-end-item').length === 3; })()" },
+    { "screenshot": "player-set-end-mobile.png" },
+    { "name": "mobile: the chooser is a full-width bottom sheet", "assert": "(r => Math.round(r.left) === 0 && Math.round(r.right) === 375 && Math.round(r.bottom) === 812)(document.querySelector('.jfbm-backdrop .jfbm-panel').getBoundingClientRect())" },
+    { "name": "mobile: Escape closes it, nothing saved", "key": "Escape" },
+    { "name": "mobile: closed", "waitFor": "!document.querySelector('.jfbm-backdrop')" },
+    { "name": "mobile: leave the player", "goto": "/web/index.html#/details?id=${movieId}" },
+    { "name": "mobile: details page again", "waitFor": "!!document.querySelector('#itemDetailPage:not(.hide) .mainDetailButtons .btnPlay')", "timeout": 20000 },
+    { "name": "back to the desktop viewport", "emulate": "desktop" },
+    { "name": "back to the stable layout for this browser", "eval": "(localStorage.setItem('layout', ''), true)" },
+    {
+      "name": "remove the three bookmarks",
+      "script": "for (const b of await ApiClient.getJSON(ApiClient.getUrl('Bookmarks', { itemId: __vars.movie.id }))) { await ApiClient.ajax({ type: 'DELETE', url: ApiClient.getUrl('Bookmarks/' + b.Id, { deleteClip: 'true' }) }); } return (await ApiClient.getJSON(ApiClient.getUrl('Bookmarks', { itemId: __vars.movie.id }))).length;"
+    },
+    { "name": "entries from our scripts", "eval": "__consoleProbe.ours()", "save": "ours", "full": true },
+    { "name": "the console shows no error or warning from our scripts", "assert": "__vars.ours.length === 0", "message": "our scripts wrote to the console (see the 'entries from our scripts' step)" },
+    { "name": "no uncaught exceptions (the stale CustomRatings tag, and jellyfin-web's own 'player cannot be null' when the player is left, excepted)", "noExceptions": true, "ignore": "/CustomRatings/script|^Error: player cannot be null" }
+  ]
+}

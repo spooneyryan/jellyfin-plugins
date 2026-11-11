@@ -1,0 +1,124 @@
+{
+  "name": "Smart Search's saved queries on a phone, as viewer at 390x844 with touch and the mobile layout: the tabs, the Saved tab and the Search tab's actions (Save, Save as new, Share) within the screen, the tabs, filters, the row actions and the names touch-sized (40 px), and the save dialog within the screen with its fields and buttons. Screenshots smartsearch-saved-phone*.png. Run after smartsearch-saved-desktop.json (its queries).",
+  "failOnException": false,
+  "timeout": 30000,
+  "steps": [
+    {
+      "name": "a phone: 390x844, touch",
+      "emulate": {
+        "width": 390,
+        "height": 844,
+        "deviceScaleFactor": 1,
+        "mobile": true,
+        "touch": true
+      }
+    },
+    {
+      "name": "page helpers (viewer)",
+      "initScript": "\nwindow.__ss = {\n  root: () => [...document.querySelectorAll('[data-jfss-page=\"search\"][data-jfss-mounted] .jfss-search')].find(x => x.getClientRects().length > 0) || null,\n  q: (s) => { const r = window.__ss.root(); return r ? r.querySelector(s) : null; },\n  all: (s) => { const r = window.__ss.root(); return r ? [...r.querySelectorAll(s)] : []; },\n  set: (s, v) => { const e = window.__ss.q(s); e.value = v; e.dispatchEvent(new Event('input', { bubbles: true })); e.dispatchEvent(new Event('change', { bubbles: true })); return true; },\n  ready: () => !!window.__ss.q('.jfss-scope') && !!window.__ss.q('.jfss-search-button'),\n  done: () => { const c = window.__ss.q('.jfss-count'); const n = window.__ss.q('.jfss-notices'); if (c && c.textContent && !/Searching/.test(c.textContent)) return c.textContent; if (n && n.textContent) return n.textContent; return false; },\n  ids: () => window.__ss.all('.jfss-card, .jfss-row').map(x => x.getAttribute('data-id')),\n  norm: (ids) => ids.map(i => String(i).replace(/-/g, '').toLowerCase()).sort().join(),\n  noHScroll: () => document.documentElement.scrollWidth <= innerWidth && window.__ss.root().scrollWidth <= window.__ss.root().clientWidth + 1,\n  box: (e) => { const r = e.getBoundingClientRect(); return [Math.round(r.width), Math.round(r.height)]; },\n  api: async (method, path, body) => { const r = await fetch(ApiClient.getUrl(path), { method, headers: { 'X-Emby-Token': ApiClient.accessToken(), 'Content-Type': 'application/json' }, body: body === undefined ? undefined : JSON.stringify(body) }); const t = await r.text(); return { status: r.status, body: t ? JSON.parse(t) : null }; },\n  cleanup: async (prefix) => { const list = (await window.__ss.api('GET', 'SmartSearch/Queries?scope=Mine&limit=500')).body.Items; let n = 0; for (const q of list) { if (q.Name.indexOf(prefix) === 0) { await window.__ss.api('DELETE', 'SmartSearch/Queries/' + q.Id); n++; } } return n; },\n  dialog: () => { const d = [...document.querySelectorAll('[role=\"dialog\"]')].filter(x => x.getClientRects().length > 0); return d[d.length - 1] || null; },\n  dbutton: (text) => { const d = window.__ss.dialog(); return d ? [...d.querySelectorAll('button')].find(b => b.textContent === text) || null : null; },\n  rows: () => window.__ss.all('.jfss-saved-row'),\n  names: () => window.__ss.rows().map(r => r.querySelector('.jfss-saved-open').textContent),\n  row: (name) => window.__ss.rows().find(r => r.querySelector('.jfss-saved-open').textContent === name) || null,\n  action: (name, cls) => { const r = window.__ss.row(name); return r ? r.querySelector(cls) : null; },\n  toast: () => [...document.querySelectorAll('.jfss-toast')].map(t => t.textContent).join(' | '),\n  runs: (id) => performance.getEntriesByType('resource').filter(e => e.name.indexOf('SmartSearch/Queries/' + id + '/Search') >= 0).length,\n  searches: () => performance.getEntriesByType('resource').filter(e => /SmartSearch\\/Search$/.test(e.name)).length\n};\n"
+    },
+    {
+      "name": "sign in as viewer",
+      "login": "viewer"
+    },
+    {
+      "name": "the Smart Search script ran (viewer)",
+      "waitFor": "!!window.__jfkit && !!window.__jfkit.jfss && !!window.ApiClient && !!ApiClient.getCurrentUserId()",
+      "timeout": 20000
+    },
+    {
+      "name": "mobile layout for this browser",
+      "eval": "(localStorage.setItem('layout', 'mobile'), true)"
+    },
+    {
+      "name": "reload (mobile)",
+      "reload": true
+    },
+    {
+      "name": "mobile layout applied",
+      "waitFor": "document.documentElement.classList.contains('layout-mobile') && !!window.__jfkit && !!window.__jfkit.jfss && !!window.ApiClient && !!ApiClient.getCurrentUserId()",
+      "timeout": 20000
+    },
+    {
+      "name": "a query of viewer's to open",
+      "eval": "(async () => (await __ss.api('GET', 'SmartSearch/Queries?scope=Mine')).body.Items.map(q => q.Id)[0] || null)()",
+      "save": "firstId"
+    },
+    {
+      "goto": "/web/index.html#/jfss-search?tab=saved"
+    },
+    {
+      "name": "the list (phone)",
+      "waitFor": "!!window.__ss && __ss.rows().length > 0",
+      "timeout": 20000
+    },
+    {
+      "name": "the phone list",
+      "eval": "({ noHScroll: __ss.noHScroll(), tabs: __ss.all('[role=\"tab\"]').map(__ss.box), filters: __ss.all('.jfss-filter').map(__ss.box), actions: __ss.all('.jfss-saved-action').filter(b => b.getClientRects().length > 0).map(__ss.box), names: __ss.all('.jfss-saved-open').map(__ss.box), rowsInside: __ss.rows().every(r => r.getBoundingClientRect().right <= innerWidth + 1) })",
+      "save": "list",
+      "full": true
+    },
+    {
+      "name": "within the screen, touch-sized",
+      "assert": "__vars.list.noHScroll && __vars.list.rowsInside && __vars.list.tabs.every(b => b[1] >= 40) && __vars.list.filters.every(b => b[1] >= 40) && __vars.list.actions.length > 0 && __vars.list.actions.every(b => b[0] >= 40 && b[1] >= 40) && __vars.list.names.every(b => b[1] >= 40)"
+    },
+    {
+      "screenshot": "smartsearch-saved-phone.png"
+    },
+    {
+      "name": "open the first",
+      "script": "__ss.rows()[0].querySelector('.jfss-saved-open').click(); return true;"
+    },
+    {
+      "name": "opened (phone)",
+      "waitFor": "!!__ss.root() && !!__ss.q('.jfss-saved-name') && !!__ss.done()",
+      "timeout": 20000
+    },
+    {
+      "name": "the Search tab's actions",
+      "eval": "({ noHScroll: __ss.noHScroll(), buttons: ['.jfss-search-button', '.jfss-reset', '.jfss-save', '.jfss-save-as-new'].map(s => __ss.box(__ss.q(s))), inside: ['.jfss-search-button', '.jfss-reset', '.jfss-save', '.jfss-save-as-new', '.jfss-share-toggle'].every(s => __ss.q(s).getBoundingClientRect().right <= innerWidth + 1) })",
+      "save": "actions",
+      "full": true
+    },
+    {
+      "name": "within the screen, touch-sized (search tab)",
+      "assert": "__vars.actions.noHScroll && __vars.actions.inside && __vars.actions.buttons.every(b => b[1] >= 40)"
+    },
+    {
+      "screenshot": "smartsearch-saved-phone-open.png"
+    },
+    {
+      "name": "Save as new…",
+      "script": "__ss.q('.jfss-save-as-new').click(); return true;"
+    },
+    {
+      "name": "the dialog (phone)",
+      "waitFor": "!!__ss.dialog()"
+    },
+    {
+      "name": "the dialog's size",
+      "eval": "(() => { const d = __ss.dialog(); const r = d.getBoundingClientRect(); return { left: r.left, right: r.right, width: innerWidth, fields: [...d.querySelectorAll('input, textarea')].every(e => e.getBoundingClientRect().right <= innerWidth + 1), buttons: [...d.querySelectorAll('.jfss-actions button')].map(__ss.box) }; })()",
+      "save": "dialog",
+      "full": true
+    },
+    {
+      "name": "the dialog within the screen",
+      "assert": "__vars.dialog.left >= -1 && __vars.dialog.right <= __vars.dialog.width + 1 && __vars.dialog.fields && __vars.dialog.buttons.every(b => b[1] >= 36)"
+    },
+    {
+      "screenshot": "smartsearch-saved-phone-dialog.png"
+    },
+    {
+      "key": "Escape"
+    },
+    {
+      "name": "closed",
+      "waitFor": "!__ss.dialog()"
+    },
+    {
+      "name": "no uncaught exception (the stale CustomRatings tag is known noise)",
+      "noExceptions": true,
+      "ignore": "CustomRatings"
+    }
+  ]
+}

@@ -1,0 +1,149 @@
+{
+  "name": "The bookmark editor and the details page's rows, as admin on Long Test Movie: the details page's 'My bookmarks (n)' section with its two page links, See all and My Clips (the capabilities offer My Bookmarks and My Clips), rows by their display title (the name, else the note's first line, else 'Bookmark at 0:15') with a name's note as a second line and 'Name it' on unnamed rows; Name it opens the editor with Name focused (fields Name, Start, End, Note as a textarea), Enter saves the name; the delete confirmation's 'Also delete its clip' unticked with the hint that the clip stays in My Clips (since My Clips lists kept clips; ticked with a next-update hint in 1.1.0), the clip kept when unticked (a tombstone) and deleted with the bookmark when ticked, and, when the confirmation opened without the box (no clip file yet), a clip that finished while it was open kept as well (the default without the box follows the box's); the player's range flow opens the editor with Name focused and Save & make clip names the clip file after the name. Run by bookmarks-rows-probe.mjs, which checks the clip folder afterwards. Every name and note starts with 'rows-probe'; the bookmarks it makes are deleted at the end (and at the start of the next run).",
+  "failOnException": false,
+  "timeout": 30000,
+  "steps": [
+    { "name": "sign in as admin", "login": "admin" },
+    { "name": "the Bookmarks script ran", "waitFor": "!!window.__jfkit && !!window.__jfkit.jfbm && !!window.ApiClient && !!ApiClient.getCurrentUserId()" },
+    { "name": "find Long Test Movie", "eval": "(await ApiClient.getItems(ApiClient.getCurrentUserId(), { IncludeItemTypes: 'Movie', Recursive: true, SearchTerm: 'Long Test Movie', Limit: 1 })).Items[0].Id", "save": "movieId" },
+    {
+      "name": "the capabilities offer My Bookmarks and My Clips",
+      "assert": "((c) => !!c.Pages && c.Pages.Bookmarks === true && c.Pages.Clips === true && c.MaxNameLength === 100 && c.MaxNoteLength === 500)(await ApiClient.getJSON(ApiClient.getUrl('Bookmarks/Capabilities')))"
+    },
+    {
+      "name": "the movie's rows-probe bookmarks of an earlier run deleted, with their clips",
+      "script": "const url = (p, q) => ApiClient.getUrl(p, q); let n = 0; for (const b of await ApiClient.getJSON(url('Bookmarks', { itemId: __vars.movieId }))) { if (/^rows-probe/.test(b.Name || '') || /^rows-probe/.test(b.Note || '')) { await ApiClient.ajax({ type: 'DELETE', url: url('Bookmarks/' + b.Id, { deleteClip: 'true' }) }); n++; } } return n;"
+    },
+    {
+      "name": "three bookmarks through the API: unnamed without a note at 0:15, named with a two-line note at 0:20, a range 0:30-0:34 with a note",
+      "script": "const post = (body) => ApiClient.ajax({ type: 'POST', url: ApiClient.getUrl('Bookmarks'), data: JSON.stringify(Object.assign({ ItemId: __vars.movieId }, body)), contentType: 'application/json', dataType: 'json' }); const a = await post({ StartTicks: 150000000 }); const b = await post({ StartTicks: 200000000, Name: 'rows-probe named', Note: 'rows-probe first line\\nsecond line' }); const c = await post({ StartTicks: 300000000, EndTicks: 340000000, Note: 'rows-probe clip kept' }); return { a: a.Id, b: b.Id, c: c.Id };",
+      "save": "ids",
+      "full": true
+    },
+    { "name": "the unnamed one's id", "eval": "__vars.ids.a", "save": "idA" },
+    { "name": "the range's id", "eval": "__vars.ids.c", "save": "idC" },
+    {
+      "name": "a Fast clip of the range, through the API",
+      "script": "await ApiClient.ajax({ type: 'POST', url: ApiClient.getUrl('Bookmarks/' + __vars.ids.c + '/Clip'), data: JSON.stringify({ Mode: 'Fast' }), contentType: 'application/json', dataType: 'json' }); for (let i = 0; i < 180; i++) { const b = await ApiClient.getJSON(ApiClient.getUrl('Bookmarks/' + __vars.ids.c)); if (b.Clip && b.Clip.Status === 'Completed' && b.Clip.FileName) return b.Clip.FileName; if (b.Clip && b.Clip.Status === 'Failed') throw new Error('the clip failed: ' + b.Clip.Error); await new Promise(r => setTimeout(r, 500)); } throw new Error('the clip did not complete');",
+      "timeout": 120000,
+      "save": "keptClip"
+    },
+    { "name": "open the details page", "goto": "/web/index.html#/details?id=${movieId}" },
+    {
+      "name": "the section is 'My bookmarks (n)' with the rows' display titles",
+      "waitFor": "(() => { const s = document.querySelector('#itemDetailPage:not(.hide) .jfbm-section'); if (!s || s.classList.contains('hide') || !/^My bookmarks \\(\\d+\\)$/.test(s.querySelector('h2').textContent)) return false; const row = (id) => s.querySelector('.jfbm-row[data-id=\"' + id + '\"]'); const a = row(__vars.ids.a), b = row(__vars.ids.b), c = row(__vars.ids.c); if (!a || !b || !c || !c.querySelector('.jfbm-clip-ready')) return false; return { a: [a.querySelector('.jfbm-row-title').textContent, !!a.querySelector('.jfbm-name-it'), !!a.querySelector('.jfbm-row-subtitle')], b: [b.querySelector('.jfbm-row-title').textContent, !!b.querySelector('.jfbm-name-it'), b.querySelector('.jfbm-row-subtitle').textContent], c: [c.querySelector('.jfbm-row-title').textContent, !!c.querySelector('.jfbm-name-it')] }; })()",
+      "timeout": 20000,
+      "save": "rows",
+      "full": true
+    },
+    {
+      "name": "unnamed without a note: 'Bookmark at 0:15' with Name it; named: its name, its note's first line under it, no Name it; the range: its note, with Name it",
+      "assert": "JSON.stringify(__vars.rows) === JSON.stringify({ a: ['Bookmark at 0:15', true, false], b: ['rows-probe named', false, 'rows-probe first line'], c: ['rows-probe clip kept', true] })"
+    },
+    {
+      "name": "the section's page links: See all (My Bookmarks filtered to this video), then My Clips",
+      "assert": "(() => { const l = document.querySelector('#itemDetailPage:not(.hide) .jfbm-section .jfbm-section-links'); const links = l ? Array.from(l.querySelectorAll('a[data-jfbm-link]')) : []; return !!l && !l.classList.contains('hide') && links.length === 2 && links[0].getAttribute('data-jfbm-link') === 'bookmarks' && links[0].textContent.trim() === 'See all' && links[0].getAttribute('href') === '#/jfbm-bookmarks?item=' + __vars.movieId && links[1].getAttribute('data-jfbm-link') === 'clips' && links[1].textContent.trim() === 'My Clips' && links[1].getAttribute('href') === '#/jfbm-clips'; })()"
+    },
+    { "name": "no badge on these rows (attached and available)", "assert": "document.querySelectorAll('#itemDetailPage:not(.hide) .jfbm-section .jfbm-badge').length === 0" },
+    { "sleep": 300 },
+    { "screenshot": "editor-rows-section.png" },
+
+    { "name": "Name it on the unnamed bookmark", "click": "#itemDetailPage:not(.hide) .jfbm-row[data-id=\"${idA}\"] .jfbm-name-it" },
+    {
+      "name": "the editor: Name, Start, End, Note (a textarea), with the focus in the empty Name field",
+      "waitFor": "(() => { const p = document.querySelector('.jfbm-backdrop .jfbm-panel'); if (!p || p.querySelector('h3').textContent !== 'Edit bookmark') return false; const labels = [...p.querySelectorAll('.jfbm-field > label')].map(l => l.textContent).join(','); const name = p.querySelector('input[maxlength=\"100\"]'); return labels === 'Name,Start,End,Note' && document.activeElement === name && name.value === '' && p.querySelector('textarea[maxlength=\"500\"]').value === '' && p.querySelectorAll('input[type=text]')[1].value === '0:15.0'; })()"
+    },
+    { "screenshot": "editor-rows-editor.png" },
+    { "name": "type a name into the focused field", "type": "rows-probe Vault" },
+    { "name": "Enter saves", "key": "Enter" },
+    { "name": "saved, and the row shows the name without Name it", "waitFor": "!document.querySelector('.jfbm-backdrop') && [...document.querySelectorAll('.jfbm-toast')].some(t => t.textContent === 'Bookmark saved.') && ((r) => !!r && r.querySelector('.jfbm-row-title').textContent === 'rows-probe Vault' && !r.querySelector('.jfbm-name-it'))(document.querySelector('#itemDetailPage:not(.hide) .jfbm-row[data-id=\"' + __vars.ids.a + '\"]'))" },
+    { "name": "the server has the name, the time unchanged", "assert": "((b) => b.Name === 'rows-probe Vault' && b.StartTicks === 150000000 && !b.Note)(await ApiClient.getJSON(ApiClient.getUrl('Bookmarks/' + __vars.ids.a)))" },
+
+    { "name": "Delete on the range with the clip", "click": "#itemDetailPage:not(.hide) .jfbm-row[data-id=\"${idC}\"] button[title=\"Delete\"]" },
+    {
+      "name": "the confirmation: its title, 'Also delete its clip (<file>)' unticked, with the hint that the clip stays in My Clips (since My Clips lists kept clips)",
+      "waitFor": "(() => { const p = document.querySelector('.jfbm-backdrop .jfbm-panel'); if (!p || p.querySelector('h3').textContent !== 'Delete bookmark?') return false; const box = p.querySelector('.jfbm-checkbox input'); return p.querySelector('p').textContent === '\"rows-probe clip kept\" at 0:30 will be deleted.' && p.querySelector('.jfbm-checkbox span').textContent === 'Also delete its clip (' + __vars.keptClip + ')' && box.checked === false && ((hint) => !hint.classList.contains('hide') && hint.getClientRects().length > 0 && hint.textContent === 'The clip stays in My Clips.')(p.querySelector('.jfbm-delete-hint')); })()"
+    },
+    { "sleep": 300 },
+    { "screenshot": "editor-rows-delete-hint.png" },
+    { "name": "tick it", "click": ".jfbm-backdrop .jfbm-panel .jfbm-checkbox input" },
+    { "name": "ticked: the hint goes", "waitFor": "(() => { const p = document.querySelector('.jfbm-backdrop .jfbm-panel'); return p.querySelector('.jfbm-checkbox input').checked === true && p.querySelector('.jfbm-delete-hint').classList.contains('hide'); })()" },
+    { "name": "untick it", "click": ".jfbm-backdrop .jfbm-panel .jfbm-checkbox input" },
+    {
+      "name": "unticked: the hint back",
+      "waitFor": "(() => { const p = document.querySelector('.jfbm-backdrop .jfbm-panel'); const hint = p.querySelector('.jfbm-delete-hint'); return p.querySelector('.jfbm-checkbox input').checked === false && !hint.classList.contains('hide') && hint.getClientRects().length > 0 && hint.textContent === 'The clip stays in My Clips.'; })()"
+    },
+    { "name": "Delete", "script": "[...document.querySelectorAll('.jfbm-backdrop .jfbm-panel .jfbm-actions button')].find(b => b.textContent === 'Delete').click(); return true;" },
+    { "name": "deleted, the row gone", "waitFor": "!document.querySelector('.jfbm-backdrop') && [...document.querySelectorAll('.jfbm-toast')].some(t => t.textContent === 'Bookmark deleted.') && !document.querySelector('#itemDetailPage:not(.hide) .jfbm-row[data-id=\"' + __vars.ids.c + '\"]')" },
+    {
+      "name": "unticked, the clip was kept: the bookmark is 404, its clip file still downloads, then DELETE /Bookmarks/{id}/Clip removes it (204)",
+      "script": "const status = async (method, p, q) => (await fetch(ApiClient.getUrl(p, q), { method, headers: { Authorization: 'MediaBrowser Token=\"' + ApiClient.accessToken() + '\"' } })).status; const bookmark = await status('GET', 'Bookmarks/' + __vars.ids.c); const file = await fetch(ApiClient.getUrl('Bookmarks/' + __vars.ids.c + '/Clip/File', { ApiKey: ApiClient.accessToken(), download: 'false' })); const bytes = file.ok ? (await file.arrayBuffer()).byteLength : 0; const removed = await status('DELETE', 'Bookmarks/' + __vars.ids.c + '/Clip'); const again = await status('DELETE', 'Bookmarks/' + __vars.ids.c + '/Clip'); if (bookmark !== 404 || file.status !== 200 || bytes <= 0 || removed !== 204 || again !== 404) throw new Error(JSON.stringify({ bookmark, file: file.status, bytes, removed, again })); return { bookmark, file: file.status, bytes, removed, again };",
+      "save": "keptClipEvidence",
+      "full": true
+    },
+
+    { "name": "details page with a Play button", "waitFor": "!!document.querySelector('#itemDetailPage:not(.hide) .mainDetailButtons .btnPlay:not(.hide)')", "timeout": 20000 },
+    { "name": "start playback", "click": "#itemDetailPage:not(.hide) .mainDetailButtons .btnPlay:not(.hide)" },
+    { "name": "video page, video playing", "waitFor": "location.hash.indexOf('#/video') === 0 && (v => !!v && !v.paused && v.currentTime > 1)(document.querySelector('.videoPlayerContainer video'))", "timeout": 60000 },
+    { "name": "the player's buttons", "waitFor": "!!document.querySelector('.videoOsdBottom .buttons .btnBookmarkRange')", "timeout": 20000 },
+    { "name": "mark a range start", "click": ".videoOsdBottom .buttons .btnBookmarkRange", "js": true },
+    { "name": "the range started", "waitFor": "document.querySelector('.btnBookmarkRange').classList.contains('jfbm-active')" },
+    { "sleep": 2500 },
+    { "name": "mark the range end", "click": ".videoOsdBottom .buttons .btnBookmarkRange", "js": true },
+    {
+      "name": "the range flow opens the editor with Name focused, the range filled in",
+      "waitFor": "(() => { const p = document.querySelector('.jfbm-backdrop .jfbm-panel'); if (!p || p.querySelector('h3').textContent !== 'New bookmark') return false; const v = [...p.querySelectorAll('input[type=text]')].map(i => i.value); return v[0] === '' && document.activeElement === p.querySelector('input[maxlength=\"100\"]') && /^\\d+:\\d\\d\\.\\d$/.test(v[1]) && /^\\d+:\\d\\d\\.\\d$/.test(v[2]) && /^Range length /.test(p.querySelector('.jfbm-hint').textContent); })()"
+    },
+    { "screenshot": "editor-rows-range-editor.png" },
+    { "name": "type the name into the focused field", "type": "rows-probe Bank job" },
+    { "name": "Save & make clip", "script": "[...document.querySelectorAll('.jfbm-backdrop .jfbm-panel .jfbm-actions button')].find(b => b.textContent === 'Save & make clip').click(); return true;" },
+    { "name": "the editor closes and the clip is being made", "waitFor": "!document.querySelector('.jfbm-backdrop') && [...document.querySelectorAll('.jfbm-toast')].some(t => t.textContent === 'Making the clip. You can keep watching.')" },
+    {
+      "name": "the named clip completes, its file named after the name",
+      "script": "for (let i = 0; i < 240; i++) { const b = (await ApiClient.getJSON(ApiClient.getUrl('Bookmarks', { itemId: __vars.movieId }))).find(x => x.Name === 'rows-probe Bank job'); if (b && b.Clip && b.Clip.Status === 'Completed' && b.Clip.FileName) { if (!/^Long Test Movie \\(\\d{4}\\) - rows-probe Bank job \\[\\d\\d\\.\\d\\d\\.\\d\\d-\\d\\d\\.\\d\\d\\.\\d\\d\\]\\.(mp4|mkv)$/.test(b.Clip.FileName)) throw new Error('unexpected file name ' + b.Clip.FileName); return { id: b.Id, fileName: b.Clip.FileName, fileSize: b.Clip.FileSize, note: b.Note || null }; } if (b && b.Clip && b.Clip.Status === 'Failed') throw new Error('the clip failed: ' + b.Clip.Error); await new Promise(r => setTimeout(r, 500)); } throw new Error('the named clip did not complete');",
+      "timeout": 150000,
+      "save": "namedClip",
+      "full": true
+    },
+    { "name": "the named range's id", "eval": "__vars.namedClip.id", "save": "namedId" },
+    {
+      "name": "a named range 0:01-0:03 without a clip, through the API (for a clip that finishes while the delete confirmation is open)",
+      "script": "const b = await ApiClient.ajax({ type: 'POST', url: ApiClient.getUrl('Bookmarks'), data: JSON.stringify({ ItemId: __vars.movieId, StartTicks: 10000000, EndTicks: 30000000, Name: 'rows-probe race' }), contentType: 'application/json', dataType: 'json' }); return b.Id;",
+      "save": "raceId"
+    },
+    { "name": "leave the player", "goto": "/web/index.html#/details?id=${movieId}" },
+    { "name": "the named range's row with its clip", "waitFor": "((r) => !!r && r.querySelector('.jfbm-row-title').textContent === 'rows-probe Bank job' && !r.querySelector('.jfbm-name-it') && !!r.querySelector('.jfbm-clip-ready'))(document.querySelector('#itemDetailPage:not(.hide) .jfbm-row[data-id=\"' + __vars.namedClip.id + '\"]'))", "timeout": 20000 },
+    { "name": "Delete on it", "click": "#itemDetailPage:not(.hide) .jfbm-row[data-id=\"${namedId}\"] button[title=\"Delete\"]" },
+    { "name": "the confirmation, unticked by default (since My Clips; ticked in 1.1.0)", "waitFor": "(() => { const p = document.querySelector('.jfbm-backdrop .jfbm-panel'); return !!p && p.querySelector('h3').textContent === 'Delete bookmark?' && p.querySelector('p').textContent.indexOf('\"rows-probe Bank job\" at ') === 0 && p.querySelector('.jfbm-checkbox input').checked === false; })()" },
+    { "name": "tick it", "click": ".jfbm-backdrop .jfbm-panel .jfbm-checkbox input" },
+    { "name": "ticked", "waitFor": "document.querySelector('.jfbm-backdrop .jfbm-panel .jfbm-checkbox input').checked === true" },
+    { "name": "Delete", "script": "[...document.querySelectorAll('.jfbm-backdrop .jfbm-panel .jfbm-actions button')].find(b => b.textContent === 'Delete').click(); return true;" },
+    { "name": "deleted", "waitFor": "!document.querySelector('.jfbm-backdrop') && !document.querySelector('#itemDetailPage:not(.hide) .jfbm-row[data-id=\"' + __vars.namedClip.id + '\"]')" },
+    {
+      "name": "ticked, the clip went with the bookmark: both 404",
+      "script": "const status = async (method, p) => (await fetch(ApiClient.getUrl(p), { method, headers: { Authorization: 'MediaBrowser Token=\"' + ApiClient.accessToken() + '\"' } })).status; const bookmark = await status('GET', 'Bookmarks/' + __vars.namedClip.id); const clip = await status('DELETE', 'Bookmarks/' + __vars.namedClip.id + '/Clip'); if (bookmark !== 404 || clip !== 404) throw new Error(JSON.stringify({ bookmark, clip })); return { bookmark, clip };"
+    },
+
+    { "name": "the race's row, without a clip", "waitFor": "((r) => !!r && r.querySelector('.jfbm-row-title').textContent === 'rows-probe race' && !r.querySelector('.jfbm-clip'))(document.querySelector('#itemDetailPage:not(.hide) .jfbm-row[data-id=\"' + __vars.raceId + '\"]'))", "timeout": 20000 },
+    { "name": "Delete on the race's row", "click": "#itemDetailPage:not(.hide) .jfbm-row[data-id=\"${raceId}\"] button[title=\"Delete\"]" },
+    { "name": "its confirmation: no clip file, so no box", "waitFor": "(() => { const p = document.querySelector('.jfbm-backdrop .jfbm-panel'); return !!p && p.querySelector('h3').textContent === 'Delete bookmark?' && p.querySelector('p').textContent === '\"rows-probe race\" at 0:01 will be deleted.' && !p.querySelector('.jfbm-checkbox'); })()" },
+    {
+      "name": "while the confirmation is open, an Accurate clip of the range is made through the API and completes",
+      "script": "await ApiClient.ajax({ type: 'POST', url: ApiClient.getUrl('Bookmarks/' + __vars.raceId + '/Clip'), data: JSON.stringify({ Mode: 'Accurate' }), contentType: 'application/json', dataType: 'json' }); for (let i = 0; i < 240; i++) { const b = await ApiClient.getJSON(ApiClient.getUrl('Bookmarks/' + __vars.raceId)); if (b.Clip && b.Clip.Status === 'Completed' && b.Clip.FileName) return b.Clip.FileName; if (b.Clip && b.Clip.Status === 'Failed') throw new Error('the clip failed: ' + b.Clip.Error); await new Promise(r => setTimeout(r, 500)); } throw new Error('the race clip did not complete');",
+      "timeout": 150000,
+      "save": "raceClip"
+    },
+    { "name": "the confirmation still open, still without the box", "assert": "(() => { const p = document.querySelector('.jfbm-backdrop .jfbm-panel'); return !!p && p.querySelector('h3').textContent === 'Delete bookmark?' && !p.querySelector('.jfbm-checkbox'); })()" },
+    { "name": "Delete the race's bookmark", "script": "[...document.querySelectorAll('.jfbm-backdrop .jfbm-panel .jfbm-actions button')].find(b => b.textContent === 'Delete').click(); return true;" },
+    { "name": "the race's bookmark deleted", "waitFor": "!document.querySelector('.jfbm-backdrop') && !document.querySelector('#itemDetailPage:not(.hide) .jfbm-row[data-id=\"' + __vars.raceId + '\"]')" },
+    {
+      "name": "without the box the box's default applies: the clip that finished meanwhile is kept (since My Clips; 1.1.0 deleted it), the bookmark is 404, its clip file still downloads, then DELETE /Bookmarks/{id}/Clip removes it (204)",
+      "script": "const status = async (method, p) => (await fetch(ApiClient.getUrl(p), { method, headers: { Authorization: 'MediaBrowser Token=\"' + ApiClient.accessToken() + '\"' } })).status; const bookmark = await status('GET', 'Bookmarks/' + __vars.raceId); const file = await fetch(ApiClient.getUrl('Bookmarks/' + __vars.raceId + '/Clip/File', { ApiKey: ApiClient.accessToken(), download: 'false' })); const bytes = file.ok ? (await file.arrayBuffer()).byteLength : 0; const removed = await status('DELETE', 'Bookmarks/' + __vars.raceId + '/Clip'); const again = await status('DELETE', 'Bookmarks/' + __vars.raceId + '/Clip'); if (bookmark !== 404 || file.status !== 200 || bytes <= 0 || removed !== 204 || again !== 404) throw new Error(JSON.stringify({ bookmark, file: file.status, bytes, removed, again })); return { bookmark, file: file.status, bytes, removed, again };"
+    },
+    {
+      "name": "the other two deleted through the API",
+      "script": "for (const id of [__vars.ids.a, __vars.ids.b]) { await ApiClient.ajax({ type: 'DELETE', url: ApiClient.getUrl('Bookmarks/' + id, { deleteClip: 'true' }) }); } return true;"
+    },
+    { "name": "no uncaught exceptions (the stale CustomRatings tag, and jellyfin-web's own 'player cannot be null' when the player is left, excepted)", "noExceptions": true, "ignore": "/CustomRatings/script|^Error: player cannot be null" }
+  ]
+}

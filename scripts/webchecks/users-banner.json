@@ -1,0 +1,21 @@
+{
+  "description": "The kit's users banner: run by users-probe.mjs while stored users don't match the server (a restored data folder, the reconciler's guard tripped). As admin, GET /Bookmarks/Admin/Diagnostics has the Users entry with the banner, and Bookmarks' settings page shows the banner as a warning (an amber bar and tint) at its top, above the settings, and the unknown users' line in its Diagnostics section, as text. No user names are shown there.",
+  "steps": [
+    { "name": "sign in as admin", "login": "admin" },
+    { "name": "the Bookmarks script ran", "waitFor": "!!window.__jfkit && !!window.__jfkit.jfbm && !!window.ApiClient && !!ApiClient.getCurrentUserId()" },
+    { "name": "GET /Bookmarks/Admin/Diagnostics", "eval": "await ApiClient.getJSON(ApiClient.getUrl('Bookmarks/Admin/Diagnostics'))", "save": "diagnostics" },
+    { "name": "the Users entry: the guard's banner", "assert": "(u => !!u && u.StoredUsersMismatch === true && /^Stored users don't match this server/.test(u.Banner) && /unknown users\\.$/.test(u.Message) && u.DeletedUserPolicy === 'KeepAsOrphan')(__vars.diagnostics.Users)" },
+    { "name": "open Bookmarks' settings page", "goto": "/web/index.html#/configurationpage?name=Bookmarks" },
+    { "name": "the page has the banner, and Diagnostics loaded", "waitFor": "(() => { const p = document.querySelector('#BookmarksConfigPage:not(.hide)'); return !!p && !!p.querySelector('#BookmarksBanners .bookmarksUsersBanner') && p.querySelector('#BookmarksDiagnosticsSummary').textContent.length > 0; })()", "timeout": 20000 },
+    { "name": "the summary", "eval": "document.querySelector('#BookmarksConfigPage:not(.hide) #BookmarksDiagnosticsSummary').textContent", "save": "summary", "full": true },
+    { "name": "the banner, as plain text, an alert", "assert": "(b => b.textContent.startsWith(\"Stored users don't match this server; was data restored from another server? Nothing was changed.\") && b.textContent === __vars.diagnostics.Users.Banner && b.children.length === 0 && b.getAttribute('role') === 'alert')(document.querySelector('#BookmarksConfigPage:not(.hide) .bookmarksUsersBanner'))" },
+    { "name": "styled as a warning, above the settings form", "assert": "(() => { const p = document.querySelector('#BookmarksConfigPage:not(.hide)'); const b = p.querySelector('.bookmarksUsersBanner'); const cs = getComputedStyle(b); return cs.borderLeftStyle === 'solid' && cs.borderLeftColor === 'rgb(240, 173, 78)' && !!(b.compareDocumentPosition(p.querySelector('#BookmarksConfigForm')) & Node.DOCUMENT_POSITION_FOLLOWING); })()" },
+    { "name": "the unknown users' line in Diagnostics, as text", "assert": "!__vars.summary.includes(\"Stored users don't match\") && /\\d+ records belong to \\d+ unknown users\\. Deleted-user policy: KeepAsOrphan\\./.test(__vars.summary)" },
+    { "sleep": 300 },
+    { "screenshot": "users-banner-top.png" },
+    { "name": "open the Diagnostics tab and scroll to it", "script": "const p = document.querySelector('#BookmarksConfigPage:not(.hide)'); p.querySelector('#BookmarksTabDiagnostics').click(); p.querySelector('#BookmarksDiagnostics').scrollIntoView(); return !p.querySelector('#BookmarksDiagnostics').classList.contains('hide');" },
+    { "sleep": 300 },
+    { "screenshot": "users-banner-settings.png" },
+    { "name": "no uncaught exceptions (the stale CustomRatings tag, and jellyfin-web's Home tab pausing its slider as the page is left, excepted)", "noExceptions": true, "ignore": "/CustomRatings/script|^TypeError: t\\.value\\.pause is not a function" }
+  ]
+}

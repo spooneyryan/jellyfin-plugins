@@ -1,0 +1,32 @@
+{
+  "Bookmarks": {
+    "Bm_1779600694418_0filv": {
+      "ItemId": "b1400000000000000000000000000001",
+      "TmdbId": "910577",
+      "TvdbId": "",
+      "MediaType": "movie",
+      "Name": "Long Test Movie (2021)",
+      "Timestamp": 30,
+      "Label": "Nobody here",
+      "CreatedAt": "2026-05-24T05:31:34.418Z",
+      "UpdatedAt": "2026-05-24T05:31:34.418Z",
+      "SyncedFrom": "",
+      "SeasonNumber": null,
+      "EpisodeNumber": null
+    },
+    "Bm_1779730837825_50j61": {
+      "ItemId": "b1400000000000000000000000000002",
+      "TmdbId": "912676",
+      "TvdbId": "",
+      "MediaType": "movie",
+      "Name": "Chaptered Movie (2022)",
+      "Timestamp": 20,
+      "Label": "Nobody here either",
+      "CreatedAt": "2026-05-25T17:40:37.825Z",
+      "UpdatedAt": "2026-05-25T17:40:37.825Z",
+      "SyncedFrom": "",
+      "SeasonNumber": null,
+      "EpisodeNumber": null
+    }
+  }
+}

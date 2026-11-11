@@ -1,0 +1,74 @@
+{
+  "name": "My Clips' Delete of a clip file in use, as admin, while bookmarks-clips-page-probe.mjs holds the clip file of its \"clips-page-probe Act Held\" bookmark open as a preview or a download in another tab holds it (read, sharing read and write but not delete): Delete clip on My Clips asks, the server tries three times and answers 409, and the dialog says \"The clip file is in use (being played or downloaded); try again shortly.\" with the row as it was and the clip still there; then Cancel. The probe releases the file afterwards and deletes the clip, which works then.",
+  "failOnException": false,
+  "timeout": 30000,
+  "steps": [
+    {
+      "name": "sign in as admin",
+      "login": "admin"
+    },
+    {
+      "name": "the Bookmarks script ran",
+      "waitFor": "!!window.__jfkit && !!window.__jfkit.jfbm && !!window.ApiClient && !!ApiClient.getCurrentUserId()"
+    },
+    {
+      "name": "the held clip",
+      "script": "const R = () => document.querySelector('#fallbackPage > [data-jfbm-page=\"clips\"]'); const K = (id) => String(id || '').replace(/-/g, '').toLowerCase(); const row = (id) => { const r = R(); return r && id ? r.querySelector('.jfbm-clips-row[data-jfbm-clip=\"' + K(id) + '\"]') : null; }; const btn = (scope, title) => scope ? [...scope.querySelectorAll('button')].find(b => b.getAttribute('title') === title) || null : null; const panel = (title) => [...document.querySelectorAll('.jfbm-backdrop .jfbm-panel')].find(p => p.querySelector('h3').textContent === title) || null; const action = (dialog, label) => dialog ? [...dialog.querySelectorAll('.jfbm-actions button')].find(b => b.textContent === label) || null : null; const toasts = () => [...document.querySelectorAll('.jfbm-toast')].map(t => (t.querySelector('span') || t).textContent); const stateText = (x) => { const s = x && x.querySelector('.jfbm-clip-state-text'); return s ? s.textContent : null; }; const auth = () => ({ Authorization: 'MediaBrowser Token=\"' + ApiClient.accessToken() + '\"' }); const status = async (p, q, init) => (await fetch(ApiClient.getUrl(p, q), Object.assign({ headers: auth() }, init || {}))).status; const json = async (p, q) => { const r = await fetch(ApiClient.getUrl(p, q), { headers: auth() }); return r.status === 200 ? r.json() : { status: r.status }; }; const ready = () => { const r = R(); const c = r && r.querySelector('.jfbm-clips-content'); return !!r && r.getAttribute('data-jfbm-state') === 'on' && !!c && !c.hasAttribute('aria-busy'); }; const c = (await json('Bookmarks/Clips', { searchTerm: 'clips-page-probe Act Held', limit: 5 })).Items.find(x => x.Name === 'clips-page-probe Act Held'); if (!c || c.Clip.State !== 'Ready') throw new Error('no held clip: the probe seeds it first'); return { id: K(c.Id), file: c.Clip.FileName };",
+      "save": "held"
+    },
+    {
+      "name": "My Clips, searched for it",
+      "goto": "/web/index.html#/jfbm-clips?q=clips-page-probe%20Act%20Held"
+    },
+    {
+      "name": "its row",
+      "waitFor": "(async () => { const R = () => document.querySelector('#fallbackPage > [data-jfbm-page=\"clips\"]'); const K = (id) => String(id || '').replace(/-/g, '').toLowerCase(); const row = (id) => { const r = R(); return r && id ? r.querySelector('.jfbm-clips-row[data-jfbm-clip=\"' + K(id) + '\"]') : null; }; const btn = (scope, title) => scope ? [...scope.querySelectorAll('button')].find(b => b.getAttribute('title') === title) || null : null; const panel = (title) => [...document.querySelectorAll('.jfbm-backdrop .jfbm-panel')].find(p => p.querySelector('h3').textContent === title) || null; const action = (dialog, label) => dialog ? [...dialog.querySelectorAll('.jfbm-actions button')].find(b => b.textContent === label) || null : null; const toasts = () => [...document.querySelectorAll('.jfbm-toast')].map(t => (t.querySelector('span') || t).textContent); const stateText = (x) => { const s = x && x.querySelector('.jfbm-clip-state-text'); return s ? s.textContent : null; }; const auth = () => ({ Authorization: 'MediaBrowser Token=\"' + ApiClient.accessToken() + '\"' }); const status = async (p, q, init) => (await fetch(ApiClient.getUrl(p, q), Object.assign({ headers: auth() }, init || {}))).status; const json = async (p, q) => { const r = await fetch(ApiClient.getUrl(p, q), { headers: auth() }); return r.status === 200 ? r.json() : { status: r.status }; }; const ready = () => { const r = R(); const c = r && r.querySelector('.jfbm-clips-content'); return !!r && r.getAttribute('data-jfbm-state') === 'on' && !!c && !c.hasAttribute('aria-busy'); }; return ready() && !!row(__vars.held.id); })()",
+      "timeout": 20000
+    },
+    {
+      "name": "the row node, kept for later",
+      "script": "const R = () => document.querySelector('#fallbackPage > [data-jfbm-page=\"clips\"]'); const K = (id) => String(id || '').replace(/-/g, '').toLowerCase(); const row = (id) => { const r = R(); return r && id ? r.querySelector('.jfbm-clips-row[data-jfbm-clip=\"' + K(id) + '\"]') : null; }; const btn = (scope, title) => scope ? [...scope.querySelectorAll('button')].find(b => b.getAttribute('title') === title) || null : null; const panel = (title) => [...document.querySelectorAll('.jfbm-backdrop .jfbm-panel')].find(p => p.querySelector('h3').textContent === title) || null; const action = (dialog, label) => dialog ? [...dialog.querySelectorAll('.jfbm-actions button')].find(b => b.textContent === label) || null : null; const toasts = () => [...document.querySelectorAll('.jfbm-toast')].map(t => (t.querySelector('span') || t).textContent); const stateText = (x) => { const s = x && x.querySelector('.jfbm-clip-state-text'); return s ? s.textContent : null; }; const auth = () => ({ Authorization: 'MediaBrowser Token=\"' + ApiClient.accessToken() + '\"' }); const status = async (p, q, init) => (await fetch(ApiClient.getUrl(p, q), Object.assign({ headers: auth() }, init || {}))).status; const json = async (p, q) => { const r = await fetch(ApiClient.getUrl(p, q), { headers: auth() }); return r.status === 200 ? r.json() : { status: r.status }; }; const ready = () => { const r = R(); const c = r && r.querySelector('.jfbm-clips-content'); return !!r && r.getAttribute('data-jfbm-state') === 'on' && !!c && !c.hasAttribute('aria-busy'); }; window.__heldRow = row(__vars.held.id); return true;"
+    },
+    {
+      "name": "Delete clip, then Delete",
+      "script": "const R = () => document.querySelector('#fallbackPage > [data-jfbm-page=\"clips\"]'); const K = (id) => String(id || '').replace(/-/g, '').toLowerCase(); const row = (id) => { const r = R(); return r && id ? r.querySelector('.jfbm-clips-row[data-jfbm-clip=\"' + K(id) + '\"]') : null; }; const btn = (scope, title) => scope ? [...scope.querySelectorAll('button')].find(b => b.getAttribute('title') === title) || null : null; const panel = (title) => [...document.querySelectorAll('.jfbm-backdrop .jfbm-panel')].find(p => p.querySelector('h3').textContent === title) || null; const action = (dialog, label) => dialog ? [...dialog.querySelectorAll('.jfbm-actions button')].find(b => b.textContent === label) || null : null; const toasts = () => [...document.querySelectorAll('.jfbm-toast')].map(t => (t.querySelector('span') || t).textContent); const stateText = (x) => { const s = x && x.querySelector('.jfbm-clip-state-text'); return s ? s.textContent : null; }; const auth = () => ({ Authorization: 'MediaBrowser Token=\"' + ApiClient.accessToken() + '\"' }); const status = async (p, q, init) => (await fetch(ApiClient.getUrl(p, q), Object.assign({ headers: auth() }, init || {}))).status; const json = async (p, q) => { const r = await fetch(ApiClient.getUrl(p, q), { headers: auth() }); return r.status === 200 ? r.json() : { status: r.status }; }; const ready = () => { const r = R(); const c = r && r.querySelector('.jfbm-clips-content'); return !!r && r.getAttribute('data-jfbm-state') === 'on' && !!c && !c.hasAttribute('aria-busy'); }; btn(row(__vars.held.id), 'Delete clip').click(); return true;"
+    },
+    {
+      "name": "the confirmation",
+      "waitFor": "!!document.querySelector('.jfbm-backdrop .jfbm-panel')",
+      "timeout": 10000
+    },
+    {
+      "name": "the clock",
+      "eval": "performance.now()",
+      "save": "t0"
+    },
+    {
+      "name": "Delete",
+      "script": "const R = () => document.querySelector('#fallbackPage > [data-jfbm-page=\"clips\"]'); const K = (id) => String(id || '').replace(/-/g, '').toLowerCase(); const row = (id) => { const r = R(); return r && id ? r.querySelector('.jfbm-clips-row[data-jfbm-clip=\"' + K(id) + '\"]') : null; }; const btn = (scope, title) => scope ? [...scope.querySelectorAll('button')].find(b => b.getAttribute('title') === title) || null : null; const panel = (title) => [...document.querySelectorAll('.jfbm-backdrop .jfbm-panel')].find(p => p.querySelector('h3').textContent === title) || null; const action = (dialog, label) => dialog ? [...dialog.querySelectorAll('.jfbm-actions button')].find(b => b.textContent === label) || null : null; const toasts = () => [...document.querySelectorAll('.jfbm-toast')].map(t => (t.querySelector('span') || t).textContent); const stateText = (x) => { const s = x && x.querySelector('.jfbm-clip-state-text'); return s ? s.textContent : null; }; const auth = () => ({ Authorization: 'MediaBrowser Token=\"' + ApiClient.accessToken() + '\"' }); const status = async (p, q, init) => (await fetch(ApiClient.getUrl(p, q), Object.assign({ headers: auth() }, init || {}))).status; const json = async (p, q) => { const r = await fetch(ApiClient.getUrl(p, q), { headers: auth() }); return r.status === 200 ? r.json() : { status: r.status }; }; const ready = () => { const r = R(); const c = r && r.querySelector('.jfbm-clips-content'); return !!r && r.getAttribute('data-jfbm-state') === 'on' && !!c && !c.hasAttribute('aria-busy'); }; action(panel('Delete clip?'), 'Delete').click(); return true;"
+    },
+    {
+      "name": "the server's 409 in the dialog, after its three attempts; the row as it was; the clip and its file still there",
+      "waitFor": "(async () => { const R = () => document.querySelector('#fallbackPage > [data-jfbm-page=\"clips\"]'); const K = (id) => String(id || '').replace(/-/g, '').toLowerCase(); const row = (id) => { const r = R(); return r && id ? r.querySelector('.jfbm-clips-row[data-jfbm-clip=\"' + K(id) + '\"]') : null; }; const btn = (scope, title) => scope ? [...scope.querySelectorAll('button')].find(b => b.getAttribute('title') === title) || null : null; const panel = (title) => [...document.querySelectorAll('.jfbm-backdrop .jfbm-panel')].find(p => p.querySelector('h3').textContent === title) || null; const action = (dialog, label) => dialog ? [...dialog.querySelectorAll('.jfbm-actions button')].find(b => b.textContent === label) || null : null; const toasts = () => [...document.querySelectorAll('.jfbm-toast')].map(t => (t.querySelector('span') || t).textContent); const stateText = (x) => { const s = x && x.querySelector('.jfbm-clip-state-text'); return s ? s.textContent : null; }; const auth = () => ({ Authorization: 'MediaBrowser Token=\"' + ApiClient.accessToken() + '\"' }); const status = async (p, q, init) => (await fetch(ApiClient.getUrl(p, q), Object.assign({ headers: auth() }, init || {}))).status; const json = async (p, q) => { const r = await fetch(ApiClient.getUrl(p, q), { headers: auth() }); return r.status === 200 ? r.json() : { status: r.status }; }; const ready = () => { const r = R(); const c = r && r.querySelector('.jfbm-clips-content'); return !!r && r.getAttribute('data-jfbm-state') === 'on' && !!c && !c.hasAttribute('aria-busy'); }; const d = panel('Delete clip?'); const e = d && d.querySelector('.jfbm-error'); if (!e || !e.textContent) return false; const c = await json('Bookmarks/' + __vars.held.id); return { error: e.textContent, ms: Math.round(performance.now() - __vars.t0), sameRow: row(__vars.held.id) === window.__heldRow, state: row(__vars.held.id).getAttribute('data-jfbm-state'), file: c.Clip ? c.Clip.FileName : null, open: !!panel('Delete clip?'), retry: !action(d, 'Delete').disabled }; })()",
+      "save": "inUse",
+      "timeout": 20000
+    },
+    {
+      "name": "as expected",
+      "assert": "__vars.inUse.error === 'The clip file is in use (being played or downloaded); try again shortly.' && __vars.inUse.sameRow && __vars.inUse.state === 'Ready' && __vars.inUse.file === __vars.held.file && __vars.inUse.open && __vars.inUse.retry"
+    },
+    {
+      "name": "the in-use message",
+      "screenshot": "page-clips-inuse.png"
+    },
+    {
+      "name": "Cancel",
+      "script": "const R = () => document.querySelector('#fallbackPage > [data-jfbm-page=\"clips\"]'); const K = (id) => String(id || '').replace(/-/g, '').toLowerCase(); const row = (id) => { const r = R(); return r && id ? r.querySelector('.jfbm-clips-row[data-jfbm-clip=\"' + K(id) + '\"]') : null; }; const btn = (scope, title) => scope ? [...scope.querySelectorAll('button')].find(b => b.getAttribute('title') === title) || null : null; const panel = (title) => [...document.querySelectorAll('.jfbm-backdrop .jfbm-panel')].find(p => p.querySelector('h3').textContent === title) || null; const action = (dialog, label) => dialog ? [...dialog.querySelectorAll('.jfbm-actions button')].find(b => b.textContent === label) || null : null; const toasts = () => [...document.querySelectorAll('.jfbm-toast')].map(t => (t.querySelector('span') || t).textContent); const stateText = (x) => { const s = x && x.querySelector('.jfbm-clip-state-text'); return s ? s.textContent : null; }; const auth = () => ({ Authorization: 'MediaBrowser Token=\"' + ApiClient.accessToken() + '\"' }); const status = async (p, q, init) => (await fetch(ApiClient.getUrl(p, q), Object.assign({ headers: auth() }, init || {}))).status; const json = async (p, q) => { const r = await fetch(ApiClient.getUrl(p, q), { headers: auth() }); return r.status === 200 ? r.json() : { status: r.status }; }; const ready = () => { const r = R(); const c = r && r.querySelector('.jfbm-clips-content'); return !!r && r.getAttribute('data-jfbm-state') === 'on' && !!c && !c.hasAttribute('aria-busy'); }; action(panel('Delete clip?'), 'Cancel').click(); return !panel('Delete clip?');"
+    },
+    {
+      "name": "no uncaught exception of ours",
+      "noExceptions": true,
+      "ignore": "CustomRatings|jellyfin-web|main\\.jellyfin\\.bundle|\\.chunk\\.js"
+    }
+  ]
+}

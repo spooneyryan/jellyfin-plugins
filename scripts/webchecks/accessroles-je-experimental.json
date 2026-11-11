@@ -1,0 +1,32 @@
+{
+  "description": "Jellyfin Enhanced coexistence in the experimental layout: viewer with accessroles-je-probe.mjs's lock-only role (Profile, Quick Connect, Jellyfin Enhanced locked) next to Jellyfin Enhanced 12.14, in the experimental layout (localStorage 'layout' = 'experimental' before the bundles run). JE's cloned entry in the MUI user menu (#jellyfinEnhancedUserMenuLink, its href '#') is in the menu and hidden with EnhancedPanel, Profile too, Settings shown, the menu's top divider not left alone; JE's D key ends on Home (the core's bounce) and its Q key on Home with the guard's toast, each address recorded before any page script.",
+  "timeout": 30000,
+  "steps": [
+    { "name": "the experimental layout", "initScript": "localStorage.setItem('layout', 'experimental')" },
+    { "name": "a recorder of the page's addresses and of visible Quick Connect frames, before any page script", "initScript": "(() => { const R = window.__jfarJe = { hashes: [], frames: {}, toasts: [] }; const note = () => { const h = location.hash; if (R.hashes[R.hashes.length - 1] !== h) R.hashes.push(h); }; window.addEventListener('hashchange', note, true); window.addEventListener('popstate', note, true); const tick = () => { try { note(); document.querySelectorAll('.jfar-toast').forEach((t) => { const x = t.textContent; if (x && !R.toasts.includes(x)) R.toasts.push(x); }); document.querySelectorAll('#quickConnectPreferencesPage').forEach((p) => { if (!p.classList.contains('hide') && p.getClientRects().length > 0 && getComputedStyle(p).visibility !== 'hidden') { R.frames[p.id] = (R.frames[p.id] || 0) + 1; } }); } catch (e) { } requestAnimationFrame(tick); }; requestAnimationFrame(tick); })()" },
+    { "name": "sign in as viewer", "login": "viewer" },
+    { "name": "the guard has viewer's /Me with the three locks, the MUI app bar is up", "waitFor": "!!window.__jfkit && !!window.__jfkit.jfar && __jfkit.jfar.instance.accessRoles.rules().source === 'me' && ['jfar-lock-profile', 'jfar-lock-quickconnect', 'jfar-lock-enhancedpanel'].every((c) => document.documentElement.classList.contains(c)) && !!document.querySelector('[aria-controls=\"app-user-menu\"]')", "timeout": 30000 },
+    { "name": "JE loaded with its key listener and its shortcuts", "waitFor": "!!window.JellyfinEnhanced && !!window.JellyfinEnhanced.keyListener && !!window.JellyfinEnhanced.state && !!window.JellyfinEnhanced.state.activeShortcuts && typeof window.JellyfinEnhanced.state.activeShortcuts.GoToDashboard === 'string' && typeof window.JellyfinEnhanced.state.activeShortcuts.QuickConnect === 'string'", "timeout": 60000 },
+    { "name": "JE has had its time to clone its entry", "sleep": 2000 },
+    { "name": "open the user menu", "click": "[aria-controls=\"app-user-menu\"]" },
+    { "name": "JE's cloned entry is in the menu", "waitFor": "!!document.querySelector('#app-user-menu #jellyfinEnhancedUserMenuLink')", "timeout": 15000 },
+    { "sleep": 800 },
+    { "name": "the menu: its items and dividers, shown or hidden", "eval": "(() => { const m = document.getElementById('app-user-menu'); const list = m.querySelector('ul'); const shown = (e) => getComputedStyle(e).display !== 'none' && e.getClientRects().length > 0; const children = [...list.children].map((c) => ({ tag: c.tagName, id: c.id || null, href: c.getAttribute('href'), text: c.textContent.trim(), shown: shown(c), aria: c.getAttribute('aria-disabled') })); const visible = children.filter((c) => c.shown); return { children, firstVisible: visible.length ? visible[0].tag : null }; })()", "save": "menu", "full": true },
+    { "name": "JE's entry and Profile hidden (aria-disabled), Settings shown, no divider left at the top", "assert": "(() => { const je = __vars.menu.children.find((c) => c.id === 'jellyfinEnhancedUserMenuLink'); const p = __vars.menu.children.find((c) => (c.href || '').indexOf('#/userprofile') === 0); const s = __vars.menu.children.find((c) => c.href === '#/mypreferencesmenu'); return !!je && !je.shown && !!p && !p.shown && p.aria === 'true' && !!s && s.shown && __vars.menu.firstVisible !== 'HR'; })()" },
+    { "screenshot": "accessroles-je-menu.png" },
+    { "name": "close the menu", "key": "Escape" },
+    { "sleep": 800 },
+    { "name": "nothing focused, the recorder reset", "script": "if (document.activeElement && document.activeElement !== document.body) document.activeElement.blur(); window.__jfarJe.hashes = [location.hash]; window.__jfarJe.frames = {}; window.__jfarJe.toasts = []; return location.hash;" },
+    { "name": "press D", "key": "D" },
+    { "sleep": 4000 },
+    { "name": "where D went", "eval": "({ hashes: window.__jfarJe.hashes.slice(), now: location.hash, toasts: window.__jfarJe.toasts.slice() })", "save": "d", "full": true },
+    { "name": "D took the page to the Dashboard's address, and it ended on Home", "assert": "__vars.d.hashes.some((h) => /^#\\/dashboard/.test(h)) && __vars.d.now.startsWith('#/home')" },
+    { "sleep": 1500 },
+    { "name": "nothing focused, the recorder reset again", "script": "if (document.activeElement && document.activeElement !== document.body) document.activeElement.blur(); window.__jfarJe.hashes = [location.hash]; window.__jfarJe.frames = {}; window.__jfarJe.toasts = []; document.querySelectorAll('.jfar-toast').forEach((t) => t.remove()); return location.hash;" },
+    { "name": "press Q", "key": "Q" },
+    { "sleep": 4000 },
+    { "name": "where Q went", "eval": "({ hashes: window.__jfarJe.hashes.slice(), now: location.hash, frames: Object.assign({}, window.__jfarJe.frames), toasts: window.__jfarJe.toasts.slice() })", "save": "q", "full": true },
+    { "name": "Q took the page to Quick Connect's address, and it ended on Home with the guard's toast, Quick Connect never shown", "assert": "__vars.q.hashes.some((h) => /^#\\/quickconnect/i.test(h)) && __vars.q.now.startsWith('#/home') && Object.keys(__vars.q.frames).length === 0 && __vars.q.toasts.includes('This page is managed by your server administrator.')" },
+    { "name": "no uncaught exceptions (the stale CustomRatings tag and jellyfin-web's Home tab slider excepted)", "noExceptions": true, "ignore": "/CustomRatings/script|^TypeError: t\\.value\\.pause is not a function" }
+  ]
+}

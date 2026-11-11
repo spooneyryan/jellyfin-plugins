@@ -1,0 +1,68 @@
+{
+  "name": "My Clips' progress in Plugin Pages' host, as admin in the Auto host mode (PageHostMode=Auto at startup, with Plugin Pages installed; VideoPreset slow, so its three long Accurate clips take a while): My Clips opens in Plugin Pages' host and polls the clips being made; Back to the home page leaves the page in jellyfin-web's cached, hidden host view, where nothing of ours is asked (no Status, list or Summary request; before the review it went on polling every 2.5 s); Forward shows the view again, the kit renders the page again and it polls again while a clip is still being made. It seeds and deletes its own bookmarks (named 'clips-pp-probe …'; a failed run's leftovers at the start). Needs a sandbox started in Auto mode (Set-SandboxPluginConfig PageHostMode=Auto and VideoPreset=slow, then a restart; scripts/README.md says how).",
+  "failOnException": false,
+  "timeout": 30000,
+  "steps": [
+    { "name": "the requests of the Bookmarks script recorded in every document (jellyfin-web's own never)", "initScript": { "file": "probes/bookmarks-requests-probe.js" } },
+    { "name": "open the login page", "goto": "/web/index.html#/login" },
+    { "name": "index.html carries Plugin Pages' tag (its startup task registers the File Transformation a few seconds after the server starts; the kit chooses the host once per page load)", "waitFor": "fetch(new URL('index.html', location.href), { cache: 'no-store' }).then(r => r.text()).then(t => t.indexOf('<script plugin=\"PluginPages\"') >= 0)", "timeout": 90000 },
+    { "name": "reload, so the page has the tag", "reload": true },
+    { "name": "sign in as admin", "login": "admin" },
+    { "name": "the Bookmarks script ran", "waitFor": "!!window.__jfkit && !!window.__jfkit.jfbm && !!window.ApiClient && !!ApiClient.getCurrentUserId()" },
+    { "name": "the kit chose the Plugin Pages host for My Clips", "waitFor": "__jfkit.jfbm.instance.pages.state().hostsKnown && __jfkit.jfbm.instance.pages.state().hosts.clips === 'PluginPages' && __jfkit.jfbm.instance.pages.href('clips')", "save": "href" },
+    { "name": "its link", "assert": "__vars.href === '#/userpluginsettings.html?pageUrl=%2FBookmarks%2FPages%2Fclips'" },
+    {
+      "name": "a failed run's leftovers deleted, then three long ranges of Long Test Movie with Accurate clips asked for (one is made at a time, so the others wait)",
+      "script": "const PREFIX = 'clips-pp-probe'; const json = (type, path, body) => ApiClient.ajax({ type, url: ApiClient.getUrl(path), data: JSON.stringify(body), contentType: 'application/json', dataType: 'json' }); let leftovers = 0; for (let round = 0; round < 5; round++) { const q = await ApiClient.getJSON(ApiClient.getUrl('Bookmarks/Query', { searchTerm: PREFIX, limit: 200 })); const ids = q.Items.filter(b => (b.Name || '').indexOf(PREFIX) === 0).map(b => b.Id); if (ids.length === 0) break; await json('POST', 'Bookmarks/BulkDelete', { Ids: ids, DeleteClips: true }); leftovers += ids.length; } const kept = await ApiClient.getJSON(ApiClient.getUrl('Bookmarks/Clips', { searchTerm: PREFIX, limit: 200 })); for (const c of kept.Items.filter(x => (x.Name || '').indexOf(PREFIX) === 0)) { await ApiClient.ajax({ type: 'DELETE', url: ApiClient.getUrl('Bookmarks/' + c.Id + '/Clip') }); leftovers++; } const items = await ApiClient.getJSON(ApiClient.getUrl('Items', { userId: ApiClient.getCurrentUserId(), Recursive: true, IncludeItemTypes: 'Movie', Fields: 'Path', EnableImages: false, EnableUserData: false })); const movie = items.Items.find(i => (i.Path || '').indexOf('Long Test Movie (2021)') >= 0); const T = 10000000; const ids = []; const asked = []; for (const [name, start] of [['Golf', 0], ['Hotel', 2], ['India', 4]]) { const b = await json('POST', 'Bookmarks', { ItemId: movie.Id, StartTicks: start * T, EndTicks: (start + 175) * T, Name: PREFIX + ' ' + name }); ids.push(b.Id); const c = await json('POST', 'Bookmarks/' + b.Id + '/Clip', { Mode: 'Accurate' }); asked.push(c.Clip.Status); } return { leftovers, movie: movie.Id, ids, asked };",
+      "save": "seed",
+      "full": true
+    },
+    { "name": "as expected: three clips queued or being made", "assert": "__vars.seed.ids.length === 3 && __vars.seed.asked.every(s => s === 'Queued' || s === 'Running')" },
+    { "name": "the hash before the page (the home page's)", "eval": "location.hash", "save": "homeHash" },
+    { "name": "My Clips in Plugin Pages' host, filtered to the probe's clips (a navigation in the page, as a link's: the home page's view stays)", "script": "location.hash = __vars.href.slice(1) + '&q=clips-pp-probe'; return location.hash;" },
+    {
+      "name": "the page renders in Plugin Pages' host with the three clips being made",
+      "waitFor": "(() => { const r = [...document.querySelectorAll('.userPreferencesPage:not(.hide) [data-jfbm-page=clips][data-jfbm-mounted][data-jfbm-state=on]')].find(x => x.getClientRects().length > 0); if (!r) return false; const c = r.querySelector('.jfbm-clips-content'); if (!c || c.hasAttribute('aria-busy')) return false; const rows = [...c.querySelectorAll('.jfbm-clips-row')]; if (rows.length < 3) return false; return { host: r.getAttribute('data-jfbm-host'), rows: rows.length, making: rows.filter(x => x.getAttribute('data-jfbm-state') === 'InProgress').length, renders: __jfkit.jfbm.instance.pages.state().renders.clips }; })()",
+      "timeout": 20000,
+      "save": "shown",
+      "full": true
+    },
+    { "name": "as expected: in Plugin Pages' host, the three being made", "assert": "__vars.shown.host === 'PluginPages' && __vars.shown.rows === 3 && __vars.shown.making === 3" },
+    { "name": "the page polls: two Status requests of the script's", "waitFor": "window.__bookmarksRequests.list.filter(x => x.direct && x.url.indexOf('/Bookmarks/Clips/Status?') >= 0).length >= 2", "timeout": 10000 },
+    { "sleep": 300 },
+    { "screenshot": "page-clips-pp-polling.png" },
+    { "name": "Back to the home page", "script": "history.back(); return true;" },
+    {
+      "name": "the home page shown, our page kept in the hidden host view",
+      "waitFor": "(() => { if (location.hash !== __vars.homeHash) return false; const ours = [...document.querySelectorAll('[data-jfbm-page=clips][data-jfbm-mounted]')]; if (ours.some(x => x.getClientRects().length > 0)) return false; const shown = [...document.querySelectorAll('.page:not(.hide)')].filter(x => x.getClientRects().length > 0); if (shown.length === 0) return false; return { at: window.__bookmarksRequests.list.length, kept: ours.length, hidden: ours.filter(x => !!x.closest('.hide')).length, view: shown.map(x => x.id || x.className).slice(0, 3) }; })()",
+      "save": "left",
+      "full": true
+    },
+    { "name": "nine quiet seconds off the page (regression: was 4 polls in 9 s)", "sleep": 9000 },
+    { "name": "what the script asked since the page was left", "eval": "window.__bookmarksRequests.list.slice(__vars.left.at).map(x => x.method + ' ' + new URL(x.url).pathname)", "save": "offPage", "full": true },
+    { "name": "as expected: our page kept in the hidden view (the regression case), and no Status, list or Summary request of ours there", "assert": "__vars.left.kept >= 1 && __vars.left.hidden >= 1 && __vars.offPage.filter(p => p.indexOf('/Bookmarks/Clips') >= 0).length === 0" },
+    { "name": "how many of the probe's clips are still being made (the slow preset)", "script": "const r = await ApiClient.getJSON(ApiClient.getUrl('Bookmarks/Clips', { searchTerm: 'clips-pp-probe', limit: 10 })); return r.Items.filter(c => c.Clip && c.Clip.State === 'InProgress').length;", "save": "stillMaking" },
+    { "name": "renders before Forward", "eval": "__jfkit.jfbm.instance.pages.state().renders.clips", "save": "rendersBefore" },
+    { "name": "the script's requests before Forward", "eval": "window.__bookmarksRequests.list.length", "save": "atForward" },
+    { "name": "Forward to My Clips", "script": "history.forward(); return true;" },
+    {
+      "name": "the host view shown again and the page rendered again by the kit",
+      "waitFor": "(() => { const r = [...document.querySelectorAll('.userPreferencesPage:not(.hide) [data-jfbm-page=clips][data-jfbm-mounted][data-jfbm-state=on]')].find(x => x.getClientRects().length > 0); if (!r) return false; const n = __jfkit.jfbm.instance.pages.state().renders.clips; if (n <= __vars.rendersBefore) return false; const c = r.querySelector('.jfbm-clips-content'); if (!c || c.hasAttribute('aria-busy')) return false; return { renders: n, reason: r.getAttribute('data-jfbm-reason'), rows: c.querySelectorAll('.jfbm-clips-row').length, making: c.querySelectorAll('.jfbm-clips-row[data-jfbm-state=InProgress]').length }; })()",
+      "timeout": 20000,
+      "save": "back",
+      "full": true
+    },
+    { "name": "it polls again while a clip is being made", "waitFor": "__vars.back.making === 0 || window.__bookmarksRequests.list.slice(__vars.atForward).some(x => x.direct && x.url.indexOf('/Bookmarks/Clips/Status?') >= 0)", "timeout": 8000 },
+    { "name": "as expected: rendered again (restored), the three rows, a clip still being made polled", "assert": "__vars.back.rows === 3 && __vars.back.renders === __vars.rendersBefore + 1 && (__vars.stillMaking === 0 || __vars.back.making > 0)" },
+    { "sleep": 300 },
+    { "screenshot": "page-clips-pp-again.png" },
+    { "name": "the probe's clips done (before the clean-up)", "waitFor": "ApiClient.getJSON(ApiClient.getUrl('Bookmarks/Clips', { searchTerm: 'clips-pp-probe', limit: 10 })).then(r => r.Items.length === 3 && r.Items.every(c => c.Clip && c.Clip.State !== 'InProgress'))", "timeout": 120000 },
+    {
+      "name": "the clean-up: the probe's bookmarks deleted with their clips",
+      "script": "const PREFIX = 'clips-pp-probe'; await ApiClient.ajax({ type: 'POST', url: ApiClient.getUrl('Bookmarks/BulkDelete'), data: JSON.stringify({ Ids: __vars.seed.ids, DeleteClips: true }), contentType: 'application/json', dataType: 'json' }); const q = await ApiClient.getJSON(ApiClient.getUrl('Bookmarks/Query', { searchTerm: PREFIX, limit: 10 })); const c = await ApiClient.getJSON(ApiClient.getUrl('Bookmarks/Clips', { searchTerm: PREFIX, limit: 10 })); return { bookmarks: q.TotalRecordCount, clips: c.TotalRecordCount };",
+      "save": "cleanup"
+    },
+    { "name": "nothing of the probe's left", "assert": "__vars.cleanup.bookmarks === 0 && __vars.cleanup.clips === 0" },
+    { "name": "no uncaught exception of ours", "noExceptions": true, "ignore": "/CustomRatings/script|^Error: player cannot be null" }
+  ]
+}

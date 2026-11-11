@@ -1,0 +1,18 @@
+{
+  "description": "A clip refused for lack of free space: run by clip-guard-probe.mjs while MinFreeSpaceMegabytes is above C:'s free space. As viewer2 (download permission, no admin rights), 'Make a clip' on a range bookmark's row of the details page shows the server's refusal as a toast, the user's sentence 'Not enough free space on the server for this clip. Ask your server admin.', and nothing is queued; the bookmark is deleted again.",
+  "steps": [
+    { "name": "sign in as viewer2", "login": "viewer2" },
+    { "name": "the Bookmarks script ran", "waitFor": "!!window.__jfkit && !!window.__jfkit.jfbm && !!window.ApiClient && !!ApiClient.getCurrentUserId()" },
+    { "name": "find Long Test Movie", "eval": "(await ApiClient.getItems(ApiClient.getCurrentUserId(), { IncludeItemTypes: 'Movie', Recursive: true, SearchTerm: 'Long Test Movie', Limit: 1 })).Items[0].Id", "save": "movieId" },
+    { "name": "a range bookmark 0:50-0:55 of viewer2's", "script": "const b = await ApiClient.ajax({ type: 'POST', url: ApiClient.getUrl('Bookmarks'), data: JSON.stringify({ ItemId: __vars.movieId, StartTicks: 500000000, EndTicks: 550000000, Note: 'clip-guard-probe ui' }), contentType: 'application/json', dataType: 'json' }); return b.Id;", "save": "bookmarkId" },
+    { "name": "open the details page", "goto": "/web/index.html#/details?id=${movieId}" },
+    { "name": "the bookmark's row with its Make a clip button", "waitFor": "(() => { const r = document.querySelector('#itemDetailPage:not(.hide) .jfbm-row[data-id=\"' + __vars.bookmarkId + '\"]'); return !!r && !!r.querySelector('.jfbm-row-actions button[title=\"Make a clip\"]'); })()", "timeout": 20000 },
+    { "name": "Make a clip", "script": "document.querySelector('#itemDetailPage:not(.hide) .jfbm-row[data-id=\"' + __vars.bookmarkId + '\"] .jfbm-row-actions button[title=\"Make a clip\"]').click(); return true;" },
+    { "name": "the refusal as a toast: the user's sentence, no drive or numbers", "waitFor": "[...document.querySelectorAll('.jfbm-toast')].some(t => t.textContent === 'Not enough free space on the server for this clip. Ask your server admin.')" },
+    { "sleep": 300 },
+    { "screenshot": "clip-guard-refused.png" },
+    { "name": "nothing is queued", "assert": "!(await ApiClient.getJSON(ApiClient.getUrl('Bookmarks/' + __vars.bookmarkId))).Clip" },
+    { "name": "delete the bookmark again", "script": "await ApiClient.ajax({ type: 'DELETE', url: ApiClient.getUrl('Bookmarks/' + __vars.bookmarkId) }); return true;" },
+    { "name": "no uncaught exceptions (the stale CustomRatings tag excepted)", "noExceptions": true, "ignore": "/CustomRatings/script" }
+  ]
+}

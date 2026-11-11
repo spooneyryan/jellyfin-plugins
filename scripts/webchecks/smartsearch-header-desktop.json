@@ -1,0 +1,410 @@
+{
+  "name": "Smart Search's header button on a desktop at 1366x900: as viewer, one 'Advanced search' button right before jellyfin-web's search button, the same size and colour, which opens the page by mouse and by keyboard (Shift+Tab from the search button, then Enter); still one, shown, after client navigation (home, a library, the page, the dashboard and back); hidden with the search button after signing out (the login page); none shown in the experimental layout (jellyfin-web keeps the legacy header there, hidden). Then as admin: ShowHeaderButton off and the page off each take the button away on the next load, and both are put back; and with jellyfin-web's search button made unfindable, no button, one console warning and one health report the server lists, never a throw. Screenshots smartsearch-header-*.png.",
+  "failOnException": false,
+  "timeout": 30000,
+  "steps": [
+    {
+      "name": "a desktop screen",
+      "emulate": "desktop"
+    },
+    {
+      "name": "header helpers",
+      "initScript": "\nwindow.__warns = [];\n(function () { const w = console.warn; console.warn = function () { try { window.__warns.push([].slice.call(arguments).map(String).join(' ')); } catch (e) {} return w.apply(this, arguments); }; })();\nwindow.__hb = {\n  ours: () => [...document.querySelectorAll('button[data-jfss-header]')],\n  shown: () => window.__hb.ours().filter(b => b.getClientRects().length > 0),\n  native: () => document.querySelector('.skinHeader .headerRight .headerSearchButton'),\n  visible: (e) => !!e && e.getClientRects().length > 0,\n  box: (e) => { const r = e.getBoundingClientRect(); return [Math.round(r.left), Math.round(r.top), Math.round(r.width), Math.round(r.height)]; },\n  state: () => { const o = window.__hb.ours(); const n = window.__hb.native(); const b = o[0]; return { count: o.length, shown: window.__hb.shown().length, nativeShown: window.__hb.visible(n), before: !!b && b.nextElementSibling === n, label: b ? b.getAttribute('aria-label') : null, icon: b ? (b.querySelector('.material-icons') || {}).className : null, hidden: b ? b.classList.contains('hide') : null, same: !!b && !!n && b.classList.contains('hide') === n.classList.contains('hide') }; },\n  anchorWarnings: () => window.__warns.filter(w => w.indexOf('web anchor') >= 0),\n  pageShown: () => { const r = [...document.querySelectorAll('#fallbackPage > [data-jfss-page=\"search\"][data-jfss-mounted]')].find(x => x.getClientRects().length > 0); return !!r && !!r.querySelector('.jfss-search .jfss-scope') && location.hash.indexOf('#/jfss-search') === 0; },\n  noHScroll: () => document.documentElement.scrollWidth <= innerWidth\n};\n"
+    },
+    {
+      "name": "sign in as viewer",
+      "login": "viewer"
+    },
+    {
+      "name": "the Smart Search script ran",
+      "waitFor": "!!window.__jfkit && !!window.__jfkit.jfss && !!window.ApiClient && !!ApiClient.getCurrentUserId()",
+      "timeout": 20000
+    },
+    {
+      "name": "one header button, shown right before jellyfin-web's search button (home)",
+      "waitFor": "(() => { const s = __hb.state(); return s.count === 1 && s.shown === 1 && s.nativeShown && s.before ? s : false; })()",
+      "timeout": 15000,
+      "save": "state",
+      "full": true
+    },
+    {
+      "name": "labelled 'Advanced search', the manage_search icon",
+      "assert": "__vars.state.label === 'Advanced search' && __vars.state.icon === 'material-icons manage_search'"
+    },
+    {
+      "name": "the same size and icon colour as the search button",
+      "eval": "(() => { const b = __hb.ours()[0], n = __hb.native(); const bb = __hb.box(b), nb = __hb.box(n); return { size: [bb[2], bb[3]], nativeSize: [nb[2], nb[3]], top: bb[1] === nb[1], left: bb[0] < nb[0], color: getComputedStyle(b).color === getComputedStyle(n).color }; })()",
+      "save": "look",
+      "full": true
+    },
+    {
+      "name": "as expected",
+      "assert": "__vars.look.size.join() === __vars.look.nativeSize.join() && __vars.look.top && __vars.look.left && __vars.look.color"
+    },
+    {
+      "screenshot": "smartsearch-header-desktop.png"
+    },
+    {
+      "name": "click it",
+      "click": "button[data-jfss-header]"
+    },
+    {
+      "name": "the Advanced Search page opens (a click)",
+      "waitFor": "__hb.pageShown()",
+      "timeout": 20000
+    },
+    {
+      "name": "still one button on the page itself",
+      "waitFor": "__hb.state().count === 1 && __hb.state().shown === 1"
+    },
+    {
+      "goto": "/web/index.html#/home"
+    },
+    {
+      "name": "one header button, shown right before jellyfin-web's search button (home again)",
+      "waitFor": "(() => { const s = __hb.state(); return s.count === 1 && s.shown === 1 && s.nativeShown && s.before ? s : false; })()",
+      "timeout": 15000,
+      "save": "state",
+      "full": true
+    },
+    {
+      "name": "keyboard: Shift+Tab from the search button reaches it",
+      "script": "__hb.native().focus(); return document.activeElement === __hb.native();"
+    },
+    {
+      "key": "Shift+Tab"
+    },
+    {
+      "name": "the focus is on the header button",
+      "waitFor": "document.activeElement === __hb.ours()[0]"
+    },
+    {
+      "key": "Enter"
+    },
+    {
+      "name": "the Advanced Search page opens (Enter)",
+      "waitFor": "__hb.pageShown()",
+      "timeout": 20000
+    },
+    {
+      "name": "a library through the home screen",
+      "goto": "/web/index.html#/home"
+    },
+    {
+      "name": "open the first library's card",
+      "waitFor": "(() => { const a = [...document.querySelectorAll('.homePage:not(.hide) a.cardImageContainer, .homePage:not(.hide) button.cardImageContainer, .homePage:not(.hide) .card a')].find(x => x.getClientRects().length > 0); if (!a) return false; a.click(); return true; })()",
+      "timeout": 20000
+    },
+    {
+      "name": "a library view",
+      "waitFor": "location.hash !== '#/home' && location.hash.indexOf('#/jfss') < 0",
+      "timeout": 15000
+    },
+    {
+      "name": "one header button, shown right before jellyfin-web's search button (a library)",
+      "waitFor": "(() => { const s = __hb.state(); return s.count === 1 && s.shown === 1 && s.nativeShown && s.before ? s : false; })()",
+      "timeout": 15000,
+      "save": "state",
+      "full": true
+    },
+    {
+      "goto": "/web/index.html#/mypreferencesmenu"
+    },
+    {
+      "name": "one header button, shown right before jellyfin-web's search button (the user menu)",
+      "waitFor": "(() => { const s = __hb.state(); return s.count === 1 && s.shown === 1 && s.nativeShown && s.before ? s : false; })()",
+      "timeout": 15000,
+      "save": "state",
+      "full": true
+    },
+    {
+      "name": "back",
+      "script": "history.back(); return true;"
+    },
+    {
+      "name": "one header button, shown right before jellyfin-web's search button (after Back)",
+      "waitFor": "(() => { const s = __hb.state(); return s.count === 1 && s.shown === 1 && s.nativeShown && s.before ? s : false; })()",
+      "timeout": 15000,
+      "save": "state",
+      "full": true
+    },
+    {
+      "name": "no anchor warning",
+      "assert": "__hb.anchorWarnings().length === 0"
+    },
+    {
+      "name": "sign out",
+      "goto": "/web/index.html#/mypreferencesmenu"
+    },
+    {
+      "name": "the sign-out button",
+      "waitFor": "!!document.querySelector('#myPreferencesMenuPage:not(.hide) .btnLogout')",
+      "timeout": 15000
+    },
+    {
+      "name": "press it",
+      "script": "document.querySelector('#myPreferencesMenuPage:not(.hide) .btnLogout').click(); return true;"
+    },
+    {
+      "name": "the login page, the search button hidden, and so ours",
+      "waitFor": "(() => { if (!document.querySelector('.loginPage:not(.hide), #loginPage:not(.hide)')) return false; const n = __hb.native(); return !__hb.visible(n) && __hb.shown().length === 0 ? { count: __hb.ours().length, nativeHidden: !!n && n.classList.contains('hide') } : false; })()",
+      "timeout": 20000,
+      "save": "signedOut",
+      "full": true
+    },
+    {
+      "screenshot": "smartsearch-header-login.png"
+    },
+    {
+      "name": "sign in as viewer again",
+      "login": "viewer"
+    },
+    {
+      "name": "the Smart Search script ran",
+      "waitFor": "!!window.__jfkit && !!window.__jfkit.jfss && !!window.ApiClient && !!ApiClient.getCurrentUserId()",
+      "timeout": 20000
+    },
+    {
+      "name": "one header button, shown right before jellyfin-web's search button (signed in again)",
+      "waitFor": "(() => { const s = __hb.state(); return s.count === 1 && s.shown === 1 && s.nativeShown && s.before ? s : false; })()",
+      "timeout": 15000,
+      "save": "state",
+      "full": true
+    },
+    {
+      "name": "the experimental layout for this browser",
+      "eval": "(localStorage.setItem('layout', 'experimental'), true)"
+    },
+    {
+      "name": "reload (experimental)",
+      "reload": true
+    },
+    {
+      "name": "the Smart Search script ran",
+      "waitFor": "!!window.__jfkit && !!window.__jfkit.jfss && !!window.ApiClient && !!ApiClient.getCurrentUserId()",
+      "timeout": 20000
+    },
+    {
+      "name": "the experimental layout applied",
+      "waitFor": "__jfkit.jfss.instance.layout.isExperimental()",
+      "timeout": 20000
+    },
+    {
+      "name": "let the health check run its grace period",
+      "sleep": 6000
+    },
+    {
+      "name": "no button shown: jellyfin-web keeps the legacy header, hidden, under its app bar, so the anchor is there and ours stays hidden in it",
+      "eval": "({ shown: __hb.shown().length, inHiddenHeader: __hb.ours().length, legacyHeaderShown: __hb.visible(document.querySelector('.skinHeader')), missing: __jfkit.jfss.instance.health.missing().length, warnings: __hb.anchorWarnings().length })",
+      "save": "experimental",
+      "full": true
+    },
+    {
+      "name": "as expected",
+      "assert": "__vars.experimental.shown === 0 && !__vars.experimental.legacyHeaderShown && __vars.experimental.missing === 0 && __vars.experimental.warnings === 0"
+    },
+    {
+      "goto": "/web/index.html#/jfss-search"
+    },
+    {
+      "name": "the Advanced Search page opens (its route in the experimental layout)",
+      "waitFor": "__hb.pageShown()",
+      "timeout": 20000
+    },
+    {
+      "screenshot": "smartsearch-header-experimental.png"
+    },
+    {
+      "name": "the legacy layout again",
+      "eval": "(localStorage.removeItem('layout'), true)"
+    },
+    {
+      "name": "reload (legacy)",
+      "reload": true
+    },
+    {
+      "name": "the Smart Search script ran",
+      "waitFor": "!!window.__jfkit && !!window.__jfkit.jfss && !!window.ApiClient && !!ApiClient.getCurrentUserId()",
+      "timeout": 20000
+    },
+    {
+      "name": "one header button, shown right before jellyfin-web's search button (the legacy layout again)",
+      "waitFor": "(() => { const s = __hb.state(); return s.count === 1 && s.shown === 1 && s.nativeShown && s.before ? s : false; })()",
+      "timeout": 15000,
+      "save": "state",
+      "full": true
+    },
+    {
+      "name": "sign out (for admin)",
+      "goto": "/web/index.html#/mypreferencesmenu"
+    },
+    {
+      "name": "the sign-out button (for admin)",
+      "waitFor": "!!document.querySelector('#myPreferencesMenuPage:not(.hide) .btnLogout')",
+      "timeout": 15000
+    },
+    {
+      "name": "press it (for admin)",
+      "script": "document.querySelector('#myPreferencesMenuPage:not(.hide) .btnLogout').click(); return true;"
+    },
+    {
+      "name": "signed out",
+      "waitFor": "!!document.querySelector('.loginPage:not(.hide), #loginPage:not(.hide)')",
+      "timeout": 20000
+    },
+    {
+      "name": "sign in as admin",
+      "login": "admin"
+    },
+    {
+      "name": "the Smart Search script ran",
+      "waitFor": "!!window.__jfkit && !!window.__jfkit.jfss && !!window.ApiClient && !!ApiClient.getCurrentUserId()",
+      "timeout": 20000
+    },
+    {
+      "name": "one header button, shown right before jellyfin-web's search button (admin)",
+      "waitFor": "(() => { const s = __hb.state(); return s.count === 1 && s.shown === 1 && s.nativeShown && s.before ? s : false; })()",
+      "timeout": 15000,
+      "save": "state",
+      "full": true
+    },
+    {
+      "name": "the settings as they are",
+      "eval": "ApiClient.getPluginConfiguration('d92488d5-409f-4ad0-af1d-3615db9d0513').then(c => ({ ShowHeaderButton: c.ShowHeaderButton, EnableSearchPage: c.EnableSearchPage }))",
+      "save": "orig",
+      "full": true
+    },
+    {
+      "name": "ShowHeaderButton off",
+      "script": "const c = await ApiClient.getPluginConfiguration('d92488d5-409f-4ad0-af1d-3615db9d0513'); Object.assign(c, {\"ShowHeaderButton\":false}); await ApiClient.updatePluginConfiguration('d92488d5-409f-4ad0-af1d-3615db9d0513', c); return true;"
+    },
+    {
+      "name": "reload (setting off)",
+      "reload": true
+    },
+    {
+      "name": "the Smart Search script ran",
+      "waitFor": "!!window.__jfkit && !!window.__jfkit.jfss && !!window.ApiClient && !!ApiClient.getCurrentUserId()",
+      "timeout": 20000
+    },
+    {
+      "name": "let the page settle",
+      "sleep": 2500
+    },
+    {
+      "name": "no header button",
+      "assert": "__hb.ours().length === 0 && __hb.visible(__hb.native())"
+    },
+    {
+      "name": "ShowHeaderButton on, the page off",
+      "script": "const c = await ApiClient.getPluginConfiguration('d92488d5-409f-4ad0-af1d-3615db9d0513'); Object.assign(c, {\"ShowHeaderButton\":true,\"EnableSearchPage\":false}); await ApiClient.updatePluginConfiguration('d92488d5-409f-4ad0-af1d-3615db9d0513', c); return true;"
+    },
+    {
+      "name": "reload (page off)",
+      "reload": true
+    },
+    {
+      "name": "the Smart Search script ran",
+      "waitFor": "!!window.__jfkit && !!window.__jfkit.jfss && !!window.ApiClient && !!ApiClient.getCurrentUserId()",
+      "timeout": 20000
+    },
+    {
+      "name": "let the page settle (page off)",
+      "sleep": 2500
+    },
+    {
+      "name": "no header button while the page is off",
+      "assert": "__hb.ours().length === 0 && __hb.visible(__hb.native())"
+    },
+    {
+      "name": "put both settings back",
+      "script": "const c = await ApiClient.getPluginConfiguration('d92488d5-409f-4ad0-af1d-3615db9d0513'); Object.assign(c, __vars.orig); await ApiClient.updatePluginConfiguration('d92488d5-409f-4ad0-af1d-3615db9d0513', c); return { ShowHeaderButton: c.ShowHeaderButton, EnableSearchPage: c.EnableSearchPage };",
+      "save": "restored",
+      "full": true
+    },
+    {
+      "name": "reload (settings back)",
+      "reload": true
+    },
+    {
+      "name": "the Smart Search script ran",
+      "waitFor": "!!window.__jfkit && !!window.__jfkit.jfss && !!window.ApiClient && !!ApiClient.getCurrentUserId()",
+      "timeout": 20000
+    },
+    {
+      "name": "one header button, shown right before jellyfin-web's search button (settings back)",
+      "waitFor": "(() => { const s = __hb.state(); return s.count === 1 && s.shown === 1 && s.nativeShown && s.before ? s : false; })()",
+      "timeout": 15000,
+      "save": "state",
+      "full": true
+    },
+    {
+      "name": "simulate a jellyfin-web without the anchor: from the next load, its search button loses the class headerSearchButton as soon as it is built (jellyfin-web already holds the node)",
+      "initScript": "new MutationObserver(() => { document.querySelectorAll('.headerSearchButton').forEach(b => b.classList.remove('headerSearchButton')); }).observe(document, { childList: true, subtree: true });"
+    },
+    {
+      "name": "reload (anchor missing)",
+      "reload": true
+    },
+    {
+      "name": "the Smart Search script ran",
+      "waitFor": "!!window.__jfkit && !!window.__jfkit.jfss && !!window.ApiClient && !!ApiClient.getCurrentUserId()",
+      "timeout": 20000
+    },
+    {
+      "name": "let the health check run its grace period (anchor missing)",
+      "sleep": 6000
+    },
+    {
+      "name": "no header button; the missing anchor recorded and warned once",
+      "eval": "({ ours: __hb.ours().length, missing: __jfkit.jfss.instance.health.missing(), warnings: __hb.anchorWarnings() })",
+      "save": "missing",
+      "full": true
+    },
+    {
+      "name": "as expected",
+      "assert": "__vars.missing.ours === 0 && __vars.missing.missing.length === 1 && __vars.missing.missing[0].anchor === 'headerSearch' && __vars.missing.missing[0].view === 'header' && __vars.missing.warnings.length === 1 && /web anchor \"headerSearch\" missing on header \\(web 10\\.11\\.5\\)/.test(__vars.missing.warnings[0])"
+    },
+    {
+      "goto": "/web/index.html#/jfss-search"
+    },
+    {
+      "name": "the Advanced Search page opens (its drawer route without the anchor)",
+      "waitFor": "__hb.pageShown()",
+      "timeout": 20000
+    },
+    {
+      "goto": "/web/index.html#/home"
+    },
+    {
+      "name": "the health report goes out (the kit waits about 2 s after a miss)",
+      "waitFor": "__jfkit.jfss.instance.health.reports() >= 1",
+      "timeout": 15000
+    },
+    {
+      "name": "still no button and still one warning after navigating",
+      "eval": "({ ours: __hb.ours().length, warnings: __hb.anchorWarnings().length })",
+      "save": "after",
+      "full": true
+    },
+    {
+      "name": "as expected",
+      "assert": "__vars.after.ours === 0 && __vars.after.warnings === 1"
+    },
+    {
+      "screenshot": "smartsearch-header-missing.png"
+    },
+    {
+      "name": "the server lists the report (Diagnostics' ClientHealth)",
+      "waitFor": "ApiClient.getJSON(ApiClient.getUrl('SmartSearch/Admin/Diagnostics')).then(d => { const w = d.WebAnchors || {}; const text = JSON.stringify(d); return (w.Reports || {}).Accepted >= 1 && text.indexOf('headerSearch') >= 0 ? { accepted: w.Reports.Accepted } : false; })",
+      "timeout": 15000,
+      "save": "diag",
+      "full": true
+    },
+    {
+      "name": "no uncaught exception (the stale CustomRatings tag of the sandbox's index.html is known noise)",
+      "noExceptions": true,
+      "ignore": "CustomRatings"
+    }
+  ]
+}

@@ -1,0 +1,103 @@
+{
+  "name": "Move's entry next to Jellyfin Enhanced, in the je sandbox: Jellyfin Enhanced's Remove from Continue Watching and Move's entry in one sheet, and Move's dialog opening from it",
+  "timeout": 30000,
+  "steps": [
+    {
+      "name": "the helpers (a log of Library Maintenance's requests, short names)",
+      "initScript": {
+        "file": "probes/librarymaintenance-move-helpers.js"
+      }
+    },
+    {
+      "name": "sign in as admin",
+      "login": "admin"
+    },
+    {
+      "name": "home page, Library Maintenance's script and its capabilities",
+      "waitFor": "!!document.querySelector('.homePage:not(.hide) .card[data-type=Movie]') && !!window.__jfkit && !!window.__jfkit.jflm && __lmm.log('/LibraryMaintenance/Capabilities').length > 0",
+      "timeout": 60000
+    },
+    {
+      "name": "a resume position on one movie (40% in), so it is on Continue Watching",
+      "script": "const u = ApiClient.getCurrentUserId(); const items = (await ApiClient.getItems(u, { Recursive: true, IncludeItemTypes: 'Movie', SortBy: 'SortName', Fields: 'MediaSources' })).Items.filter(m => m.RunTimeTicks > 0); const m = items[0]; await ApiClient.ajax({ type: 'POST', url: ApiClient.getUrl('UserItems/' + m.Id + '/UserData', { userId: u }), data: JSON.stringify({ PlaybackPositionTicks: Math.round(m.RunTimeTicks * 0.4), Played: false }), contentType: 'application/json' }); const resume = (await ApiClient.ajax({ type: 'GET', url: ApiClient.getUrl('UserItems/Resume', { userId: u, MediaTypes: 'Video' }), dataType: 'json' })).Items.map(i => i.Id); return { id: m.Id, name: m.Name, inResume: resume.indexOf(m.Id) >= 0 };",
+      "save": "resumed"
+    },
+    {
+      "assert": "__vars.resumed.inResume === true"
+    },
+    {
+      "reload": true
+    },
+    {
+      "name": "the movie's card in the Continue Watching row",
+      "waitFor": "!!window.__jfkit && !!window.__jfkit.jflm && [...document.querySelectorAll('.homePage:not(.hide) .verticalSection')].some(s => /Continue Watching/i.test((s.querySelector('.sectionTitle') || {}).textContent || '') && s.querySelector('.card[data-id=\"' + __vars.resumed.id + '\"]'))",
+      "timeout": 60000
+    },
+    {
+      "sleep": 1500
+    },
+    {
+      "script": "const s = [...document.querySelectorAll('.homePage:not(.hide) .verticalSection')].find(x => /Continue Watching/i.test((x.querySelector('.sectionTitle') || {}).textContent || '')); const c = s.querySelector('.card[data-id=\"' + __vars.resumed.id + '\"]'); c.setAttribute('data-lmm-target', 'resume'); return c.getAttribute('data-id');"
+    },
+    {
+      "name": "9. a real click on the card's menu button (Jellyfin Enhanced records its trigger on mousedown, the kit on click)",
+      "click": "[data-lmm-target=resume] .itemAction[data-action=\"menu\"]"
+    },
+    {
+      "waitFor": "!!__lmm.sheet() && __lmm.afterRefresh('jflm-move')"
+    },
+    {
+      "sleep": 1000
+    },
+    {
+      "name": "9. both entries in the sheet",
+      "eval": "(() => { const rows = __lmm.rows(); const core = ['resume','play','playallfromhere','multiSelect','addtocollection','addtoplaylist','download','copy-stream','delete','edit','editimages','editsubtitles','identify','moremediainfo','refresh','markplayed','markunplayed','share','queue','queueallfromhere','shuffle','instantmix','playlist']; return { rows: rows, others: rows.filter(id => core.indexOf(id) < 0 && id.indexOf('jflm-') !== 0), ours: __lmm.ours() }; })()",
+      "save": "both",
+      "full": true
+    },
+    {
+      "assert": "JSON.stringify(__vars.both.ours) === JSON.stringify(['jflm-move']) && __vars.both.others.some(id => /remove|continue/i.test(id))"
+    },
+    {
+      "screenshot": "lm-move-je-sheet.png"
+    },
+    {
+      "name": "a real click on the entry",
+      "click": ".dialogContainer > .actionSheet [data-id=\"jflm-move\"]"
+    },
+    {
+      "name": "the sheet closes itself, then the Move dialog opens and loads",
+      "waitFor": "!__lmm.sheet() && !!__lmm.dialog() && __lmm.loaded()"
+    },
+    {
+      "name": "9. the dialog is the card's item, with no Move button",
+      "assert": "__lmm.key(__lmm.log('/LibraryMaintenance/Move/Source').slice(-1)[0].query.itemId) === __lmm.key(__vars.resumed.id) && __lmm.q('.jflm-move-run').classList.contains('hide')"
+    },
+    {
+      "screenshot": "lm-move-je-dialog.png"
+    },
+    {
+      "script": "document.querySelector('.dialogContainer .jflm-move-dialog .jflm-move-close').scrollIntoView({ block: 'center', behavior: 'instant' }); return true;"
+    },
+    {
+      "sleep": 200
+    },
+    {
+      "click": ".dialogContainer .jflm-move-dialog .jflm-move-close"
+    },
+    {
+      "waitFor": "!__lmm.dialog()"
+    },
+    {
+      "name": "the resume point removed again",
+      "script": "const u = ApiClient.getCurrentUserId(); await ApiClient.ajax({ type: 'POST', url: ApiClient.getUrl('UserItems/' + __vars.resumed.id + '/UserData', { userId: u }), data: JSON.stringify({ PlaybackPositionTicks: 0 }), contentType: 'application/json' }); return true;",
+      "finally": true
+    },
+    {
+      "assert": "Array.isArray(__lmm.health()) && __lmm.health().length === 0"
+    },
+    {
+      "noExceptions": true
+    }
+  ]
+}

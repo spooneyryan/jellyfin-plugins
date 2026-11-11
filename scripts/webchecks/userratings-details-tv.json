@@ -1,0 +1,400 @@
+{
+  "name": "User Ratings 1.0.2.0: the details page's section on Long Test Movie as viewer in jellyfin-web 10.11.5's TV layout: the title no tab stop and the slider the only focusable control of its row; the D-pad reaches it from Play; Left and Right consumed with the focus kept; OK saves; Up and Down leave and come back, Down to Clear or Write a review; Back with a change waiting leaves the page and the change is saved once; a Delete answered 503 leaves the focus on Delete, never the page's body. The member's row is deleted at the end.",
+  "failOnException": false,
+  "timeout": 30000,
+  "steps": [
+    {
+      "name": "the details probe in every document (it watches the section the served script mounts)",
+      "initScript": {
+        "file": "probes/userratings-details-probe.js"
+      }
+    },
+    {
+      "name": "sign in as viewer",
+      "login": "viewer"
+    },
+    {
+      "name": "tv layout",
+      "eval": "(localStorage.setItem('layout', 'tv'), true)"
+    },
+    {
+      "name": "reload",
+      "reload": true
+    },
+    {
+      "name": "the layout applied, User Ratings 1.0.2.0 started",
+      "waitFor": "document.documentElement.classList.contains('layout-tv') && !!window.ApiClient && !!ApiClient.getCurrentUserId() && !!(window.__jfkit && window.__jfkit.jfur)",
+      "timeout": 40000
+    },
+    {
+      "name": "the served script is 1.0.2.0",
+      "assert": "window.__jfkit.jfur.version === '1.0.2.0'",
+      "message": "User Ratings 1.0.2.0 is not the script the page loaded"
+    },
+    {
+      "name": "Long Test Movie",
+      "eval": "(await ApiClient.getItems(ApiClient.getCurrentUserId(), { IncludeItemTypes: 'Movie', Recursive: true, SearchTerm: \"Long Test Movie\", Limit: 1 })).Items[0].Id",
+      "save": "movieId"
+    },
+    {
+      "name": "clean: Long Test Movie without a rating of this member",
+      "script": "const r = await __jfurDetails.server('DELETE', 'UserRatings/Items/' + __vars.movieId + '/Mine'); return r.status;",
+      "save": "cleaned"
+    },
+    {
+      "name": "Long Test Movie: its details page",
+      "script": "location.hash = '#/details?id=' + __vars.movieId; return true;"
+    },
+    {
+      "name": "Long Test Movie: drawn",
+      "waitFor": "(() => { const p = document.querySelector('#itemDetailPage:not(.hide)'); return !!p && location.hash.indexOf(__vars.movieId) > 0 && !!p.querySelector('.mainDetailButtons .btnPlay:not(.hide)'); })()",
+      "timeout": 30000
+    },
+    {
+      "name": "Long Test Movie: the section mounted for it",
+      "waitFor": "(() => { const s = __jfurDetails.section(); return !!s && s.getAttribute('data-jfur-item') === __vars.movieId && !!s.querySelector('.jfur-summary[data-jfur-summary]'); })()",
+      "timeout": 15000
+    },
+    {
+      "sleep": 400
+    },
+    {
+      "name": "TV: styles",
+      "eval": "__jfurDetails.styles()",
+      "save": "tvStyles",
+      "full": true
+    },
+    {
+      "name": "TV: the title no tab stop, the slider alone in its row (Left and Right are the slider's)",
+      "assert": "(s => s.tv && s.toggle.tabindexAttr === '-1' && s.rowFocusables.length === 1 && s.rowFocusables[0].indexOf('div.jfur-stars.focusable') === 0)(__vars.tvStyles)"
+    },
+    {
+      "name": "TV: focus the Play button",
+      "script": "__jfurDetails.log.length = 0; document.querySelector('#itemDetailPage:not(.hide) .mainDetailButtons .btnPlay').focus(); return __jfurDetails.active();"
+    },
+    {
+      "name": "TV: ArrowDown 1 (to the slider)",
+      "key": "ArrowDown",
+      "if": "!__jfurDetails.onSlider()"
+    },
+    {
+      "sleep": 250,
+      "if": "!__jfurDetails.onSlider()"
+    },
+    {
+      "name": "TV: ArrowDown 2 (to the slider)",
+      "key": "ArrowDown",
+      "if": "!__jfurDetails.onSlider()"
+    },
+    {
+      "sleep": 250,
+      "if": "!__jfurDetails.onSlider()"
+    },
+    {
+      "name": "TV: ArrowDown 3 (to the slider)",
+      "key": "ArrowDown",
+      "if": "!__jfurDetails.onSlider()"
+    },
+    {
+      "sleep": 250,
+      "if": "!__jfurDetails.onSlider()"
+    },
+    {
+      "name": "TV: ArrowDown 4 (to the slider)",
+      "key": "ArrowDown",
+      "if": "!__jfurDetails.onSlider()"
+    },
+    {
+      "sleep": 250,
+      "if": "!__jfurDetails.onSlider()"
+    },
+    {
+      "name": "TV: ArrowDown 5 (to the slider)",
+      "key": "ArrowDown",
+      "if": "!__jfurDetails.onSlider()"
+    },
+    {
+      "sleep": 250,
+      "if": "!__jfurDetails.onSlider()"
+    },
+    {
+      "name": "TV: ArrowDown 6 (to the slider)",
+      "key": "ArrowDown",
+      "if": "!__jfurDetails.onSlider()"
+    },
+    {
+      "sleep": 250,
+      "if": "!__jfurDetails.onSlider()"
+    },
+    {
+      "name": "TV: the D-pad's path",
+      "eval": "({ onSlider: __jfurDetails.onSlider(), presses: __jfurDetails.log.filter(e => e.kind === 'key-capture' && e.key === 'ArrowDown').length, path: __jfurDetails.log.filter(e => e.kind === 'focus').map(f => f.target) })",
+      "save": "tvReach",
+      "full": true
+    },
+    {
+      "name": "TV: D-pad down from Play reaches \"Your rating\" within 6 presses, past no title",
+      "assert": "__jfurDetails.onSlider() && __vars.tvReach.presses <= 6 && !__vars.tvReach.path.some(p => p.indexOf('jfur-section-toggle') >= 0)"
+    },
+    {
+      "name": "TV Right: mark",
+      "script": "window.__mark = __jfurDetails.requests.length; window.__keys = __jfurDetails.log.length; return true;"
+    },
+    {
+      "name": "TV: Right 1",
+      "key": "ArrowRight"
+    },
+    {
+      "sleep": 150
+    },
+    {
+      "name": "TV: Right 1 consumed, the focus kept",
+      "assert": "(__jfurDetails.log.slice(window.__keys).filter(e => e.kind === 'key-bubble' && e.key === \"ArrowRight\").pop() || { prevented: null }).prevented === true && __jfurDetails.onSlider()"
+    },
+    {
+      "name": "TV: Right 2",
+      "key": "ArrowRight"
+    },
+    {
+      "sleep": 150
+    },
+    {
+      "name": "TV: Right 2 consumed, the focus kept",
+      "assert": "(__jfurDetails.log.slice(window.__keys).filter(e => e.kind === 'key-bubble' && e.key === \"ArrowRight\").pop() || { prevented: null }).prevented === true && __jfurDetails.onSlider()"
+    },
+    {
+      "name": "TV: Right 3",
+      "key": "ArrowRight"
+    },
+    {
+      "sleep": 150
+    },
+    {
+      "name": "TV: Right 3 consumed, the focus kept",
+      "assert": "(__jfurDetails.log.slice(window.__keys).filter(e => e.kind === 'key-bubble' && e.key === \"ArrowRight\").pop() || { prevented: null }).prevented === true && __jfurDetails.onSlider()"
+    },
+    {
+      "name": "TV: Left",
+      "key": "ArrowLeft"
+    },
+    {
+      "sleep": 150
+    },
+    {
+      "name": "TV: Left consumed, 1.0",
+      "assert": "(__jfurDetails.log.slice(window.__keys).filter(e => e.kind === 'key-bubble' && e.key === \"ArrowLeft\").pop() || { prevented: null }).prevented === true && __jfurDetails.state().value === 1"
+    },
+    {
+      "name": "TV: OK",
+      "key": "Enter"
+    },
+    {
+      "sleep": 600
+    },
+    {
+      "name": "TV OK: the section's requests since",
+      "eval": "__jfurDetails.since(window.__mark)",
+      "save": "tvOk",
+      "full": true
+    },
+    {
+      "name": "the server: after OK",
+      "eval": "__jfurDetails.mine(__vars.movieId)",
+      "save": "tvOkServer",
+      "full": true
+    },
+    {
+      "name": "TV: OK saved 1 at once",
+      "assert": "__vars.tvOk.filter(r => r.indexOf('PUT ') === 0).length === 1 && __vars.tvOkServer.stars === 1"
+    },
+    {
+      "name": "TV: Up",
+      "key": "ArrowUp"
+    },
+    {
+      "sleep": 400
+    },
+    {
+      "name": "TV: Up left to jellyfin-web: the focus went up, the value kept",
+      "assert": "!__jfurDetails.onSlider() && __jfurDetails.state().value === 1"
+    },
+    {
+      "name": "TV: Down back",
+      "key": "ArrowDown"
+    },
+    {
+      "sleep": 400
+    },
+    {
+      "name": "TV: back on the slider",
+      "assert": "__jfurDetails.onSlider()"
+    },
+    {
+      "name": "TV: Down",
+      "key": "ArrowDown"
+    },
+    {
+      "sleep": 400
+    },
+    {
+      "name": "TV: Down to the next row: Clear or Write a review",
+      "assert": "/jfur-(clear|write)/.test(__jfurDetails.active())"
+    },
+    {
+      "name": "TV: Up back to the slider",
+      "key": "ArrowUp"
+    },
+    {
+      "sleep": 400
+    },
+    {
+      "name": "TV: on the slider again",
+      "assert": "__jfurDetails.onSlider()"
+    },
+    {
+      "name": "TV Back with a change waiting: mark",
+      "script": "window.__mark = __jfurDetails.requests.length; window.__keys = __jfurDetails.log.length; return true;"
+    },
+    {
+      "name": "TV: Right (1.5 waiting 600 ms)",
+      "key": "ArrowRight"
+    },
+    {
+      "name": "TV: Back (Escape) at once",
+      "key": "Escape"
+    },
+    {
+      "sleep": 1500
+    },
+    {
+      "name": "TV Back: the section's requests since",
+      "eval": "__jfurDetails.since(window.__mark)",
+      "save": "tvBack",
+      "full": true
+    },
+    {
+      "name": "the server: after Back",
+      "eval": "__jfurDetails.mine(__vars.movieId)",
+      "save": "tvBackServer",
+      "full": true
+    },
+    {
+      "name": "TV: Back is jellyfin-web's (the page left), the section gone, the waiting 1.5 saved once",
+      "assert": "location.hash.indexOf(__vars.movieId) < 0 && document.querySelectorAll('.jfur-section').length === 0 && __vars.tvBack.filter(r => r.indexOf('PUT ') === 0).length === 1 && __vars.tvBackServer.stars === 1.5"
+    },
+    {
+      "name": "TV failed delete: a review of the member's (written through the API)",
+      "script": "const r = await __jfurDetails.server('PUT', 'UserRatings/Items/' + __vars.movieId + '/Mine/Review', { Text: 'A synthetic review, written for the TV check.', IsSpoiler: false }); return r.status;",
+      "save": "tvSeed"
+    },
+    {
+      "name": "Long Test Movie again: its details page",
+      "script": "location.hash = '#/details?id=' + __vars.movieId; return true;"
+    },
+    {
+      "name": "Long Test Movie again: drawn",
+      "waitFor": "(() => { const p = document.querySelector('#itemDetailPage:not(.hide)'); return !!p && location.hash.indexOf(__vars.movieId) > 0 && !!p.querySelector('.mainDetailButtons .btnPlay:not(.hide)'); })()",
+      "timeout": 30000
+    },
+    {
+      "name": "Long Test Movie again: the section mounted for it",
+      "waitFor": "(() => { const s = __jfurDetails.section(); return !!s && s.getAttribute('data-jfur-item') === __vars.movieId && !!s.querySelector('.jfur-summary[data-jfur-summary]'); })()",
+      "timeout": 15000
+    },
+    {
+      "sleep": 400
+    },
+    {
+      "name": "TV failed delete: the own card with Delete",
+      "waitFor": "!!__jfurDetails.section().querySelector('.jfur-own-delete')",
+      "timeout": 10000
+    },
+    {
+      "name": "TV failed delete: the next DELETE Mine answered 503 \"busy\" by the probe",
+      "eval": "__jfurDetails.inject({ method: 'DELETE', path: 'Mine$', mode: 'stub', status: 503, body: { title: 'Service Unavailable', status: 503, detail: \"The database is busy; try again in a moment.\" } })"
+    },
+    {
+      "name": "TV failed delete: the focus on Delete",
+      "script": "__jfurDetails.section().querySelector('.jfur-own-delete').focus(); return __jfurDetails.active();"
+    },
+    {
+      "name": "TV failed delete: OK",
+      "key": "Enter"
+    },
+    {
+      "sleep": 500
+    },
+    {
+      "name": "TV failed delete: the question, Cancel focused",
+      "assert": "document.activeElement && document.activeElement.matches('.jfur-backdrop .jfur-dialog-cancel')"
+    },
+    {
+      "name": "TV failed delete: Right to Delete",
+      "key": "ArrowRight"
+    },
+    {
+      "sleep": 300
+    },
+    {
+      "name": "TV failed delete: on the dialog's Delete",
+      "assert": "document.activeElement && document.activeElement.matches('.jfur-backdrop .jfur-dialog-confirm')"
+    },
+    {
+      "name": "TV failed delete: OK (503)",
+      "key": "Enter"
+    },
+    {
+      "sleep": 800
+    },
+    {
+      "name": "TV failed delete: after the 503",
+      "eval": "__jfurDetails.state()",
+      "save": "tvDelete",
+      "full": true
+    },
+    {
+      "name": "the server: after the 503",
+      "eval": "__jfurDetails.mine(__vars.movieId)",
+      "save": "tvDeleteServer",
+      "full": true
+    },
+    {
+      "name": "TV failed delete: \"weren't deleted\" with Try again, nothing deleted, and the focus still on Delete, never the page's body",
+      "assert": "__vars.tvDelete.notices.some(n => n.text === \"Your rating and review weren't deleted. The database is busy; try again in a moment.\" && n.action === 'Try again') && __vars.tvDeleteServer.text === 'A synthetic review, written for the TV check.' && document.activeElement !== document.body && document.activeElement.matches('#itemDetailPage:not(.hide) .jfur-section .jfur-own-delete') && document.activeElement.getAttribute('aria-disabled') === null"
+    },
+    {
+      "name": "TV failed delete: Down moves on from there",
+      "key": "ArrowDown"
+    },
+    {
+      "sleep": 400
+    },
+    {
+      "name": "TV failed delete: the D-pad still works from there: the focus never on the page's body",
+      "assert": "document.activeElement !== document.body"
+    },
+    {
+      "name": "TV: screenshot",
+      "screenshot": "userratings-details-tv.png"
+    },
+    {
+      "name": "clean: Long Test Movie at the end without a rating of this member",
+      "script": "const r = await __jfurDetails.server('DELETE', 'UserRatings/Items/' + __vars.movieId + '/Mine'); return r.status;",
+      "save": "cleaned"
+    },
+    {
+      "name": "the default layout again",
+      "eval": "(localStorage.removeItem('layout'), true)"
+    },
+    {
+      "name": "no uncaught exception",
+      "noExceptions": true,
+      "ignore": "/CustomRatings/script|^Error: player cannot be null"
+    },
+    {
+      "name": "TV: the key log",
+      "eval": "__jfurDetails.log",
+      "full": true
+    }
+  ]
+}

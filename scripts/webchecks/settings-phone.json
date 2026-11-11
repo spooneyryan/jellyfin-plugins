@@ -1,0 +1,32 @@
+{
+  "description": "One column on a phone: Bookmarks' settings page at 375x812 with touch and jellyfin-web's mobile layout (localStorage 'layout' = 'mobile'), run by bookmarks-settings-probe.mjs. On each tab (Settings, Data, Diagnostics) the page is no wider than the screen, with no element or text outside a table's box past its right edge (a long path breaks); every table (the snapshots, the per-user counts with their 11 columns, the client health list) sits in its own box inside the screen, which scrolls sideways when the table is wider. A screenshot of the Data and the Diagnostics tabs. The layout is per browser, and each run has a fresh profile.",
+  "timeout": 30000,
+  "steps": [
+    { "name": "a phone: 375x812, touch", "emulate": { "width": 375, "height": 812, "deviceScaleFactor": 1, "mobile": true, "touch": true } },
+    { "name": "sign in as admin", "login": "admin" },
+    { "name": "the web client is ready", "waitFor": "!!window.ApiClient && !!ApiClient.getCurrentUserId()" },
+    { "name": "mobile layout for this browser", "eval": "(localStorage.setItem('layout', 'mobile'), true)" },
+    { "name": "reload (mobile)", "reload": true },
+    { "name": "mobile layout applied at 375 px", "waitFor": "document.documentElement.classList.contains('layout-mobile') && innerWidth === 375 && !!window.ApiClient && !!ApiClient.getCurrentUserId()" },
+    { "name": "open Bookmarks' settings page", "goto": "/web/index.html#/configurationpage?name=Bookmarks" },
+    { "name": "the page is loaded", "waitFor": "(() => { const p = document.querySelector('#BookmarksConfigPage:not(.hide)'); return !!p && p.querySelector('#BookmarksDiagnosticsSummary').textContent.length > 0; })()", "timeout": 20000 },
+    { "name": "how the page is measured: its width, each table's box, any element or text past the screen's right edge outside a box", "script": "window.__jfbmPhone = () => { const p = document.querySelector('#BookmarksConfigPage:not(.hide)'); const W = innerWidth; const box = (b) => { const r = b.getBoundingClientRect(); return { table: b.firstElementChild.className.replace('bookmarksTable ', ''), left: Math.round(r.left), right: Math.round(r.right), tableWidth: Math.round(b.firstElementChild.getBoundingClientRect().width), scrolls: b.scrollWidth > b.clientWidth }; }; const wide = [...p.querySelectorAll('*')].filter(e => e.getClientRects().length > 0 && !e.closest('.bookmarksTableScroll') && Math.round(e.getBoundingClientRect().right) > W).slice(0, 5).map(e => e.tagName + '#' + e.id + '.' + e.className); const texts = []; const walker = document.createTreeWalker(p, NodeFilter.SHOW_TEXT); let n; while ((n = walker.nextNode())) { if (!n.textContent.trim() || n.parentElement.closest('.bookmarksTableScroll')) continue; const range = document.createRange(); range.selectNodeContents(n); const r = range.getBoundingClientRect(); if (r.width > 0 && Math.round(r.right) > W) texts.push({ text: n.textContent.slice(0, 40), right: Math.round(r.right) }); } return { width: W, page: document.documentElement.scrollWidth, boxes: [...p.querySelectorAll('.bookmarksTableScroll')].filter(b => b.getClientRects().length > 0).map(box), counts: !!p.querySelector('#BookmarksCounts table.bookmarksCountsTable'), wide, texts: texts.slice(0, 5) }; }; return true;" },
+    { "name": "the Settings tab", "eval": "__jfbmPhone()", "save": "settings", "full": true },
+    { "name": "Settings: the page fits the screen", "assert": "__vars.settings.page <= __vars.settings.width && __vars.settings.wide.length === 0 && __vars.settings.texts.length === 0" },
+    { "name": "open the Data tab", "click": "#BookmarksConfigPage:not(.hide) #BookmarksTabData" },
+    { "name": "the snapshots are listed", "waitFor": "(() => { const p = document.querySelector('#BookmarksConfigPage:not(.hide)'); return !p.querySelector('#BookmarksData').classList.contains('hide') && !!p.querySelector('#BookmarksSnapshots .bookmarksSnapshotsSummary'); })()", "timeout": 20000 },
+    { "name": "the Data tab", "eval": "__jfbmPhone()", "save": "data", "full": true },
+    { "name": "Data: the page fits the screen; the snapshots' table is in its box, inside the screen", "assert": "__vars.data.page <= __vars.data.width && __vars.data.wide.length === 0 && __vars.data.texts.length === 0 && __vars.data.boxes.some(b => b.table === 'bookmarksSnapshotsTable') && __vars.data.boxes.every(b => b.left >= 0 && b.right <= __vars.data.width)" },
+    { "name": "bring the snapshots into view", "script": "document.querySelector('#BookmarksConfigPage:not(.hide)').querySelector('#BookmarksSnapshots').scrollIntoView({ block: 'start' }); return true;" },
+    { "sleep": 300 },
+    { "screenshot": "settings-phone-data.png" },
+    { "name": "open the Diagnostics tab", "click": "#BookmarksConfigPage:not(.hide) #BookmarksTabDiagnostics" },
+    { "name": "the counts", "waitFor": "!!document.querySelector('#BookmarksConfigPage:not(.hide)').querySelector('#BookmarksCounts .bookmarksCountsSummary') && !document.querySelector('#BookmarksConfigPage:not(.hide)').querySelector('#BookmarksDiagnostics').classList.contains('hide')", "timeout": 10000 },
+    { "name": "the Diagnostics tab", "eval": "__jfbmPhone()", "save": "diagnostics", "full": true },
+    { "name": "Diagnostics: the page fits the screen; the counts' table (when a user has bookmarks) is in its box, inside the screen, and the box scrolls the wider table", "assert": "__vars.diagnostics.page <= __vars.diagnostics.width && __vars.diagnostics.wide.length === 0 && __vars.diagnostics.texts.length === 0 && __vars.diagnostics.boxes.every(b => b.left >= 0 && b.right <= __vars.diagnostics.width) && (!__vars.diagnostics.counts || __vars.diagnostics.boxes.some(b => b.table === 'bookmarksCountsTable' && b.scrolls === (b.tableWidth > b.right - b.left)))" },
+    { "name": "bring the counts into view", "script": "document.querySelector('#BookmarksConfigPage:not(.hide)').querySelector('#BookmarksCounts').scrollIntoView({ block: 'start' }); return true;" },
+    { "sleep": 300 },
+    { "screenshot": "settings-phone-diagnostics.png" },
+    { "name": "no uncaught exceptions (the stale CustomRatings tag, and jellyfin-web's Home tab pausing its slider while JE's Custom Tabs sync runs, excepted)", "noExceptions": true, "ignore": "/CustomRatings/script|^TypeError: t\\.value\\.pause is not a function" }
+  ]
+}

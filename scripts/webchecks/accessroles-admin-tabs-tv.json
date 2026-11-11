@@ -1,0 +1,159 @@
+{
+  "description": "The Libraries, Audit and Settings tabs on Access Roles' dashboard page in the TV layout (localStorage 'layout' = 'tv'), as admin, reading only, with the Libraries tab remembered from an earlier visit (kit storage jfar:adminTab), which the page opens on: every tab, library card and audit line has tabindex 0 (the D-pad's to reach), ArrowDown moves the focus on from a card, OK opens the Audit and Settings tabs, OK on Review opens the settings review (its dry run) with the focus inside, Backspace (a Hisense remote's Back) closes it with the focus back on Review, and nothing is saved; Undo leaves no change. accessroles-admin-tabs-probe.mjs --webcheck runs it.",
+  "steps": [
+    {
+      "name": "the TV layout, and the Libraries tab remembered from an earlier visit",
+      "initScript": "localStorage.setItem('layout', 'tv'); localStorage.setItem('jfar:adminTab', JSON.stringify('Libraries'))"
+    },
+    {
+      "name": "sign in as admin",
+      "login": "admin"
+    },
+    {
+      "name": "the web client is ready",
+      "waitFor": "!!window.ApiClient && !!ApiClient.getCurrentUserId()"
+    },
+    {
+      "name": "open Access Roles' page",
+      "goto": "/web/index.html#/configurationpage?name=AccessRoles"
+    },
+    {
+      "name": "the module mounted: the tabs, the status loaded, the chips, the loading note hidden",
+      "waitFor": "(() => { const p = document.querySelector('#AccessRolesConfigPage:not(.hide)'); return !!p && p.querySelectorAll('[role=\"tab\"]').length === 8 && p.querySelectorAll('#AccessRolesStatus table').length === 5 && p.querySelector('#AccessRolesScriptNote').hidden === true && p.querySelectorAll('#AccessRolesChips [data-chip]').length >= 10; })()",
+      "timeout": 30000
+    },
+    {
+      "name": "the check's helpers",
+      "script": "window.__arTabs = {\n  page: () => document.querySelector('#AccessRolesConfigPage:not(.hide)'),\n  panels: () => [...document.querySelectorAll('.jfar-backdrop .jfar-panel')],\n  top: () => __arTabs.panels().pop() || null,\n  title: () => { const t = __arTabs.top(); return t ? t.querySelector('.jfar-panel-header h3').textContent : null; },\n  button: (root, text) => [...(root || document).querySelectorAll('button')].find(b => b.textContent === text) || null,\n  press: (root, text) => { const b = __arTabs.button(root, text); if (!b) throw new Error('no button ' + text); if (b.disabled) throw new Error(text + ' is disabled'); b.click(); return true; },\n  shown: (el) => !!el && el.getClientRects().length > 0 && !el.closest('[hidden]'),\n  chip: (id) => __arTabs.page().querySelector('#AccessRolesChips [data-chip=\"' + id + '\"]'),\n  card: (name) => [...__arTabs.page().querySelectorAll('.jfar-page-library')].find(c => c.querySelector('.jfar-page-library-name').textContent === name) || null,\n  setting: (name) => __arTabs.page().querySelector('[data-setting=\"' + name + '\"]'),\n  set: (el, value) => { el.value = String(value); el.dispatchEvent(new Event('input', { bubbles: true })); el.dispatchEvent(new Event('change', { bubbles: true })); return el.value; },\n  id: (x) => String(x || '').replace(/-/g, '').toLowerCase(),\n  seen: [],\n  toasts: () => __arTabs.seen.concat([...document.querySelectorAll('.jfar-toast')].map(t => t.textContent))\n};\n// Every toast's text as it comes (a toast goes after 4 s, maybe before a wait sees it).\nnew MutationObserver(() => { document.querySelectorAll('.jfar-toast').forEach(t => { if (!__arTabs.seen.includes(t.textContent)) __arTabs.seen.push(t.textContent); }); }).observe(document.body, { childList: true, subtree: true });\nreturn true;"
+    },
+    {
+      "name": "TV layout applied",
+      "assert": "document.documentElement.classList.contains('layout-tv')"
+    },
+    {
+      "name": "the page opened on the remembered Libraries tab",
+      "assert": "document.querySelector('#AccessRolesTabLibraries').getAttribute('aria-selected') === 'true' && __arTabs.shown(document.querySelector('#AccessRolesPanelLibraries'))"
+    },
+    {
+      "name": "every tab in the D-pad's reach",
+      "assert": "[...__arTabs.page().querySelectorAll('[role=\"tab\"]')].every(t => t.getAttribute('tabindex') === '0')"
+    },
+    {
+      "name": "the library cards",
+      "waitFor": "!!__arTabs.card('Tabs probe Again')",
+      "timeout": 20000
+    },
+    {
+      "name": "every card in the D-pad's reach",
+      "assert": "[...__arTabs.page().querySelectorAll('.jfar-page-library')].every(c => c.getAttribute('tabindex') === '0')"
+    },
+    {
+      "name": "the focus on the first card",
+      "script": "__arTabs.page().querySelector('.jfar-page-library').focus(); return document.activeElement.getAttribute('data-library-id');",
+      "save": "firstCard"
+    },
+    {
+      "name": "ArrowDown",
+      "key": "ArrowDown"
+    },
+    {
+      "name": "the D-pad moved the focus on, inside the tab",
+      "waitFor": "document.querySelector('#AccessRolesPanelLibraries').contains(document.activeElement) && document.activeElement.getAttribute('data-library-id') !== __vars.firstCard",
+      "timeout": 3000
+    },
+    {
+      "sleep": 200
+    },
+    {
+      "screenshot": "accessroles-admin-tabs-tv-libraries.png"
+    },
+    {
+      "name": "the focus on the Audit tab",
+      "script": "document.querySelector('#AccessRolesTabAudit').focus(); return document.activeElement.id;"
+    },
+    {
+      "name": "OK opens it",
+      "key": "Enter"
+    },
+    {
+      "name": "the Audit tab, its lines",
+      "waitFor": "document.querySelector('#AccessRolesTabAudit').getAttribute('aria-selected') === 'true' && document.querySelectorAll('#AccessRolesAuditList .jfar-page-audit-entry').length > 0",
+      "timeout": 20000
+    },
+    {
+      "name": "every audit line in the D-pad's reach",
+      "assert": "[...document.querySelectorAll('#AccessRolesAuditList .jfar-page-audit-entry')].every(e => e.getAttribute('tabindex') === '0')"
+    },
+    {
+      "name": "the focus on the Settings tab",
+      "script": "document.querySelector('#AccessRolesTabSettings').focus(); return document.activeElement.id;"
+    },
+    {
+      "name": "OK opens it",
+      "key": "Enter"
+    },
+    {
+      "name": "the settings loaded",
+      "waitFor": "document.querySelector('#AccessRolesTabSettings').getAttribute('aria-selected') === 'true' && __arTabs.shown(document.querySelector('#AccessRolesSettingsForm')) && document.querySelector('#AccessRolesSettingsStatus').textContent === 'No changes.'",
+      "timeout": 20000
+    },
+    {
+      "name": "the settings now",
+      "eval": "(async () => JSON.stringify(await ApiClient.getJSON(ApiClient.getUrl('AccessRoles/Admin/Settings'))))()",
+      "save": "settingsBefore"
+    },
+    {
+      "name": "change the interval",
+      "script": "const n = Number(__arTabs.setting('ReconcileIntervalMinutes').value); return __arTabs.set(__arTabs.setting('ReconcileIntervalMinutes'), (n % 60) + 1);"
+    },
+    {
+      "name": "Review enabled",
+      "waitFor": "!document.querySelector('#AccessRolesSettingsReview').disabled"
+    },
+    {
+      "name": "the focus on Review",
+      "script": "document.querySelector('#AccessRolesSettingsReview').focus(); return document.activeElement.id;"
+    },
+    {
+      "name": "OK opens the review",
+      "key": "Enter"
+    },
+    {
+      "name": "the review, the focus inside it",
+      "waitFor": "__arTabs.title() === 'Review the settings' && __arTabs.top().contains(document.activeElement) && !document.querySelector('#AccessRolesSettingsSave').disabled",
+      "timeout": 20000
+    },
+    {
+      "sleep": 200
+    },
+    {
+      "screenshot": "accessroles-admin-tabs-tv-review.png"
+    },
+    {
+      "name": "Back (Backspace on a TV remote) closes it",
+      "key": "Backspace"
+    },
+    {
+      "name": "closed, the focus back on Review",
+      "waitFor": "__arTabs.panels().length === 0 && document.activeElement === document.querySelector('#AccessRolesSettingsReview')",
+      "timeout": 5000
+    },
+    {
+      "name": "nothing saved",
+      "assert": "(async () => JSON.stringify(await ApiClient.getJSON(ApiClient.getUrl('AccessRoles/Admin/Settings'))) === __vars.settingsBefore)()"
+    },
+    {
+      "name": "Undo",
+      "click": "#AccessRolesSettingsUndo"
+    },
+    {
+      "name": "no change left",
+      "waitFor": "document.querySelector('#AccessRolesSettingsStatus').textContent === 'No changes.'"
+    },
+    {
+      "name": "no uncaught exceptions (the stale CustomRatings tag excepted)",
+      "noExceptions": true,
+      "ignore": "/CustomRatings/script"
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "comment": "The jellyfin-web anchors Library Maintenance's own code uses, the one place their selectors are written. Kit.props embeds this file as Web.anchors.json: the kit's EmbeddedScript puts it into the ClientScript (kit.anchors.find/all, reached through Web/js/10-selectors.js), the server accepts only these names, the kit's own and their views in ClientHealth reports, and scripts/Test-WebAnchors.ps1 looks for them in the installed jellyfin-web bundle. css is the primary selector, then the fallbacks, tried in order. The item menu itself (the sheet, its rows, the card, row and details triggers, the version select) is the kit's (kit/web/anchors.json). The Dashboard page (Web/admin) uses none. Notes cite the jellyfin-web 10.11.5 chunks that were read.",
+  "anchors": [
+    {
+      "name": "mediaInfoRow",
+      "css": [".actionSheet .actionSheetScroller .actionSheetMenuItem[data-id=\"moremediainfo\"]"],
+      "required": false,
+      "views": ["menus"],
+      "note": "The item menu's \"Media info\" row (itemContextMenu's moremediainfo command, for an item with media sources). The kit knows no item type on the details page, so Move's entry shows for a sheet with this row until the server's eligibility is known. Checked on the details sheet of an item the server says is eligible. Missing: the details entry follows the server alone."
+    },
+    {
+      "name": "moveIcon",
+      "css": [".material-icons.drive_file_move"],
+      "required": false,
+      "views": ["menus"],
+      "note": "The glyph of Move's menu row (the kit builds the row's icon span with this class; the rule is in jellyfin-web's material-icons stylesheet, 46967.*.css in 10.11.5, re-checked 2026-09-25). Test-WebAnchors.ps1 looks for the class in the bundle; the browser checks the row's icon has a glyph and warns in its console when it hasn't. Missing: the row shows its text only."
+    }
+  ]
+}

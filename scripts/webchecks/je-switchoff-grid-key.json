@@ -1,0 +1,39 @@
+{
+  "name": "Jellyfin Enhanced 12.12's Bookmark Current Time given another key, never a blank one, in the je sandbox: as admin, Jellyfin Enhanced's own settings page, Keyboard tab, which 12.12 rebuilt as a grid of every shortcut's key, each changed by a click and a key press (it takes no typed text, so the word Disabled can't be set there): the key next to Bookmark Current Time clicked ('Press a key...'), Shift+X pressed as a real key event (not Delete or the block button next to it, which save the blank key JE drops at its next start), then the page saved. JE's settings must then hold Key 'Shift+X' for BookmarkCurrentTime, every other shortcut as before. bookmarks-je-web-probe.mjs runs it on JE 12.12 and later (je-switchoff-disabled.json on 12.11) and puts JE's settings back.",
+  "failOnException": false,
+  "timeout": 30000,
+  "steps": [
+    { "name": "sign in as admin", "login": "admin" },
+    { "name": "the web client is up", "waitFor": "!!window.ApiClient && !!ApiClient.getCurrentUserId()" },
+    { "name": "Jellyfin Enhanced's settings page", "eval": "'#/configurationpage?name=' + encodeURIComponent((await ApiClient.getJSON(ApiClient.getUrl('web/ConfigurationPages'))).filter(p => String(p.PluginId || '').replace(/-/g, '').toLowerCase() === 'f69e946a4b3c4e9a8f0a8d7c1b2c4d9b')[0].Name)", "save": "jeRoute" },
+    { "name": "JE's shortcuts before", "eval": "(await ApiClient.getPluginConfiguration('f69e946a-4b3c-4e9a-8f0a-8d7c1b2c4d9b')).Shortcuts.map(s => [s.Name, s.Key])", "save": "before", "full": true },
+    { "name": "open it", "goto": "/web/index.html${jeRoute}" },
+    { "name": "the page has loaded JE's settings into its grid of keys (12.12's Keyboard tab; 12.11 has a list with a Key field instead)", "waitFor": "(() => { const p = document.querySelector('#JellyfinEnhancedPage'); return !!p && p.querySelectorAll('#shortcut-grid .je-sc-row').length >= 19; })()", "timeout": 60000 },
+    { "sleep": 1000 },
+    { "name": "the Keyboard tab", "click": "#JellyfinEnhancedPage .jellyfin-tab-button[data-tab=\"keyboard\"]" },
+    { "name": "the grid is shown", "waitFor": "document.querySelector('#shortcut-grid').getClientRects().length > 0", "timeout": 10000 },
+    {
+      "name": "the grid: each row's key and label, Bookmark Current Time's among them",
+      "eval": "Array.from(document.querySelectorAll('#shortcut-grid .je-sc-row')).map(r => ({ key: r.querySelector('.je-sc-key').textContent, label: r.lastElementChild.textContent, changed: !!r.querySelector('.je-sc-mod'), dimmed: r.classList.contains('je-sc-disabled'), recorder: r.querySelector('.je-sc-key').hasAttribute('data-je-key-recorder'), blockButton: !!r.querySelector('.je-sc-btn') }))",
+      "save": "grid",
+      "full": true
+    },
+    { "name": "Bookmark Current Time's key is B, a key recorder with its block button, not dimmed", "assert": "__vars.grid.some(r => r.label.endsWith('Bookmark Current Time') && r.key === 'B' && r.recorder && r.blockButton && !r.dimmed && !r.changed)" },
+    { "name": "mark its key for the click", "script": "const row = Array.from(document.querySelectorAll('#shortcut-grid .je-sc-row')).find(r => r.lastElementChild.textContent.endsWith('Bookmark Current Time')); row.querySelector('.je-sc-key').setAttribute('data-webcheck', 'bct'); return row.querySelector('.je-sc-key').textContent;" },
+    { "name": "click the key in the Bookmark Current Time row", "click": "#shortcut-grid [data-webcheck=\"bct\"]" },
+    { "name": "it listens for a key", "waitFor": "(() => { const k = document.querySelector('#shortcut-grid [data-webcheck=\"bct\"]'); return !!k && document.activeElement === k && /press a key/i.test(k.textContent); })()", "timeout": 5000 },
+    { "name": "press Shift+X", "key": "Shift+X" },
+    {
+      "name": "the grid after: Bookmark Current Time's key is Shift+X, marked as changed, not dimmed",
+      "waitFor": "(() => { const row = Array.from(document.querySelectorAll('#shortcut-grid .je-sc-row')).find(r => r.lastElementChild.textContent.endsWith('Bookmark Current Time')); return !!row && row.querySelector('.je-sc-key').textContent === 'Shift+X' && !!row.querySelector('.je-sc-mod') && !row.classList.contains('je-sc-disabled') ? row.querySelector('.je-sc-key').textContent : false; })()",
+      "timeout": 5000,
+      "save": "recorded"
+    },
+    { "sleep": 300 },
+    { "screenshot": "je-switchoff-grid-key.png" },
+    { "name": "JE's Save button", "click": "#JellyfinEnhancedPage .je-save-dock-btn" },
+    { "name": "saved: BookmarkCurrentTime is 'Shift+X'", "waitFor": "(async () => { const c = await ApiClient.getPluginConfiguration('f69e946a-4b3c-4e9a-8f0a-8d7c1b2c4d9b'); const s = (c.Shortcuts || []).find(x => x.Name === 'BookmarkCurrentTime'); return s && s.Key === 'Shift+X' ? c.Shortcuts.map(x => [x.Name, x.Key]) : false; })()", "timeout": 30000, "save": "after", "full": true },
+    { "name": "every other shortcut as before", "assert": "JSON.stringify(__vars.after.filter(s => s[0] !== 'BookmarkCurrentTime').map(s => s.join('=')).sort()) === JSON.stringify(__vars.before.filter(s => s[0] !== 'BookmarkCurrentTime').map(s => s.join('=')).sort())" },
+    { "name": "no uncaught exceptions (the stale CustomRatings tag excepted)", "noExceptions": true, "ignore": "/CustomRatings/script|^TypeError: t\\.value\\.pause is not a function" }
+  ]
+}

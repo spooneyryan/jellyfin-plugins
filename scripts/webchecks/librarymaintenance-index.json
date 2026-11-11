@@ -1,0 +1,101 @@
+{
+  "description": "Library Maintenance's Duplicates tab on the movie index, as admin at 1366 px and on a phone. The status line shows the index GET /LibraryMaintenance/Duplicates/Index returns (its movies, libraries and entries, with Jellyfin's own movie count beside it), the libraries table lists each library's movies, and Rebuild posts …/Index/Rebuild once, turns itself off (aria-disabled, so it keeps the focus) while the build runs and shows the newer index when it is done. Changes only the plugin's in-memory index.",
+  "timeout": 30000,
+  "steps": [
+    {
+      "name": "sign in as admin",
+      "login": "admin"
+    },
+    {
+      "name": "the web client is ready",
+      "waitFor": "!!window.ApiClient && !!ApiClient.getCurrentUserId()"
+    },
+    {
+      "name": "the probe's helpers",
+      "script": "window.__lmIndex = {\n  page: () => document.querySelector('#LibraryMaintenanceConfigPage:not(.hide)'),\n  status: () => ((__lmIndex.page() || document).querySelector('#LibraryMaintenanceDuplicatesStatus') || {}).textContent || '',\n  api: async (method, path) => { const r = await fetch(ApiClient.getUrl(path), { method, headers: { Authorization: 'MediaBrowser Token=\"' + ApiClient.accessToken() + '\"', Accept: 'application/json' } }); return { status: r.status, body: r.status === 204 ? null : await r.json() }; },\n  requests: (part) => performance.getEntriesByType('resource').filter(e => e.name.indexOf(part) >= 0).length\n};\nreturn true;"
+    },
+    {
+      "name": "an index to show: built once if the server has none yet",
+      "eval": "(async () => { let index = (await __lmIndex.api('GET', 'LibraryMaintenance/Duplicates/Index')).body; if (!index.Version) { await __lmIndex.api('POST', 'LibraryMaintenance/Duplicates/Index/Rebuild'); for (let i = 0; i < 300 && (!index.Version || index.Rebuilding); i++) { await new Promise(r => setTimeout(r, 100)); index = (await __lmIndex.api('GET', 'LibraryMaintenance/Duplicates/Index')).body; } } const movies = (await __lmIndex.api('GET', 'Items?Recursive=true&IncludeItemTypes=Movie&Limit=0&userId=' + ApiClient.getCurrentUserId())).body.TotalRecordCount; return { version: index.Version, movies: index.Movies, entries: index.Entries, libraries: index.Libraries.length, jellyfinMovies: movies }; })()",
+      "save": "before",
+      "full": true
+    },
+    {
+      "name": "the index holds every movie Jellyfin lists",
+      "assert": "__vars.before.version >= 1 && __vars.before.movies > 0 && __vars.before.movies === __vars.before.jellyfinMovies"
+    },
+    {
+      "name": "the page",
+      "goto": "/web/index.html#/configurationpage?name=LibraryMaintenance"
+    },
+    {
+      "name": "its status line",
+      "waitFor": "/^Index: /.test(__lmIndex.status())",
+      "timeout": 20000
+    },
+    {
+      "name": "what the tab shows",
+      "eval": "(p => ({ status: __lmIndex.status(), libraries: [...p.querySelectorAll('#LibraryMaintenanceDuplicatesDetails tr')].map(r => [...r.children].map(c => c.textContent)), banners: [...p.querySelectorAll('#LibraryMaintenanceDuplicatesBanners [role]')].map(b => b.textContent), rebuildDisabled: p.querySelector('#LibraryMaintenanceDuplicatesRebuild').disabled || p.querySelector('#LibraryMaintenanceDuplicatesRebuild').getAttribute('aria-disabled') === 'true' }))(__lmIndex.page())",
+      "save": "shown",
+      "full": true
+    },
+    {
+      "name": "the status line has the index's counts, a row per library, Rebuild enabled",
+      "assert": "__vars.shown.status.indexOf('Index: ' + __vars.before.movies.toLocaleString() + ' movie') === 0 && __vars.shown.status.indexOf(__vars.before.libraries + ' librar') > 0 && __vars.shown.libraries.length === __vars.before.libraries && !__vars.shown.rebuildDisabled"
+    },
+    {
+      "screenshot": "librarymaintenance-index-desktop.png"
+    },
+    {
+      "name": "the requests so far",
+      "script": "window.__lmIndex.posts = __lmIndex.requests('/Duplicates/Index/Rebuild'); window.__lmIndex.gets = __lmIndex.requests('/Duplicates/Index'); return { posts: __lmIndex.posts, gets: __lmIndex.gets };",
+      "save": "requestsBefore",
+      "full": true
+    },
+    {
+      "name": "Rebuild",
+      "click": "#LibraryMaintenanceConfigPage:not(.hide) #LibraryMaintenanceDuplicatesRebuild"
+    },
+    {
+      "name": "the build done and shown: Rebuild enabled again, a newer index on the server",
+      "waitFor": "(async () => { const p = __lmIndex.page(); const index = (await __lmIndex.api('GET', 'LibraryMaintenance/Duplicates/Index')).body; return index.Version > __vars.before.version && !index.Rebuilding && p.querySelector('#LibraryMaintenanceDuplicatesRebuild').getAttribute('aria-disabled') === 'false' && /^Index: /.test(__lmIndex.status()) && !p.querySelector('#LibraryMaintenanceDuplicatesBanners').textContent; })()",
+      "timeout": 30000
+    },
+    {
+      "name": "after Rebuild",
+      "eval": "(async () => ({ posts: __lmIndex.requests('/Duplicates/Index/Rebuild') - __lmIndex.posts, version: (await __lmIndex.api('GET', 'LibraryMaintenance/Duplicates/Index')).body.Version, status: __lmIndex.status() }))()",
+      "save": "after",
+      "full": true
+    },
+    {
+      "name": "one POST, one newer build",
+      "assert": "__vars.after.posts === 1 && __vars.after.version > __vars.before.version"
+    },
+    {
+      "name": "a phone",
+      "emulate": { "width": 390, "height": 844, "mobile": true, "touch": true }
+    },
+    {
+      "name": "the page on a phone",
+      "goto": "/web/index.html#/configurationpage?name=LibraryMaintenance"
+    },
+    {
+      "name": "its status line on a phone",
+      "waitFor": "/^Index: /.test(__lmIndex.status())",
+      "timeout": 20000
+    },
+    {
+      "name": "no sideways scrolling",
+      "eval": "({ scrollWidth: document.documentElement.scrollWidth, clientWidth: document.documentElement.clientWidth })",
+      "save": "phone",
+      "full": true
+    },
+    {
+      "name": "the page fits the phone's width",
+      "assert": "__vars.phone.scrollWidth <= __vars.phone.clientWidth + 1"
+    },
+    {
+      "screenshot": "librarymaintenance-index-phone.png"
+    }
+  ]
+}

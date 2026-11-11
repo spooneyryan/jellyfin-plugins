@@ -1,0 +1,141 @@
+{
+  "name": "The kit's UI in the TV, mobile and experimental layouts, as admin on Long Test Movie. TV layout (localStorage 'layout' = 'tv', what Settings > Display stores; html.layout-tv): the details page's Add bookmark button and section, the editor, the player's three buttons and its bookmarks list. Mobile layout at 375x812 touch ('mobile'; html.layout-mobile): the same, with the editor and the list as full-width bottom sheets and touch-sized icon buttons. Experimental layout ('experimental'): with the page demo on, the fallback routes #/jfbm-demo-a and #/jfbm-demo-b render, and no 'Library tools' nav appears (the kit adds it to jellyfin-web's legacy drawer, which this layout keeps hidden); what Bookmarks' details UI does there is recorded. Adds a range bookmark and removes it at the end, and turns the page demo on and back as it was, through the API (sandbox data only); the layout is stored per browser, and each run has a fresh profile.",
+  "failOnException": false,
+  "timeout": 30000,
+  "steps": [
+    { "name": "sign in as admin", "login": "admin" },
+    { "name": "the Bookmarks script ran", "waitFor": "!!window.__jfkit && !!window.__jfkit.jfbm && document.querySelectorAll('#jfbm-styles').length === 1" },
+    {
+      "name": "find Long Test Movie",
+      "eval": "(await ApiClient.getItems(ApiClient.getCurrentUserId(), { IncludeItemTypes: 'Movie', Recursive: true, SearchTerm: 'Long Test Movie', Limit: 1 })).Items[0].Id",
+      "save": "movieId"
+    },
+    {
+      "name": "the movie has a range bookmark 1:00-1:04 ('webcheck-layouts')",
+      "script": "const url = (p, q) => ApiClient.getUrl(p, q); const list = await ApiClient.getJSON(url('Bookmarks', { itemId: __vars.movieId })); if (!list.some(b => b.Note === 'webcheck-layouts')) { await ApiClient.ajax({ type: 'POST', url: url('Bookmarks'), data: JSON.stringify({ ItemId: __vars.movieId, StartTicks: 600000000, EndTicks: 640000000, Note: 'webcheck-layouts' }), contentType: 'application/json', dataType: 'json' }); } return (await ApiClient.getJSON(url('Bookmarks', { itemId: __vars.movieId }))).length;",
+      "save": "bookmarkCount"
+    },
+
+    { "name": "TV layout for this browser", "eval": "(localStorage.setItem('layout', 'tv'), true)" },
+    { "name": "reload (TV)", "reload": true },
+    { "name": "TV layout applied", "waitFor": "document.documentElement.classList.contains('layout-tv') && !!window.__jfkit && !!window.__jfkit.jfbm" },
+    { "name": "open the details page (TV)", "goto": "/web/index.html#/details?id=${movieId}" },
+    {
+      "name": "TV: the Add bookmark button and the section with the range",
+      "waitFor": "(() => { const b = document.querySelector('#itemDetailPage:not(.hide) .mainDetailButtons .btnBookmarkItem'); const s = document.querySelector('#itemDetailPage:not(.hide) .jfbm-section'); if (!b || !s || s.classList.contains('hide')) return false; const row = [...s.querySelectorAll('.jfbm-row')].find(r => r.textContent.includes('webcheck-layouts')); const r = b.getBoundingClientRect(); return !!row && r.width > 0 && r.height > 0 && { layout: document.documentElement.className, kitLayout: __jfkit.jfbm.instance.layout.isTv(), rows: s.querySelectorAll('.jfbm-row').length, button: [r.width, r.height] }; })()",
+      "timeout": 20000,
+      "save": "tvDetails"
+    },
+    { "name": "TV: the kit sees the TV layout", "assert": "__vars.tvDetails.kitLayout === true" },
+    { "screenshot": "layouts-tv-details.png" },
+    { "name": "TV: open the editor", "click": "#itemDetailPage:not(.hide) .mainDetailButtons .btnBookmarkItem", "js": true },
+    { "name": "TV: the editor, with focus in the Name field (the start field before 1.1)", "waitFor": "(() => { const p = document.querySelector('.jfbm-backdrop .jfbm-panel'); return !!p && p.querySelector('h3').textContent === 'New bookmark' && document.activeElement === p.querySelector('input[maxlength=\"100\"]'); })()" },
+    { "screenshot": "layouts-tv-editor.png" },
+    { "name": "TV: Escape closes it", "key": "Escape" },
+    { "name": "TV: closed", "waitFor": "!document.querySelector('.jfbm-backdrop')" },
+    { "name": "TV: details page with a Play button", "waitFor": "!!document.querySelector('#itemDetailPage:not(.hide) .mainDetailButtons .btnPlay:not(.hide)')", "timeout": 20000 },
+    { "name": "TV: start playback", "click": "#itemDetailPage:not(.hide) .mainDetailButtons .btnPlay:not(.hide)", "js": true },
+    { "name": "TV: video page, video playing", "waitFor": "location.hash.indexOf('#/video') === 0 && (v => !!v && !v.paused && v.currentTime > 1)(document.querySelector('.videoPlayerContainer video'))", "timeout": 60000 },
+    { "name": "TV: the three player buttons", "waitFor": "document.querySelectorAll('.videoOsdBottom .buttons .btnBookmarkAdd, .videoOsdBottom .buttons .btnBookmarkRange, .videoOsdBottom .buttons .btnBookmarkList').length === 3", "timeout": 20000 },
+    { "name": "TV: open the player's bookmarks list", "click": ".videoOsdBottom .buttons .btnBookmarkList", "js": true },
+    { "name": "TV: the list dialog with the range", "waitFor": "(() => { const p = document.querySelector('.jfbm-backdrop .jfbm-panel'); return !!p && p.querySelector('h3').textContent === 'Bookmarks' && [...p.querySelectorAll('.jfbm-row')].some(r => r.textContent.includes('webcheck-layouts')); })()" },
+    { "screenshot": "layouts-tv-player-list.png" },
+    { "name": "TV: Escape closes the list", "key": "Escape" },
+    { "name": "TV: list closed", "waitFor": "!document.querySelector('.jfbm-backdrop')" },
+    { "name": "TV: leave the player", "goto": "/web/index.html#/details?id=${movieId}" },
+    { "name": "TV: details page again", "waitFor": "!!document.querySelector('#itemDetailPage:not(.hide) .jfbm-section')", "timeout": 20000 },
+
+    { "name": "a phone: 375x812, touch", "emulate": { "width": 375, "height": 812, "deviceScaleFactor": 1, "mobile": true, "touch": true } },
+    { "name": "mobile layout for this browser", "eval": "(localStorage.setItem('layout', 'mobile'), true)" },
+    { "name": "reload (mobile)", "reload": true },
+    { "name": "mobile layout applied at 375 px", "waitFor": "document.documentElement.classList.contains('layout-mobile') && innerWidth === 375 && matchMedia('(pointer: coarse)').matches && !!window.__jfkit && !!window.__jfkit.jfbm" },
+    {
+      "name": "mobile: the Add bookmark button and the section with the range, inside the screen",
+      "waitFor": "(() => { const b = document.querySelector('#itemDetailPage:not(.hide) .mainDetailButtons .btnBookmarkItem'); const s = document.querySelector('#itemDetailPage:not(.hide) .jfbm-section'); if (!b || !s || s.classList.contains('hide')) return false; const row = [...s.querySelectorAll('.jfbm-row')].find(r => r.textContent.includes('webcheck-layouts')); if (!row) return false; const rr = row.getBoundingClientRect(); const icons = [...row.querySelectorAll('.jfbm-icon-button')].map(i => { const r = i.getBoundingClientRect(); return [Math.round(r.width), Math.round(r.height)]; }); return { kitLayout: __jfkit.jfbm.instance.layout.isMobile(), rowLeft: Math.round(rr.left), rowRight: Math.round(rr.right), scrollWidth: document.documentElement.scrollWidth, icons }; })()",
+      "timeout": 20000,
+      "save": "mobileDetails"
+    },
+    { "name": "mobile: the kit sees the mobile layout; the row fits in 375 px; its icon buttons are at least 40 px", "assert": "__vars.mobileDetails.kitLayout === true && __vars.mobileDetails.rowLeft >= 0 && __vars.mobileDetails.rowRight <= 375 && __vars.mobileDetails.icons.length > 0 && __vars.mobileDetails.icons.every(s => s[0] >= 40 && s[1] >= 40)" },
+    { "name": "mobile: scroll the section into view", "script": "document.querySelector('#itemDetailPage:not(.hide) .jfbm-section').scrollIntoView({ block: 'start' }); return true;" },
+    { "sleep": 300 },
+    { "screenshot": "layouts-mobile-details.png" },
+    { "name": "mobile: open the editor", "click": "#itemDetailPage:not(.hide) .mainDetailButtons .btnBookmarkItem", "js": true },
+    { "name": "mobile: the editor", "waitFor": "(() => { const p = document.querySelector('.jfbm-backdrop .jfbm-panel'); return !!p && p.querySelector('h3').textContent === 'New bookmark'; })()" },
+    { "sleep": 300 },
+    {
+      "name": "mobile: the editor is a full-width bottom sheet",
+      "eval": "(() => { const p = document.querySelector('.jfbm-backdrop .jfbm-panel'); const r = p.getBoundingClientRect(); return { left: Math.round(r.left), right: Math.round(r.right), bottom: Math.round(r.bottom), height: Math.round(r.height) }; })()",
+      "save": "mobileEditor"
+    },
+    { "name": "mobile: bottom sheet as expected", "assert": "__vars.mobileEditor.left === 0 && __vars.mobileEditor.right === 375 && __vars.mobileEditor.bottom === 812 && __vars.mobileEditor.height <= 812 * 0.85 + 1" },
+    { "screenshot": "layouts-mobile-editor.png" },
+    { "name": "mobile: Escape closes it", "key": "Escape" },
+    { "name": "mobile: closed", "waitFor": "!document.querySelector('.jfbm-backdrop')" },
+    { "name": "mobile: details page with a Play button", "waitFor": "!!document.querySelector('#itemDetailPage:not(.hide) .mainDetailButtons .btnPlay:not(.hide)')", "timeout": 20000 },
+    { "name": "mobile: start playback", "click": "#itemDetailPage:not(.hide) .mainDetailButtons .btnPlay:not(.hide)", "js": true },
+    { "name": "mobile: video page, video playing", "waitFor": "location.hash.indexOf('#/video') === 0 && (v => !!v && !v.paused && v.currentTime > 1)(document.querySelector('.videoPlayerContainer video'))", "timeout": 60000 },
+    { "name": "mobile: the three player buttons", "waitFor": "document.querySelectorAll('.videoOsdBottom .buttons .btnBookmarkAdd, .videoOsdBottom .buttons .btnBookmarkRange, .videoOsdBottom .buttons .btnBookmarkList').length === 3", "timeout": 20000 },
+    { "name": "mobile: open the player's bookmarks list", "click": ".videoOsdBottom .buttons .btnBookmarkList", "js": true },
+    { "name": "mobile: the list dialog with the range", "waitFor": "(() => { const p = document.querySelector('.jfbm-backdrop .jfbm-panel'); return !!p && p.querySelector('h3').textContent === 'Bookmarks' && [...p.querySelectorAll('.jfbm-row')].some(r => r.textContent.includes('webcheck-layouts')); })()" },
+    { "sleep": 300 },
+    { "name": "mobile: the list is a full-width bottom sheet", "assert": "(r => Math.round(r.left) === 0 && Math.round(r.right) === 375 && Math.round(r.bottom) === 812)(document.querySelector('.jfbm-backdrop .jfbm-panel').getBoundingClientRect())" },
+    { "screenshot": "layouts-mobile-player-list.png" },
+    { "name": "mobile: Escape closes the list", "key": "Escape" },
+    { "name": "mobile: list closed", "waitFor": "!document.querySelector('.jfbm-backdrop')" },
+    { "name": "mobile: leave the player", "goto": "/web/index.html#/details?id=${movieId}" },
+    { "name": "mobile: details page again", "waitFor": "!!document.querySelector('#itemDetailPage:not(.hide) .jfbm-section')", "timeout": 20000 },
+    { "name": "back to the desktop viewport", "emulate": "desktop" },
+
+    {
+      "name": "turn the page demo on (the developer setting EnablePageDemo; per request)",
+      "script": "const id = 'd0ee1b2a-7f71-4654-8ff2-163a81441b03'; const c = await ApiClient.getPluginConfiguration(id); const before = { EnablePageDemo: c.EnablePageDemo, EnableDemoPageB: c.EnableDemoPageB }; Object.assign(c, { EnablePageDemo: true, EnableDemoPageB: true }); await ApiClient.updatePluginConfiguration(id, c); return before;",
+      "save": "demoBefore"
+    },
+    { "name": "experimental layout for this browser", "eval": "(localStorage.setItem('layout', 'experimental'), true)" },
+    { "name": "Home", "goto": "/web/index.html#/home" },
+    { "name": "on #/home before the reload (a hash-only goto returns early)", "waitFor": "location.hash === '#/home'" },
+    { "name": "reload (experimental; index.html now carries the demo's head fragment)", "reload": true },
+    { "name": "the experimental app bar", "waitFor": "!!document.querySelector('.MuiAppBar-root') && !!window.__jfkit && !!window.__jfkit.jfbm", "timeout": 20000 },
+    { "name": "the kit sees the experimental layout", "assert": "__jfkit.jfbm.instance.layout.isExperimental() === true" },
+    { "sleep": 3000 },
+    {
+      "name": "experimental: the drawer and nav state",
+      "eval": "(() => { const shown = (e) => { if (!e.getClientRects().length) return false; const r = e.getBoundingClientRect(); const cs = getComputedStyle(e); return r.width > 0 && r.height > 0 && r.right > 0 && r.left < innerWidth && r.bottom > 0 && r.top < innerHeight && cs.visibility !== 'hidden' && cs.display !== 'none'; }; const ours = [...document.querySelectorAll('.jfkit-nav, [data-jfkit-plugin]')]; const legacy = document.querySelector('.mainDrawer'); return { ourNavInDom: ours.length, ourNavShown: ours.filter(shown).length, legacyDrawerInDom: !!legacy, legacyDrawerShown: !!legacy && shown(legacy), libraryToolsText: document.body.innerText.includes('Library tools') }; })()",
+      "save": "experimentalNav"
+    },
+    { "screenshot": "layouts-experimental-drawer.png" },
+    { "name": "experimental: no 'Library tools' nav and no link of ours is shown (jellyfin-web's legacy drawer, where the kit puts them, stays hidden in this layout)", "assert": "__vars.experimentalNav.ourNavShown === 0 && __vars.experimentalNav.legacyDrawerShown === false && __vars.experimentalNav.libraryToolsText === false" },
+    { "name": "Demo page A by its fallback route", "goto": "/web/index.html#/jfbm-demo-a" },
+    {
+      "name": "experimental: Demo page A renders in #fallbackPage, 'Page not found' hidden",
+      "waitFor": "(() => { const r = [...document.querySelectorAll('#fallbackPage > [data-jfbm-page=\"demo-a\"][data-jfbm-mounted]')].find(x => x.getClientRects().length > 0); const nf = [...document.querySelectorAll('#fallbackPage > :not([data-jfbm-page]) h1')].some(h => h.getClientRects().length > 0); const user = r && r.querySelector('[data-jfbm-demo=\"user\"]'); return !!r && !nf && !!user && user.textContent !== '…' && { title: r.querySelector('.jfbm-demo-title').textContent, host: r.getAttribute('data-jfbm-host'), user: user.textContent, documentTitle: document.title }; })()",
+      "timeout": 20000,
+      "save": "experimentalA"
+    },
+    { "screenshot": "layouts-experimental-demo-a.png" },
+    { "name": "Demo page B by the page's own link", "click": "#fallbackPage [data-jfbm-page=\"demo-a\"] a[data-jfbm-link=\"demo-b\"]", "js": true },
+    {
+      "name": "experimental: Demo page B renders",
+      "waitFor": "(() => { const r = [...document.querySelectorAll('#fallbackPage > [data-jfbm-page=\"demo-b\"][data-jfbm-mounted]')].find(x => x.getClientRects().length > 0); const nf = [...document.querySelectorAll('#fallbackPage > :not([data-jfbm-page]) h1')].some(h => h.getClientRects().length > 0); return !!r && !nf && location.hash.startsWith('#/jfbm-demo-b') && { title: r.querySelector('.jfbm-demo-title').textContent }; })()",
+      "timeout": 20000,
+      "save": "experimentalB"
+    },
+    { "name": "experimental: still no nav of ours shown", "assert": "!document.body.innerText.includes('Library tools')" },
+    { "name": "experimental: the details page", "goto": "/web/index.html#/details?id=${movieId}" },
+    { "sleep": 4000 },
+    {
+      "name": "experimental: what Bookmarks' details UI does here (recorded)",
+      "eval": "({ addButton: !!document.querySelector('#itemDetailPage:not(.hide) .mainDetailButtons .btnBookmarkItem'), section: (s => !!s && !s.classList.contains('hide') && s.querySelectorAll('.jfbm-row').length)(document.querySelector('#itemDetailPage:not(.hide) .jfbm-section')), missing: __jfkit.jfbm.health.missing() })",
+      "save": "experimentalDetails",
+      "full": true
+    },
+    { "screenshot": "layouts-experimental-details.png" },
+    {
+      "name": "turn the page demo back as it was",
+      "script": "const id = 'd0ee1b2a-7f71-4654-8ff2-163a81441b03'; const c = await ApiClient.getPluginConfiguration(id); Object.assign(c, __vars.demoBefore); await ApiClient.updatePluginConfiguration(id, c); const r = await ApiClient.getPluginConfiguration(id); return { EnablePageDemo: r.EnablePageDemo, EnableDemoPageB: r.EnableDemoPageB };"
+    },
+    { "name": "back to the stable layout for this browser", "eval": "(localStorage.setItem('layout', ''), true)" },
+    { "name": "remove the 'webcheck-layouts' bookmark", "script": "const url = (p, q) => ApiClient.getUrl(p, q); for (const b of await ApiClient.getJSON(url('Bookmarks', { itemId: __vars.movieId }))) { if (b.Note === 'webcheck-layouts') { await ApiClient.ajax({ type: 'DELETE', url: url('Bookmarks/' + b.Id, { deleteClip: 'true' }) }); } } return (await ApiClient.getJSON(url('Bookmarks', { itemId: __vars.movieId }))).length;" },
+    { "name": "no uncaught exceptions (the stale CustomRatings tag, and jellyfin-web's own 'player cannot be null' when the player is left, excepted)", "noExceptions": true, "ignore": "/CustomRatings/script|^Error: player cannot be null" }
+  ]
+}

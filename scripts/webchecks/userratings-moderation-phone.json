@@ -1,0 +1,298 @@
+{
+  "name": "User Ratings 1.0.2.0, moderation under touch: in the default sandbox as admin on a 375x812 phone with touch: the Moderation tab with the seeded reviews: no sideways scroll; the rows as cards, no header, each cell with its column's name; every button, select and field of the tab at least 44 px high; the synthetic member's long right-to-left name isolated (dir=\"auto\", unicode-bidi: isolate) and inside the screen; the dialog of Remove… inside the screen with every control at least 44 px and the name isolated; Cancel keeps the review. Every rating on both movies removed and the synthetic member deleted at the end.",
+  "failOnException": false,
+  "timeout": 30000,
+  "steps": [
+    {
+      "name": "the details probe in every document (its request log and server())",
+      "initScript": {
+        "file": "probes/userratings-details-probe.js"
+      }
+    },
+    {
+      "name": "the screen, before signing in",
+      "emulate": {
+        "width": 375,
+        "height": 812,
+        "mobile": true,
+        "touch": true
+      }
+    },
+    {
+      "name": "sign in as admin",
+      "login": "admin"
+    },
+    {
+      "name": "desktop layout",
+      "eval": "(localStorage.removeItem('layout'), true)"
+    },
+    {
+      "name": "reload",
+      "reload": true
+    },
+    {
+      "name": "admin: User Ratings 1.0.2.0 started",
+      "waitFor": "!!window.ApiClient && !!ApiClient.getCurrentUserId() && !!(window.__jfkit && window.__jfkit.jfur)",
+      "timeout": 40000
+    },
+    {
+      "name": "the served script is 1.0.2.0",
+      "assert": "window.__jfkit.jfur.version === '1.0.2.0'",
+      "message": "User Ratings 1.0.2.0 is not the script the page loaded"
+    },
+    {
+      "name": "Long Test Movie",
+      "eval": "(await ApiClient.getItems(ApiClient.getCurrentUserId(), { IncludeItemTypes: 'Movie', Recursive: true, SearchTerm: \"Long Test Movie\", Limit: 1 })).Items[0].Id",
+      "save": "movieId"
+    },
+    {
+      "name": "Tagged Movie",
+      "eval": "(await ApiClient.getItems(ApiClient.getCurrentUserId(), { IncludeItemTypes: 'Movie', Recursive: true, SearchTerm: \"Tagged Movie\", Limit: 1 })).Items[0].Id",
+      "save": "taggedId"
+    },
+    {
+      "name": "clean: before the run: every rating on movieId and taggedId removed through the moderation API",
+      "script": "const removed = []; for (const item of [__vars.movieId, __vars.taggedId]) { const page = await __jfurDetails.server('GET', 'UserRatings/Admin/Reviews?itemId=' + item + '&limit=200'); if (page.status !== 200) { throw new Error('list ' + page.status); } for (const row of page.json.Items) { const path = 'UserRatings/Admin/Reviews/' + row.RatingId + '?textOnly=false'; const dry = await __jfurDetails.server('DELETE', path); const done = await __jfurDetails.server('DELETE', path + '&dryRun=false&ifPreview=' + dry.json.PreviewToken); removed.push(done.status); } } return removed;",
+      "save": "swept"
+    },
+    {
+      "name": "clean: the synthetic member deleted",
+      "script": "const users = (await ApiClient.getUsers()).filter(u => u.Name === \"عضو تجريبي باسم طويل جدا للتحقق من العزل في قائمة الإشراف rtl9\"); for (const u of users) { await ApiClient.deleteUser(u.Id); } return users.length;"
+    },
+    {
+      "context": "viewer"
+    },
+    {
+      "name": "the details probe in every document (its request log and server())",
+      "initScript": {
+        "file": "probes/userratings-details-probe.js"
+      }
+    },
+    {
+      "name": "sign in as viewer",
+      "login": "viewer"
+    },
+    {
+      "name": "desktop layout",
+      "eval": "(localStorage.removeItem('layout'), true)"
+    },
+    {
+      "name": "reload",
+      "reload": true
+    },
+    {
+      "name": "viewer: User Ratings 1.0.2.0 started",
+      "waitFor": "!!window.ApiClient && !!ApiClient.getCurrentUserId() && !!(window.__jfkit && window.__jfkit.jfur)",
+      "timeout": 40000
+    },
+    {
+      "name": "the served script is 1.0.2.0",
+      "assert": "window.__jfkit.jfur.version === '1.0.2.0'",
+      "message": "User Ratings 1.0.2.0 is not the script the page loaded"
+    },
+    {
+      "name": "viewer: Long Test Movie",
+      "eval": "(await ApiClient.getItems(ApiClient.getCurrentUserId(), { IncludeItemTypes: 'Movie', Recursive: true, SearchTerm: \"Long Test Movie\", Limit: 1 })).Items[0].Id",
+      "save": "movieId"
+    },
+    {
+      "name": "viewer: Tagged Movie",
+      "eval": "(await ApiClient.getItems(ApiClient.getCurrentUserId(), { IncludeItemTypes: 'Movie', Recursive: true, SearchTerm: \"Tagged Movie\", Limit: 1 })).Items[0].Id",
+      "save": "taggedId"
+    },
+    {
+      "name": "viewer on Long Test Movie: stars and a review through the API",
+      "script": "const a = await __jfurDetails.server('PUT', 'UserRatings/Items/' + __vars.movieId + '/Mine/Rating', { Stars: 3.5 }); const b = await __jfurDetails.server('PUT', 'UserRatings/Items/' + __vars.movieId + '/Mine/Review', { Text: \"mod webcheck review A: the lighthouse keeper <b>never bold</b> & counts the ships.\", IsSpoiler: false }); if (a.status !== 200 || b.status !== 200) { throw new Error('rating ' + a.status + ', review ' + b.status); } return [a.status, b.status];"
+    },
+    {
+      "name": "viewer on Tagged Movie: stars and a review through the API",
+      "script": "const a = await __jfurDetails.server('PUT', 'UserRatings/Items/' + __vars.taggedId + '/Mine/Rating', { Stars: 4 }); const b = await __jfurDetails.server('PUT', 'UserRatings/Items/' + __vars.taggedId + '/Mine/Review', { Text: \"mod webcheck review B: the ferry leaves at nine.\", IsSpoiler: false }); if (a.status !== 200 || b.status !== 200) { throw new Error('rating ' + a.status + ', review ' + b.status); } return [a.status, b.status];"
+    },
+    {
+      "context": "viewer2"
+    },
+    {
+      "name": "the details probe in every document (its request log and server())",
+      "initScript": {
+        "file": "probes/userratings-details-probe.js"
+      }
+    },
+    {
+      "name": "sign in as viewer2",
+      "login": "viewer2"
+    },
+    {
+      "name": "desktop layout",
+      "eval": "(localStorage.removeItem('layout'), true)"
+    },
+    {
+      "name": "reload",
+      "reload": true
+    },
+    {
+      "name": "viewer2: User Ratings 1.0.2.0 started",
+      "waitFor": "!!window.ApiClient && !!ApiClient.getCurrentUserId() && !!(window.__jfkit && window.__jfkit.jfur)",
+      "timeout": 40000
+    },
+    {
+      "name": "the served script is 1.0.2.0",
+      "assert": "window.__jfkit.jfur.version === '1.0.2.0'",
+      "message": "User Ratings 1.0.2.0 is not the script the page loaded"
+    },
+    {
+      "name": "viewer2 on Long Test Movie: stars and a review through the API",
+      "script": "const a = await __jfurDetails.server('PUT', 'UserRatings/Items/' + __vars.movieId + '/Mine/Rating', { Stars: 4.5 }); const b = await __jfurDetails.server('PUT', 'UserRatings/Items/' + __vars.movieId + '/Mine/Review', { Text: \"mod webcheck review C: מגדלור על החוף, the tide comes in.\", IsSpoiler: false }); if (a.status !== 200 || b.status !== 200) { throw new Error('rating ' + a.status + ', review ' + b.status); } return [a.status, b.status];"
+    },
+    {
+      "context": "main"
+    },
+    {
+      "name": "the synthetic member with a long right-to-left name: created, its stars and review written through its own session (the password random, kept nowhere)",
+      "script": "const old = (await ApiClient.getUsers()).filter(u => u.Name === \"عضو تجريبي باسم طويل جدا للتحقق من العزل في قائمة الإشراف rtl9\"); for (const u of old) { await ApiClient.deleteUser(u.Id); } const pw = Array.from(crypto.getRandomValues(new Uint8Array(18)), b => b.toString(16).padStart(2, '0')).join(''); const user = await ApiClient.createUser({ Name: \"عضو تجريبي باسم طويل جدا للتحقق من العزل في قائمة الإشراف rtl9\", Password: pw }); const head = 'MediaBrowser Client=\"mod-webcheck\", Device=\"webcheck\", DeviceId=\"mod-webcheck-' + Date.now() + '\", Version=\"1.0.0\"'; const auth = await fetch(ApiClient.getUrl('Users/AuthenticateByName'), { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: head }, body: JSON.stringify({ Username: \"عضو تجريبي باسم طويل جدا للتحقق من العزل في قائمة الإشراف rtl9\", Pw: pw }) }); if (auth.status !== 200) { throw new Error('sign-in ' + auth.status); } const token = (await auth.json()).AccessToken; const put = (p, b) => fetch(ApiClient.getUrl(p), { method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: head + ', Token=\"' + token + '\"' }, body: JSON.stringify(b) }).then(r => r.status); const s1 = await put('UserRatings/Items/' + __vars.movieId + '/Mine/Rating', { Stars: 2.5 }); const s2 = await put('UserRatings/Items/' + __vars.movieId + '/Mine/Review', { Text: \"mod webcheck review R: مراجعة قصيرة من عضو تجريبي.\", IsSpoiler: false }); await fetch(ApiClient.getUrl('Sessions/Logout'), { method: 'POST', headers: { Authorization: head + ', Token=\"' + token + '\"' } }); if (s1 !== 200 || s2 !== 200) { throw new Error('rating ' + s1 + ', review ' + s2); } return { id: user.Id, statuses: [s1, s2] };",
+      "save": "rtl"
+    },
+    {
+      "name": "the rating ids on movieId, by author",
+      "script": "const page = await __jfurDetails.server('GET', 'UserRatings/Admin/Reviews?itemId=' + __vars.movieId); const out = {}; for (const row of page.json.Items) { out[row.UserName] = String(row.RatingId).replace(/-/g, '').toLowerCase(); } return out;",
+      "save": "onMovie",
+      "full": true
+    },
+    {
+      "name": "the rating ids on taggedId, by author",
+      "script": "const page = await __jfurDetails.server('GET', 'UserRatings/Admin/Reviews?itemId=' + __vars.taggedId); const out = {}; for (const row of page.json.Items) { out[row.UserName] = String(row.RatingId).replace(/-/g, '').toLowerCase(); } return out;",
+      "save": "onTagged",
+      "full": true
+    },
+    {
+      "name": "four rows: viewer's two, viewer2's and the synthetic member's",
+      "assert": "!!__vars.onMovie.viewer && !!__vars.onMovie.viewer2 && !!__vars.onMovie[\"عضو تجريبي باسم طويل جدا للتحقق من العزل في قائمة الإشراف rtl9\"] && !!__vars.onTagged.viewer && Object.keys(__vars.onMovie).length === 3 && Object.keys(__vars.onTagged).length === 1",
+      "message": "the items had other ratings (Long Test Movie, Tagged Movie)"
+    },
+    {
+      "name": "viewer's rating of Long Test Movie",
+      "eval": "__vars.onMovie.viewer",
+      "save": "rA"
+    },
+    {
+      "name": "viewer's rating of Tagged Movie",
+      "eval": "__vars.onTagged.viewer",
+      "save": "rB"
+    },
+    {
+      "name": "viewer2's rating of Long Test Movie",
+      "eval": "__vars.onMovie.viewer2",
+      "save": "rC"
+    },
+    {
+      "name": "the synthetic member's rating of Long Test Movie",
+      "eval": "__vars.onMovie[\"عضو تجريبي باسم طويل جدا للتحقق من العزل في قائمة الإشراف rtl9\"]",
+      "save": "rtlId"
+    },
+    {
+      "name": "open User Ratings' settings page",
+      "goto": "/web/index.html#/configurationpage?name=UserRatings"
+    },
+    {
+      "name": "the page and its tabs",
+      "waitFor": "!!document.querySelector('#UserRatingsConfigPage:not(.hide) #UserRatingsTabs')",
+      "timeout": 30000
+    },
+    {
+      "name": "mark",
+      "script": "window.__mark = __jfurDetails.requests.length; return true;"
+    },
+    {
+      "name": "open the Moderation tab",
+      "click": "#UserRatingsTabModeration"
+    },
+    {
+      "name": "the tab's module mounted, the four rows listed",
+      "waitFor": "document.querySelectorAll('#UserRatingsModerationRoot .jfur-mod-row').length >= 4 && !!document.querySelector('#UserRatingsModerationRoot .jfur-mod-row[data-jfur-rating=\"' + __vars.rA + '\"]')",
+      "timeout": 20000
+    },
+    {
+      "name": "its first requests: the list and the log, nothing written",
+      "eval": "__jfurDetails.requests.slice(window.__mark).map(r => r.method + ' ' + r.path + r.query)",
+      "save": "firstRequests",
+      "full": true
+    },
+    {
+      "name": "GETs only",
+      "assert": "__vars.firstRequests.length >= 2 && __vars.firstRequests.every(r => r.indexOf('GET ') === 0) && __vars.firstRequests.some(r => r.indexOf('/UserRatings/Admin/Reviews') > 0) && __vars.firstRequests.some(r => r.indexOf('/UserRatings/Admin/ModerationLog') > 0)"
+    },
+    {
+      "name": "phone: the layout as shown",
+      "eval": "(() => { const t = document.querySelector('#UserRatingsModerationRoot .jfur-mod-table'); const td = document.querySelector('#UserRatingsModerationRoot .jfur-mod-row td'); const name = document.querySelector('#UserRatingsModerationRoot .jfur-mod-row[data-jfur-rating=\"' + __vars.rtlId + '\"] .jfur-mod-name'); const nb = name.getBoundingClientRect(); return { width: innerWidth, scroll: document.documentElement.scrollWidth, body: document.body.scrollWidth, head: getComputedStyle(t.querySelector('thead')).display, td: getComputedStyle(td).display, label: getComputedStyle(td, '::before').content, nameLeft: Math.round(nb.left), nameRight: Math.round(nb.right), nameBidi: getComputedStyle(name).unicodeBidi, nameDir: name.getAttribute('dir'), nameText: name.textContent }; })()",
+      "save": "phone",
+      "full": true
+    },
+    {
+      "name": "phone: no sideways scroll; the rows are cards (no header, cells as blocks with their column's name); the long right-to-left name isolated and inside the screen",
+      "assert": "__vars.phone.scroll <= __vars.phone.width && __vars.phone.body <= __vars.phone.width && __vars.phone.head === 'none' && __vars.phone.td === 'block' && __vars.phone.label === '\"Member\"' && __vars.phone.nameLeft >= 0 && __vars.phone.nameRight <= __vars.phone.width && __vars.phone.nameBidi === 'isolate' && __vars.phone.nameDir === 'auto' && __vars.phone.nameText === \"عضو تجريبي باسم طويل جدا للتحقق من العزل في قائمة الإشراف rtl9\""
+    },
+    {
+      "name": "phone: the tab's controls under 44 px high (none)",
+      "eval": "Array.from(document.querySelectorAll(\"#UserRatingsModerationRoot button, #UserRatingsModerationRoot select, #UserRatingsModerationRoot input\")).filter(e => e.offsetParent !== null).map(e => ({ cls: e.className, h: Math.round(e.getBoundingClientRect().height) })).filter(x => x.h < 44)",
+      "save": "short",
+      "full": true
+    },
+    {
+      "name": "phone: every control of the tab at least 44 px",
+      "assert": "__vars.short.length === 0"
+    },
+    {
+      "name": "phone: screenshot of the list",
+      "screenshot": "userratings-moderation-phone.png"
+    },
+    {
+      "name": "phone: Remove… on the synthetic member's row",
+      "click": "#UserRatingsModerationRoot .jfur-mod-row[data-jfur-rating=\"${rtlId}\"] .jfur-mod-remove"
+    },
+    {
+      "name": "phone: the dialog and its dry run",
+      "waitFor": "(() => { const d = document.querySelector('.jfur-panel[role=\"dialog\"][aria-modal=\"true\"]'); return !!d && !d.querySelector('.jfur-mod-confirm').disabled; })()",
+      "timeout": 10000
+    },
+    {
+      "name": "phone: the dialog's controls under 44 px high (none), the dialog inside the screen",
+      "eval": "({ short: Array.from(document.querySelectorAll(\"[role=\\\"dialog\\\"] button, [role=\\\"dialog\\\"] select, [role=\\\"dialog\\\"] .jfur-mod-choice\")).filter(e => e.offsetParent !== null).map(e => ({ cls: e.className, h: Math.round(e.getBoundingClientRect().height) })).filter(x => x.h < 44), right: Math.round(document.querySelector('.jfur-panel[role=\"dialog\"][aria-modal=\"true\"]').getBoundingClientRect().right), scroll: document.documentElement.scrollWidth, width: innerWidth, name: getComputedStyle(document.querySelector('.jfur-panel[role=\"dialog\"][aria-modal=\"true\"]').querySelector('.jfur-mod-by .jfur-mod-name')).unicodeBidi })",
+      "save": "dialog",
+      "full": true
+    },
+    {
+      "name": "phone: every control of the dialog at least 44 px, inside the screen, the name isolated",
+      "assert": "__vars.dialog.short.length === 0 && __vars.dialog.right <= __vars.dialog.width && __vars.dialog.scroll <= __vars.dialog.width && __vars.dialog.name === 'isolate'"
+    },
+    {
+      "name": "phone: screenshot of the dialog",
+      "screenshot": "userratings-moderation-phone-dialog.png"
+    },
+    {
+      "name": "phone: Cancel",
+      "click": "[role=\"dialog\"] .jfur-mod-cancel"
+    },
+    {
+      "name": "phone: closed, the review still there",
+      "waitFor": "!document.querySelector('.jfur-panel[role=\"dialog\"][aria-modal=\"true\"]') && document.querySelector('#UserRatingsModerationRoot .jfur-mod-row[data-jfur-rating=\"' + __vars.rtlId + '\"] .jfur-mod-text').textContent === \"mod webcheck review R: مراجعة قصيرة من عضو تجريبي.\"",
+      "timeout": 5000
+    },
+    {
+      "name": "no uncaught exception",
+      "noExceptions": true,
+      "ignore": "/CustomRatings/script|^Error: player cannot be null"
+    },
+    {
+      "name": "clean: at the end: every rating on movieId and taggedId removed through the moderation API",
+      "script": "const removed = []; for (const item of [__vars.movieId, __vars.taggedId]) { const page = await __jfurDetails.server('GET', 'UserRatings/Admin/Reviews?itemId=' + item + '&limit=200'); if (page.status !== 200) { throw new Error('list ' + page.status); } for (const row of page.json.Items) { const path = 'UserRatings/Admin/Reviews/' + row.RatingId + '?textOnly=false'; const dry = await __jfurDetails.server('DELETE', path); const done = await __jfurDetails.server('DELETE', path + '&dryRun=false&ifPreview=' + dry.json.PreviewToken); removed.push(done.status); } } return removed;",
+      "save": "swept"
+    },
+    {
+      "name": "clean: the synthetic member deleted",
+      "script": "const users = (await ApiClient.getUsers()).filter(u => u.Name === \"عضو تجريبي باسم طويل جدا للتحقق من العزل في قائمة الإشراف rtl9\"); for (const u of users) { await ApiClient.deleteUser(u.Id); } return users.length;"
+    },
+    {
+      "name": "clean: movieId and taggedId have no rating left",
+      "script": "for (const item of [__vars.movieId, __vars.taggedId]) { const page = await __jfurDetails.server('GET', 'UserRatings/Admin/Reviews?itemId=' + item); if (page.status !== 200 || page.json.TotalRecordCount !== 0) { throw new Error('left: ' + page.status + ' ' + (page.json && page.json.TotalRecordCount)); } } return true;"
+    }
+  ]
+}

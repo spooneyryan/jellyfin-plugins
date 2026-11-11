@@ -1,0 +1,231 @@
+{
+  "name": "User Ratings 1.0.2.0, the Rate button's TV reachability: in the default sandbox as viewer in jellyfin-web 10.11.5's TV layout: on Test Series (ShowDetailButton Auto) the Rate button before More; the D-pad's Right from Play along the buttons row reaches it, and one OK press focuses the slider, in view, writing nothing; its Left and Right are the slider's again (Right saves half a star after the slider's pause). The member's rows are deleted at the end.",
+  "failOnException": false,
+  "timeout": 30000,
+  "steps": [
+    {
+      "name": "the details probe in every document (it watches the section the served script mounts)",
+      "initScript": {
+        "file": "probes/userratings-details-probe.js"
+      }
+    },
+    {
+      "name": "sign in as viewer",
+      "login": "viewer"
+    },
+    {
+      "name": "tv layout",
+      "eval": "(localStorage.setItem('layout', 'tv'), true)"
+    },
+    {
+      "name": "reload",
+      "reload": true
+    },
+    {
+      "name": "the layout applied, User Ratings 1.0.2.0 started",
+      "waitFor": "document.documentElement.classList.contains('layout-tv') && !!window.ApiClient && !!ApiClient.getCurrentUserId() && !!(window.__jfkit && window.__jfkit.jfur)",
+      "timeout": 40000
+    },
+    {
+      "name": "the served script is 1.0.2.0",
+      "assert": "window.__jfkit.jfur.version === '1.0.2.0'",
+      "message": "User Ratings 1.0.2.0 is not the script the page loaded"
+    },
+    {
+      "name": "Long Test Movie",
+      "eval": "(await ApiClient.getItems(ApiClient.getCurrentUserId(), { IncludeItemTypes: 'Movie', Recursive: true, SearchTerm: \"Long Test Movie\", Limit: 1 })).Items[0].Id",
+      "save": "movieId"
+    },
+    {
+      "name": "clean: Long Test Movie without a rating of this member",
+      "script": "const r = await __jfurDetails.server('DELETE', 'UserRatings/Items/' + __vars.movieId + '/Mine'); return r.status;",
+      "save": "cleaned"
+    },
+    {
+      "name": "Test Series",
+      "eval": "(await ApiClient.getItems(ApiClient.getCurrentUserId(), { IncludeItemTypes: 'Series', Recursive: true, SearchTerm: \"Test Series\", Limit: 1 })).Items[0].Id",
+      "save": "seriesId"
+    },
+    {
+      "name": "Test Album A",
+      "eval": "(await ApiClient.getItems(ApiClient.getCurrentUserId(), { IncludeItemTypes: 'MusicAlbum', Recursive: true, SearchTerm: \"Test Album A\", Limit: 1 })).Items[0].Id",
+      "save": "albumId"
+    },
+    {
+      "name": "clean: Test Series without a rating of this member",
+      "script": "const r = await __jfurDetails.server('DELETE', 'UserRatings/Items/' + __vars.seriesId + '/Mine'); return r.status;",
+      "save": "cleaned"
+    },
+    {
+      "name": "Test Series: its details page",
+      "script": "location.hash = '#/details?id=' + __vars.seriesId; return true;"
+    },
+    {
+      "name": "Test Series: drawn",
+      "waitFor": "(() => { const p = document.querySelector('#itemDetailPage:not(.hide)'); return !!p && location.hash.indexOf(__vars.seriesId) > 0 && !!p.querySelector('.mainDetailButtons .btnPlay:not(.hide)'); })()",
+      "timeout": 30000
+    },
+    {
+      "name": "Test Series: the section mounted for it",
+      "waitFor": "(() => { const s = __jfurDetails.section(); return !!s && s.getAttribute('data-jfur-item') === __vars.seriesId && !!s.querySelector('.jfur-summary[data-jfur-summary]'); })()",
+      "timeout": 15000
+    },
+    {
+      "sleep": 400
+    },
+    {
+      "name": "TV: Test Series: the chip and the Rate button",
+      "eval": "__jfurDetails.extras()",
+      "save": "xTvSeries",
+      "full": true
+    },
+    {
+      "name": "TV: the Rate button before More",
+      "assert": "(x => !!x.rate && x.rates === 1 && x.rate.displayed && x.rate.title === 'Rate' && x.rate.label === 'Rate' && /btnMoreCommands/.test(x.rate.next) && x.jumps === 0)(__vars.xTvSeries)"
+    },
+    {
+      "name": "TV: focus the Play button",
+      "script": "__jfurDetails.log.length = 0; document.querySelector('#itemDetailPage:not(.hide) .mainDetailButtons .btnPlay').focus(); return __jfurDetails.active();"
+    },
+    {
+      "name": "TV: Right 1 (along the buttons row to Rate)",
+      "key": "ArrowRight",
+      "if": "!document.activeElement.classList.contains('jfur-rate')"
+    },
+    {
+      "sleep": 250,
+      "if": "!document.activeElement.classList.contains('jfur-rate')"
+    },
+    {
+      "name": "TV: Right 2 (along the buttons row to Rate)",
+      "key": "ArrowRight",
+      "if": "!document.activeElement.classList.contains('jfur-rate')"
+    },
+    {
+      "sleep": 250,
+      "if": "!document.activeElement.classList.contains('jfur-rate')"
+    },
+    {
+      "name": "TV: Right 3 (along the buttons row to Rate)",
+      "key": "ArrowRight",
+      "if": "!document.activeElement.classList.contains('jfur-rate')"
+    },
+    {
+      "sleep": 250,
+      "if": "!document.activeElement.classList.contains('jfur-rate')"
+    },
+    {
+      "name": "TV: Right 4 (along the buttons row to Rate)",
+      "key": "ArrowRight",
+      "if": "!document.activeElement.classList.contains('jfur-rate')"
+    },
+    {
+      "sleep": 250,
+      "if": "!document.activeElement.classList.contains('jfur-rate')"
+    },
+    {
+      "name": "TV: Right 5 (along the buttons row to Rate)",
+      "key": "ArrowRight",
+      "if": "!document.activeElement.classList.contains('jfur-rate')"
+    },
+    {
+      "sleep": 250,
+      "if": "!document.activeElement.classList.contains('jfur-rate')"
+    },
+    {
+      "name": "TV: Right 6 (along the buttons row to Rate)",
+      "key": "ArrowRight",
+      "if": "!document.activeElement.classList.contains('jfur-rate')"
+    },
+    {
+      "sleep": 250,
+      "if": "!document.activeElement.classList.contains('jfur-rate')"
+    },
+    {
+      "name": "TV: Right 7 (along the buttons row to Rate)",
+      "key": "ArrowRight",
+      "if": "!document.activeElement.classList.contains('jfur-rate')"
+    },
+    {
+      "sleep": 250,
+      "if": "!document.activeElement.classList.contains('jfur-rate')"
+    },
+    {
+      "name": "TV: Right 8 (along the buttons row to Rate)",
+      "key": "ArrowRight",
+      "if": "!document.activeElement.classList.contains('jfur-rate')"
+    },
+    {
+      "sleep": 250,
+      "if": "!document.activeElement.classList.contains('jfur-rate')"
+    },
+    {
+      "name": "TV: the D-pad's path along the row",
+      "eval": "({ onRate: document.activeElement.classList.contains('jfur-rate'), rights: __jfurDetails.log.filter(e => e.kind === 'key-capture' && e.key === 'ArrowRight').length, path: __jfurDetails.log.filter(e => e.kind === 'focus').map(f => f.target) })",
+      "save": "tvRow",
+      "full": true
+    },
+    {
+      "name": "TV: Right along the buttons row reaches Rate (4 presses on a Season)",
+      "assert": "__vars.tvRow.onRate === true && __vars.tvRow.rights <= 8"
+    },
+    {
+      "name": "TV OK: mark",
+      "script": "window.__mark = __jfurDetails.requests.length; window.__keys = __jfurDetails.log.length; return true;"
+    },
+    {
+      "name": "TV: OK on Rate",
+      "key": "Enter"
+    },
+    {
+      "sleep": 800
+    },
+    {
+      "name": "TV: one OK press: the slider focused and in view (TV reachability), nothing written by Rate",
+      "assert": "__jfurDetails.onSlider() && (b => b.y >= 0 && b.y + b.h <= window.innerHeight)(__jfurDetails.box(__jfurDetails.slider())) && __jfurDetails.since(window.__mark).filter(r => r.indexOf('PUT ') === 0).length === 0"
+    },
+    {
+      "name": "TV: Left and Right are the slider's again",
+      "key": "ArrowRight"
+    },
+    {
+      "sleep": 200
+    },
+    {
+      "name": "TV: Right consumed by the slider, the focus kept",
+      "assert": "(__jfurDetails.log.slice(window.__keys).filter(e => e.kind === 'key-bubble' && e.key === \"ArrowRight\").pop() || { prevented: null }).prevented === true && __jfurDetails.onSlider()"
+    },
+    {
+      "sleep": 900
+    },
+    {
+      "name": "TV: what the server holds on Test Series",
+      "eval": "__jfurDetails.mine(__vars.seriesId)",
+      "save": "tvSeriesServer",
+      "full": true
+    },
+    {
+      "name": "TV: the slider's Right saved half a star after its pause, once",
+      "assert": "__vars.tvSeriesServer.stars === 0.5 && __jfurDetails.since(window.__mark).filter(r => r.indexOf('PUT ') === 0).length === 1"
+    },
+    {
+      "name": "clean: Test Series at the end without a rating of this member",
+      "script": "const r = await __jfurDetails.server('DELETE', 'UserRatings/Items/' + __vars.seriesId + '/Mine'); return r.status;",
+      "save": "cleaned"
+    },
+    {
+      "name": "clean: Long Test Movie at the end without a rating of this member",
+      "script": "const r = await __jfurDetails.server('DELETE', 'UserRatings/Items/' + __vars.movieId + '/Mine'); return r.status;",
+      "save": "cleaned"
+    },
+    {
+      "name": "the default layout again",
+      "eval": "(localStorage.removeItem('layout'), true)"
+    },
+    {
+      "name": "no uncaught exception",
+      "noExceptions": true,
+      "ignore": "/CustomRatings/script|^Error: player cannot be null"
+    }
+  ]
+}

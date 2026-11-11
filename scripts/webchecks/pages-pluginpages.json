@@ -1,0 +1,239 @@
+{
+  "name": "Bookmarks' page demo through Plugin Pages 2.4.7 in PageHostMode=Auto (registered at startup through its DI manager, no config.json): the links in Plugin Pages' drawer section and none of ours, the text/html shells rendered in its host with our title from the first frame, a second page, back and forward, parameters and a hard reload. Needs Plugin Pages (default or baseurl sandbox) and EnablePageDemo=true, PageHostMode=Auto at startup.",
+  "failOnException": false,
+  "timeout": 30000,
+  "steps": [
+    {
+      "name": "frame probe in every document (probes/pages-probe.js)",
+      "initScript": {
+        "file": "probes/pages-probe.js"
+      }
+    },
+    {
+      "name": "open the login page",
+      "goto": "/web/index.html#/login"
+    },
+    {
+      "name": "index.html carries Plugin Pages' tag",
+      "waitFor": "fetch(new URL('index.html', location.href), { cache: 'no-store' }).then(r => r.text()).then(t => /<script plugin=\"PluginPages\"/.test(t))",
+      "timeout": 90000
+    },
+    {
+      "name": "reload, so the page has the tag",
+      "reload": true
+    },
+    {
+      "name": "sign in as admin",
+      "login": "admin"
+    },
+    {
+      "name": "Home shown and the Bookmarks script ran",
+      "waitFor": "!!window.__jfkit && !!window.__jfkit.jfbm && !!document.querySelector('.homePage:not(.hide)')",
+      "timeout": 30000
+    },
+    {
+      "name": "warm-up: reload once after the sign-in, so the page starts with the signed-in user",
+      "reload": true
+    },
+    {
+      "name": "Home shown again with the user known, the drawer's user menu built and the Bookmarks script ran",
+      "waitFor": "!!window.ApiClient && !!ApiClient.getCurrentUserId() && !!window.__jfkit && !!window.__jfkit.jfbm && !!document.querySelector('.homePage:not(.hide)') && !!document.querySelector('.mainDrawer .userMenuOptions')",
+      "timeout": 30000
+    },
+    {
+      "sleep": 1500
+    },
+    {
+      "name": "index.html: one Bookmarks tag, Plugin Pages' tag, the head fragment in Auto mode",
+      "eval": "fetch(new URL('index.html', location.href), { cache: 'no-store' }).then(r => r.text()).then(t => { const s = t.match(/<script type=\"application\\/json\" data-jfbm-head data-jfbm-pages>([^<]*)<\\/script>/); return { bookmarksTags: (t.match(/data-jfbm-plugin=/g) || []).length, headStyles: (t.match(/<style data-jfbm-head>/g) || []).length, headFragmentBeforeHeadEnd: t.indexOf('data-jfbm-head') < t.indexOf('</head>'), state: s ? JSON.parse(s[1]) : null, pluginPagesTag: /<script plugin=\"PluginPages\"/.test(t) }; })",
+      "save": "indexHtml",
+      "full": true
+    },
+    {
+      "name": "Auto mode, both pages known and on",
+      "assert": "__vars.indexHtml.bookmarksTags === 1 && __vars.indexHtml.pluginPagesTag && __vars.indexHtml.state.mode === 'Auto' && __vars.indexHtml.state.off.length === 0"
+    },
+    {
+      "name": "GET /PluginPages/User lists both demo pages (registered at startup)",
+      "eval": "ApiClient.getJSON(ApiClient.getUrl('PluginPages/User'))",
+      "save": "pluginPagesUser",
+      "full": true
+    },
+    {
+      "name": "both Ids and shell URLs listed",
+      "assert": "['Jellyfin.Plugin.Bookmarks.DemoAPage', 'Jellyfin.Plugin.Bookmarks.DemoBPage'].every(id => __vars.pluginPagesUser.Items.some(i => i.Id === id && i.Url === '/Bookmarks/Pages/' + id.replace('Jellyfin.Plugin.Bookmarks.Demo', 'demo-').replace('Page', '').toLowerCase()))"
+    },
+    {
+      "name": "the kit chose the Plugin Pages host for both",
+      "waitFor": "__jfkit.jfbm.instance.pages.state().hostsKnown && __jfkit.jfbm.instance.pages.state().hosts['demo-a'] === 'PluginPages' && __jfkit.jfbm.instance.pages.state().hosts['demo-b'] === 'PluginPages' && __jfkit.jfbm.instance.pages.state()",
+      "save": "pages"
+    },
+    {
+      "name": "open the drawer",
+      "click": ".skinHeader .mainDrawerButton"
+    },
+    {
+      "name": "drawer open",
+      "waitFor": "(() => { const a = document.querySelector(\".mainDrawer .userMenuOptions\"); if (!a) return false; const r = a.getBoundingClientRect(); return r.width > 0 && r.height > 0 && r.left >= 0 && r.right <= innerWidth && r.top >= 0 && getComputedStyle(a).visibility !== 'hidden'; })()"
+    },
+    {
+      "name": "both links visible in Plugin Pages' drawer section",
+      "waitFor": "(() => { const a = document.querySelector(\".mainDrawer .pluginMenuOptions a[data-itemid=\\\"Jellyfin.Plugin.Bookmarks.DemoAPage\\\"]\"); if (!a) return false; const r = a.getBoundingClientRect(); return r.width > 0 && r.height > 0 && r.left >= 0 && r.right <= innerWidth && r.top >= 0 && getComputedStyle(a).visibility !== 'hidden'; })() && (() => { const a = document.querySelector(\".mainDrawer .pluginMenuOptions a[data-itemid=\\\"Jellyfin.Plugin.Bookmarks.DemoBPage\\\"]\"); if (!a) return false; const r = a.getBoundingClientRect(); return r.width > 0 && r.height > 0 && r.left >= 0 && r.right <= innerWidth && r.top >= 0 && getComputedStyle(a).visibility !== 'hidden'; })()"
+    },
+    {
+      "sleep": 1500
+    },
+    {
+      "name": "the drawer after Plugin Pages had its chance",
+      "eval": "(() => ({ pluginPagesSection: !!document.querySelector('.mainDrawer .pluginMenuOptions'), pluginPagesLinks: [...document.querySelectorAll('.mainDrawer .pluginMenuOptions a[data-itemid^=\"Jellyfin.Plugin.Bookmarks\"]')].map(a => a.getAttribute('data-itemid')), libraryToolsLinks: [...document.querySelectorAll('.mainDrawer .jfkit-nav a[data-jfkit-plugin=\"jfbm\"]')].map(a => ({ key: a.getAttribute('data-jfbm-nav'), href: a.getAttribute('href') })) }))()",
+      "save": "drawer"
+    },
+    {
+      "name": "no Library tools link of ours while Plugin Pages shows them (the two demo pages, My Bookmarks and My Clips)",
+      "assert": "__vars.drawer.pluginPagesLinks.length === 4 && __vars.drawer.libraryToolsLinks.length === 0"
+    },
+    {
+      "screenshot": "pages-pp-drawer.png"
+    },
+    {
+      "name": "reset the probe",
+      "eval": "__pagesProbe.reset(), true"
+    },
+    {
+      "name": "click Demo page A in Plugin Pages' section",
+      "click": ".mainDrawer a[data-itemid=\"Jellyfin.Plugin.Bookmarks.DemoAPage\"]"
+    },
+    {
+      "name": "Demo page A renders in the Plugin Pages host with its title and data",
+      "waitFor": "(() => { const r = [...document.querySelectorAll(\".userPreferencesPage:not(.hide) [data-jfbm-page=\\\"demo-a\\\"][data-jfbm-mounted]\")].find(x => x.getClientRects().length > 0); const t = (document.querySelector('.skinHeader .pageTitle') || { textContent: '' }).textContent.trim(); const title = r && r.querySelector('.jfbm-demo-title'); const user = r && r.querySelector('[data-jfbm-demo=\"user\"]'); if (!r || !title || title.textContent !== \"Demo page A\" || [...document.querySelectorAll('#fallbackPage > :not([data-jfbm-page]) h1')].some(h => h.getClientRects().length > 0) || t !== \"Demo page A\" || !user || user.textContent === '…') return false;  return { hash: location.hash, render: Number(r.getAttribute('data-jfbm-render')), reason: r.getAttribute('data-jfbm-reason'), host: r.getAttribute('data-jfbm-host'), params: JSON.parse(r.querySelector('[data-jfbm-demo=\"params\"]').textContent), user: user.textContent, admin: r.querySelector('[data-jfbm-demo=\"admin\"]').textContent, headerTitle: t, documentTitle: document.title, historyLength: history.length }; })()",
+      "save": "a"
+    },
+    {
+      "sleep": 400
+    },
+    {
+      "name": "probe: probeA",
+      "eval": "__pagesProbe.summary()",
+      "save": "probeA"
+    },
+    {
+      "screenshot": "pages-pp-a.png"
+    },
+    {
+      "name": "reset the probe",
+      "eval": "__pagesProbe.reset(), true"
+    },
+    {
+      "name": "in-page link to Demo page B",
+      "click": ".userPreferencesPage:not(.hide) [data-jfbm-page=\"demo-a\"] a[data-jfbm-link=\"demo-b\"]"
+    },
+    {
+      "name": "Demo page B renders with its title",
+      "waitFor": "(() => { const r = [...document.querySelectorAll(\".userPreferencesPage:not(.hide) [data-jfbm-page=\\\"demo-b\\\"][data-jfbm-mounted]\")].find(x => x.getClientRects().length > 0); const t = (document.querySelector('.skinHeader .pageTitle') || { textContent: '' }).textContent.trim(); const title = r && r.querySelector('.jfbm-demo-title'); const user = r && r.querySelector('[data-jfbm-demo=\"user\"]'); if (!r || !title || title.textContent !== \"Demo page B\" || [...document.querySelectorAll('#fallbackPage > :not([data-jfbm-page]) h1')].some(h => h.getClientRects().length > 0) || t !== \"Demo page B\" || !user || user.textContent === '…') return false;  return { hash: location.hash, render: Number(r.getAttribute('data-jfbm-render')), reason: r.getAttribute('data-jfbm-reason'), host: r.getAttribute('data-jfbm-host'), params: JSON.parse(r.querySelector('[data-jfbm-demo=\"params\"]').textContent), user: user.textContent, admin: r.querySelector('[data-jfbm-demo=\"admin\"]').textContent, headerTitle: t, documentTitle: document.title, historyLength: history.length }; })()",
+      "save": "b"
+    },
+    {
+      "sleep": 400
+    },
+    {
+      "name": "probe: probeB",
+      "eval": "__pagesProbe.summary()",
+      "save": "probeB"
+    },
+    {
+      "name": "reset the probe",
+      "eval": "__pagesProbe.reset(), true"
+    },
+    {
+      "name": "browser back",
+      "eval": "history.back(), true"
+    },
+    {
+      "name": "back on Demo page A: the restored view rendered again",
+      "waitFor": "(() => { const r = [...document.querySelectorAll(\".userPreferencesPage:not(.hide) [data-jfbm-page=\\\"demo-a\\\"][data-jfbm-mounted]\")].find(x => x.getClientRects().length > 0); const t = (document.querySelector('.skinHeader .pageTitle') || { textContent: '' }).textContent.trim(); const title = r && r.querySelector('.jfbm-demo-title'); const user = r && r.querySelector('[data-jfbm-demo=\"user\"]'); if (!r || !title || title.textContent !== \"Demo page A\" || [...document.querySelectorAll('#fallbackPage > :not([data-jfbm-page]) h1')].some(h => h.getClientRects().length > 0) || t !== \"Demo page A\" || !user || user.textContent === '…') return false; if (Number(r.getAttribute('data-jfbm-render')) <= __vars.a.render) return false; return { hash: location.hash, render: Number(r.getAttribute('data-jfbm-render')), reason: r.getAttribute('data-jfbm-reason'), host: r.getAttribute('data-jfbm-host'), params: JSON.parse(r.querySelector('[data-jfbm-demo=\"params\"]').textContent), user: user.textContent, admin: r.querySelector('[data-jfbm-demo=\"admin\"]').textContent, headerTitle: t, documentTitle: document.title, historyLength: history.length }; })()",
+      "save": "back"
+    },
+    {
+      "sleep": 400
+    },
+    {
+      "name": "probe: probeBack",
+      "eval": "__pagesProbe.summary()",
+      "save": "probeBack"
+    },
+    {
+      "name": "reset the probe",
+      "eval": "__pagesProbe.reset(), true"
+    },
+    {
+      "name": "browser forward",
+      "eval": "history.forward(), true"
+    },
+    {
+      "name": "forward on Demo page B, rendered again",
+      "waitFor": "(() => { const r = [...document.querySelectorAll(\".userPreferencesPage:not(.hide) [data-jfbm-page=\\\"demo-b\\\"][data-jfbm-mounted]\")].find(x => x.getClientRects().length > 0); const t = (document.querySelector('.skinHeader .pageTitle') || { textContent: '' }).textContent.trim(); const title = r && r.querySelector('.jfbm-demo-title'); const user = r && r.querySelector('[data-jfbm-demo=\"user\"]'); if (!r || !title || title.textContent !== \"Demo page B\" || [...document.querySelectorAll('#fallbackPage > :not([data-jfbm-page]) h1')].some(h => h.getClientRects().length > 0) || t !== \"Demo page B\" || !user || user.textContent === '…') return false; if (Number(r.getAttribute('data-jfbm-render')) <= __vars.b.render) return false; return { hash: location.hash, render: Number(r.getAttribute('data-jfbm-render')), reason: r.getAttribute('data-jfbm-reason'), host: r.getAttribute('data-jfbm-host'), params: JSON.parse(r.querySelector('[data-jfbm-demo=\"params\"]').textContent), user: user.textContent, admin: r.querySelector('[data-jfbm-demo=\"admin\"]').textContent, headerTitle: t, documentTitle: document.title, historyLength: history.length }; })()",
+      "save": "forward"
+    },
+    {
+      "sleep": 400
+    },
+    {
+      "name": "probe: probeForward",
+      "eval": "__pagesProbe.summary()",
+      "save": "probeForward"
+    },
+    {
+      "name": "link to this page with extra hash parameters",
+      "click": ".userPreferencesPage:not(.hide) [data-jfbm-page=\"demo-b\"] a[data-jfbm-demo=\"self-params\"]"
+    },
+    {
+      "name": "the parameters reach the page",
+      "waitFor": "(() => { const r = [...document.querySelectorAll(\".userPreferencesPage:not(.hide) [data-jfbm-page=\\\"demo-b\\\"][data-jfbm-mounted]\")].find(x => x.getClientRects().length > 0); const t = (document.querySelector('.skinHeader .pageTitle') || { textContent: '' }).textContent.trim(); const title = r && r.querySelector('.jfbm-demo-title'); const user = r && r.querySelector('[data-jfbm-demo=\"user\"]'); if (!r || !title || title.textContent !== \"Demo page B\" || [...document.querySelectorAll('#fallbackPage > :not([data-jfbm-page]) h1')].some(h => h.getClientRects().length > 0) || t !== \"Demo page B\" || !user || user.textContent === '…') return false; if (JSON.parse(r.querySelector('[data-jfbm-demo=\"params\"]').textContent).tab !== 'two') return false; return { hash: location.hash, render: Number(r.getAttribute('data-jfbm-render')), reason: r.getAttribute('data-jfbm-reason'), host: r.getAttribute('data-jfbm-host'), params: JSON.parse(r.querySelector('[data-jfbm-demo=\"params\"]').textContent), user: user.textContent, admin: r.querySelector('[data-jfbm-demo=\"admin\"]').textContent, headerTitle: t, documentTitle: document.title, historyLength: history.length }; })()",
+      "save": "params"
+    },
+    {
+      "name": "reset the probe",
+      "eval": "__pagesProbe.reset(), true"
+    },
+    {
+      "name": "hard reload of the deep link",
+      "reload": true
+    },
+    {
+      "name": "after reload: Demo page B with its parameters and title",
+      "waitFor": "(() => { const r = [...document.querySelectorAll(\".userPreferencesPage:not(.hide) [data-jfbm-page=\\\"demo-b\\\"][data-jfbm-mounted]\")].find(x => x.getClientRects().length > 0); const t = (document.querySelector('.skinHeader .pageTitle') || { textContent: '' }).textContent.trim(); const title = r && r.querySelector('.jfbm-demo-title'); const user = r && r.querySelector('[data-jfbm-demo=\"user\"]'); if (!r || !title || title.textContent !== \"Demo page B\" || [...document.querySelectorAll('#fallbackPage > :not([data-jfbm-page]) h1')].some(h => h.getClientRects().length > 0) || t !== \"Demo page B\" || !user || user.textContent === '…') return false; if (JSON.parse(r.querySelector('[data-jfbm-demo=\"params\"]').textContent).tab !== 'two') return false; return { hash: location.hash, render: Number(r.getAttribute('data-jfbm-render')), reason: r.getAttribute('data-jfbm-reason'), host: r.getAttribute('data-jfbm-host'), params: JSON.parse(r.querySelector('[data-jfbm-demo=\"params\"]').textContent), user: user.textContent, admin: r.querySelector('[data-jfbm-demo=\"admin\"]').textContent, headerTitle: t, documentTitle: document.title, historyLength: history.length }; })()",
+      "save": "reload"
+    },
+    {
+      "sleep": 400
+    },
+    {
+      "name": "probe: probeReload",
+      "eval": "__pagesProbe.summary()",
+      "save": "probeReload"
+    },
+    {
+      "name": "transitions on our routes: reloadTransitions",
+      "eval": "__pagesProbe.transitions.filter(t => t.loc).map(t => [t.t, t.frames, t.title, t.nf, t.root].join(' | '))",
+      "save": "reloadTransitions"
+    },
+    {
+      "screenshot": "pages-pp-b-reload.png"
+    },
+    {
+      "name": "every navigation above: 0 \"Page not found\" frames on our routes",
+      "assert": "[__vars.probeA, __vars.probeB, __vars.probeBack, __vars.probeForward, __vars.probeReload].every(p => p && p.flashFrames === 0)",
+      "message": "a probe counted \"Page not found\" frames on a demo route"
+    },
+    {
+      "name": "the header never read \"Home\" or \"Page not found\" on our routes",
+      "assert": "[__vars.probeA, __vars.probeB, __vars.probeBack, __vars.probeForward, __vars.probeReload].every(p => p && !('Home' in p.headerTitlesOnOurRoutes) && !('Page not found' in p.headerTitlesOnOurRoutes))",
+      "message": "a demo route showed the title Home or Page not found"
+    },
+    {
+      "name": "no uncaught exceptions",
+      "noExceptions": true,
+      "ignore": "/CustomRatings/script|^Error: player cannot be null"
+    }
+  ]
+}

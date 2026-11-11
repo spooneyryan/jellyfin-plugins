@@ -1,0 +1,426 @@
+{
+  "name": "User Ratings 1.0.2.0, the chip and the Rate button next to Jellyfin Enhanced 12.14: in the je sandbox as admin: ShowDetailButton Auto shows no Rate button on Long Test Movie (no TMDb id, no JE Reviews) and one before More on Tagged Movie, where JE draws its Reviews; Tagged Movie, rated through the API, shows exactly one chip in the desktop and TV layouts (anywhere in the row: JE adds its audio-language item after it); in the TV layout JE's closed Reviews' controls outside its title are out of the focus order (the kit's tvSectionJump, registered by User Ratings, no jump button of ours drawn), the D-pad's Down from Play passes them and reaches the slider, Right along the buttons row reaches Rate and one OK press focuses the slider; opened, their own tabindex is back. JE's Reviews are left closed as found; the admin's rows are deleted at the end; no setting is changed.",
+  "failOnException": false,
+  "timeout": 30000,
+  "steps": [
+    {
+      "name": "the details probe in every document (it watches the section the served script mounts)",
+      "initScript": {
+        "file": "probes/userratings-details-probe.js"
+      }
+    },
+    {
+      "name": "sign in as admin",
+      "login": "admin"
+    },
+    {
+      "name": "desktop layout",
+      "eval": "(localStorage.removeItem('layout'), true)"
+    },
+    {
+      "name": "reload",
+      "reload": true
+    },
+    {
+      "name": "the layout applied, User Ratings 1.0.2.0 started",
+      "waitFor": "document.documentElement.classList.contains('layout-desktop') && !!window.ApiClient && !!ApiClient.getCurrentUserId() && !!(window.__jfkit && window.__jfkit.jfur)",
+      "timeout": 40000
+    },
+    {
+      "name": "the served script is 1.0.2.0",
+      "assert": "window.__jfkit.jfur.version === '1.0.2.0'",
+      "message": "User Ratings 1.0.2.0 is not the script the page loaded"
+    },
+    {
+      "name": "Long Test Movie",
+      "eval": "(await ApiClient.getItems(ApiClient.getCurrentUserId(), { IncludeItemTypes: 'Movie', Recursive: true, SearchTerm: \"Long Test Movie\", Limit: 1 })).Items[0].Id",
+      "save": "movieId"
+    },
+    {
+      "name": "clean: Long Test Movie without a rating of this member",
+      "script": "const r = await __jfurDetails.server('DELETE', 'UserRatings/Items/' + __vars.movieId + '/Mine'); return r.status;",
+      "save": "cleaned"
+    },
+    {
+      "name": "Tagged Movie",
+      "eval": "(await ApiClient.getItems(ApiClient.getCurrentUserId(), { IncludeItemTypes: 'Movie', Recursive: true, SearchTerm: \"Tagged Movie\", Limit: 1 })).Items[0].Id",
+      "save": "taggedId"
+    },
+    {
+      "name": "clean: Tagged Movie without a rating of this member",
+      "script": "const r = await __jfurDetails.server('DELETE', 'UserRatings/Items/' + __vars.taggedId + '/Mine'); return r.status;",
+      "save": "cleaned"
+    },
+    {
+      "name": "Jellyfin Enhanced's version",
+      "eval": "(async () => { const ps = await ApiClient.getJSON(ApiClient.getUrl('Plugins')); const p = ps.find(x => x.Name === 'Jellyfin Enhanced'); return p ? { Version: p.Version, Status: p.Status } : null; })()",
+      "save": "jeVersion",
+      "full": true
+    },
+    {
+      "name": "Jellyfin Enhanced is there",
+      "assert": "!!__vars.jeVersion && !!window.JellyfinEnhanced"
+    },
+    {
+      "name": "Long Test Movie (no TMDb id: no JE Reviews): its details page",
+      "script": "location.hash = '#/details?id=' + __vars.movieId; return true;"
+    },
+    {
+      "name": "Long Test Movie (no TMDb id: no JE Reviews): drawn",
+      "waitFor": "(() => { const p = document.querySelector('#itemDetailPage:not(.hide)'); return !!p && location.hash.indexOf(__vars.movieId) > 0 && !!p.querySelector('.mainDetailButtons .btnPlay:not(.hide)'); })()",
+      "timeout": 30000
+    },
+    {
+      "name": "Long Test Movie (no TMDb id: no JE Reviews): the section mounted for it",
+      "waitFor": "(() => { const s = __jfurDetails.section(); return !!s && s.getAttribute('data-jfur-item') === __vars.movieId && !!s.querySelector('.jfur-summary[data-jfur-summary]'); })()",
+      "timeout": 15000
+    },
+    {
+      "sleep": 400
+    },
+    {
+      "sleep": 3000
+    },
+    {
+      "name": "Long Test Movie: the chip and the Rate button",
+      "eval": "__jfurDetails.extras()",
+      "save": "xJeLong",
+      "full": true
+    },
+    {
+      "name": "Long Test Movie: no JE Reviews, so no Rate button (Auto, a Movie)",
+      "assert": "__vars.xJeLong.jeReviews === 0 && (x => x.rate === null && x.rates === 0)(__vars.xJeLong)"
+    },
+    {
+      "name": "clean: Tagged Movie without a rating of this member",
+      "script": "const r = await __jfurDetails.server('DELETE', 'UserRatings/Items/' + __vars.taggedId + '/Mine'); return r.status;",
+      "save": "cleaned"
+    },
+    {
+      "name": "Tagged Movie: a rating of the admin's through the API (4 stars), so the chip shows",
+      "script": "const r = await __jfurDetails.server('PUT', 'UserRatings/Items/' + __vars.taggedId + '/Mine/Rating', { Stars: 4 }); return r.status;",
+      "save": "jeTaggedPut"
+    },
+    {
+      "name": "Tagged Movie (TMDb id 900001: JE draws its Reviews): its details page",
+      "script": "location.hash = '#/details?id=' + __vars.taggedId; return true;"
+    },
+    {
+      "name": "Tagged Movie (TMDb id 900001: JE draws its Reviews): drawn",
+      "waitFor": "(() => { const p = document.querySelector('#itemDetailPage:not(.hide)'); return !!p && location.hash.indexOf(__vars.taggedId) > 0 && !!p.querySelector('.mainDetailButtons .btnPlay:not(.hide)'); })()",
+      "timeout": 30000
+    },
+    {
+      "name": "Tagged Movie (TMDb id 900001: JE draws its Reviews): the section mounted for it",
+      "waitFor": "(() => { const s = __jfurDetails.section(); return !!s && s.getAttribute('data-jfur-item') === __vars.taggedId && !!s.querySelector('.jfur-summary[data-jfur-summary]'); })()",
+      "timeout": 15000
+    },
+    {
+      "sleep": 400
+    },
+    {
+      "name": "JE's Reviews drawn",
+      "waitFor": "!!document.querySelector('#itemDetailPage:not(.hide) details.tmdb-reviews-section')",
+      "timeout": 20000
+    },
+    {
+      "sleep": 1500
+    },
+    {
+      "name": "Tagged Movie: the chip and the Rate button",
+      "eval": "__jfurDetails.extras()",
+      "save": "xJeTagged",
+      "full": true
+    },
+    {
+      "name": "Tagged Movie: JE's Reviews there, so the Rate button (Auto, a Movie) before More, and no TV jump button of ours on the desktop",
+      "assert": "__vars.xJeTagged.jeReviews === 1 && (x => !!x.rate && x.rates === 1 && x.rate.displayed && x.rate.title === 'Rate' && x.rate.label === 'Rate' && x.rate.beforeMore === true && x.jumps === 0)(__vars.xJeTagged)"
+    },
+    {
+      "name": "Tagged Movie: the chip the server's summary calls for",
+      "eval": "__jfurDetails.expectedChip(__vars.taggedId)",
+      "save": "jeTaggedChip",
+      "full": true
+    },
+    {
+      "name": "Tagged Movie: exactly one chip, the item's, as its summary calls for it (anywhere in the row: JE adds its audio-language item after it)",
+      "assert": "__vars.jeTaggedPut === 200 && ((x, e) => e !== null && !!x.chip && x.chips === 1 && x.chip.item === __vars.taggedId && x.chip.displayed && x.chip.value === e.value && x.chip.label === e.label && x.chip.title === e.label && x.chip.iconWidth > 0)(__vars.xJeTagged, __vars.jeTaggedChip)"
+    },
+    {
+      "name": "JE TV: TV layout",
+      "eval": "(localStorage.setItem('layout', 'tv'), true)"
+    },
+    {
+      "name": "JE TV: reload",
+      "reload": true
+    },
+    {
+      "name": "JE TV: layout-tv, JE's key listener up",
+      "waitFor": "document.documentElement.classList.contains('layout-tv') && !!window.ApiClient && !!ApiClient.getCurrentUserId() && !!(window.__jfkit && window.__jfkit.jfur) && !!window.JellyfinEnhanced && !!window.JellyfinEnhanced.keyListener",
+      "timeout": 40000
+    },
+    {
+      "name": "JE TV: Tagged Movie: its details page",
+      "script": "location.hash = '#/details?id=' + __vars.taggedId; return true;"
+    },
+    {
+      "name": "JE TV: Tagged Movie: drawn",
+      "waitFor": "(() => { const p = document.querySelector('#itemDetailPage:not(.hide)'); return !!p && location.hash.indexOf(__vars.taggedId) > 0 && !!p.querySelector('.mainDetailButtons .btnPlay:not(.hide)'); })()",
+      "timeout": 30000
+    },
+    {
+      "name": "JE TV: Tagged Movie: the section mounted for it",
+      "waitFor": "(() => { const s = __jfurDetails.section(); return !!s && s.getAttribute('data-jfur-item') === __vars.taggedId && !!s.querySelector('.jfur-summary[data-jfur-summary]'); })()",
+      "timeout": 15000
+    },
+    {
+      "sleep": 400
+    },
+    {
+      "name": "JE TV: JE's Reviews drawn",
+      "waitFor": "!!document.querySelector('#itemDetailPage:not(.hide) details.tmdb-reviews-section')",
+      "timeout": 20000
+    },
+    {
+      "sleep": 2500
+    },
+    {
+      "name": "JE TV: JE's closed Reviews and their controls",
+      "eval": "(() => { const d = document.querySelector('#itemDetailPage:not(.hide) details.tmdb-reviews-section'); const s = d.querySelector('summary'); const c = Array.prototype.filter.call(d.querySelectorAll('button, a, input, select, textarea, [tabindex]'), el => !(s && (s === el || s.contains(el)))); return { open: d.hasAttribute('open'), controls: c.length, out: c.filter(el => el.getAttribute('tabindex') === '-1').length, saved: c.filter(el => el.hasAttribute('data-jfkit-je-tabindex')).length }; })()",
+      "save": "jeControls",
+      "full": true
+    },
+    {
+      "name": "JE TV: closed, every control outside its title out of the focus order (the kit's tvSectionJump, which User Ratings registers too)",
+      "assert": "__vars.jeControls.open === false && __vars.jeControls.controls > 0 && __vars.jeControls.out === __vars.jeControls.controls && __vars.jeControls.saved > 0"
+    },
+    {
+      "name": "JE TV: Tagged Movie: the chip and the Rate button",
+      "eval": "__jfurDetails.extras()",
+      "save": "xJeTv",
+      "full": true
+    },
+    {
+      "name": "JE TV: the Rate button, and no jump button of ours (the Rate button is the one way in)",
+      "assert": "(x => !!x.rate && x.rates === 1 && x.rate.displayed && x.rate.title === 'Rate' && x.rate.label === 'Rate' && x.rate.beforeMore === true && x.jumps === 0)(__vars.xJeTv)"
+    },
+    {
+      "name": "JE TV: exactly one chip, the item's",
+      "assert": "((x, e) => e !== null && !!x.chip && x.chips === 1 && x.chip.item === __vars.taggedId && x.chip.displayed && x.chip.value === e.value && x.chip.label === e.label && x.chip.title === e.label && x.chip.iconWidth > 0)(__vars.xJeTv, __vars.jeTaggedChip)"
+    },
+    {
+      "name": "JE TV: Tagged Movie, Down from Play: focus the Play button",
+      "script": "__jfurDetails.log.length = 0; document.querySelector('#itemDetailPage:not(.hide) .mainDetailButtons .btnPlay').focus(); return __jfurDetails.active();"
+    },
+    {
+      "name": "JE TV: Tagged Movie, Down from Play: ArrowDown 1",
+      "key": "ArrowDown",
+      "if": "!__jfurDetails.onSlider()"
+    },
+    {
+      "sleep": 250,
+      "if": "!__jfurDetails.onSlider()"
+    },
+    {
+      "name": "JE TV: Tagged Movie, Down from Play: ArrowDown 2",
+      "key": "ArrowDown",
+      "if": "!__jfurDetails.onSlider()"
+    },
+    {
+      "sleep": 250,
+      "if": "!__jfurDetails.onSlider()"
+    },
+    {
+      "name": "JE TV: Tagged Movie, Down from Play: ArrowDown 3",
+      "key": "ArrowDown",
+      "if": "!__jfurDetails.onSlider()"
+    },
+    {
+      "sleep": 250,
+      "if": "!__jfurDetails.onSlider()"
+    },
+    {
+      "name": "JE TV: Tagged Movie, Down from Play: ArrowDown 4",
+      "key": "ArrowDown",
+      "if": "!__jfurDetails.onSlider()"
+    },
+    {
+      "sleep": 250,
+      "if": "!__jfurDetails.onSlider()"
+    },
+    {
+      "name": "JE TV: Tagged Movie, Down from Play: ArrowDown 5",
+      "key": "ArrowDown",
+      "if": "!__jfurDetails.onSlider()"
+    },
+    {
+      "sleep": 250,
+      "if": "!__jfurDetails.onSlider()"
+    },
+    {
+      "name": "JE TV: Tagged Movie, Down from Play: ArrowDown 6",
+      "key": "ArrowDown",
+      "if": "!__jfurDetails.onSlider()"
+    },
+    {
+      "sleep": 250,
+      "if": "!__jfurDetails.onSlider()"
+    },
+    {
+      "name": "JE TV: Tagged Movie, Down from Play: ArrowDown 7",
+      "key": "ArrowDown",
+      "if": "!__jfurDetails.onSlider()"
+    },
+    {
+      "sleep": 250,
+      "if": "!__jfurDetails.onSlider()"
+    },
+    {
+      "name": "JE TV: Tagged Movie, Down from Play: ArrowDown 8",
+      "key": "ArrowDown",
+      "if": "!__jfurDetails.onSlider()"
+    },
+    {
+      "sleep": 250,
+      "if": "!__jfurDetails.onSlider()"
+    },
+    {
+      "name": "JE TV: Tagged Movie, Down from Play: where the D-pad went",
+      "eval": "({ onSlider: __jfurDetails.onSlider(), active: __jfurDetails.active(), presses: __jfurDetails.log.filter(e => e.kind === 'key-capture' && e.key === 'ArrowDown').length, prevented: __jfurDetails.log.filter(e => e.kind === 'key-bubble' && e.key === 'ArrowDown').map(e => e.prevented), path: __jfurDetails.log.filter(e => e.kind === 'focus').map(f => f.target) })",
+      "save": "jeTvDown",
+      "full": true
+    },
+    {
+      "name": "JE TV: the D-pad passes JE's closed Reviews and reaches the slider, none of the Downs prevented by us",
+      "assert": "__vars.jeTvDown.onSlider === true && __vars.jeTvDown.prevented.every(p => p === false)"
+    },
+    {
+      "name": "JE TV: focus the Play button again",
+      "script": "__jfurDetails.log.length = 0; document.querySelector('#itemDetailPage:not(.hide) .mainDetailButtons .btnPlay').focus(); return __jfurDetails.active();"
+    },
+    {
+      "name": "JE TV: Right 1 (to Rate)",
+      "key": "ArrowRight",
+      "if": "!document.activeElement.classList.contains('jfur-rate')"
+    },
+    {
+      "sleep": 250,
+      "if": "!document.activeElement.classList.contains('jfur-rate')"
+    },
+    {
+      "name": "JE TV: Right 2 (to Rate)",
+      "key": "ArrowRight",
+      "if": "!document.activeElement.classList.contains('jfur-rate')"
+    },
+    {
+      "sleep": 250,
+      "if": "!document.activeElement.classList.contains('jfur-rate')"
+    },
+    {
+      "name": "JE TV: Right 3 (to Rate)",
+      "key": "ArrowRight",
+      "if": "!document.activeElement.classList.contains('jfur-rate')"
+    },
+    {
+      "sleep": 250,
+      "if": "!document.activeElement.classList.contains('jfur-rate')"
+    },
+    {
+      "name": "JE TV: Right 4 (to Rate)",
+      "key": "ArrowRight",
+      "if": "!document.activeElement.classList.contains('jfur-rate')"
+    },
+    {
+      "sleep": 250,
+      "if": "!document.activeElement.classList.contains('jfur-rate')"
+    },
+    {
+      "name": "JE TV: Right 5 (to Rate)",
+      "key": "ArrowRight",
+      "if": "!document.activeElement.classList.contains('jfur-rate')"
+    },
+    {
+      "sleep": 250,
+      "if": "!document.activeElement.classList.contains('jfur-rate')"
+    },
+    {
+      "name": "JE TV: Right 6 (to Rate)",
+      "key": "ArrowRight",
+      "if": "!document.activeElement.classList.contains('jfur-rate')"
+    },
+    {
+      "sleep": 250,
+      "if": "!document.activeElement.classList.contains('jfur-rate')"
+    },
+    {
+      "name": "JE TV: Right 7 (to Rate)",
+      "key": "ArrowRight",
+      "if": "!document.activeElement.classList.contains('jfur-rate')"
+    },
+    {
+      "sleep": 250,
+      "if": "!document.activeElement.classList.contains('jfur-rate')"
+    },
+    {
+      "name": "JE TV: Right 8 (to Rate)",
+      "key": "ArrowRight",
+      "if": "!document.activeElement.classList.contains('jfur-rate')"
+    },
+    {
+      "sleep": 250,
+      "if": "!document.activeElement.classList.contains('jfur-rate')"
+    },
+    {
+      "name": "JE TV: on Rate",
+      "assert": "document.activeElement.classList.contains('jfur-rate')"
+    },
+    {
+      "name": "JE TV: OK on Rate",
+      "key": "Enter"
+    },
+    {
+      "sleep": 800
+    },
+    {
+      "name": "JE TV: one OK press: the slider focused, in view",
+      "assert": "__jfurDetails.onSlider() && (b => b.y >= 0 && b.y + b.h <= window.innerHeight)(__jfurDetails.box(__jfurDetails.slider()))"
+    },
+    {
+      "name": "JE TV: open JE's Reviews (as a member would, its title)",
+      "script": "const d = document.querySelector('#itemDetailPage:not(.hide) details.tmdb-reviews-section'); d.open = true; await new Promise(r => setTimeout(r, 500)); return d.open;"
+    },
+    {
+      "name": "JE TV: opened, its controls' own tabindex back",
+      "eval": "(() => { const d = document.querySelector('#itemDetailPage:not(.hide) details.tmdb-reviews-section'); return { open: d.open, saved: d.querySelectorAll('[data-jfkit-je-tabindex]').length }; })()",
+      "save": "jeOpened",
+      "full": true
+    },
+    {
+      "name": "JE TV: nothing of the kit's left on them",
+      "assert": "__vars.jeOpened.open === true && __vars.jeOpened.saved === 0"
+    },
+    {
+      "name": "JE TV: close JE's Reviews again, as found",
+      "script": "const d = document.querySelector('#itemDetailPage:not(.hide) details.tmdb-reviews-section'); d.open = false; return d.open;"
+    },
+    {
+      "name": "the default layout again",
+      "eval": "(localStorage.removeItem('layout'), true)"
+    },
+    {
+      "name": "clean: Tagged Movie at the end without a rating of this member",
+      "script": "const r = await __jfurDetails.server('DELETE', 'UserRatings/Items/' + __vars.taggedId + '/Mine'); return r.status;",
+      "save": "cleaned"
+    },
+    {
+      "name": "clean: Long Test Movie at the end without a rating of this member",
+      "script": "const r = await __jfurDetails.server('DELETE', 'UserRatings/Items/' + __vars.movieId + '/Mine'); return r.status;",
+      "save": "cleaned"
+    },
+    {
+      "name": "no uncaught exception of ours",
+      "noExceptions": true,
+      "ignore": "/CustomRatings/script|^Error: player cannot be null|JellyfinEnhanced|/JellyfinEnhanced/"
+    }
+  ]
+}

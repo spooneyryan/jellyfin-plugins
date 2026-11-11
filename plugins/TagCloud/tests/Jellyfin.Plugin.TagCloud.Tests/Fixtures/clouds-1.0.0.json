@@ -1,0 +1,147 @@
+{
+  "Version": 1,
+  "KnownUsers": {
+    "a11ce000000040008000000000000001": "alice",
+    "b0b00000000040008000000000000002": "bob"
+  },
+  "Clouds": [
+    {
+      "Id": "739f7791-fb16-4db6-8379-bdd1bb5df042",
+      "OwnerId": "b0b00000-0000-4000-8000-000000000002",
+      "Name": "Genres \u2014 caf\u00E9 \u2702 \u65E5\u672C\u8A9E",
+      "Shared": false,
+      "OwnerDeleted": false,
+      "CreatedUtc": "2026-10-29T20:15:00Z",
+      "UpdatedUtc": "2026-10-29T20:15:00Z",
+      "Source": "Genres",
+      "Scope": "Shows",
+      "LibraryIds": [
+        "5e0e5000-0000-4000-8000-0000000000bb"
+      ],
+      "NarrowKeys": [],
+      "Look": {
+        "MaxWords": 100,
+        "Arrangement": "Packed",
+        "Order": "Centered",
+        "Shape": "Wide",
+        "Seed": 0,
+        "SizeMixing": 0,
+        "WordSpacing": 0.5,
+        "LineSpacing": 0.25,
+        "TextCase": "AsIs",
+        "Font": "Theme",
+        "MinFontSize": 0.85,
+        "MaxFontSize": 4,
+        "Scale": "SquareRoot",
+        "Palette": "Pastel",
+        "ColorBy": "Word",
+        "Background": "Paper"
+      }
+    },
+    {
+      "Id": "98e0b7b1-99ee-47dd-88c6-67431e391070",
+      "OwnerId": "a11ce000-0000-4000-8000-000000000001",
+      "Name": "Movie tags",
+      "Shared": false,
+      "OwnerDeleted": false,
+      "CreatedUtc": "2026-10-29T20:15:00Z",
+      "UpdatedUtc": "2026-10-29T20:15:00Z",
+      "Source": "Tags",
+      "Scope": "Movies",
+      "LibraryIds": [],
+      "NarrowKeys": [],
+      "Look": {
+        "MaxWords": 100,
+        "Arrangement": "Packed",
+        "Order": "Centered",
+        "Shape": "Wide",
+        "Seed": 0,
+        "SizeMixing": 0,
+        "WordSpacing": 0.5,
+        "LineSpacing": 0.25,
+        "TextCase": "AsIs",
+        "Font": "Theme",
+        "MinFontSize": 0.85,
+        "MaxFontSize": 4,
+        "Scale": "SquareRoot",
+        "Palette": "Theme",
+        "ColorBy": "Word",
+        "Background": "Theme"
+      }
+    },
+    {
+      "Id": "9da7f261-0e0b-4505-9804-b60f5fec07a2",
+      "OwnerId": "b0b00000-0000-4000-8000-000000000002",
+      "Name": "Heists, by actor (copy)",
+      "Shared": false,
+      "OwnerDeleted": false,
+      "CreatedUtc": "2026-10-29T20:15:00Z",
+      "UpdatedUtc": "2026-10-29T20:15:00Z",
+      "Source": "Actors",
+      "Scope": "Both",
+      "LibraryIds": [
+        "f137a2c0-0000-4000-8000-0000000000aa",
+        "5e0e5000-0000-4000-8000-0000000000bb"
+      ],
+      "NarrowKeys": [
+        "heist",
+        "los angeles, california"
+      ],
+      "Look": {
+        "MaxWords": 250,
+        "Arrangement": "Flow",
+        "Order": "Shuffled",
+        "Shape": "Square",
+        "Seed": 42,
+        "SizeMixing": 0.6,
+        "WordSpacing": 0.5,
+        "LineSpacing": 0.25,
+        "TextCase": "Upper",
+        "Font": "Impact",
+        "MinFontSize": 0.85,
+        "MaxFontSize": 4,
+        "Scale": "Logarithmic",
+        "Palette": "Sunset",
+        "ColorBy": "Weight",
+        "Background": "Midnight"
+      }
+    },
+    {
+      "Id": "c479af2d-81f0-474d-98b1-3524b58522c0",
+      "OwnerId": "a11ce000-0000-4000-8000-000000000001",
+      "Name": "Heists, by actor",
+      "Shared": true,
+      "OwnerDeleted": false,
+      "CreatedUtc": "2026-10-29T20:15:00Z",
+      "UpdatedUtc": "2026-10-29T20:15:00Z",
+      "Source": "Actors",
+      "Scope": "Both",
+      "LibraryIds": [
+        "f137a2c0-0000-4000-8000-0000000000aa",
+        "5e0e5000-0000-4000-8000-0000000000bb"
+      ],
+      "NarrowKeys": [
+        "heist",
+        "los angeles, california"
+      ],
+      "Look": {
+        "MaxWords": 250,
+        "Arrangement": "Flow",
+        "Order": "Shuffled",
+        "Shape": "Square",
+        "Seed": 42,
+        "SizeMixing": 0.6,
+        "WordSpacing": 0.5,
+        "LineSpacing": 0.25,
+        "TextCase": "Upper",
+        "Font": "Impact",
+        "MinFontSize": 0.85,
+        "MaxFontSize": 4,
+        "Scale": "Logarithmic",
+        "Palette": "Sunset",
+        "ColorBy": "Weight",
+        "Background": "Midnight"
+      }
+    }
+  ]
+}

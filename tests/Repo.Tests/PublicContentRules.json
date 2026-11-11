@@ -1,0 +1,29 @@
+{
+  "about": [
+    "What may not appear in the repository's files. PublicContentGuardTests reads this file and checks every file under the",
+    "roots below. Each rule is a .NET regular expression run on each file and on its path; a hit fails the test with its",
+    "file and line. A rule's allowValue is a regular expression for the matched texts (its 'v' group when it has one) that",
+    "are fine anywhere; allowAt lists, per file, a regular expression the whole match must match to be fine there. The test",
+    "also applies the rules of an optional local rules file of the same schema when one is present."
+  ],
+  "roots": [
+    ".editorconfig", ".gitattributes", ".gitignore", "Directory.Build.props", "Directory.Build.targets",
+    "Directory.Packages.props", "LICENSE", "README.md", "DEVELOPMENT.md", "jellyfin-plugins.slnx", "nuget.config",
+    "manifest.json", ".github", "branding", "kit", "plugins", "scripts", "tests"
+  ],
+  "skipDirectories": [ "bin", "obj", ".sandbox", "artifacts", "node_modules", "TestResults", ".vs", ".idea", ".git" ],
+  "rules": [
+    {
+      "id": "windows-user-path",
+      "why": "A Windows profile path names a user. '..' and '.' are path-traversal test inputs (C:\\Users\\..\\ProgramData resolves to ProgramData) and the rest are the generic profile names Windows itself has or a documented placeholder, none of them a person.",
+      "pattern": "(?i)(?<![A-Za-z])(?:[A-Z]:|/[a-z])(?:\\\\|/)+Users(?:\\\\|/)+(?<v>[^\\\\/\\s\"'`<>|:*?]+)",
+      "allowValue": "(?i)^(?:\\.\\.?|Public|Default|%USERNAME%|USERNAME|you|user|example)$"
+    },
+    {
+      "id": "email",
+      "why": "An e-mail address. Allowed: the commit attribution address and the reserved example domains (RFC 2606/6761: example.com/.net/.org, .example, .invalid, .test, .localhost).",
+      "pattern": "(?<![A-Za-z0-9._%+-])[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\\.[A-Za-z0-9-]+)*\\.[A-Za-z]{2,}\\b",
+      "allowValue": "(?i)^(?:noreply@anthropic\\.com|[^@]+@(?:[a-z0-9-]+\\.)*(?:example\\.(?:com|net|org)|example|invalid|test|localhost))$"
+    }
+  ]
+}

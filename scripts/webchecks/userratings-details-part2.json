@@ -1,0 +1,1548 @@
+{
+  "name": "User Ratings 1.0.2.0, spoilers, drafts and who may rate: in the default sandbox, in four browser contexts (viewer, a second window of viewer, viewer2, admin): a review marked as a spoiler is out of the page until Show spoiler (window.find doesn't find it; a blur with no text in its place) and out again after Hide spoiler; the form's \"Contains spoilers\" sent and kept by Edit, the own card saying it, viewer2 seeing it hidden; the 409 with two windows: its panel shows the review as it is now (a spoiler there hidden until asked), Reload puts the other window's text in the form and keeps this one's beside it, \"Use my text\" swaps them, Save sends the newer review's time; Overwrite sends the review time of the row its panel shows, with no read of its own, so a save made after the panel was shown is a 409 again with the newer text shown, then Overwrite saves; drafts: saved after a pause under jfur:draft:<user>:<item>, kept across another item and Back, a reload, and TV Back pressed from inside the text area (written at once), put back with Discard, removed at sign-out; selected raters after setting WhoCanRate = SelectedUsers (viewer only) through POST /Plugins/{id}/Configuration: viewer2 sees read-only stars with \"Rating is limited to selected members.\" and no tab stop there, gets 403 from PUT Mine/Rating, still reads viewer's review, deletes an older own row, and rates again once All users is set back, nothing else changed; in the TV layout, taken out of the raters while on the page, a rating's 403 turns the focused slider into the read-only stars, which take the focus (never the page's body), and the page shown again (visibilitychange) reads the item and gives the slider the focus back once viewer2 may rate (on the TV, never the page's body); RequirePlayedToRate: the disabled slider with its note on an unplayed item, a tab stop, nothing sent; ReadOnly (the probe's answer) the disabled slider with its note. The settings are put back to the defaults and every row of the run deleted at the end.",
+  "failOnException": false,
+  "timeout": 30000,
+  "steps": [
+    {
+      "name": "the details probe in every document (it watches the section the served script mounts)",
+      "initScript": {
+        "file": "probes/userratings-details-probe.js"
+      }
+    },
+    {
+      "name": "sign in as viewer",
+      "login": "viewer"
+    },
+    {
+      "name": "desktop layout",
+      "eval": "(localStorage.removeItem('layout'), true)"
+    },
+    {
+      "name": "reload",
+      "reload": true
+    },
+    {
+      "name": "the layout applied, User Ratings 1.0.2.0 started",
+      "waitFor": "document.documentElement.classList.contains('layout-desktop') && !!window.ApiClient && !!ApiClient.getCurrentUserId() && !!(window.__jfkit && window.__jfkit.jfur)",
+      "timeout": 40000
+    },
+    {
+      "name": "the served script is 1.0.2.0",
+      "assert": "window.__jfkit.jfur.version === '1.0.2.0'",
+      "message": "User Ratings 1.0.2.0 is not the script the page loaded"
+    },
+    {
+      "name": "Long Test Movie",
+      "eval": "(await ApiClient.getItems(ApiClient.getCurrentUserId(), { IncludeItemTypes: 'Movie', Recursive: true, SearchTerm: \"Long Test Movie\", Limit: 1 })).Items[0].Id",
+      "save": "movieId"
+    },
+    {
+      "name": "clean: Long Test Movie without a rating of this member",
+      "script": "const r = await __jfurDetails.server('DELETE', 'UserRatings/Items/' + __vars.movieId + '/Mine'); return r.status;",
+      "save": "cleaned"
+    },
+    {
+      "name": "Tagged Movie",
+      "eval": "(await ApiClient.getItems(ApiClient.getCurrentUserId(), { IncludeItemTypes: 'Movie', Recursive: true, SearchTerm: \"Tagged Movie\", Limit: 1 })).Items[0].Id",
+      "save": "taggedId"
+    },
+    {
+      "name": "clean: Tagged Movie without a rating of this member",
+      "script": "const r = await __jfurDetails.server('DELETE', 'UserRatings/Items/' + __vars.taggedId + '/Mine'); return r.status;",
+      "save": "cleaned"
+    },
+    {
+      "name": "admin: a browser context of its own",
+      "context": "admin"
+    },
+    {
+      "name": "admin: the details probe there too",
+      "initScript": {
+        "file": "probes/userratings-details-probe.js"
+      }
+    },
+    {
+      "name": "admin: sign in as admin",
+      "login": "admin"
+    },
+    {
+      "name": "admin: desktop layout",
+      "eval": "(localStorage.removeItem('layout'), true)"
+    },
+    {
+      "name": "admin: reload",
+      "reload": true
+    },
+    {
+      "name": "admin: User Ratings 1.0.2.0 started",
+      "waitFor": "!!window.ApiClient && !!ApiClient.getCurrentUserId() && !!(window.__jfkit && window.__jfkit.jfur)",
+      "timeout": 40000
+    },
+    {
+      "name": "admin: viewer's id",
+      "eval": "(await ApiClient.getUsers()).find(u => u.Name === 'viewer').Id",
+      "save": "viewerId"
+    },
+    {
+      "name": "admin: who can rate: all users, no played rule (the defaults, whatever an earlier run left) (POST /Plugins/{id}/Configuration)",
+      "script": "const c = await ApiClient.getPluginConfiguration('f53c7c34-8cba-4846-b43b-956816b2f6ae'); const before = { WhoCanRate: c.WhoCanRate, RaterUserIds: c.RaterUserIds, RequirePlayedToRate: c.RequirePlayedToRate }; await ApiClient.updatePluginConfiguration('f53c7c34-8cba-4846-b43b-956816b2f6ae', Object.assign(c, { WhoCanRate: 'AllUsers', RaterUserIds: [], RequirePlayedToRate: false })); const b = await ApiClient.getPluginConfiguration('f53c7c34-8cba-4846-b43b-956816b2f6ae'); return { before, WhoCanRate: b.WhoCanRate, RaterUserIds: b.RaterUserIds, RequirePlayedToRate: b.RequirePlayedToRate };",
+      "save": "cfgStart",
+      "full": true
+    },
+    {
+      "name": "admin: the defaults in place",
+      "assert": "__vars.cfgStart.WhoCanRate === 'AllUsers' && __vars.cfgStart.RaterUserIds.length === 0 && __vars.cfgStart.RequirePlayedToRate === false"
+    },
+    {
+      "name": "other: a browser context of its own",
+      "context": "other"
+    },
+    {
+      "name": "other: the details probe there too",
+      "initScript": {
+        "file": "probes/userratings-details-probe.js"
+      }
+    },
+    {
+      "name": "other: sign in as viewer2",
+      "login": "viewer2"
+    },
+    {
+      "name": "other: desktop layout",
+      "eval": "(localStorage.removeItem('layout'), true)"
+    },
+    {
+      "name": "other: reload",
+      "reload": true
+    },
+    {
+      "name": "other: User Ratings 1.0.2.0 started",
+      "waitFor": "!!window.ApiClient && !!ApiClient.getCurrentUserId() && !!(window.__jfkit && window.__jfkit.jfur)",
+      "timeout": 40000
+    },
+    {
+      "name": "clean: Long Test Movie (viewer2) without a rating of this member",
+      "script": "const r = await __jfurDetails.server('DELETE', 'UserRatings/Items/' + __vars.movieId + '/Mine'); return r.status;",
+      "save": "cleaned"
+    },
+    {
+      "name": "clean: Tagged Movie (viewer2) without a rating of this member",
+      "script": "const r = await __jfurDetails.server('DELETE', 'UserRatings/Items/' + __vars.taggedId + '/Mine'); return r.status;",
+      "save": "cleaned"
+    },
+    {
+      "name": "viewer2: 4 stars and a review marked as a spoiler, through the API",
+      "script": "const a = await __jfurDetails.server('PUT', 'UserRatings/Items/' + __vars.movieId + '/Mine/Rating', { Stars: 4 }); const b = await __jfurDetails.server('PUT', 'UserRatings/Items/' + __vars.movieId + '/Mine/Review', { Text: \"SPOILER-MARK the twist is that the narrator was the lighthouse.\", IsSpoiler: true }); return [a.status, b.status];",
+      "save": "spoilerSeed"
+    },
+    {
+      "name": "viewer2: saved",
+      "assert": "__vars.spoilerSeed[0] === 200 && __vars.spoilerSeed[1] === 200"
+    },
+    {
+      "name": "viewer's window",
+      "context": "main"
+    },
+    {
+      "name": "spoilers: Long Test Movie: its details page",
+      "script": "location.hash = '#/details?id=' + __vars.movieId; return true;"
+    },
+    {
+      "name": "spoilers: Long Test Movie: drawn",
+      "waitFor": "(() => { const p = document.querySelector('#itemDetailPage:not(.hide)'); return !!p && location.hash.indexOf(__vars.movieId) > 0 && !!p.querySelector('.mainDetailButtons .btnPlay:not(.hide)'); })()",
+      "timeout": 30000
+    },
+    {
+      "name": "spoilers: Long Test Movie: the section mounted for it",
+      "waitFor": "(() => { const s = __jfurDetails.section(); return !!s && s.getAttribute('data-jfur-item') === __vars.movieId && !!s.querySelector('.jfur-summary[data-jfur-summary]'); })()",
+      "timeout": 15000
+    },
+    {
+      "sleep": 400
+    },
+    {
+      "name": "spoilers: the section",
+      "eval": "__jfurDetails.state()",
+      "save": "sp",
+      "full": true
+    },
+    {
+      "name": "spoilers: viewer2's row marked; its text nowhere in the page (window.find, the text of the page)",
+      "assert": "__vars.sp.spoilerRows.length === 1 && !__jfurDetails.findable('the narrator was the lighthouse')"
+    },
+    {
+      "name": "spoilers: its place",
+      "eval": "(() => { const r = __jfurDetails.section().querySelector('.jfur-spoiler-toggle').closest('.jfur-review'); const b = r.querySelector('.jfur-spoiler-blur'); return { blur: !!b, hidden: b && b.getAttribute('aria-hidden'), text: b && b.textContent, filter: b && getComputedStyle(b).filter, lines: b ? b.querySelectorAll('.jfur-spoiler-line').length : 0, reviewText: !!r.querySelector('.jfur-review-text'), toggle: r.querySelector('.jfur-spoiler-toggle').textContent }; })()",
+      "save": "blur",
+      "full": true
+    },
+    {
+      "name": "spoilers: a blur with no text (aria-hidden), the real text not in the page, \"Show spoiler\"",
+      "assert": "__vars.blur.blur && __vars.blur.hidden === 'true' && __vars.blur.text === '' && /blur\\(/.test(__vars.blur.filter) && __vars.blur.lines >= 1 && !__vars.blur.reviewText && __vars.blur.toggle === 'Show spoiler'"
+    },
+    {
+      "name": "spoilers: Show spoiler",
+      "click": "#itemDetailPage:not(.hide) .jfur-section .jfur-spoiler-toggle"
+    },
+    {
+      "sleep": 200
+    },
+    {
+      "name": "spoilers: the text in the page now, the button \"Hide spoiler\" and expanded",
+      "assert": "__jfurDetails.findable('the narrator was the lighthouse') && __jfurDetails.section().querySelector('.jfur-spoiler-toggle').getAttribute('aria-expanded') === 'true' && __jfurDetails.section().querySelector('.jfur-spoiler-toggle').textContent === 'Hide spoiler'"
+    },
+    {
+      "name": "spoilers: Hide spoiler",
+      "click": "#itemDetailPage:not(.hide) .jfur-section .jfur-spoiler-toggle"
+    },
+    {
+      "sleep": 200
+    },
+    {
+      "name": "spoilers: out of the page again",
+      "assert": "!__jfurDetails.findable('the narrator was the lighthouse') && !!__jfurDetails.section().querySelector('.jfur-spoiler-blur')"
+    },
+    {
+      "name": "flag: Write a review",
+      "click": "#itemDetailPage:not(.hide) .jfur-section .jfur-write"
+    },
+    {
+      "sleep": 300
+    },
+    {
+      "name": "flag: \"Contains spoilers\", not ticked",
+      "assert": "__jfurDetails.state().formSpoiler === false && __jfurDetails.section().querySelector('.jfur-review-spoiler-field').textContent === 'Contains spoilers'"
+    },
+    {
+      "name": "flag: type",
+      "type": "A synthetic review that gives the ending away."
+    },
+    {
+      "name": "flag: tick Contains spoilers",
+      "click": "#itemDetailPage:not(.hide) .jfur-section .jfur-review-form input.jfur-review-spoiler"
+    },
+    {
+      "name": "flag: ticked",
+      "assert": "__jfurDetails.state().formSpoiler === true"
+    },
+    {
+      "name": "flag Save: mark",
+      "script": "window.__mark = __jfurDetails.requests.length; window.__keys = __jfurDetails.log.length; return true;"
+    },
+    {
+      "name": "flag: Save",
+      "click": "#itemDetailPage:not(.hide) .jfur-section .jfur-review-save"
+    },
+    {
+      "sleep": 900
+    },
+    {
+      "name": "flag Save: the section's requests since",
+      "eval": "__jfurDetails.since(window.__mark)",
+      "save": "flagRequests",
+      "full": true
+    },
+    {
+      "name": "flag: what was sent",
+      "eval": "(__jfurDetails.requests.filter(r => r.method === 'PUT' && /Mine\\/Review$/.test(r.path)).pop() || { body: null }).body",
+      "save": "flagBody",
+      "full": true
+    },
+    {
+      "name": "flag: after Save",
+      "eval": "__jfurDetails.state()",
+      "save": "afterFlag",
+      "full": true
+    },
+    {
+      "name": "flag: IsSpoiler true sent and saved, the own card says \"Contains spoilers\"",
+      "assert": "__vars.flagRequests.length === 1 && / 200$/.test(__vars.flagRequests[0]) && __vars.flagBody.IsSpoiler === true && __vars.afterFlag.ownSpoiler && !__vars.afterFlag.form"
+    },
+    {
+      "name": "flag: Edit",
+      "click": "#itemDetailPage:not(.hide) .jfur-section .jfur-own-edit"
+    },
+    {
+      "sleep": 300
+    },
+    {
+      "name": "flag: Edit keeps the row's flag",
+      "assert": "__jfurDetails.state().formSpoiler === true"
+    },
+    {
+      "name": "flag: Cancel",
+      "click": "#itemDetailPage:not(.hide) .jfur-section .jfur-review-cancel"
+    },
+    {
+      "name": "viewer2's window",
+      "context": "other"
+    },
+    {
+      "name": "viewer2 on Long Test Movie: its details page",
+      "script": "location.hash = '#/details?id=' + __vars.movieId; return true;"
+    },
+    {
+      "name": "viewer2 on Long Test Movie: drawn",
+      "waitFor": "(() => { const p = document.querySelector('#itemDetailPage:not(.hide)'); return !!p && location.hash.indexOf(__vars.movieId) > 0 && !!p.querySelector('.mainDetailButtons .btnPlay:not(.hide)'); })()",
+      "timeout": 30000
+    },
+    {
+      "name": "viewer2 on Long Test Movie: the section mounted for it",
+      "waitFor": "(() => { const s = __jfurDetails.section(); return !!s && s.getAttribute('data-jfur-item') === __vars.movieId && !!s.querySelector('.jfur-summary[data-jfur-summary]'); })()",
+      "timeout": 15000
+    },
+    {
+      "sleep": 400
+    },
+    {
+      "name": "viewer2: the section",
+      "eval": "__jfurDetails.state()",
+      "save": "v2",
+      "full": true
+    },
+    {
+      "name": "viewer2: viewer's review marked as a spoiler, its text not in the page",
+      "assert": "__vars.v2.spoilerRows.length === 1 && !__jfurDetails.findable('gives the ending away')"
+    },
+    {
+      "name": "back to viewer's window (A)",
+      "context": "main"
+    },
+    {
+      "name": "409: Edit in window A",
+      "click": "#itemDetailPage:not(.hide) .jfur-section .jfur-own-edit"
+    },
+    {
+      "sleep": 300
+    },
+    {
+      "name": "409: the caret at the end",
+      "script": "const a = document.activeElement; a.selectionStart = a.selectionEnd = a.value.length; return a.tagName;"
+    },
+    {
+      "name": "409: window A types",
+      "type": " Window A adds this."
+    },
+    {
+      "name": "window-b: a browser context of its own",
+      "context": "window-b"
+    },
+    {
+      "name": "window-b: the details probe there too",
+      "initScript": {
+        "file": "probes/userratings-details-probe.js"
+      }
+    },
+    {
+      "name": "window-b: sign in as viewer",
+      "login": "viewer"
+    },
+    {
+      "name": "window-b: desktop layout",
+      "eval": "(localStorage.removeItem('layout'), true)"
+    },
+    {
+      "name": "window-b: reload",
+      "reload": true
+    },
+    {
+      "name": "window-b: User Ratings 1.0.2.0 started",
+      "waitFor": "!!window.ApiClient && !!ApiClient.getCurrentUserId() && !!(window.__jfkit && window.__jfkit.jfur)",
+      "timeout": 40000
+    },
+    {
+      "name": "409: window B: its details page",
+      "script": "location.hash = '#/details?id=' + __vars.movieId; return true;"
+    },
+    {
+      "name": "409: window B: drawn",
+      "waitFor": "(() => { const p = document.querySelector('#itemDetailPage:not(.hide)'); return !!p && location.hash.indexOf(__vars.movieId) > 0 && !!p.querySelector('.mainDetailButtons .btnPlay:not(.hide)'); })()",
+      "timeout": 30000
+    },
+    {
+      "name": "409: window B: the section mounted for it",
+      "waitFor": "(() => { const s = __jfurDetails.section(); return !!s && s.getAttribute('data-jfur-item') === __vars.movieId && !!s.querySelector('.jfur-summary[data-jfur-summary]'); })()",
+      "timeout": 15000
+    },
+    {
+      "sleep": 400
+    },
+    {
+      "name": "409: Edit in window B",
+      "click": "#itemDetailPage:not(.hide) .jfur-section .jfur-own-edit"
+    },
+    {
+      "sleep": 300
+    },
+    {
+      "name": "409: window B selects its text",
+      "script": "const a = document.activeElement; a.select(); return a.tagName;"
+    },
+    {
+      "name": "409: window B types over it",
+      "type": "WINDOW B TEXT"
+    },
+    {
+      "name": "409: window B saves",
+      "click": "#itemDetailPage:not(.hide) .jfur-section .jfur-review-save"
+    },
+    {
+      "sleep": 900
+    },
+    {
+      "name": "the server: after window B saved",
+      "eval": "__jfurDetails.mine(__vars.movieId)",
+      "save": "afterB",
+      "full": true
+    },
+    {
+      "name": "409: window B saved",
+      "assert": "__vars.afterB.text === 'WINDOW B TEXT'"
+    },
+    {
+      "name": "window A",
+      "context": "main"
+    },
+    {
+      "name": "409 Save: mark",
+      "script": "window.__mark = __jfurDetails.requests.length; window.__keys = __jfurDetails.log.length; return true;"
+    },
+    {
+      "name": "409: window A saves",
+      "click": "#itemDetailPage:not(.hide) .jfur-section .jfur-review-save"
+    },
+    {
+      "sleep": 900
+    },
+    {
+      "name": "409 Save: the section's requests since",
+      "eval": "__jfurDetails.since(window.__mark)",
+      "save": "a409",
+      "full": true
+    },
+    {
+      "name": "409: after window A's Save",
+      "eval": "__jfurDetails.state()",
+      "save": "afterA409",
+      "full": true
+    },
+    {
+      "name": "409: a 409, the form kept with Reload, the focus on Reload; window B's text on the server; the item read for the 409's panel",
+      "assert": "__vars.a409.length === 2 && / 409$/.test(__vars.a409[0]) && __vars.a409[1] === 'GET /UserRatings/Items/' + __vars.movieId + ' 200' && __vars.afterA409.conflict && __vars.afterA409.formText === 'A synthetic review that gives the ending away. Window A adds this.' && document.activeElement.matches('#itemDetailPage:not(.hide) .jfur-section .jfur-conflict-reload')"
+    },
+    {
+      "name": "409: the panel shows window B's review as it is now, a spoiler (window B kept the row's flag), so hidden until asked; Overwrite shown",
+      "assert": "(c => !!c && c.label === 'Your review as it is now:' && c.spoiler && c.text === null && c.editable === 0)(__vars.afterA409.conflictPanel) && __vars.afterA409.overwrite && !__jfurDetails.findable('WINDOW B TEXT')"
+    },
+    {
+      "name": "409: Reload (Enter on it)",
+      "key": "Enter"
+    },
+    {
+      "sleep": 900
+    },
+    {
+      "name": "409: after Reload",
+      "eval": "__jfurDetails.state()",
+      "save": "reloaded",
+      "full": true
+    },
+    {
+      "name": "409: Reload: window B's text in the form, window A's beside it (\"Your text, not saved\"), the draft holding both",
+      "assert": "__vars.reloaded.formText === 'WINDOW B TEXT' && __vars.reloaded.kept.length === 1 && __vars.reloaded.kept[0].label === 'Your text, not saved' && __vars.reloaded.kept[0].text === 'A synthetic review that gives the ending away. Window A adds this.' && __vars.reloaded.formSpoiler === true && Object.keys(__jfurDetails.storage()).filter(k => k.indexOf('jfur:draft:') === 0).length === 1 && JSON.parse(localStorage.getItem(Object.keys(__jfurDetails.storage()).filter(k => k.indexOf('jfur:draft:') === 0)[0])).kept.length === 1"
+    },
+    {
+      "name": "409: Use my text",
+      "click": "#itemDetailPage:not(.hide) .jfur-section .jfur-aside-use"
+    },
+    {
+      "name": "409: after Use my text",
+      "eval": "__jfurDetails.state()",
+      "save": "swapped",
+      "full": true
+    },
+    {
+      "name": "409: window A's text in the form, window B's beside it",
+      "assert": "__vars.swapped.formText === 'A synthetic review that gives the ending away. Window A adds this.' && __vars.swapped.kept.length === 1 && __vars.swapped.kept[0].text === 'WINDOW B TEXT' && __vars.swapped.kept[0].label === 'Your review as saved in the other window' && __vars.swapped.kept[0].use === 'Use that text'"
+    },
+    {
+      "name": "409 Save after Reload: mark",
+      "script": "window.__mark = __jfurDetails.requests.length; window.__keys = __jfurDetails.log.length; return true;"
+    },
+    {
+      "name": "409: Save",
+      "click": "#itemDetailPage:not(.hide) .jfur-section .jfur-review-save"
+    },
+    {
+      "sleep": 900
+    },
+    {
+      "name": "409 Save after Reload: the section's requests since",
+      "eval": "__jfurDetails.since(window.__mark)",
+      "save": "afterReloadSave",
+      "full": true
+    },
+    {
+      "name": "409: what Save sent",
+      "eval": "(__jfurDetails.requests.filter(r => r.method === 'PUT' && /Mine\\/Review$/.test(r.path)).pop() || { body: null }).body",
+      "save": "reloadBody",
+      "full": true
+    },
+    {
+      "name": "the server: after the Save after Reload",
+      "eval": "__jfurDetails.mine(__vars.movieId)",
+      "save": "reloadSaved",
+      "full": true
+    },
+    {
+      "name": "409: Save after Reload sent window B's review time and went through; window A's text saved; the draft gone",
+      "assert": "__vars.afterReloadSave.length === 1 && / 200$/.test(__vars.afterReloadSave[0]) && __vars.reloadBody.IfReviewUpdatedUtc === __vars.afterB.reviewUpdated && __vars.reloadSaved.text === 'A synthetic review that gives the ending away. Window A adds this.' && Object.keys(__jfurDetails.storage()).filter(k => k.indexOf('jfur:draft:') === 0).length === 0"
+    },
+    {
+      "name": "Overwrite: Edit in window A",
+      "click": "#itemDetailPage:not(.hide) .jfur-section .jfur-own-edit"
+    },
+    {
+      "sleep": 300
+    },
+    {
+      "name": "Overwrite: the caret at the end",
+      "script": "const a = document.activeElement; a.selectionStart = a.selectionEnd = a.value.length; return a.tagName;"
+    },
+    {
+      "name": "Overwrite: window A types",
+      "type": " Overwrite."
+    },
+    {
+      "name": "window B again",
+      "context": "window-b"
+    },
+    {
+      "name": "Overwrite: window B saves its review again (through the API, as another window does)",
+      "script": "const m = await __jfurDetails.mine(__vars.movieId); const r = await __jfurDetails.server('PUT', 'UserRatings/Items/' + __vars.movieId + '/Mine/Review', { Text: 'WINDOW B AGAIN', IsSpoiler: false, IfUpdatedUtc: m.updated }); return r.status;",
+      "save": "bAgain"
+    },
+    {
+      "name": "the server: after window B again",
+      "eval": "__jfurDetails.mine(__vars.movieId)",
+      "save": "afterBAgain",
+      "full": true
+    },
+    {
+      "name": "window A once more",
+      "context": "main"
+    },
+    {
+      "name": "Overwrite: mark",
+      "script": "window.__mark = __jfurDetails.requests.length; window.__keys = __jfurDetails.log.length; return true;"
+    },
+    {
+      "name": "Overwrite: window A saves (409)",
+      "click": "#itemDetailPage:not(.hide) .jfur-section .jfur-review-save"
+    },
+    {
+      "sleep": 900
+    },
+    {
+      "name": "Overwrite: the 409",
+      "eval": "__jfurDetails.state()",
+      "save": "ow409",
+      "full": true
+    },
+    {
+      "name": "Overwrite: the panel shows \"WINDOW B AGAIN\", isolated, read-only, and Overwrite",
+      "assert": "(c => !!c && c.label === 'Your review as it is now:' && c.text === 'WINDOW B AGAIN' && c.dir === 'auto' && !c.spoiler && c.editable === 0)(__vars.ow409.conflictPanel) && __vars.ow409.overwrite"
+    },
+    {
+      "name": "window B, a third time",
+      "context": "window-b"
+    },
+    {
+      "name": "Overwrite: window B saves once more while window A shows the 409 (through the API)",
+      "script": "const m = await __jfurDetails.mine(__vars.movieId); const r = await __jfurDetails.server('PUT', 'UserRatings/Items/' + __vars.movieId + '/Mine/Review', { Text: 'WINDOW B THIRD', IsSpoiler: false, IfReviewUpdatedUtc: m.reviewUpdated }); return r.status;",
+      "save": "bThird"
+    },
+    {
+      "name": "the server: after window B's third save",
+      "eval": "__jfurDetails.mine(__vars.movieId)",
+      "save": "afterBThird",
+      "full": true
+    },
+    {
+      "name": "window A, with the 409 shown",
+      "context": "main"
+    },
+    {
+      "name": "Overwrite: Overwrite (the review shown is no longer the newest)",
+      "click": "#itemDetailPage:not(.hide) .jfur-section .jfur-conflict-overwrite"
+    },
+    {
+      "sleep": 1200
+    },
+    {
+      "name": "Overwrite: after the first Overwrite",
+      "eval": "__jfurDetails.state()",
+      "save": "ow409Again",
+      "full": true
+    },
+    {
+      "name": "the server: after the first Overwrite",
+      "eval": "__jfurDetails.mine(__vars.movieId)",
+      "save": "afterFirstOverwrite",
+      "full": true
+    },
+    {
+      "name": "Overwrite: a 409 again, nothing overwritten, the panel now showing \"WINDOW B THIRD\"; window A's text still in its form",
+      "assert": "__vars.bThird === 200 && __vars.afterFirstOverwrite.text === 'WINDOW B THIRD' && (c => !!c && c.text === 'WINDOW B THIRD')(__vars.ow409Again.conflictPanel) && __vars.ow409Again.overwrite && __vars.ow409Again.formText === 'A synthetic review that gives the ending away. Window A adds this. Overwrite.'"
+    },
+    {
+      "name": "Overwrite: Overwrite again",
+      "click": "#itemDetailPage:not(.hide) .jfur-section .jfur-conflict-overwrite"
+    },
+    {
+      "sleep": 1200
+    },
+    {
+      "name": "Overwrite: the section's requests since",
+      "eval": "__jfurDetails.since(window.__mark)",
+      "save": "overwrite",
+      "full": true
+    },
+    {
+      "name": "Overwrite: what it sent",
+      "eval": "(__jfurDetails.requests.filter(r => r.method === 'PUT' && /Mine\\/Review$/.test(r.path)).pop() || { body: null }).body",
+      "save": "overwriteBody",
+      "full": true
+    },
+    {
+      "name": "the server: after Overwrite",
+      "eval": "__jfurDetails.mine(__vars.movieId)",
+      "save": "overwritten",
+      "full": true
+    },
+    {
+      "name": "Overwrite: Save's 409 and its read, Overwrite's 409 (window B's newer save) and its read, then Overwrite with the review time the panel showed, a 200, no read of its own; window A's text saved",
+      "assert": "__vars.bAgain === 200 && __vars.overwrite.length === 5 && / 409$/.test(__vars.overwrite[0]) && /^GET \\/UserRatings\\/Items\\/[0-9a-f]+ 200$/.test(__vars.overwrite[1]) && / 409$/.test(__vars.overwrite[2]) && /^GET \\/UserRatings\\/Items\\/[0-9a-f]+ 200$/.test(__vars.overwrite[3]) && / 200$/.test(__vars.overwrite[4]) && __vars.overwriteBody.IfReviewUpdatedUtc === __vars.afterBThird.reviewUpdated && __vars.overwritten.text === 'A synthetic review that gives the ending away. Window A adds this. Overwrite.' && !__jfurDetails.state().form"
+    },
+    {
+      "name": "drafts: Edit",
+      "click": "#itemDetailPage:not(.hide) .jfur-section .jfur-own-edit"
+    },
+    {
+      "sleep": 300
+    },
+    {
+      "name": "drafts: the caret at the end",
+      "script": "const a = document.activeElement; a.selectionStart = a.selectionEnd = a.value.length; return a.tagName;"
+    },
+    {
+      "name": "drafts: type",
+      "type": " A draft."
+    },
+    {
+      "sleep": 700
+    },
+    {
+      "name": "drafts: what this plugin keeps in the browser",
+      "eval": "__jfurDetails.storage()",
+      "save": "stored",
+      "full": true
+    },
+    {
+      "name": "drafts: one draft, jfur:draft:<viewer>:<item>, after the pause",
+      "assert": "Object.keys(__jfurDetails.storage()).filter(k => k.indexOf('jfur:draft:') === 0).length === 1 && Object.keys(__jfurDetails.storage()).filter(k => k.indexOf('jfur:draft:') === 0)[0] === 'jfur:draft:' + __vars.viewerId.replace(/-/g, '').toLowerCase() + ':' + __vars.movieId.replace(/-/g, '').toLowerCase()"
+    },
+    {
+      "name": "drafts: Tagged Movie (another item): its details page",
+      "script": "location.hash = '#/details?id=' + __vars.taggedId; return true;"
+    },
+    {
+      "name": "drafts: Tagged Movie (another item): drawn",
+      "waitFor": "(() => { const p = document.querySelector('#itemDetailPage:not(.hide)'); return !!p && location.hash.indexOf(__vars.taggedId) > 0 && !!p.querySelector('.mainDetailButtons .btnPlay:not(.hide)'); })()",
+      "timeout": 30000
+    },
+    {
+      "name": "drafts: Tagged Movie (another item): the section mounted for it",
+      "waitFor": "(() => { const s = __jfurDetails.section(); return !!s && s.getAttribute('data-jfur-item') === __vars.taggedId && !!s.querySelector('.jfur-summary[data-jfur-summary]'); })()",
+      "timeout": 15000
+    },
+    {
+      "sleep": 400
+    },
+    {
+      "name": "drafts: still kept",
+      "assert": "Object.keys(__jfurDetails.storage()).filter(k => k.indexOf('jfur:draft:') === 0).length === 1"
+    },
+    {
+      "name": "drafts: Back",
+      "script": "history.back(); return true;"
+    },
+    {
+      "name": "drafts: Long Test Movie again",
+      "waitFor": "(() => { const s = __jfurDetails.section(); return !!s && s.getAttribute('data-jfur-item') === __vars.movieId && !!s.querySelector('.jfur-summary[data-jfur-summary]'); })()",
+      "timeout": 15000
+    },
+    {
+      "sleep": 400
+    },
+    {
+      "name": "drafts: back on the item",
+      "eval": "__jfurDetails.state()",
+      "save": "back",
+      "full": true
+    },
+    {
+      "name": "drafts: Edit reads \"Continue editing\"",
+      "assert": "__vars.back.editLabel === 'Continue editing'"
+    },
+    {
+      "name": "drafts: Continue editing",
+      "click": "#itemDetailPage:not(.hide) .jfur-section .jfur-own-edit"
+    },
+    {
+      "sleep": 300
+    },
+    {
+      "name": "drafts: the form",
+      "eval": "__jfurDetails.state()",
+      "save": "restored",
+      "full": true
+    },
+    {
+      "name": "drafts: the text put back, \"Your unsaved text was put back.\" with Discard",
+      "assert": "/ A draft\\.$/.test(__vars.restored.formText) && __vars.restored.restored && __vars.restored.notices.some(n => n.text === 'Your unsaved text was put back.' && n.action === 'Discard')"
+    },
+    {
+      "name": "drafts: Discard",
+      "click": "#itemDetailPage:not(.hide) .jfur-section .jfur-draft-discard"
+    },
+    {
+      "name": "drafts: after Discard",
+      "eval": "__jfurDetails.state()",
+      "save": "discarded",
+      "full": true
+    },
+    {
+      "name": "drafts: the review as saved, the draft gone",
+      "assert": "__vars.discarded.formText === __vars.overwritten.text && Object.keys(__jfurDetails.storage()).filter(k => k.indexOf('jfur:draft:') === 0).length === 0"
+    },
+    {
+      "name": "reload: the caret at the end",
+      "script": "const a = document.activeElement; a.selectionStart = a.selectionEnd = a.value.length; return a.tagName;"
+    },
+    {
+      "name": "reload: type",
+      "type": " Kept over a reload."
+    },
+    {
+      "sleep": 700
+    },
+    {
+      "name": "reload: reload the page",
+      "reload": true
+    },
+    {
+      "name": "reload: started",
+      "waitFor": "!!window.ApiClient && !!ApiClient.getCurrentUserId() && !!(window.__jfkit && window.__jfkit.jfur)",
+      "timeout": 40000
+    },
+    {
+      "name": "reload: Long Test Movie: its details page",
+      "script": "location.hash = '#/details?id=' + __vars.movieId; return true;"
+    },
+    {
+      "name": "reload: Long Test Movie: drawn",
+      "waitFor": "(() => { const p = document.querySelector('#itemDetailPage:not(.hide)'); return !!p && location.hash.indexOf(__vars.movieId) > 0 && !!p.querySelector('.mainDetailButtons .btnPlay:not(.hide)'); })()",
+      "timeout": 30000
+    },
+    {
+      "name": "reload: Long Test Movie: the section mounted for it",
+      "waitFor": "(() => { const s = __jfurDetails.section(); return !!s && s.getAttribute('data-jfur-item') === __vars.movieId && !!s.querySelector('.jfur-summary[data-jfur-summary]'); })()",
+      "timeout": 15000
+    },
+    {
+      "sleep": 400
+    },
+    {
+      "name": "reload: Continue editing",
+      "click": "#itemDetailPage:not(.hide) .jfur-section .jfur-own-edit"
+    },
+    {
+      "sleep": 300
+    },
+    {
+      "name": "reload: the draft put back after a reload",
+      "assert": "/ Kept over a reload\\.$/.test(__jfurDetails.state().formText) && __jfurDetails.state().restored"
+    },
+    {
+      "name": "reload: Cancel (the draft kept)",
+      "click": "#itemDetailPage:not(.hide) .jfur-section .jfur-review-cancel"
+    },
+    {
+      "name": "reload: kept",
+      "assert": "Object.keys(__jfurDetails.storage()).filter(k => k.indexOf('jfur:draft:') === 0).length === 1 && __jfurDetails.state().editLabel === 'Continue editing'"
+    },
+    {
+      "name": "TV: the TV layout",
+      "eval": "(localStorage.setItem('layout', 'tv'), true)"
+    },
+    {
+      "name": "TV: reload",
+      "reload": true
+    },
+    {
+      "name": "TV: started in the TV layout",
+      "waitFor": "document.documentElement.classList.contains('layout-tv') && !!window.ApiClient && !!ApiClient.getCurrentUserId() && !!(window.__jfkit && window.__jfkit.jfur)",
+      "timeout": 40000
+    },
+    {
+      "name": "TV: Long Test Movie: its details page",
+      "script": "location.hash = '#/details?id=' + __vars.movieId; return true;"
+    },
+    {
+      "name": "TV: Long Test Movie: drawn",
+      "waitFor": "(() => { const p = document.querySelector('#itemDetailPage:not(.hide)'); return !!p && location.hash.indexOf(__vars.movieId) > 0 && !!p.querySelector('.mainDetailButtons .btnPlay:not(.hide)'); })()",
+      "timeout": 30000
+    },
+    {
+      "name": "TV: Long Test Movie: the section mounted for it",
+      "waitFor": "(() => { const s = __jfurDetails.section(); return !!s && s.getAttribute('data-jfur-item') === __vars.movieId && !!s.querySelector('.jfur-summary[data-jfur-summary]'); })()",
+      "timeout": 15000
+    },
+    {
+      "sleep": 400
+    },
+    {
+      "name": "TV: Continue editing (OK on it)",
+      "script": "__jfurDetails.section().querySelector('.jfur-own-edit').focus(); return __jfurDetails.active();"
+    },
+    {
+      "name": "TV: OK",
+      "key": "Enter"
+    },
+    {
+      "sleep": 300
+    },
+    {
+      "name": "TV: the caret at the end",
+      "script": "const a = document.activeElement; a.selectionStart = a.selectionEnd = a.value.length; return a.tagName;"
+    },
+    {
+      "name": "TV: type more",
+      "type": " And on the TV."
+    },
+    {
+      "name": "TV: the focus still in the text area",
+      "assert": "document.activeElement && document.activeElement.matches('#itemDetailPage:not(.hide) .jfur-section .jfur-review-form textarea')"
+    },
+    {
+      "name": "TV: Back (Escape) at once, from the text area",
+      "key": "Escape"
+    },
+    {
+      "sleep": 300
+    },
+    {
+      "name": "TV: the page left, the draft written at once (before its pause)",
+      "assert": "location.hash.indexOf(__vars.movieId) < 0 && Object.keys(__jfurDetails.storage()).filter(k => k.indexOf('jfur:draft:') === 0).length === 1 && JSON.parse(localStorage.getItem(Object.keys(__jfurDetails.storage()).filter(k => k.indexOf('jfur:draft:') === 0)[0])).text.endsWith(' And on the TV.')"
+    },
+    {
+      "name": "TV: forward again",
+      "script": "history.forward(); return true;"
+    },
+    {
+      "name": "TV: the item again",
+      "waitFor": "(() => { const s = __jfurDetails.section(); return !!s && s.getAttribute('data-jfur-item') === __vars.movieId && !!s.querySelector('.jfur-summary[data-jfur-summary]'); })()",
+      "timeout": 15000
+    },
+    {
+      "sleep": 400
+    },
+    {
+      "name": "TV: Continue editing",
+      "script": "__jfurDetails.section().querySelector('.jfur-own-edit').click(); return true;"
+    },
+    {
+      "sleep": 300
+    },
+    {
+      "name": "TV: the text as typed on the TV, put back",
+      "assert": "/ And on the TV\\.$/.test(__jfurDetails.state().formText) && __jfurDetails.state().restored"
+    },
+    {
+      "name": "TV: Cancel",
+      "script": "__jfurDetails.section().querySelector('.jfur-review-cancel').click(); return true;"
+    },
+    {
+      "name": "TV: the desktop layout again",
+      "eval": "(localStorage.removeItem('layout'), true)"
+    },
+    {
+      "name": "TV: reload",
+      "reload": true
+    },
+    {
+      "name": "desktop again: started",
+      "waitFor": "!!window.ApiClient && !!ApiClient.getCurrentUserId() && !!(window.__jfkit && window.__jfkit.jfur)",
+      "timeout": 40000
+    },
+    {
+      "name": "sign-out: a draft there",
+      "assert": "Object.keys(__jfurDetails.storage()).filter(k => k.indexOf('jfur:draft:') === 0).length === 1"
+    },
+    {
+      "name": "sign-out: the header drawn",
+      "waitFor": "(() => { const b = document.querySelector('.skinHeader .mainDrawerButton'); if (!b) return false; const r = b.getBoundingClientRect(); return r.width > 0 && r.height > 0; })()",
+      "timeout": 20000
+    },
+    {
+      "name": "sign-out: open the drawer",
+      "click": ".skinHeader .mainDrawerButton",
+      "js": true
+    },
+    {
+      "name": "sign-out: Sign out shown",
+      "waitFor": "!!document.querySelector('.mainDrawer .btnLogout')"
+    },
+    {
+      "name": "sign-out: sign out from the drawer",
+      "click": ".mainDrawer .btnLogout",
+      "js": true
+    },
+    {
+      "name": "sign-out: on the login page",
+      "waitFor": "location.hash.startsWith('#/login') && !!document.querySelector('#txtManualName')",
+      "timeout": 20000
+    },
+    {
+      "name": "sign-out: the member's drafts gone",
+      "waitFor": "Object.keys(__jfurDetails.storage()).filter(k => k.indexOf('jfur:draft:') === 0).length === 0",
+      "timeout": 5000
+    },
+    {
+      "name": "sign-out: sign in again",
+      "login": "viewer",
+      "stay": true
+    },
+    {
+      "name": "sign-out: started again",
+      "waitFor": "!!window.ApiClient && !!ApiClient.getCurrentUserId() && !!(window.__jfkit && window.__jfkit.jfur)",
+      "timeout": 40000
+    },
+    {
+      "name": "admin's window",
+      "context": "admin"
+    },
+    {
+      "name": "admin: who can rate: selected users, viewer only (POST /Plugins/{id}/Configuration)",
+      "script": "const c = await ApiClient.getPluginConfiguration('f53c7c34-8cba-4846-b43b-956816b2f6ae'); const before = { WhoCanRate: c.WhoCanRate, RaterUserIds: c.RaterUserIds, RequirePlayedToRate: c.RequirePlayedToRate }; await ApiClient.updatePluginConfiguration('f53c7c34-8cba-4846-b43b-956816b2f6ae', Object.assign(c, { WhoCanRate: 'SelectedUsers', RaterUserIds: [__vars.viewerId], RequirePlayedToRate: false })); const b = await ApiClient.getPluginConfiguration('f53c7c34-8cba-4846-b43b-956816b2f6ae'); return { before, WhoCanRate: b.WhoCanRate, RaterUserIds: b.RaterUserIds, RequirePlayedToRate: b.RequirePlayedToRate };",
+      "save": "cfgSelected",
+      "full": true
+    },
+    {
+      "name": "admin: SelectedUsers with viewer only",
+      "assert": "__vars.cfgSelected.WhoCanRate === 'SelectedUsers' && __vars.cfgSelected.RaterUserIds.length === 1 && __vars.cfgSelected.RaterUserIds[0].replace(/-/g, '').toLowerCase() === __vars.viewerId.replace(/-/g, '').toLowerCase()"
+    },
+    {
+      "name": "viewer2's window",
+      "context": "other"
+    },
+    {
+      "name": "2b: viewer2 on Tagged Movie first: its details page",
+      "script": "location.hash = '#/details?id=' + __vars.taggedId; return true;"
+    },
+    {
+      "name": "2b: viewer2 on Tagged Movie first: drawn",
+      "waitFor": "(() => { const p = document.querySelector('#itemDetailPage:not(.hide)'); return !!p && location.hash.indexOf(__vars.taggedId) > 0 && !!p.querySelector('.mainDetailButtons .btnPlay:not(.hide)'); })()",
+      "timeout": 30000
+    },
+    {
+      "name": "2b: viewer2 on Tagged Movie first: the section mounted for it",
+      "waitFor": "(() => { const s = __jfurDetails.section(); return !!s && s.getAttribute('data-jfur-item') === __vars.taggedId && !!s.querySelector('.jfur-summary[data-jfur-summary]'); })()",
+      "timeout": 15000
+    },
+    {
+      "sleep": 400
+    },
+    {
+      "name": "2b: viewer2 on Long Test Movie: its details page",
+      "script": "location.hash = '#/details?id=' + __vars.movieId; return true;"
+    },
+    {
+      "name": "2b: viewer2 on Long Test Movie: drawn",
+      "waitFor": "(() => { const p = document.querySelector('#itemDetailPage:not(.hide)'); return !!p && location.hash.indexOf(__vars.movieId) > 0 && !!p.querySelector('.mainDetailButtons .btnPlay:not(.hide)'); })()",
+      "timeout": 30000
+    },
+    {
+      "name": "2b: viewer2 on Long Test Movie: the section mounted for it",
+      "waitFor": "(() => { const s = __jfurDetails.section(); return !!s && s.getAttribute('data-jfur-item') === __vars.movieId && !!s.querySelector('.jfur-summary[data-jfur-summary]'); })()",
+      "timeout": 15000
+    },
+    {
+      "sleep": 400
+    },
+    {
+      "name": "2b: viewer2's section",
+      "eval": "__jfurDetails.state()",
+      "save": "ro",
+      "full": true
+    },
+    {
+      "name": "selected raters: read-only stars \"Rated 4 out of 5\" with \"Rating is limited to selected members.\", no tab stop among them, the slider gone; viewer2's own Clear and Delete there",
+      "assert": "__vars.ro.readOnly && __vars.ro.readOnly.label === 'Rated 4 out of 5' && __vars.ro.readOnly.note === 'Rating is limited to selected members.' && __vars.ro.readOnly.focusables === 0 && !__vars.ro.sliderShown && __vars.ro.reason === 'NotARater' && __vars.ro.clear && !__vars.ro.write"
+    },
+    {
+      "name": "selected raters: viewer's rating and review still read by viewer2",
+      "assert": "__vars.ro.names.indexOf('viewer') >= 0 && __vars.ro.average !== null"
+    },
+    {
+      "name": "selected raters: focus Play",
+      "script": "__jfurDetails.log.length = 0; document.querySelector('#itemDetailPage:not(.hide) .mainDetailButtons .btnPlay').focus(); return __jfurDetails.active();"
+    },
+    {
+      "name": "selected raters: Tab 1",
+      "key": "Tab",
+      "if": "!document.activeElement.matches('#itemDetailPage:not(.hide) .jfur-section .jfur-clear')"
+    },
+    {
+      "name": "selected raters: Tab 2",
+      "key": "Tab",
+      "if": "!document.activeElement.matches('#itemDetailPage:not(.hide) .jfur-section .jfur-clear')"
+    },
+    {
+      "name": "selected raters: Tab 3",
+      "key": "Tab",
+      "if": "!document.activeElement.matches('#itemDetailPage:not(.hide) .jfur-section .jfur-clear')"
+    },
+    {
+      "name": "selected raters: Tab 4",
+      "key": "Tab",
+      "if": "!document.activeElement.matches('#itemDetailPage:not(.hide) .jfur-section .jfur-clear')"
+    },
+    {
+      "name": "selected raters: Tab 5",
+      "key": "Tab",
+      "if": "!document.activeElement.matches('#itemDetailPage:not(.hide) .jfur-section .jfur-clear')"
+    },
+    {
+      "name": "selected raters: Tab 6",
+      "key": "Tab",
+      "if": "!document.activeElement.matches('#itemDetailPage:not(.hide) .jfur-section .jfur-clear')"
+    },
+    {
+      "name": "selected raters: Tab 7",
+      "key": "Tab",
+      "if": "!document.activeElement.matches('#itemDetailPage:not(.hide) .jfur-section .jfur-clear')"
+    },
+    {
+      "name": "selected raters: Tab 8",
+      "key": "Tab",
+      "if": "!document.activeElement.matches('#itemDetailPage:not(.hide) .jfur-section .jfur-clear')"
+    },
+    {
+      "name": "selected raters: Tab 9",
+      "key": "Tab",
+      "if": "!document.activeElement.matches('#itemDetailPage:not(.hide) .jfur-section .jfur-clear')"
+    },
+    {
+      "name": "selected raters: Tab 10",
+      "key": "Tab",
+      "if": "!document.activeElement.matches('#itemDetailPage:not(.hide) .jfur-section .jfur-clear')"
+    },
+    {
+      "name": "selected raters: Tab 11",
+      "key": "Tab",
+      "if": "!document.activeElement.matches('#itemDetailPage:not(.hide) .jfur-section .jfur-clear')"
+    },
+    {
+      "name": "selected raters: Tab 12",
+      "key": "Tab",
+      "if": "!document.activeElement.matches('#itemDetailPage:not(.hide) .jfur-section .jfur-clear')"
+    },
+    {
+      "name": "selected raters: the Tab path",
+      "eval": "__jfurDetails.log.filter(e => e.kind === 'focus').map(f => f.target)",
+      "save": "roTabs",
+      "full": true
+    },
+    {
+      "name": "selected raters: Tab reaches Clear past the stars, never stopping on them",
+      "assert": "document.activeElement.matches('#itemDetailPage:not(.hide) .jfur-section .jfur-clear') && !__vars.roTabs.some(t => /jfur-stars|jfur-mine-readonly/.test(t))"
+    },
+    {
+      "name": "selected raters: PUT Mine/Rating as viewer2",
+      "script": "const r = await __jfurDetails.server('PUT', 'UserRatings/Items/' + __vars.movieId + '/Mine/Rating', { Stars: 2 }); return r.status;",
+      "save": "roPut"
+    },
+    {
+      "name": "selected raters: 403",
+      "assert": "__vars.roPut === 403"
+    },
+    {
+      "name": "selected raters: Delete viewer2's older row",
+      "click": "#itemDetailPage:not(.hide) .jfur-section .jfur-own-delete"
+    },
+    {
+      "sleep": 300
+    },
+    {
+      "name": "selected raters: Delete (confirm)",
+      "click": ".jfur-backdrop .jfur-dialog-confirm"
+    },
+    {
+      "sleep": 900
+    },
+    {
+      "name": "the server: 2b: viewer2 after Delete",
+      "eval": "__jfurDetails.mine(__vars.movieId)",
+      "save": "roDeleted",
+      "full": true
+    },
+    {
+      "name": "selected raters: viewer2 could delete their own older row",
+      "assert": "__vars.roDeleted.stars === null && __vars.roDeleted.text === null"
+    },
+    {
+      "name": "admin",
+      "context": "admin"
+    },
+    {
+      "name": "admin: who can rate: all users again (POST /Plugins/{id}/Configuration)",
+      "script": "const c = await ApiClient.getPluginConfiguration('f53c7c34-8cba-4846-b43b-956816b2f6ae'); const before = { WhoCanRate: c.WhoCanRate, RaterUserIds: c.RaterUserIds, RequirePlayedToRate: c.RequirePlayedToRate }; await ApiClient.updatePluginConfiguration('f53c7c34-8cba-4846-b43b-956816b2f6ae', Object.assign(c, { WhoCanRate: 'AllUsers', RaterUserIds: [] })); const b = await ApiClient.getPluginConfiguration('f53c7c34-8cba-4846-b43b-956816b2f6ae'); return { before, WhoCanRate: b.WhoCanRate, RaterUserIds: b.RaterUserIds, RequirePlayedToRate: b.RequirePlayedToRate };",
+      "save": "cfgAll",
+      "full": true
+    },
+    {
+      "name": "viewer2",
+      "context": "other"
+    },
+    {
+      "name": "2b: viewer2 on Tagged Movie: its details page",
+      "script": "location.hash = '#/details?id=' + __vars.taggedId; return true;"
+    },
+    {
+      "name": "2b: viewer2 on Tagged Movie: drawn",
+      "waitFor": "(() => { const p = document.querySelector('#itemDetailPage:not(.hide)'); return !!p && location.hash.indexOf(__vars.taggedId) > 0 && !!p.querySelector('.mainDetailButtons .btnPlay:not(.hide)'); })()",
+      "timeout": 30000
+    },
+    {
+      "name": "2b: viewer2 on Tagged Movie: the section mounted for it",
+      "waitFor": "(() => { const s = __jfurDetails.section(); return !!s && s.getAttribute('data-jfur-item') === __vars.taggedId && !!s.querySelector('.jfur-summary[data-jfur-summary]'); })()",
+      "timeout": 15000
+    },
+    {
+      "sleep": 400
+    },
+    {
+      "name": "2b: viewer2 on Long Test Movie again: its details page",
+      "script": "location.hash = '#/details?id=' + __vars.movieId; return true;"
+    },
+    {
+      "name": "2b: viewer2 on Long Test Movie again: drawn",
+      "waitFor": "(() => { const p = document.querySelector('#itemDetailPage:not(.hide)'); return !!p && location.hash.indexOf(__vars.movieId) > 0 && !!p.querySelector('.mainDetailButtons .btnPlay:not(.hide)'); })()",
+      "timeout": 30000
+    },
+    {
+      "name": "2b: viewer2 on Long Test Movie again: the section mounted for it",
+      "waitFor": "(() => { const s = __jfurDetails.section(); return !!s && s.getAttribute('data-jfur-item') === __vars.movieId && !!s.querySelector('.jfur-summary[data-jfur-summary]'); })()",
+      "timeout": 15000
+    },
+    {
+      "sleep": 400
+    },
+    {
+      "name": "2b: viewer2 may rate again",
+      "eval": "__jfurDetails.state()",
+      "save": "rateAgain",
+      "full": true
+    },
+    {
+      "name": "selected raters: the slider again, enabled",
+      "assert": "__vars.rateAgain.sliderShown && __vars.rateAgain.disabled === null && !__vars.rateAgain.readOnly"
+    },
+    {
+      "name": "2b rate: mark",
+      "script": "window.__mark = __jfurDetails.requests.length; window.__keys = __jfurDetails.log.length; return true;"
+    },
+    {
+      "name": "the slider focused",
+      "script": "__jfurDetails.slider().focus(); return __jfurDetails.onSlider();"
+    },
+    {
+      "name": "selected raters: End",
+      "key": "End"
+    },
+    {
+      "name": "selected raters: Enter",
+      "key": "Enter"
+    },
+    {
+      "sleep": 800
+    },
+    {
+      "name": "2b rate: the section's requests since",
+      "eval": "__jfurDetails.since(window.__mark)",
+      "save": "rateAgainRequests",
+      "full": true
+    },
+    {
+      "name": "the server: 2b: viewer2 rated",
+      "eval": "__jfurDetails.mine(__vars.movieId)",
+      "save": "v2Rated",
+      "full": true
+    },
+    {
+      "name": "2b: after viewer2 rated",
+      "eval": "__jfurDetails.state()",
+      "save": "afterV2Rate",
+      "full": true
+    },
+    {
+      "name": "selected raters: All users again: viewer2 rates (200), and viewer's row is still there (no data changed)",
+      "assert": "__vars.rateAgainRequests.length === 1 && / 200$/.test(__vars.rateAgainRequests[0]) && __vars.v2Rated.stars === 5 && __vars.afterV2Rate.names.indexOf('viewer') >= 0"
+    },
+    {
+      "name": "read-only under the focus: viewer2 in the TV layout",
+      "eval": "(localStorage.setItem('layout', 'tv'), true)"
+    },
+    {
+      "name": "read-only under the focus: reload",
+      "reload": true
+    },
+    {
+      "name": "read-only under the focus: started in the TV layout",
+      "waitFor": "document.documentElement.classList.contains('layout-tv') && !!window.ApiClient && !!ApiClient.getCurrentUserId() && !!(window.__jfkit && window.__jfkit.jfur)",
+      "timeout": 40000
+    },
+    {
+      "name": "read-only under the focus: viewer2 on Long Test Movie in the TV layout: its details page",
+      "script": "location.hash = '#/details?id=' + __vars.movieId; return true;"
+    },
+    {
+      "name": "read-only under the focus: viewer2 on Long Test Movie in the TV layout: drawn",
+      "waitFor": "(() => { const p = document.querySelector('#itemDetailPage:not(.hide)'); return !!p && location.hash.indexOf(__vars.movieId) > 0 && !!p.querySelector('.mainDetailButtons .btnPlay:not(.hide)'); })()",
+      "timeout": 30000
+    },
+    {
+      "name": "read-only under the focus: viewer2 on Long Test Movie in the TV layout: the section mounted for it",
+      "waitFor": "(() => { const s = __jfurDetails.section(); return !!s && s.getAttribute('data-jfur-item') === __vars.movieId && !!s.querySelector('.jfur-summary[data-jfur-summary]'); })()",
+      "timeout": 15000
+    },
+    {
+      "sleep": 400
+    },
+    {
+      "name": "read-only under the focus: the slider, enabled",
+      "assert": "__jfurDetails.state().sliderShown && __jfurDetails.state().disabled === null && __jfurDetails.state().value === 5"
+    },
+    {
+      "name": "admin",
+      "context": "admin"
+    },
+    {
+      "name": "admin: who can rate: selected users, viewer only (viewer2 on the page) (POST /Plugins/{id}/Configuration)",
+      "script": "const c = await ApiClient.getPluginConfiguration('f53c7c34-8cba-4846-b43b-956816b2f6ae'); const before = { WhoCanRate: c.WhoCanRate, RaterUserIds: c.RaterUserIds, RequirePlayedToRate: c.RequirePlayedToRate }; await ApiClient.updatePluginConfiguration('f53c7c34-8cba-4846-b43b-956816b2f6ae', Object.assign(c, { WhoCanRate: 'SelectedUsers', RaterUserIds: [__vars.viewerId], RequirePlayedToRate: false })); const b = await ApiClient.getPluginConfiguration('f53c7c34-8cba-4846-b43b-956816b2f6ae'); return { before, WhoCanRate: b.WhoCanRate, RaterUserIds: b.RaterUserIds, RequirePlayedToRate: b.RequirePlayedToRate };",
+      "save": "cfgB4",
+      "full": true
+    },
+    {
+      "name": "viewer2",
+      "context": "other"
+    },
+    {
+      "name": "the slider focused",
+      "script": "__jfurDetails.slider().focus(); return __jfurDetails.onSlider();"
+    },
+    {
+      "name": "read-only under the focus: Left (4.5)",
+      "key": "ArrowLeft"
+    },
+    {
+      "name": "read-only under the focus: OK",
+      "key": "Enter"
+    },
+    {
+      "sleep": 1200
+    },
+    {
+      "name": "read-only under the focus: after the 403",
+      "eval": "__jfurDetails.state()",
+      "save": "b4",
+      "full": true
+    },
+    {
+      "name": "the server: read-only under the focus: viewer2 after the 403",
+      "eval": "__jfurDetails.mine(__vars.movieId)",
+      "save": "b4Server",
+      "full": true
+    },
+    {
+      "name": "read-only under the focus: the 403 read the item: read-only stars in the slider's place, the focus on them (tabindex -1: still no tab stop), never the page's body; nothing saved",
+      "assert": "__vars.b4.readOnly && __vars.b4.readOnly.label === 'Rated 5 out of 5' && !__vars.b4.sliderShown && __vars.b4.reason === 'NotARater' && document.activeElement !== document.body && document.activeElement.matches('#itemDetailPage:not(.hide) .jfur-section .jfur-mine-readonly') && document.activeElement.getAttribute('tabindex') === '-1' && __vars.b4Server.stars === 5"
+    },
+    {
+      "name": "read-only under the focus: Down",
+      "key": "ArrowDown"
+    },
+    {
+      "sleep": 400
+    },
+    {
+      "name": "read-only under the focus: where Down went",
+      "eval": "__jfurDetails.active()",
+      "save": "b4Down"
+    },
+    {
+      "name": "read-only under the focus: the D-pad goes on from the read-only stars: the focus never on the page's body",
+      "assert": "document.activeElement !== document.body"
+    },
+    {
+      "name": "admin",
+      "context": "admin"
+    },
+    {
+      "name": "admin: who can rate: all users again (POST /Plugins/{id}/Configuration)",
+      "script": "const c = await ApiClient.getPluginConfiguration('f53c7c34-8cba-4846-b43b-956816b2f6ae'); const before = { WhoCanRate: c.WhoCanRate, RaterUserIds: c.RaterUserIds, RequirePlayedToRate: c.RequirePlayedToRate }; await ApiClient.updatePluginConfiguration('f53c7c34-8cba-4846-b43b-956816b2f6ae', Object.assign(c, { WhoCanRate: 'AllUsers', RaterUserIds: [] })); const b = await ApiClient.getPluginConfiguration('f53c7c34-8cba-4846-b43b-956816b2f6ae'); return { before, WhoCanRate: b.WhoCanRate, RaterUserIds: b.RaterUserIds, RequirePlayedToRate: b.RequirePlayedToRate };",
+      "save": "cfgB4Back",
+      "full": true
+    },
+    {
+      "name": "viewer2",
+      "context": "other"
+    },
+    {
+      "name": "read-only under the focus: the focus on the read-only stars again",
+      "script": "__jfurDetails.section().querySelector('.jfur-mine-readonly').focus(); return __jfurDetails.active();"
+    },
+    {
+      "name": "read-only under the focus: the page hidden and shown again (visibilitychange dispatched by the webcheck, as a switch of tabs does it)",
+      "script": "Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'hidden' }); document.dispatchEvent(new Event('visibilitychange')); Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'visible' }); document.dispatchEvent(new Event('visibilitychange')); delete document.visibilityState; return document.visibilityState;"
+    },
+    {
+      "sleep": 1000
+    },
+    {
+      "name": "read-only under the focus: shown again",
+      "eval": "__jfurDetails.state()",
+      "save": "b4Back",
+      "full": true
+    },
+    {
+      "name": "read-only under the focus: read again on the way back (NotARater): the slider back, enabled, and the focus back on it",
+      "assert": "__vars.b4Back.sliderShown && __vars.b4Back.disabled === null && !__vars.b4Back.readOnly && __vars.b4Back.onSlider"
+    },
+    {
+      "name": "read-only under the focus: the desktop layout again",
+      "eval": "(localStorage.removeItem('layout'), true)"
+    },
+    {
+      "name": "read-only under the focus: reload",
+      "reload": true
+    },
+    {
+      "name": "read-only under the focus: started in the desktop layout",
+      "waitFor": "!document.documentElement.classList.contains('layout-tv') && !!window.ApiClient && !!ApiClient.getCurrentUserId() && !!(window.__jfkit && window.__jfkit.jfur)",
+      "timeout": 40000
+    },
+    {
+      "name": "admin",
+      "context": "admin"
+    },
+    {
+      "name": "admin: rating needs the item played (POST /Plugins/{id}/Configuration)",
+      "script": "const c = await ApiClient.getPluginConfiguration('f53c7c34-8cba-4846-b43b-956816b2f6ae'); const before = { WhoCanRate: c.WhoCanRate, RaterUserIds: c.RaterUserIds, RequirePlayedToRate: c.RequirePlayedToRate }; await ApiClient.updatePluginConfiguration('f53c7c34-8cba-4846-b43b-956816b2f6ae', Object.assign(c, { RequirePlayedToRate: true })); const b = await ApiClient.getPluginConfiguration('f53c7c34-8cba-4846-b43b-956816b2f6ae'); return { before, WhoCanRate: b.WhoCanRate, RaterUserIds: b.RaterUserIds, RequirePlayedToRate: b.RequirePlayedToRate };",
+      "save": "cfgPlayed",
+      "full": true
+    },
+    {
+      "name": "viewer2",
+      "context": "other"
+    },
+    {
+      "name": "NeedsPlay: viewer2 on Tagged Movie: its details page",
+      "script": "location.hash = '#/details?id=' + __vars.taggedId; return true;"
+    },
+    {
+      "name": "NeedsPlay: viewer2 on Tagged Movie: drawn",
+      "waitFor": "(() => { const p = document.querySelector('#itemDetailPage:not(.hide)'); return !!p && location.hash.indexOf(__vars.taggedId) > 0 && !!p.querySelector('.mainDetailButtons .btnPlay:not(.hide)'); })()",
+      "timeout": 30000
+    },
+    {
+      "name": "NeedsPlay: viewer2 on Tagged Movie: the section mounted for it",
+      "waitFor": "(() => { const s = __jfurDetails.section(); return !!s && s.getAttribute('data-jfur-item') === __vars.taggedId && !!s.querySelector('.jfur-summary[data-jfur-summary]'); })()",
+      "timeout": 15000
+    },
+    {
+      "sleep": 400
+    },
+    {
+      "name": "NeedsPlay: the section",
+      "eval": "__jfurDetails.state()",
+      "save": "np",
+      "full": true
+    },
+    {
+      "name": "NeedsPlay: the disabled slider, a tab stop, its note beside it as its description",
+      "assert": "__vars.np.sliderShown && __vars.np.disabled === 'true' && __vars.np.reason === 'NeedsPlay' && __vars.np.sliderNote === 'You can rate this once you have played it.' && !__vars.np.readOnly && !__vars.np.write"
+    },
+    {
+      "name": "the slider focused",
+      "script": "__jfurDetails.slider().focus(); return __jfurDetails.onSlider();"
+    },
+    {
+      "name": "NeedsPlay: Tab and the D-pad reach it: it takes the focus",
+      "assert": "__jfurDetails.onSlider() && __jfurDetails.slider().getAttribute('tabindex') === '0'"
+    },
+    {
+      "name": "NeedsPlay keys: mark",
+      "script": "window.__mark = __jfurDetails.requests.length; window.__keys = __jfurDetails.log.length; return true;"
+    },
+    {
+      "name": "NeedsPlay: Right",
+      "key": "ArrowRight"
+    },
+    {
+      "name": "NeedsPlay: Enter",
+      "key": "Enter"
+    },
+    {
+      "sleep": 900
+    },
+    {
+      "name": "NeedsPlay keys: the section's requests since",
+      "eval": "__jfurDetails.since(window.__mark)",
+      "save": "npKeys",
+      "full": true
+    },
+    {
+      "name": "NeedsPlay: nothing sent",
+      "assert": "__vars.npKeys.length === 0"
+    },
+    {
+      "name": "admin",
+      "context": "admin"
+    },
+    {
+      "name": "admin: the defaults again (POST /Plugins/{id}/Configuration)",
+      "script": "const c = await ApiClient.getPluginConfiguration('f53c7c34-8cba-4846-b43b-956816b2f6ae'); const before = { WhoCanRate: c.WhoCanRate, RaterUserIds: c.RaterUserIds, RequirePlayedToRate: c.RequirePlayedToRate }; await ApiClient.updatePluginConfiguration('f53c7c34-8cba-4846-b43b-956816b2f6ae', Object.assign(c, { WhoCanRate: 'AllUsers', RaterUserIds: [], RequirePlayedToRate: false })); const b = await ApiClient.getPluginConfiguration('f53c7c34-8cba-4846-b43b-956816b2f6ae'); return { before, WhoCanRate: b.WhoCanRate, RaterUserIds: b.RaterUserIds, RequirePlayedToRate: b.RequirePlayedToRate };",
+      "save": "cfgBack",
+      "full": true
+    },
+    {
+      "name": "viewer's window",
+      "context": "main"
+    },
+    {
+      "name": "ReadOnly: viewer on Tagged Movie: its details page",
+      "script": "location.hash = '#/details?id=' + __vars.taggedId; return true;"
+    },
+    {
+      "name": "ReadOnly: viewer on Tagged Movie: drawn",
+      "waitFor": "(() => { const p = document.querySelector('#itemDetailPage:not(.hide)'); return !!p && location.hash.indexOf(__vars.taggedId) > 0 && !!p.querySelector('.mainDetailButtons .btnPlay:not(.hide)'); })()",
+      "timeout": 30000
+    },
+    {
+      "name": "ReadOnly: viewer on Tagged Movie: the section mounted for it",
+      "waitFor": "(() => { const s = __jfurDetails.section(); return !!s && s.getAttribute('data-jfur-item') === __vars.taggedId && !!s.querySelector('.jfur-summary[data-jfur-summary]'); })()",
+      "timeout": 15000
+    },
+    {
+      "sleep": 400
+    },
+    {
+      "name": "ReadOnly: the next read of Long Test Movie answered with Can.Reason ReadOnly (simulated)",
+      "eval": "__jfurDetails.inject({ method: 'GET', path: 'Items/' + __vars.movieId + '$', mode: 'patch', patch: { Can: { Rate: false, Review: false, Moderate: false, Reason: 'ReadOnly' } } })"
+    },
+    {
+      "name": "ReadOnly: viewer on Long Test Movie: its details page",
+      "script": "location.hash = '#/details?id=' + __vars.movieId; return true;"
+    },
+    {
+      "name": "ReadOnly: viewer on Long Test Movie: drawn",
+      "waitFor": "(() => { const p = document.querySelector('#itemDetailPage:not(.hide)'); return !!p && location.hash.indexOf(__vars.movieId) > 0 && !!p.querySelector('.mainDetailButtons .btnPlay:not(.hide)'); })()",
+      "timeout": 30000
+    },
+    {
+      "name": "ReadOnly: viewer on Long Test Movie: the section mounted for it",
+      "waitFor": "(() => { const s = __jfurDetails.section(); return !!s && s.getAttribute('data-jfur-item') === __vars.movieId && !!s.querySelector('.jfur-summary[data-jfur-summary]'); })()",
+      "timeout": 15000
+    },
+    {
+      "sleep": 400
+    },
+    {
+      "name": "ReadOnly: the section",
+      "eval": "__jfurDetails.state()",
+      "save": "rdo",
+      "full": true
+    },
+    {
+      "name": "ReadOnly: the disabled slider with \"Ratings can't be changed right now.\", no Clear, no Edit or Delete",
+      "assert": "__vars.rdo.sliderShown && __vars.rdo.disabled === 'true' && __vars.rdo.reason === 'ReadOnly' && __vars.rdo.sliderNote === \"Ratings can't be changed right now.\" && !__vars.rdo.clear && __vars.rdo.editLabel === null"
+    },
+    {
+      "name": "ReadOnly: screenshot",
+      "screenshot": "userratings-details-part2.png"
+    },
+    {
+      "name": "clean: Long Test Movie at the end without a rating of this member",
+      "script": "const r = await __jfurDetails.server('DELETE', 'UserRatings/Items/' + __vars.movieId + '/Mine'); return r.status;",
+      "save": "cleaned"
+    },
+    {
+      "name": "clean: Tagged Movie at the end without a rating of this member",
+      "script": "const r = await __jfurDetails.server('DELETE', 'UserRatings/Items/' + __vars.taggedId + '/Mine'); return r.status;",
+      "save": "cleaned"
+    },
+    {
+      "name": "viewer: no draft left",
+      "script": "Object.keys(__jfurDetails.storage()).filter(k => k.indexOf('jfur:draft:') === 0).forEach(k => localStorage.removeItem(k)); return Object.keys(__jfurDetails.storage()).filter(k => k.indexOf('jfur:draft:') === 0).length;"
+    },
+    {
+      "name": "viewer: no uncaught exception",
+      "noExceptions": true,
+      "ignore": "/CustomRatings/script|^Error: player cannot be null"
+    },
+    {
+      "name": "viewer: every request of the section",
+      "eval": "__jfurDetails.since(0)",
+      "full": true
+    },
+    {
+      "name": "viewer2",
+      "context": "other"
+    },
+    {
+      "name": "clean: Long Test Movie at the end (viewer2) without a rating of this member",
+      "script": "const r = await __jfurDetails.server('DELETE', 'UserRatings/Items/' + __vars.movieId + '/Mine'); return r.status;",
+      "save": "cleaned"
+    },
+    {
+      "name": "clean: Tagged Movie at the end (viewer2) without a rating of this member",
+      "script": "const r = await __jfurDetails.server('DELETE', 'UserRatings/Items/' + __vars.taggedId + '/Mine'); return r.status;",
+      "save": "cleaned"
+    },
+    {
+      "name": "window B",
+      "context": "window-b"
+    },
+    {
+      "name": "window B: no draft left",
+      "script": "Object.keys(__jfurDetails.storage()).filter(k => k.indexOf('jfur:draft:') === 0).forEach(k => localStorage.removeItem(k)); return Object.keys(__jfurDetails.storage()).filter(k => k.indexOf('jfur:draft:') === 0).length;"
+    },
+    {
+      "name": "admin",
+      "context": "admin"
+    },
+    {
+      "name": "admin: the defaults at the end (POST /Plugins/{id}/Configuration)",
+      "script": "const c = await ApiClient.getPluginConfiguration('f53c7c34-8cba-4846-b43b-956816b2f6ae'); const before = { WhoCanRate: c.WhoCanRate, RaterUserIds: c.RaterUserIds, RequirePlayedToRate: c.RequirePlayedToRate }; await ApiClient.updatePluginConfiguration('f53c7c34-8cba-4846-b43b-956816b2f6ae', Object.assign(c, { WhoCanRate: 'AllUsers', RaterUserIds: [], RequirePlayedToRate: false })); const b = await ApiClient.getPluginConfiguration('f53c7c34-8cba-4846-b43b-956816b2f6ae'); return { before, WhoCanRate: b.WhoCanRate, RaterUserIds: b.RaterUserIds, RequirePlayedToRate: b.RequirePlayedToRate };",
+      "save": "cfgEnd",
+      "full": true
+    },
+    {
+      "name": "admin: the defaults in place",
+      "assert": "__vars.cfgEnd.WhoCanRate === 'AllUsers' && __vars.cfgEnd.RaterUserIds.length === 0 && __vars.cfgEnd.RequirePlayedToRate === false"
+    }
+  ]
+}

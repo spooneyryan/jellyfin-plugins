@@ -1,0 +1,46 @@
+{
+  "Bookmarks": {
+    "Bm_1772390400000_a1b2c3": {
+      "ItemId": "11111111111111111111111111111111",
+      "TmdbId": "550",
+      "TvdbId": "",
+      "MediaType": "movie",
+      "Name": "Long Test Movie (2021)",
+      "Timestamp": 62.5,
+      "Label": "Bank job",
+      "CreatedAt": "2026-03-01T20:00:00.000Z",
+      "UpdatedAt": "2026-03-01T20:00:00.000Z",
+      "SyncedFrom": "",
+      "SeasonNumber": null,
+      "EpisodeNumber": null
+    },
+    "Bm_1772390500000_d4e5f6": {
+      "ItemId": "11111111111111111111111111111111",
+      "TmdbId": 550,
+      "TvdbId": null,
+      "MediaType": "movie",
+      "Name": "Long Test Movie (2021)",
+      "Timestamp": 125.25,
+      "Label": "",
+      "CreatedAt": "2026-03-01T20:05:00.000Z",
+      "UpdatedAt": "2026-03-01T20:05:00.000Z",
+      "SyncedFrom": "",
+      "SeasonNumber": null,
+      "EpisodeNumber": null
+    },
+    "Bm_1772390600000_g7h8i9": {
+      "ItemId": "22222222222222222222222222222222",
+      "TmdbId": "1396",
+      "TvdbId": "81189",
+      "MediaType": "tv",
+      "Name": "Test Series - S01E02",
+      "Timestamp": 600,
+      "Label": "Cold open",
+      "CreatedAt": "2026-03-02T21:00:00.000Z",
+      "UpdatedAt": "2026-03-02T21:00:00.000Z",
+      "SyncedFrom": "",
+      "SeasonNumber": 1,
+      "EpisodeNumber": 2
+    }
+  }
+}

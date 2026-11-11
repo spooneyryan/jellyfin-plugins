@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Custom Tabs 0.2.6 settings for the 'je' sandbox: the one "Bookmarks" tab that Jellyfin Enhanced creates and
+  renders its bookmark library into. Hand-written; not copied from a server's own file.
+-->
+<PluginConfiguration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <Tabs>
+    <TabConfig>
+      <ContentHtml>&lt;div class="sections bookmarks"&gt;&lt;/div&gt;</ContentHtml>
+      <Title>Bookmarks</Title>
+    </TabConfig>
+  </Tabs>
+</PluginConfiguration>

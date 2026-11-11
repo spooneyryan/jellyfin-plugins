@@ -1,0 +1,360 @@
+{
+  "name": "User Ratings 1.0.2.0, a review removed next to Jellyfin Enhanced 12.14: in the je sandbox on Tagged Movie, beside Jellyfin Enhanced's Reviews: the details page's \"Remove…\" as in userratings-remove-desktop.json: none for viewer; the admin's on the other members' reviews only; Remove text only and Remove rating and review, each after its dry run; the chip and the Rate button as before. Every rating on the movie removed at the end; no setting is changed.",
+  "failOnException": false,
+  "timeout": 30000,
+  "steps": [
+    {
+      "name": "the details probe in every document (its request log and server())",
+      "initScript": {
+        "file": "probes/userratings-details-probe.js"
+      }
+    },
+    {
+      "name": "sign in as admin",
+      "login": "admin"
+    },
+    {
+      "name": "desktop layout",
+      "eval": "(localStorage.removeItem('layout'), true)"
+    },
+    {
+      "name": "reload",
+      "reload": true
+    },
+    {
+      "name": "admin: User Ratings 1.0.2.0 started",
+      "waitFor": "!!window.ApiClient && !!ApiClient.getCurrentUserId() && !!(window.__jfkit && window.__jfkit.jfur)",
+      "timeout": 40000
+    },
+    {
+      "name": "the served script is 1.0.2.0",
+      "assert": "window.__jfkit.jfur.version === '1.0.2.0'",
+      "message": "User Ratings 1.0.2.0 is not the script the page loaded"
+    },
+    {
+      "name": "Long Test Movie",
+      "eval": "(await ApiClient.getItems(ApiClient.getCurrentUserId(), { IncludeItemTypes: 'Movie', Recursive: true, SearchTerm: \"Long Test Movie\", Limit: 1 })).Items[0].Id",
+      "save": "movieId"
+    },
+    {
+      "name": "Tagged Movie",
+      "eval": "(await ApiClient.getItems(ApiClient.getCurrentUserId(), { IncludeItemTypes: 'Movie', Recursive: true, SearchTerm: \"Tagged Movie\", Limit: 1 })).Items[0].Id",
+      "save": "taggedId"
+    },
+    {
+      "name": "clean: before the run: every rating on movieId and taggedId removed through the moderation API",
+      "script": "const removed = []; for (const item of [__vars.movieId, __vars.taggedId]) { const page = await __jfurDetails.server('GET', 'UserRatings/Admin/Reviews?itemId=' + item + '&limit=200'); if (page.status !== 200) { throw new Error('list ' + page.status); } for (const row of page.json.Items) { const path = 'UserRatings/Admin/Reviews/' + row.RatingId + '?textOnly=false'; const dry = await __jfurDetails.server('DELETE', path); const done = await __jfurDetails.server('DELETE', path + '&dryRun=false&ifPreview=' + dry.json.PreviewToken); removed.push(done.status); } } return removed;",
+      "save": "swept"
+    },
+    {
+      "name": "clean: the synthetic member deleted",
+      "script": "const users = (await ApiClient.getUsers()).filter(u => u.Name === \"عضو تجريبي باسم طويل جدا للتحقق من العزل في قائمة الإشراف rtl9\"); for (const u of users) { await ApiClient.deleteUser(u.Id); } return users.length;"
+    },
+    {
+      "context": "viewer"
+    },
+    {
+      "name": "the details probe in every document (its request log and server())",
+      "initScript": {
+        "file": "probes/userratings-details-probe.js"
+      }
+    },
+    {
+      "name": "sign in as viewer",
+      "login": "viewer"
+    },
+    {
+      "name": "desktop layout",
+      "eval": "(localStorage.removeItem('layout'), true)"
+    },
+    {
+      "name": "reload",
+      "reload": true
+    },
+    {
+      "name": "viewer: User Ratings 1.0.2.0 started",
+      "waitFor": "!!window.ApiClient && !!ApiClient.getCurrentUserId() && !!(window.__jfkit && window.__jfkit.jfur)",
+      "timeout": 40000
+    },
+    {
+      "name": "the served script is 1.0.2.0",
+      "assert": "window.__jfkit.jfur.version === '1.0.2.0'",
+      "message": "User Ratings 1.0.2.0 is not the script the page loaded"
+    },
+    {
+      "name": "viewer: the movie",
+      "eval": "(await ApiClient.getItems(ApiClient.getCurrentUserId(), { IncludeItemTypes: 'Movie', Recursive: true, SearchTerm: \"Tagged Movie\", Limit: 1 })).Items[0].Id",
+      "save": "taggedId"
+    },
+    {
+      "name": "viewer: stars and a review through the API",
+      "script": "const a = await __jfurDetails.server('PUT', 'UserRatings/Items/' + __vars.taggedId + '/Mine/Rating', { Stars: 3.5 }); const b = await __jfurDetails.server('PUT', 'UserRatings/Items/' + __vars.taggedId + '/Mine/Review', { Text: \"mod webcheck review A: the lighthouse keeper <b>never bold</b> & counts the ships.\", IsSpoiler: false }); if (a.status !== 200 || b.status !== 200) { throw new Error('rating ' + a.status + ', review ' + b.status); } return [a.status, b.status];"
+    },
+    {
+      "context": "viewer2"
+    },
+    {
+      "name": "the details probe in every document (its request log and server())",
+      "initScript": {
+        "file": "probes/userratings-details-probe.js"
+      }
+    },
+    {
+      "name": "sign in as viewer2",
+      "login": "viewer2"
+    },
+    {
+      "name": "desktop layout",
+      "eval": "(localStorage.removeItem('layout'), true)"
+    },
+    {
+      "name": "reload",
+      "reload": true
+    },
+    {
+      "name": "viewer2: User Ratings 1.0.2.0 started",
+      "waitFor": "!!window.ApiClient && !!ApiClient.getCurrentUserId() && !!(window.__jfkit && window.__jfkit.jfur)",
+      "timeout": 40000
+    },
+    {
+      "name": "the served script is 1.0.2.0",
+      "assert": "window.__jfkit.jfur.version === '1.0.2.0'",
+      "message": "User Ratings 1.0.2.0 is not the script the page loaded"
+    },
+    {
+      "name": "viewer2: stars and a review through the API",
+      "script": "const a = await __jfurDetails.server('PUT', 'UserRatings/Items/' + __vars.taggedId + '/Mine/Rating', { Stars: 4.5 }); const b = await __jfurDetails.server('PUT', 'UserRatings/Items/' + __vars.taggedId + '/Mine/Review', { Text: \"mod webcheck review C: מגדלור על החוף, the tide comes in.\", IsSpoiler: false }); if (a.status !== 200 || b.status !== 200) { throw new Error('rating ' + a.status + ', review ' + b.status); } return [a.status, b.status];"
+    },
+    {
+      "context": "main"
+    },
+    {
+      "name": "admin (their own review: never a Remove… of their own): stars and a review through the API",
+      "script": "const a = await __jfurDetails.server('PUT', 'UserRatings/Items/' + __vars.taggedId + '/Mine/Rating', { Stars: 5 }); const b = await __jfurDetails.server('PUT', 'UserRatings/Items/' + __vars.taggedId + '/Mine/Review', { Text: \"mod webcheck: the admin's own review.\", IsSpoiler: false }); if (a.status !== 200 || b.status !== 200) { throw new Error('rating ' + a.status + ', review ' + b.status); } return [a.status, b.status];"
+    },
+    {
+      "name": "the rating ids on taggedId, by author",
+      "script": "const page = await __jfurDetails.server('GET', 'UserRatings/Admin/Reviews?itemId=' + __vars.taggedId); const out = {}; for (const row of page.json.Items) { out[row.UserName] = String(row.RatingId).replace(/-/g, '').toLowerCase(); } return out;",
+      "save": "ids",
+      "full": true
+    },
+    {
+      "name": "viewer's rating",
+      "eval": "__vars.ids.viewer",
+      "save": "rv"
+    },
+    {
+      "name": "viewer2's rating",
+      "eval": "__vars.ids.viewer2",
+      "save": "rv2"
+    },
+    {
+      "context": "viewer"
+    },
+    {
+      "name": "je: viewer: its details page",
+      "script": "location.hash = '#/details?id=' + __vars.taggedId; return true;"
+    },
+    {
+      "name": "je: viewer: drawn",
+      "waitFor": "(() => { const p = document.querySelector('#itemDetailPage:not(.hide)'); return !!p && location.hash.indexOf(__vars.taggedId) > 0 && !!p.querySelector('.mainDetailButtons .btnPlay:not(.hide)'); })()",
+      "timeout": 30000
+    },
+    {
+      "name": "je: viewer: the section mounted for it",
+      "waitFor": "(() => { const s = __jfurDetails.section(); return !!s && s.getAttribute('data-jfur-item') === __vars.taggedId && !!s.querySelector('.jfur-summary[data-jfur-summary]'); })()",
+      "timeout": 15000
+    },
+    {
+      "sleep": 600
+    },
+    {
+      "name": "je: viewer: the reviews listed",
+      "waitFor": "!!document.querySelector('#itemDetailPage:not(.hide) .jfur-section .jfur-review')",
+      "timeout": 10000
+    },
+    {
+      "name": "je: viewer: the Remove… buttons (none)",
+      "eval": "Array.from(document.querySelectorAll('#itemDetailPage:not(.hide) .jfur-section .jfur-review-remove')).map(b => b.closest('.jfur-review').getAttribute('data-jfur-review'))",
+      "save": "viewerButtons",
+      "full": true
+    },
+    {
+      "name": "je: viewer sees no Remove… (no Can.Moderate)",
+      "assert": "__vars.viewerButtons.length === 0"
+    },
+    {
+      "context": "main"
+    },
+    {
+      "name": "je: admin: its details page",
+      "script": "location.hash = '#/details?id=' + __vars.taggedId; return true;"
+    },
+    {
+      "name": "je: admin: drawn",
+      "waitFor": "(() => { const p = document.querySelector('#itemDetailPage:not(.hide)'); return !!p && location.hash.indexOf(__vars.taggedId) > 0 && !!p.querySelector('.mainDetailButtons .btnPlay:not(.hide)'); })()",
+      "timeout": 30000
+    },
+    {
+      "name": "je: admin: the section mounted for it",
+      "waitFor": "(() => { const s = __jfurDetails.section(); return !!s && s.getAttribute('data-jfur-item') === __vars.taggedId && !!s.querySelector('.jfur-summary[data-jfur-summary]'); })()",
+      "timeout": 15000
+    },
+    {
+      "sleep": 600
+    },
+    {
+      "name": "je: Jellyfin Enhanced loaded and its Reviews drawn on Tagged Movie",
+      "waitFor": "!!window.JellyfinEnhanced && !!document.querySelector('#itemDetailPage:not(.hide) .jellyfin-enhanced-reviews, #itemDetailPage:not(.hide) [class*=\"je-reviews\"], #itemDetailPage:not(.hide) .tmdb-reviews-section')",
+      "timeout": 20000,
+      "optional": true
+    },
+    {
+      "name": "je: JE's parts, recorded",
+      "eval": "__jfurDetails.jeReviews()",
+      "full": true,
+      "optional": true
+    },
+    {
+      "name": "je: viewer's and viewer2's reviews shown",
+      "waitFor": "!!document.querySelector('#itemDetailPage:not(.hide) .jfur-section .jfur-review[data-jfur-review=\"' + __vars.rv + '\"]') && !!document.querySelector('#itemDetailPage:not(.hide) .jfur-section .jfur-review[data-jfur-review=\"' + __vars.rv2 + '\"]')",
+      "timeout": 10000
+    },
+    {
+      "name": "je: the chip and the Rate button before",
+      "eval": "__jfurDetails.extras()",
+      "full": true,
+      "save": "before"
+    },
+    {
+      "name": "je: the Remove… buttons",
+      "eval": "Array.from(document.querySelectorAll('#itemDetailPage:not(.hide) .jfur-section .jfur-review-remove')).map(b => b.closest('.jfur-review').getAttribute('data-jfur-review'))",
+      "save": "buttons",
+      "full": true
+    },
+    {
+      "name": "je: one on viewer's and one on viewer2's review, none on the admin's own",
+      "assert": "__vars.buttons.length === 2 && __vars.buttons.indexOf(__vars.rv) >= 0 && __vars.buttons.indexOf(__vars.rv2) >= 0"
+    },
+    {
+      "name": "je: its name says whose review",
+      "assert": "document.querySelector('#itemDetailPage:not(.hide) .jfur-section .jfur-review[data-jfur-review=\"' + __vars.rv + '\"]').querySelector('.jfur-review-remove').getAttribute('aria-label') === 'Remove the review of viewer…'"
+    },
+    {
+      "name": "je: text only: mark",
+      "script": "window.__mark = __jfurDetails.requests.length; return true;"
+    },
+    {
+      "name": "je: text only: Remove… on viewer's review",
+      "script": "document.querySelector('#itemDetailPage:not(.hide) .jfur-section .jfur-review[data-jfur-review=\"' + __vars.rv + '\"]').querySelector('.jfur-review-remove').click(); return true;"
+    },
+    {
+      "name": "je: text only: the dialog, Remove text only chosen, the dry run's sentence, the focus on Cancel",
+      "waitFor": "(() => { const d = document.querySelector('.jfur-panel[role=\"dialog\"][aria-modal=\"true\"]'); return !!d && !!d.querySelector('.jfur-moderate-radio[value=\"text\"]:checked') && d.querySelector('.jfur-moderate-preview').textContent.indexOf('The review goes; the stars stay') === 0 && !d.querySelector('.jfur-moderate-confirm').disabled && document.activeElement === d.querySelector('.jfur-dialog-cancel'); })()",
+      "timeout": 10000
+    },
+    {
+      "name": "je: text only: the dialog's name isolated",
+      "assert": "getComputedStyle(document.querySelector('.jfur-panel[role=\"dialog\"][aria-modal=\"true\"]').querySelector('.jfur-moderate-name')).unicodeBidi === 'isolate' && document.querySelector('.jfur-panel[role=\"dialog\"][aria-modal=\"true\"]').querySelector('.jfur-moderate-name').textContent === 'viewer'"
+    },
+    {
+      "name": "je: text only: screenshot",
+      "screenshot": "userratings-remove-je.png"
+    },
+    {
+      "name": "je: text only: Remove",
+      "click": "[role=\"dialog\"] .jfur-moderate-confirm"
+    },
+    {
+      "name": "je: text only: the dialog closed, viewer's row in the list with its stars and no review (its Remove… left for the stars)",
+      "waitFor": "!document.querySelector('.jfur-panel[role=\"dialog\"][aria-modal=\"true\"]') && !!document.querySelector('#itemDetailPage:not(.hide) .jfur-section .jfur-review[data-jfur-review=\"' + __vars.rv + '\"]') && document.querySelector('#itemDetailPage:not(.hide) .jfur-section .jfur-review[data-jfur-review=\"' + __vars.rv + '\"]').textContent.indexOf('lighthouse') < 0 && !!document.querySelector('#itemDetailPage:not(.hide) .jfur-section .jfur-review[data-jfur-review=\"' + __vars.rv + '\"]').querySelector('.jfur-review-stars') && !!document.querySelector('#itemDetailPage:not(.hide) .jfur-section .jfur-review[data-jfur-review=\"' + __vars.rv + '\"]').querySelector('.jfur-review-remove')",
+      "timeout": 15000
+    },
+    {
+      "name": "je: text only: the focus in the section, never the page's body",
+      "waitFor": "!!document.activeElement && document.activeElement !== document.body && document.activeElement.isConnected && !!document.activeElement.closest('#itemDetailPage:not(.hide) .jfur-section')",
+      "timeout": 5000
+    },
+    {
+      "name": "je: text only: the requests",
+      "eval": "__jfurDetails.requests.slice(window.__mark).filter(r => r.method === 'DELETE').map(r => r.path.replace(/[0-9a-f]{32}$/, '{id}') + r.query.replace(/m1-[0-9a-f]{20}/, 'm1-…') + ' ' + r.status)",
+      "save": "textReq",
+      "full": true
+    },
+    {
+      "name": "je: text only: the dry run, then the real run with its token",
+      "assert": "JSON.stringify(__vars.textReq) === JSON.stringify(['/UserRatings/Admin/Reviews/{id}?textOnly=true 200', '/UserRatings/Admin/Reviews/{id}?textOnly=true&dryRun=false&ifPreview=m1-… 200'])"
+    },
+    {
+      "name": "je: text only: the server keeps viewer's stars",
+      "script": "const p = await __jfurDetails.server('GET', 'UserRatings/Admin/Reviews?itemId=' + __vars.taggedId); const r = p.json.Items.find(x => String(x.RatingId).replace(/-/g, '').toLowerCase() === __vars.rv); return { stars: r.Stars, text: r.Text === undefined ? null : r.Text, count: p.json.TotalRecordCount };",
+      "save": "afterText",
+      "full": true
+    },
+    {
+      "name": "je: text only: 3.5 stars, no review, three ratings",
+      "assert": "__vars.afterText.stars === 3.5 && __vars.afterText.text === null && __vars.afterText.count === 3"
+    },
+    {
+      "name": "je: entry: Remove… on viewer2's review",
+      "script": "document.querySelector('#itemDetailPage:not(.hide) .jfur-section .jfur-review[data-jfur-review=\"' + __vars.rv2 + '\"]').querySelector('.jfur-review-remove').click(); return true;"
+    },
+    {
+      "name": "je: entry: the dialog and its dry run",
+      "waitFor": "(() => { const d = document.querySelector('.jfur-panel[role=\"dialog\"][aria-modal=\"true\"]'); return !!d && !d.querySelector('.jfur-moderate-confirm').disabled; })()",
+      "timeout": 10000
+    },
+    {
+      "name": "je: entry: choose Remove rating and review",
+      "click": "[role=\"dialog\"] .jfur-moderate-radio[value=\"entry\"]"
+    },
+    {
+      "name": "je: entry: its dry run's sentence",
+      "waitFor": "(() => { const d = document.querySelector('.jfur-panel[role=\"dialog\"][aria-modal=\"true\"]'); return !!d && d.querySelector('.jfur-moderate-preview').textContent.indexOf('The rating and the review go.') === 0 && !d.querySelector('.jfur-moderate-confirm').disabled; })()",
+      "timeout": 10000
+    },
+    {
+      "name": "je: entry: Remove",
+      "click": "[role=\"dialog\"] .jfur-moderate-confirm"
+    },
+    {
+      "name": "je: entry: the dialog closed, viewer2's review gone",
+      "waitFor": "!document.querySelector('.jfur-panel[role=\"dialog\"][aria-modal=\"true\"]') && !document.querySelector('#itemDetailPage:not(.hide) .jfur-section .jfur-review[data-jfur-review=\"' + __vars.rv2 + '\"]')",
+      "timeout": 15000
+    },
+    {
+      "name": "je: entry: the focus in the section, never the page's body",
+      "waitFor": "!!document.activeElement && document.activeElement !== document.body && document.activeElement.isConnected && !!document.activeElement.closest('#itemDetailPage:not(.hide) .jfur-section')",
+      "timeout": 5000
+    },
+    {
+      "name": "je: entry: the summary counts two ratings (admin's and viewer's stars)",
+      "waitFor": "(() => { const s = document.querySelector('#itemDetailPage:not(.hide) .jfur-section .jfur-summary[data-jfur-summary]'); const c = s && s.querySelector('.jfur-summary-counts'); return !!c && c.textContent.indexOf('2 ratings') === 0; })()",
+      "timeout": 10000
+    },
+    {
+      "name": "je: the chip and the Rate button after",
+      "eval": "__jfurDetails.extras()",
+      "full": true,
+      "save": "after"
+    },
+    {
+      "name": "je: the Rate button as before, and the chip shown where it was (now 2 ratings)",
+      "assert": "__vars.after.rates === __vars.before.rates && __vars.after.chips === __vars.before.chips && JSON.stringify(__vars.after.buttons) === JSON.stringify(__vars.before.buttons)"
+    },
+    {
+      "name": "no uncaught exception",
+      "noExceptions": true,
+      "ignore": "/CustomRatings/script|^Error: player cannot be null"
+    },
+    {
+      "name": "clean: at the end: every rating on taggedId removed through the moderation API",
+      "script": "const removed = []; for (const item of [__vars.taggedId]) { const page = await __jfurDetails.server('GET', 'UserRatings/Admin/Reviews?itemId=' + item + '&limit=200'); if (page.status !== 200) { throw new Error('list ' + page.status); } for (const row of page.json.Items) { const path = 'UserRatings/Admin/Reviews/' + row.RatingId + '?textOnly=false'; const dry = await __jfurDetails.server('DELETE', path); const done = await __jfurDetails.server('DELETE', path + '&dryRun=false&ifPreview=' + dry.json.PreviewToken); removed.push(done.status); } } return removed;",
+      "save": "swept"
+    },
+    {
+      "name": "clean: taggedId have no rating left",
+      "script": "for (const item of [__vars.taggedId]) { const page = await __jfurDetails.server('GET', 'UserRatings/Admin/Reviews?itemId=' + item); if (page.status !== 200 || page.json.TotalRecordCount !== 0) { throw new Error('left: ' + page.status + ' ' + (page.json && page.json.TotalRecordCount)); } } return true;"
+    }
+  ]
+}

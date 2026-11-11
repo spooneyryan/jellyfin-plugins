@@ -1,0 +1,182 @@
+{
+  "name": "User Ratings 1.0.2.0, the Data tab under touch: in the default sandbox as admin on a 375x812 phone with touch: the Data tab with a dry run's report shown and the detached list: no sideways scroll, every control, snapshot name and line of the report inside the screen; every button and field of the tab and of the list at least 44 px high; Restore…'s question inside the screen with every control at least 44 px; Cancel restores nothing and puts the focus back on Restore…. The snapshots are as before the run.",
+  "failOnException": false,
+  "timeout": 30000,
+  "steps": [
+    {
+      "name": "the details probe in every document (its request log and server())",
+      "initScript": {
+        "file": "probes/userratings-details-probe.js"
+      }
+    },
+    {
+      "name": "the screen, before signing in",
+      "emulate": {
+        "width": 375,
+        "height": 812,
+        "mobile": true,
+        "touch": true
+      }
+    },
+    {
+      "name": "sign in as admin",
+      "login": "admin"
+    },
+    {
+      "name": "desktop layout",
+      "eval": "(localStorage.removeItem('layout'), true)"
+    },
+    {
+      "name": "reload",
+      "reload": true
+    },
+    {
+      "name": "admin: User Ratings 1.0.2.0 started",
+      "waitFor": "!!window.ApiClient && !!ApiClient.getCurrentUserId() && !!(window.__jfkit && window.__jfkit.jfur)",
+      "timeout": 40000
+    },
+    {
+      "name": "the served script is 1.0.2.0",
+      "assert": "window.__jfkit.jfur.version === '1.0.2.0'",
+      "message": "User Ratings 1.0.2.0 is not the script the page loaded"
+    },
+    {
+      "name": "before the run: the snapshots as the server holds them",
+      "script": "const r = await __jfurDetails.server('GET', 'UserRatings/Admin/Snapshots'); if (r.status !== 200) { throw new Error('snapshots ' + r.status); } return r.json.Snapshots.map(s => s.Name).sort();",
+      "save": "snapsBefore",
+      "full": true
+    },
+    {
+      "name": "mark",
+      "script": "window.__mark = __jfurDetails.requests.length; return true;"
+    },
+    {
+      "name": "open User Ratings' settings page",
+      "goto": "/web/index.html#/configurationpage?name=UserRatings"
+    },
+    {
+      "name": "the page and its tabs",
+      "waitFor": "!!document.querySelector('#UserRatingsConfigPage:not(.hide) #UserRatingsTabs')",
+      "timeout": 30000
+    },
+    {
+      "name": "the Data tab",
+      "click": "#UserRatingsTabData"
+    },
+    {
+      "name": "the Data tab mounted: the snapshots, the users and the jobs read, and the detached list",
+      "waitFor": "(() => { const r = __jfurDetails.requests.slice(window.__mark); const got = (p) => r.some(x => x.method === 'GET' && x.path === p && x.status === 200); return !document.querySelector('#UserRatingsData').classList.contains('hide') && !!document.querySelector('#UserRatingsDataRoot .jfur-data-export') && !!document.querySelector('#UserRatingsDetachedListRoot .jfur-det') && got('/UserRatings/Admin/Snapshots') && got('/UserRatings/Admin/Diagnostics') && got('/UserRatings/Admin/Jobs') && got('/UserRatings/Admin/Detached'); })()",
+      "timeout": 30000
+    },
+    {
+      "name": "the time the lists take to draw",
+      "sleep": 500
+    },
+    {
+      "name": "its requests so far",
+      "eval": "__jfurDetails.requests.slice(window.__mark).map(r => r.method + ' ' + r.path + ' ' + r.status)",
+      "save": "firstRequests",
+      "full": true
+    },
+    {
+      "name": "GETs only (and the page's own Detached/Seen): opening the tab writes nothing",
+      "assert": "__vars.firstRequests.every(r => r.indexOf('GET ') === 0 || r.indexOf('POST /UserRatings/Admin/Detached/Seen ') === 0)"
+    },
+    {
+      "name": "no select in the Data tab or the detached list (the TV layout's D-pad and OK work on every control)",
+      "assert": "document.querySelectorAll('#UserRatingsDataRoot select, #UserRatingsDetachedListRoot select').length === 0"
+    },
+    {
+      "name": "the sandbox has a snapshot to offer Restore… on",
+      "assert": "document.querySelectorAll('#UserRatingsDataRoot .jfur-data-restore').length > 0",
+      "message": "no snapshot in the sandbox yet: run userratings-data-desktop.json (or any import) first"
+    },
+    {
+      "name": "phone: an export of the sandbox at once, through the API",
+      "script": "const r = await __jfurDetails.server('GET', 'UserRatings/Admin/Export'); if (r.status !== 200) { throw new Error('export ' + r.status); } window.__jfurPhoneFile = JSON.stringify(r.json); return window.__jfurPhoneFile.length > 0;"
+    },
+    {
+      "name": "phone: it put in the file field",
+      "script": "const input = document.querySelector('#UserRatingsDataRoot .jfur-data-file'); const dt = new DataTransfer(); dt.items.add(new File([window.__jfurPhoneFile], 'userratings-export-phone.json', { type: 'application/json' })); input.files = dt.files; input.dispatchEvent(new Event('change', { bubbles: true })); return input.files.length;"
+    },
+    {
+      "name": "phone: Dry run",
+      "click": "#UserRatingsDataRoot .jfur-data-dryrun"
+    },
+    {
+      "name": "phone: its report shown",
+      "waitFor": "!!document.querySelector('#UserRatingsDataRoot .jfur-data-import-section .jfur-data-report').querySelector('.jfur-data-summary') && document.querySelector('#UserRatingsDataRoot .jfur-data-import-section .jfur-data-report').querySelector('.jfur-data-summary').textContent.indexOf('Dry run, nothing was changed.') === 0",
+      "timeout": 60000
+    },
+    {
+      "name": "phone: the layout as shown",
+      "eval": "(() => { const out = Array.from(document.querySelectorAll('#UserRatingsDataRoot *, #UserRatingsDetachedListRoot *')).filter(e => e.getClientRects().length > 0 && e.children.length === 0).filter(e => { const b = e.getBoundingClientRect(); return b.left < -1 || b.right > innerWidth + 1; }).map(e => e.className || e.tagName); return { width: innerWidth, scroll: document.documentElement.scrollWidth, body: document.body.scrollWidth, out, snapshots: document.querySelectorAll('#UserRatingsDataRoot .jfur-data-snapshot').length }; })()",
+      "save": "phone",
+      "full": true
+    },
+    {
+      "name": "phone: no sideways scroll; every control, name and line of the report inside the screen",
+      "assert": "__vars.phone.scroll <= __vars.phone.width && __vars.phone.body <= __vars.phone.width && __vars.phone.out.length === 0 && __vars.phone.snapshots > 0"
+    },
+    {
+      "name": "phone: the controls under 44 px high (none)",
+      "eval": "Array.from(document.querySelectorAll(\"#UserRatingsDataRoot button, #UserRatingsDataRoot input, #UserRatingsDetachedListRoot button\")).filter(e => e.getClientRects().length > 0).map(e => ({ cls: e.className, h: Math.round(e.getBoundingClientRect().height) })).filter(x => x.h < 44)",
+      "save": "short",
+      "full": true
+    },
+    {
+      "name": "phone: every control of the tab and of the detached list at least 44 px",
+      "assert": "__vars.short.length === 0"
+    },
+    {
+      "name": "phone: screenshot of the tab",
+      "screenshot": "userratings-data-phone.png"
+    },
+    {
+      "name": "phone: the first Restore… scrolled to",
+      "script": "const b = document.querySelector('#UserRatingsDataRoot .jfur-data-restore'); b.scrollIntoView({ block: 'center' }); return b.getAttribute('data-jfur-name');",
+      "save": "snap"
+    },
+    {
+      "name": "phone: Restore…",
+      "click": "#UserRatingsDataRoot .jfur-data-restore[data-jfur-name=\"${snap}\"]"
+    },
+    {
+      "name": "phone: the question, the focus on Cancel",
+      "waitFor": "!!document.querySelector('.jfur-panel[role=\"dialog\"][aria-modal=\"true\"]') && document.activeElement === document.querySelector('.jfur-panel[role=\"dialog\"][aria-modal=\"true\"]').querySelector('.jfur-data-cancel')",
+      "timeout": 15000
+    },
+    {
+      "name": "phone: the question's controls under 44 px high (none), the question inside the screen",
+      "eval": "({ short: Array.from(document.querySelectorAll(\"[role=\\\"dialog\\\"] button\")).filter(e => e.getClientRects().length > 0).map(e => ({ cls: e.className, h: Math.round(e.getBoundingClientRect().height) })).filter(x => x.h < 44), left: Math.round(document.querySelector('.jfur-panel[role=\"dialog\"][aria-modal=\"true\"]').getBoundingClientRect().left), right: Math.round(document.querySelector('.jfur-panel[role=\"dialog\"][aria-modal=\"true\"]').getBoundingClientRect().right), scroll: document.documentElement.scrollWidth, width: innerWidth })",
+      "save": "dialog",
+      "full": true
+    },
+    {
+      "name": "phone: every control of the question at least 44 px, inside the screen",
+      "assert": "__vars.dialog.short.length === 0 && __vars.dialog.left >= 0 && __vars.dialog.right <= __vars.dialog.width && __vars.dialog.scroll <= __vars.dialog.width"
+    },
+    {
+      "name": "phone: screenshot of the question",
+      "screenshot": "userratings-data-phone-question.png"
+    },
+    {
+      "name": "phone: Cancel",
+      "click": ".jfur-panel[role=\"dialog\"] .jfur-data-cancel"
+    },
+    {
+      "name": "phone: closed, the focus back on Restore…",
+      "waitFor": "!document.querySelector('.jfur-panel[role=\"dialog\"][aria-modal=\"true\"]') && !!document.activeElement && document.activeElement.getAttribute('data-jfur-name') === __vars.snap",
+      "timeout": 5000
+    },
+    {
+      "name": "no uncaught exception",
+      "noExceptions": true,
+      "ignore": "/CustomRatings/script|^Error: player cannot be null"
+    },
+    {
+      "name": "clean: the snapshots as before the run: nothing restored or imported",
+      "script": "const r = await __jfurDetails.server('GET', 'UserRatings/Admin/Snapshots'); const now = r.json.Snapshots.map(s => s.Name).sort(); if (JSON.stringify(now) !== JSON.stringify(__vars.snapsBefore)) { throw new Error('the snapshots changed: ' + JSON.stringify(now)); } return now.length;"
+    }
+  ]
+}

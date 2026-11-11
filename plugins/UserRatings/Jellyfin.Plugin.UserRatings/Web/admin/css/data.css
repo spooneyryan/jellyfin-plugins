@@ -1,0 +1,60 @@
+/* The settings page's Data tab, appended to the kit's styles in the AdminScript's own
+   <style id="jfur-admin-styles">. Layout only: text colour inherits, the accent and dividers are the theme's. Each part
+   is a section under its heading; the snapshots, the unknown users and the detached ratings are lists whose rows wrap
+   (the words first, the buttons after), so a phone at 375 px has no sideways scroll; under 600 px or with a coarse pointer
+   every control is at least 44 px high and the buttons take the row's width. Every class here is User Ratings' own
+   (jfur-). */
+.jfur-data{max-width:56em;margin:0 0 1.5em}
+.jfur-data-section{margin:0 0 1.6em;padding:0 0 .6em;border-bottom:1px solid var(--jf-palette-divider,rgba(128,128,128,.3))}
+.jfur-data-intro{margin:.2em 0 .8em;opacity:.85;line-height:1.4;overflow-wrap:anywhere}
+.jfur-data-integrity,.jfur-data-restricted{margin:0 0 1em}
+.jfur-data-integrity>*{margin:0 0 .5em}
+.jfur-data-row{margin:0 0 .9em;min-width:0}
+.jfur-data-label{font-weight:600;margin:.3em 0 .35em}
+.jfur-data-file{display:block;max-width:100%;min-height:40px;font:inherit;color:inherit}
+.jfur-data-file:focus-visible,.jfur-data-choice:focus-visible{outline:2px solid var(--jfur-accent,#00a4dc);outline-offset:1px}
+.jfur-data-choices{display:flex;flex-wrap:wrap;gap:.5em}
+.jfur-data-choice{display:inline-flex;align-items:center;min-height:40px;max-width:100%;padding:.35em .9em;margin:0;border:1px solid var(--jf-palette-divider,rgba(128,128,128,.45));border-radius:1.2em;background:none;color:inherit;font:inherit;text-align:start;cursor:pointer}
+.jfur-data-choice:hover{background:rgba(128,128,128,.12)}
+.jfur-data-choice[aria-checked="true"]{border-color:var(--jfur-accent,#00a4dc);background:var(--jfur-accent,#00a4dc);color:#fff;font-weight:600}
+.jfur-data-actions{display:flex;flex-wrap:wrap;gap:.6em 1em;align-items:center;margin:.4em 0}
+.jfur-data-status,.jfur-data-progress,.jfur-data-hint{min-height:1.2em;margin:.5em 0;overflow-wrap:anywhere}
+.jfur-data-hint{opacity:.8;font-size:.9em}
+.jfur-data-message>*{margin:.5em 0}
+.jfur-data-report{margin:.6em 0;line-height:1.4;overflow-wrap:anywhere}
+.jfur-data-summary{font-weight:600;margin:.4em 0}
+.jfur-data-note{margin:.3em 0;color:var(--jfur-warning,#ffb74d)}
+.jfur-data-outcomes,.jfur-data-report-users,.jfur-data-remap-list,.jfur-data-unusable{margin:.3em 0 .8em;padding-inline-start:1.2em}
+.jfur-data-unusable{overflow-wrap:anywhere}
+.jfur-data-unknown{opacity:.85}
+.jfur-data-snapshots,.jfur-data-users,.jfur-det-list,.jfur-det-candidates{list-style:none;margin:0;padding:0}
+.jfur-data-snapshot,.jfur-data-user,.jfur-det-candidate{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:.4em 1em;padding:.5em 0;border-top:1px solid var(--jf-palette-divider,rgba(128,128,128,.2))}
+.jfur-data-snapshot-text,.jfur-data-user-text,.jfur-det-candidate-text{display:flex;flex-direction:column;min-width:0;flex:1 1 16em;overflow-wrap:anywhere}
+.jfur-data-snapshot-name{font-family:monospace;font-size:.9em}
+.jfur-data-snapshot-meta{font-size:.9em;opacity:.8}
+.jfur-det-row{margin:0 0 1em;padding:.6em 0 .2em;border-top:1px solid var(--jf-palette-divider,rgba(128,128,128,.3))}
+.jfur-det-title{font-weight:600;margin:0 0 .2em;overflow-wrap:anywhere}
+.jfur-det-meta{margin:0 0 .2em;font-size:.9em;opacity:.85;overflow-wrap:anywhere}
+.jfur-det-candidates{margin:0 0 .4em;padding-inline-start:.6em}
+.jfur-det-none{margin:0 0 .4em}
+.jfur-data-dialog-actions{justify-content:flex-end;margin-top:1em}
+@media (max-width:599px){
+.jfur-data button,.jfur-data-choice,.jfur-data-file,.jfur-data-cancel,.jfur-data-confirm{min-height:44px}
+.jfur-data-choice{flex:1 1 100%}
+.jfur-data-actions button,.jfur-data-snapshot button,.jfur-data-user button,.jfur-det-candidate button{flex:1 1 100%}
+}
+@media (pointer:coarse){.jfur-data button,.jfur-data-choice,.jfur-data-file,.jfur-data-cancel,.jfur-data-confirm{min-height:44px}}
+@media (forced-colors:active){
+.jfur-data-choice{border-color:CanvasText}
+.jfur-data-choice[aria-checked="true"]{border:3px solid Highlight;background:Canvas;color:CanvasText}
+.jfur-data-section,.jfur-det-row{border-color:CanvasText}
+}
+/* The Jellyfin Enhanced import: its members to map, and the switch-over checklist, one setting a row (its state,
+   its words, the kit's detail under them). */
+.jfur-data-je-usermap>.jfur-data-row{padding:.4em 0;border-top:1px solid var(--jf-palette-divider,rgba(128,128,128,.2))}
+.jfur-data-je-items,.jfur-data-je-changes,.jfur-data-je-consequences{margin:.4em 0 .8em;padding-inline-start:1.2em;overflow-wrap:anywhere}
+.jfur-data-je-item{margin:0 0 .5em;line-height:1.4}
+.jfur-data-je-state{font-weight:600}
+.jfur-data-je-todo .jfur-data-je-state{color:var(--jfur-warning,#ffb74d)}
+.jfur-data-je-detail{display:block;font-size:.9em;opacity:.8}
+.jfur-data-start-empty-row{display:flex;flex-wrap:wrap;align-items:center;gap:.5em 1em;margin:.5em 0}

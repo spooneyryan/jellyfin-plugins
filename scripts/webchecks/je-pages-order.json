@@ -1,0 +1,57 @@
+{
+  "name": "Jellyfin Enhanced's Pages tab boxes in the switch-off checklist's order, in the je sandbox, read-only: as admin, Jellyfin Enhanced 12.11's own settings page, Pages tab, its four Bookmarks boxes clicked the way an admin does it. Enable Bookmarks Feature unticked first greys out Use Plugin Pages for Bookmarks Library and Use Custom Tabs for Bookmarks and hides Add the Custom Tabs entry for me, all three still ticked (JE's Save reads every box as it is, so they would be saved on); ticked again, everything is back. In the checklist's order (Add the Custom Tabs entry for me first, then Use Custom Tabs for Bookmarks, Use Plugin Pages for Bookmarks Library, and Enable Bookmarks Feature last) every box can be unticked. Never saves: JE's settings are read back unchanged at the end. je-switchoff-probe.mjs runs it at the fixture.",
+  "failOnException": false,
+  "timeout": 30000,
+  "steps": [
+    { "name": "sign in as admin", "login": "admin" },
+    { "name": "the web client is up", "waitFor": "!!window.ApiClient && !!ApiClient.getCurrentUserId()" },
+    { "name": "Jellyfin Enhanced's settings page", "eval": "'#/configurationpage?name=' + encodeURIComponent((await ApiClient.getJSON(ApiClient.getUrl('web/ConfigurationPages'))).filter(p => String(p.PluginId || '').replace(/-/g, '').toLowerCase() === 'f69e946a4b3c4e9a8f0a8d7c1b2c4d9b')[0].Name)", "save": "jeRoute" },
+    { "name": "JE's four Bookmarks settings before", "eval": "(c => ({ BookmarksEnabled: c.BookmarksEnabled, BookmarksUsePluginPages: c.BookmarksUsePluginPages, BookmarksUseCustomTabs: c.BookmarksUseCustomTabs, BookmarksAutoCreateCustomTab: c.BookmarksAutoCreateCustomTab }))(await ApiClient.getPluginConfiguration('f69e946a-4b3c-4e9a-8f0a-8d7c1b2c4d9b'))", "save": "configBefore", "full": true },
+    { "name": "the fixture has all four on", "assert": "Object.values(__vars.configBefore).every(v => v === true)" },
+    { "name": "open it", "goto": "/web/index.html${jeRoute}" },
+    { "name": "the page has loaded JE's settings (the four boxes reflect them)", "waitFor": "(() => { const p = document.querySelector('#JellyfinEnhancedPage'); return !!p && ['bookmarksEnabled', 'bookmarksUsePluginPages', 'bookmarksUseCustomTabs', 'bookmarksAutoCreateCustomTab'].every(id => { const b = p.querySelector('#' + id); return !!b && b.checked === true; }); })()", "timeout": 60000 },
+    { "sleep": 1500 },
+    { "name": "the Pages tab", "click": "#JellyfinEnhancedPage .jellyfin-tab-button[data-tab=\"pages\"]" },
+    { "name": "the Bookmarks boxes are shown", "waitFor": "document.querySelector('#JellyfinEnhancedPage #bookmarksEnabled').closest('.checkboxContainer').getClientRects().length > 0", "timeout": 10000 },
+    {
+      "name": "the four boxes: ticked, greyed out (disabled), shown",
+      "eval": "['bookmarksAutoCreateCustomTab', 'bookmarksUseCustomTabs', 'bookmarksUsePluginPages', 'bookmarksEnabled'].map(id => { const b = document.querySelector('#JellyfinEnhancedPage #' + id); const c = b.closest('.checkboxContainer'); return { id, label: c.querySelector('label span').textContent.trim(), checked: b.checked, disabled: b.disabled, shown: c.getClientRects().length > 0 }; })",
+      "save": "before",
+      "full": true
+    },
+    { "name": "JE 12.11's labels, all four ticked, enabled and shown", "assert": "JSON.stringify(__vars.before.map(b => b.label)) === JSON.stringify(['Add the Custom Tabs entry for me', 'Use Custom Tabs for Bookmarks', 'Use Plugin Pages for Bookmarks Library', 'Enable Bookmarks Feature']) && __vars.before.every(b => b.checked && !b.disabled && b.shown)" },
+    { "screenshot": "je-pages-order-before.png" },
+    { "name": "click Enable Bookmarks Feature first (the order a reader of the old checklist took)", "click": "#JellyfinEnhancedPage .checkboxContainer:has(#bookmarksEnabled) label" },
+    { "sleep": 500 },
+    {
+      "name": "the four boxes after it",
+      "eval": "['bookmarksAutoCreateCustomTab', 'bookmarksUseCustomTabs', 'bookmarksUsePluginPages', 'bookmarksEnabled'].map(id => { const b = document.querySelector('#JellyfinEnhancedPage #' + id); const c = b.closest('.checkboxContainer'); return { id, checked: b.checked, disabled: b.disabled, shown: c.getClientRects().length > 0, hint: (c.querySelector('.dep-hint-text') || {}).textContent || null }; })",
+      "save": "enableFirst",
+      "full": true
+    },
+    { "name": "Enable Bookmarks Feature off; Use Custom Tabs and Use Plugin Pages greyed out and still ticked; Add the Custom Tabs entry for me hidden and still ticked (what JE's Save would write)", "assert": "(s => s.bookmarksEnabled.checked === false && s.bookmarksUseCustomTabs.checked && s.bookmarksUseCustomTabs.disabled && s.bookmarksUsePluginPages.checked && s.bookmarksUsePluginPages.disabled && s.bookmarksAutoCreateCustomTab.checked && !s.bookmarksAutoCreateCustomTab.shown)(Object.fromEntries(__vars.enableFirst.map(b => [b.id, b])))" },
+    { "screenshot": "je-pages-order-enable-first.png" },
+    { "name": "tick Enable Bookmarks Feature again", "click": "#JellyfinEnhancedPage .checkboxContainer:has(#bookmarksEnabled) label" },
+    { "sleep": 500 },
+    { "name": "everything is back: ticked, enabled, shown", "assert": "['bookmarksAutoCreateCustomTab', 'bookmarksUseCustomTabs', 'bookmarksUsePluginPages', 'bookmarksEnabled'].every(id => { const b = document.querySelector('#JellyfinEnhancedPage #' + id); return b.checked && !b.disabled && b.closest('.checkboxContainer').getClientRects().length > 0; })" },
+    { "name": "the checklist's order, 1: Add the Custom Tabs entry for me", "click": "#JellyfinEnhancedPage .checkboxContainer:has(#bookmarksAutoCreateCustomTab) label" },
+    { "sleep": 300 },
+    { "name": "2: Use Custom Tabs for Bookmarks", "click": "#JellyfinEnhancedPage .checkboxContainer:has(#bookmarksUseCustomTabs) label" },
+    { "sleep": 300 },
+    { "name": "3: Use Plugin Pages for Bookmarks Library", "click": "#JellyfinEnhancedPage .checkboxContainer:has(#bookmarksUsePluginPages) label" },
+    { "sleep": 300 },
+    { "name": "4: Enable Bookmarks Feature", "click": "#JellyfinEnhancedPage .checkboxContainer:has(#bookmarksEnabled) label" },
+    { "sleep": 500 },
+    {
+      "name": "the four boxes after the checklist's order",
+      "eval": "['bookmarksAutoCreateCustomTab', 'bookmarksUseCustomTabs', 'bookmarksUsePluginPages', 'bookmarksEnabled'].map(id => { const b = document.querySelector('#JellyfinEnhancedPage #' + id); return { id, checked: b.checked, disabled: b.disabled }; })",
+      "save": "checklistOrder",
+      "full": true
+    },
+    { "name": "every box unticked (what JE's Save would write: all four off)", "assert": "__vars.checklistOrder.every(b => b.checked === false)" },
+    { "screenshot": "je-pages-order-checklist.png" },
+    { "name": "JE's settings after (never saved)", "eval": "(c => ({ BookmarksEnabled: c.BookmarksEnabled, BookmarksUsePluginPages: c.BookmarksUsePluginPages, BookmarksUseCustomTabs: c.BookmarksUseCustomTabs, BookmarksAutoCreateCustomTab: c.BookmarksAutoCreateCustomTab }))(await ApiClient.getPluginConfiguration('f69e946a-4b3c-4e9a-8f0a-8d7c1b2c4d9b'))", "save": "configAfter", "full": true },
+    { "name": "unchanged", "assert": "JSON.stringify(__vars.configAfter) === JSON.stringify(__vars.configBefore)" },
+    { "name": "no uncaught exceptions (the stale CustomRatings tag excepted)", "noExceptions": true, "ignore": "/CustomRatings/script|^TypeError: t\\.value\\.pause is not a function" }
+  ]
+}

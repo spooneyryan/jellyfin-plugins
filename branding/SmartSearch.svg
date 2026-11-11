@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720" font-family="Segoe UI, Arial, sans-serif">
+<defs>
+  <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#1b1033"/><stop offset="1" stop-color="#0a2a3d"/>
+  </linearGradient>
+  <linearGradient id="accent" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#AA5CC3"/><stop offset="1" stop-color="#00A4DC"/>
+  </linearGradient>
+  <radialGradient id="glow" cx="0.28" cy="0.5" r="0.45">
+    <stop offset="0" stop-color="#7a4fd0" stop-opacity="0.35"/><stop offset="1" stop-color="#7a4fd0" stop-opacity="0"/>
+  </radialGradient>
+</defs>
+  <rect width="1280" height="720" fill="url(#bg)"/><rect width="1280" height="720" fill="url(#glow)"/>
+  <rect x="0" y="706" width="1280" height="14" fill="url(#accent)"/>
+  <rect x="110" y="170" width="380" height="380" rx="72" fill="url(#accent)"/>
+  <g transform="translate(150,210) scale(1)"><circle cx="125" cy="125" r="80" fill="none" stroke="#fff" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/><path fill="none" stroke="#fff" stroke-width="22" stroke-linecap="round" stroke-linejoin="round" d="M185 185 L265 265"/>
+    <path fill="none" stroke="#fff" stroke-width="16" stroke-linecap="round" d="M88 102 H162 M100 127 H150 M112 152 H138"/></g>
+  <text x="560" y="335" font-size="92" font-weight="700" fill="#fff">Smart Search</text>
+  <text x="560" y="420" font-size="40" fill="#cfd6e6">Advanced search, saved</text><text x="560" y="472" font-size="40" fill="#cfd6e6">searches and auto-collections</text>
+  <text x="560" y="250" font-size="34" font-weight="600" letter-spacing="4" fill="#b4c4e4">JELLYFIN PLUGIN</text>
+</svg>

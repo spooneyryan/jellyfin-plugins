@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Repository-wide checks. PluginIdentityTests runs against every plugins/*/build.yaml,
+    so it references every plugin project to reflect over its Plugin class.
+  -->
+  <Import Project="$(KitRoot)build\TestSupport.props" />
+
+  <PropertyGroup>
+    <RootNamespace>Jellyfin.Plugins.Repo.Tests</RootNamespace>
+    <!-- The plugins' kit types are internal to them, so the store conformance suite can't compile here. -->
+    <KitStoreConformance>false</KitStoreConformance>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="$(RepoRoot)plugins\*\Jellyfin.Plugin.*\Jellyfin.Plugin.*.csproj" Exclude="$(RepoRoot)plugins\**\*.Tests.csproj" />
+  </ItemGroup>
+
+</Project>

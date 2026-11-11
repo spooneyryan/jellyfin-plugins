@@ -1,0 +1,240 @@
+{
+  "name": "My Clips' admin view, as admin over viewer2's \"clip-admin-probe V2 Web A\" to \"Web C\" (bookmarks-clips-admin-probe.mjs seeds them; Web A with a note), then as viewer: the switch (\"My clips\" pressed) above the toolbar; \"All users\" puts scope=all in the hash and lists viewer2's clips with the owner (bidi-isolated, dir=\"auto\") and the full path (left to right, Copy), and no note on the page; the Owner select of the summary's users puts user=<id> in the hash and Back takes it out; Download clicks the admin file route (recorded, not followed); Delete of Web A names viewer2 with the focus on Cancel, then the row goes; the bulk delete of Web B and Web C says whose clips they are; viewer sees no switch and their own clips for a hash naming the scope.",
+  "failOnException": false,
+  "timeout": 30000,
+  "steps": [
+    {
+      "name": "sign in as admin",
+      "login": "admin"
+    },
+    {
+      "name": "the Bookmarks script ran",
+      "waitFor": "!!window.__jfkit && !!window.__jfkit.jfbm && !!window.ApiClient && !!ApiClient.getCurrentUserId()"
+    },
+    {
+      "name": "helpers",
+      "eval": "window.__c6 = (() => {\n  const k = (id) => String(id || '').replace(/-/g, '').toLowerCase();\n  const root = () => document.querySelector('#fallbackPage > [data-jfbm-page=\"clips\"]');\n  const ready = () => { const r = root(); const c = r && r.querySelector('.jfbm-clips-content'); return !!r && r.getAttribute('data-jfbm-state') === 'on' && !!c && !c.hasAttribute('aria-busy'); };\n  const row = (id) => { const r = root(); return r && id ? r.querySelector('.jfbm-clips-row[data-jfbm-clip=\"' + k(id) + '\"]') : null; };\n  const btn = (scope, t) => scope ? [...scope.querySelectorAll('button')].find(b => b.getAttribute('title') === t || b.textContent === t) || null : null;\n  const scope = () => { const r = root(); return r ? [...r.querySelectorAll('.jfbm-clips-scope-button')] : []; };\n  const owner = () => { const r = root(); return r ? r.querySelector('.jfbm-clips-owner-select') : null; };\n  const panels = () => [...document.querySelectorAll('.jfbm-backdrop .jfbm-panel')];\n  const panel = (t) => panels().find(p => p.querySelector('h3').textContent === t) || null;\n  const action = (dialog, label) => dialog ? [...dialog.querySelectorAll('.jfbm-actions button')].find(b => b.textContent === label) || null : null;\n  const toasts = () => [...document.querySelectorAll('.jfbm-toast')].map(t => (t.querySelector('span') || t).textContent);\n  const where = () => { const a = document.activeElement; const p = panels()[0]; const r = a && a.closest ? a.closest('.jfbm-clips-row') : null; return { tag: a ? a.tagName : null, body: a === document.body, inPanel: !!p && p.contains(a), text: a ? (a.textContent || '').trim() : null, title: a && a.getAttribute ? a.getAttribute('title') : null, cls: a && a.className ? String(a.className) : null, row: r ? r.getAttribute('data-jfbm-clip') : null, dialogs: panels().length }; };\n  const auth = () => ({ Authorization: 'MediaBrowser Token=\"' + ApiClient.accessToken() + '\"' });\n  const json = async (p, q) => { const r = await fetch(ApiClient.getUrl(p, q), { headers: auth() }); return r.status === 200 ? r.json() : { status: r.status }; };\n  const status = async (p, q) => (await fetch(ApiClient.getUrl(p, q), { headers: auth() })).status;\n  const rowInfo = (id) => { const x = row(id); if (!x) { return null; } const o = x.querySelector('.jfbm-clip-owner bdi'); const p = x.querySelector('.jfbm-clip-path code'); return { owner: o ? o.textContent : null, dir: o ? o.getAttribute('dir') : null, path: p ? p.textContent : null, pathDir: p ? p.getAttribute('dir') : null, copy: !!btn(x.querySelector('.jfbm-clip-path'), 'Copy the path'), actions: [...x.querySelectorAll('.jfbm-clip-actions button')].map(b => b.getAttribute('title')), box: !!x.querySelector('.jfbm-row-select-box'), text: x.textContent }; };\n  return { k, root, ready, row, btn, scope, owner, panels, panel, action, toasts, where, json, status, rowInfo };\n})(), true"
+    },
+    {
+      "name": "the capabilities offer the scope to admin",
+      "assert": "((c) => c.CanManageAllClips === true && c.IsAdmin === true)(await ApiClient.getJSON(ApiClient.getUrl('Bookmarks/Capabilities')))"
+    },
+    {
+      "name": "the probe's clips of viewer2",
+      "script": "const r = await __c6.json('Bookmarks/Admin/Clips', { searchTerm: 'clip-admin-probe V2 Web', limit: 50 }); const out = {}; for (const n of [\"Web A\",\"Web B\",\"Web C\"]) { const c = (r.Items || []).find(x => x.Name === 'clip-admin-probe V2 ' + n); if (!c) { throw new Error('no clip clip-admin-probe V2 ' + n + ': bookmarks-clips-admin-probe.mjs seeds it first'); } out[n] = { id: __c6.k(c.Id), owner: c.UserName, ownerId: __c6.k(c.UserId), file: c.Clip.FileName, path: c.FilePath, state: c.Clip.State, size: c.Clip.FileSize, hasNote: Object.prototype.hasOwnProperty.call(c, 'Note') }; } return out;",
+      "save": "seed",
+      "full": true
+    },
+    {
+      "name": "as seeded: viewer2's, Ready, no Note member",
+      "assert": "['Web A', 'Web B', 'Web C'].every(n => __vars.seed[n].owner === 'viewer2' && __vars.seed[n].state === 'Ready' && !__vars.seed[n].hasNote)"
+    },
+    {
+      "name": "My Clips, searched for them",
+      "goto": "/web/index.html#/jfbm-clips?q=clip-admin-probe%20V2%20Web"
+    },
+    {
+      "name": "helpers (on the page)",
+      "eval": "window.__c6 = (() => {\n  const k = (id) => String(id || '').replace(/-/g, '').toLowerCase();\n  const root = () => document.querySelector('#fallbackPage > [data-jfbm-page=\"clips\"]');\n  const ready = () => { const r = root(); const c = r && r.querySelector('.jfbm-clips-content'); return !!r && r.getAttribute('data-jfbm-state') === 'on' && !!c && !c.hasAttribute('aria-busy'); };\n  const row = (id) => { const r = root(); return r && id ? r.querySelector('.jfbm-clips-row[data-jfbm-clip=\"' + k(id) + '\"]') : null; };\n  const btn = (scope, t) => scope ? [...scope.querySelectorAll('button')].find(b => b.getAttribute('title') === t || b.textContent === t) || null : null;\n  const scope = () => { const r = root(); return r ? [...r.querySelectorAll('.jfbm-clips-scope-button')] : []; };\n  const owner = () => { const r = root(); return r ? r.querySelector('.jfbm-clips-owner-select') : null; };\n  const panels = () => [...document.querySelectorAll('.jfbm-backdrop .jfbm-panel')];\n  const panel = (t) => panels().find(p => p.querySelector('h3').textContent === t) || null;\n  const action = (dialog, label) => dialog ? [...dialog.querySelectorAll('.jfbm-actions button')].find(b => b.textContent === label) || null : null;\n  const toasts = () => [...document.querySelectorAll('.jfbm-toast')].map(t => (t.querySelector('span') || t).textContent);\n  const where = () => { const a = document.activeElement; const p = panels()[0]; const r = a && a.closest ? a.closest('.jfbm-clips-row') : null; return { tag: a ? a.tagName : null, body: a === document.body, inPanel: !!p && p.contains(a), text: a ? (a.textContent || '').trim() : null, title: a && a.getAttribute ? a.getAttribute('title') : null, cls: a && a.className ? String(a.className) : null, row: r ? r.getAttribute('data-jfbm-clip') : null, dialogs: panels().length }; };\n  const auth = () => ({ Authorization: 'MediaBrowser Token=\"' + ApiClient.accessToken() + '\"' });\n  const json = async (p, q) => { const r = await fetch(ApiClient.getUrl(p, q), { headers: auth() }); return r.status === 200 ? r.json() : { status: r.status }; };\n  const status = async (p, q) => (await fetch(ApiClient.getUrl(p, q), { headers: auth() })).status;\n  const rowInfo = (id) => { const x = row(id); if (!x) { return null; } const o = x.querySelector('.jfbm-clip-owner bdi'); const p = x.querySelector('.jfbm-clip-path code'); return { owner: o ? o.textContent : null, dir: o ? o.getAttribute('dir') : null, path: p ? p.textContent : null, pathDir: p ? p.getAttribute('dir') : null, copy: !!btn(x.querySelector('.jfbm-clip-path'), 'Copy the path'), actions: [...x.querySelectorAll('.jfbm-clip-actions button')].map(b => b.getAttribute('title')), box: !!x.querySelector('.jfbm-row-select-box'), text: x.textContent }; };\n  return { k, root, ready, row, btn, scope, owner, panels, panel, action, toasts, where, json, status, rowInfo };\n})(), true"
+    },
+    {
+      "name": "the page, the switch above the toolbar",
+      "waitFor": "__c6.ready() && __c6.scope().length === 2",
+      "timeout": 20000
+    },
+    {
+      "name": "the switch and the own list",
+      "eval": "(() => { const r = __c6.root(); const bar = r.querySelector('.jfbm-clips-scope-bar'); return { labels: __c6.scope().map(b => b.textContent), pressed: __c6.scope().map(b => b.getAttribute('aria-pressed')), group: bar.querySelector('.jfbm-clips-scope').getAttribute('aria-label'), ownerHidden: __c6.owner().classList.contains('hide'), inToolbar: r.querySelector('.jfbm-clips-toolbar').contains(bar), viewer2Rows: ['Web A', 'Web B', 'Web C'].filter(n => !!__c6.row(__vars.seed[n].id)).length }; })()",
+      "save": "mine",
+      "full": true
+    },
+    {
+      "name": "as expected: \"My clips\" pressed, the Owner select hidden, the switch not in the toolbar, none of viewer2's clips in the own list",
+      "assert": "JSON.stringify(__vars.mine.labels) === JSON.stringify(['My clips', 'All users']) && JSON.stringify(__vars.mine.pressed) === JSON.stringify(['true', 'false']) && __vars.mine.group === 'Whose clips' && __vars.mine.ownerHidden && !__vars.mine.inToolbar && __vars.mine.viewer2Rows === 0"
+    },
+    {
+      "name": "\"All users\"",
+      "script": "__c6.scope()[1].click(); return true;"
+    },
+    {
+      "name": "every user's clips: viewer2's rows",
+      "waitFor": "__c6.ready() && location.hash.indexOf('scope=all') >= 0 && ['Web A', 'Web B', 'Web C'].every(n => !!__c6.row(__vars.seed[n].id))",
+      "timeout": 20000
+    },
+    {
+      "name": "the rows",
+      "eval": "(() => { const r = __c6.root(); return { hash: location.hash, pressed: __c6.scope().map(b => b.getAttribute('aria-pressed')), ownerShown: !__c6.owner().classList.contains('hide'), a: __c6.rowInfo(__vars.seed['Web A'].id), b: __c6.rowInfo(__vars.seed['Web B'].id), page: r.textContent, summary: r.querySelector('.jfbm-clips-summary').textContent }; })()",
+      "save": "all",
+      "full": true
+    },
+    {
+      "name": "as expected: the owner bidi-isolated, the path left to right with Copy, the scope's actions (no Rename, remake or Edit), no note on the page",
+      "assert": "__vars.all.hash.replace(/%20/g, '+') === '#/jfbm-clips?q=clip-admin-probe+V2+Web&scope=all' && JSON.stringify(__vars.all.pressed) === JSON.stringify(['false', 'true']) && __vars.all.ownerShown && __vars.all.a.owner === 'viewer2' && __vars.all.a.dir === 'auto' && __vars.all.a.path === __vars.seed['Web A'].path && __vars.all.a.pathDir === 'ltr' && __vars.all.a.copy && JSON.stringify(__vars.all.a.actions) === JSON.stringify(['Preview', 'Download', \"Play the video at the clip's start\", 'Delete clip', 'More actions']) && __vars.all.a.box && __vars.all.page.indexOf('zebra') < 0 && /^All users · \\d+ clips · /.test(__vars.all.summary)"
+    },
+    {
+      "name": "the Owner select: the summary's users; viewer2 chosen",
+      "script": "const s = __c6.owner(); const options = [...s.options].map(o => [o.value, o.textContent]); s.value = __vars.seed['Web A'].ownerId; s.dispatchEvent(new Event('change')); return options;",
+      "save": "owners",
+      "full": true
+    },
+    {
+      "name": "viewer2's clips only, the owner in the hash",
+      "waitFor": "__c6.ready() && location.hash.indexOf('&user=' + __vars.seed['Web A'].ownerId) >= 0 && /^viewer2 · /.test(__c6.root().querySelector('.jfbm-clips-summary').textContent)",
+      "timeout": 20000
+    },
+    {
+      "name": "as expected: \"All owners\" first, viewer2 among them",
+      "assert": "__vars.owners[0][0] === '' && __vars.owners[0][1] === 'All owners' && __vars.owners.some(o => o[0] === __vars.seed['Web A'].ownerId && /^viewer2 \\(\\d+\\)$/.test(o[1]))"
+    },
+    {
+      "name": "Back",
+      "script": "history.back(); return true;"
+    },
+    {
+      "name": "every user again, the Owner select on All owners",
+      "waitFor": "__c6.ready() && location.hash.replace(/%20/g, '+') === '#/jfbm-clips?q=clip-admin-probe+V2+Web&scope=all' && !!__c6.owner() && __c6.owner().value === '' && !!__c6.row(__vars.seed['Web A'].id)",
+      "timeout": 20000
+    },
+    {
+      "name": "helpers (after Back)",
+      "eval": "window.__c6 = (() => {\n  const k = (id) => String(id || '').replace(/-/g, '').toLowerCase();\n  const root = () => document.querySelector('#fallbackPage > [data-jfbm-page=\"clips\"]');\n  const ready = () => { const r = root(); const c = r && r.querySelector('.jfbm-clips-content'); return !!r && r.getAttribute('data-jfbm-state') === 'on' && !!c && !c.hasAttribute('aria-busy'); };\n  const row = (id) => { const r = root(); return r && id ? r.querySelector('.jfbm-clips-row[data-jfbm-clip=\"' + k(id) + '\"]') : null; };\n  const btn = (scope, t) => scope ? [...scope.querySelectorAll('button')].find(b => b.getAttribute('title') === t || b.textContent === t) || null : null;\n  const scope = () => { const r = root(); return r ? [...r.querySelectorAll('.jfbm-clips-scope-button')] : []; };\n  const owner = () => { const r = root(); return r ? r.querySelector('.jfbm-clips-owner-select') : null; };\n  const panels = () => [...document.querySelectorAll('.jfbm-backdrop .jfbm-panel')];\n  const panel = (t) => panels().find(p => p.querySelector('h3').textContent === t) || null;\n  const action = (dialog, label) => dialog ? [...dialog.querySelectorAll('.jfbm-actions button')].find(b => b.textContent === label) || null : null;\n  const toasts = () => [...document.querySelectorAll('.jfbm-toast')].map(t => (t.querySelector('span') || t).textContent);\n  const where = () => { const a = document.activeElement; const p = panels()[0]; const r = a && a.closest ? a.closest('.jfbm-clips-row') : null; return { tag: a ? a.tagName : null, body: a === document.body, inPanel: !!p && p.contains(a), text: a ? (a.textContent || '').trim() : null, title: a && a.getAttribute ? a.getAttribute('title') : null, cls: a && a.className ? String(a.className) : null, row: r ? r.getAttribute('data-jfbm-clip') : null, dialogs: panels().length }; };\n  const auth = () => ({ Authorization: 'MediaBrowser Token=\"' + ApiClient.accessToken() + '\"' });\n  const json = async (p, q) => { const r = await fetch(ApiClient.getUrl(p, q), { headers: auth() }); return r.status === 200 ? r.json() : { status: r.status }; };\n  const status = async (p, q) => (await fetch(ApiClient.getUrl(p, q), { headers: auth() })).status;\n  const rowInfo = (id) => { const x = row(id); if (!x) { return null; } const o = x.querySelector('.jfbm-clip-owner bdi'); const p = x.querySelector('.jfbm-clip-path code'); return { owner: o ? o.textContent : null, dir: o ? o.getAttribute('dir') : null, path: p ? p.textContent : null, pathDir: p ? p.getAttribute('dir') : null, copy: !!btn(x.querySelector('.jfbm-clip-path'), 'Copy the path'), actions: [...x.querySelectorAll('.jfbm-clip-actions button')].map(b => b.getAttribute('title')), box: !!x.querySelector('.jfbm-row-select-box'), text: x.textContent }; };\n  return { k, root, ready, row, btn, scope, owner, panels, panel, action, toasts, where, json, status, rowInfo };\n})(), true"
+    },
+    {
+      "name": "Download: the link it clicks (recorded, not followed: nothing is saved), and the admin file route answering it",
+      "script": "const clicks = []; const original = HTMLAnchorElement.prototype.click; HTMLAnchorElement.prototype.click = function () { clicks.push({ href: this.href, download: this.getAttribute('download') }); }; try { __c6.btn(__c6.row(__vars.seed['Web A'].id), 'Download').click(); } finally { HTMLAnchorElement.prototype.click = original; } const c = clicks[0]; const u = new URL(c.href); const r = await fetch(c.href, { headers: { Range: 'bytes=0-15' } }); const bytes = (await r.arrayBuffer()).byteLength; return { clicks: clicks.length, path: u.pathname, download: u.searchParams.get('download'), token: !!u.searchParams.get('ApiKey'), name: c.download, status: r.status, disposition: r.headers.get('content-disposition') || '', bytes };",
+      "save": "download",
+      "full": true
+    },
+    {
+      "name": "as expected: GET /Bookmarks/Admin/Clips/{id}/File with download=true and the token, the file's name, an attachment named as the file is",
+      "assert": "__vars.download.clicks === 1 && /\\/Bookmarks\\/Admin\\/Clips\\/[0-9a-f]{32}\\/File$/.test(__vars.download.path) && __vars.download.path.indexOf(__vars.seed['Web A'].id) >= 0 && __vars.download.download === 'true' && __vars.download.token && __vars.download.name === __vars.seed['Web A'].file && (__vars.download.status === 206 || __vars.download.status === 200) && /^attachment/.test(__vars.download.disposition) && __vars.download.bytes === 16"
+    },
+    {
+      "name": "Web A's Delete clip",
+      "script": "const b = __c6.btn(__c6.row(__vars.seed['Web A'].id), 'Delete clip'); b.focus(); b.click(); return true;"
+    },
+    {
+      "name": "the Delete clip? dialog",
+      "waitFor": "!!__c6.panel('Delete clip?')"
+    },
+    {
+      "name": "what it says, where the focus is",
+      "eval": "({ text: __c6.panel('Delete clip?').querySelector('.jfbm-clip-dialog-text').textContent, where: __c6.where() })",
+      "save": "deleteDialog",
+      "full": true
+    },
+    {
+      "name": "as expected: viewer2's clip file named with its size, their bookmark stays; the focus on Cancel",
+      "assert": "__vars.deleteDialog.text.indexOf('Delete \\u2068viewer2\\u2069\\'s clip file \"\\u2068' + __vars.seed['Web A'].file + '\\u2069\" (') === 0 && /\\? Their bookmark stays\\.$/.test(__vars.deleteDialog.text) && __vars.deleteDialog.where.inPanel && __vars.deleteDialog.where.text === 'Cancel'"
+    },
+    {
+      "name": "the dialog",
+      "screenshot": "page-clips-admin-delete.png"
+    },
+    {
+      "name": "Delete",
+      "script": "__c6.action(__c6.panel('Delete clip?'), 'Delete').click(); return true;"
+    },
+    {
+      "name": "deleted: the dialog and the row gone, the toast",
+      "waitFor": "__c6.panels().length === 0 && !__c6.row(__vars.seed['Web A'].id) && __c6.toasts().indexOf('Clip deleted.') >= 0",
+      "timeout": 15000
+    },
+    {
+      "name": "the file route of Web A now",
+      "script": "return await __c6.status('Bookmarks/Admin/Clips/' + __vars.seed['Web A'].id + '/File');",
+      "save": "deletedStatus"
+    },
+    {
+      "name": "as expected: 404",
+      "assert": "__vars.deletedStatus === 404"
+    },
+    {
+      "name": "tick Web B and Web C, then Delete…",
+      "script": "for (const n of ['Web B', 'Web C']) { const box = __c6.row(__vars.seed[n].id).querySelector('.jfbm-row-select-box'); box.checked = true; box.dispatchEvent(new Event('change')); } const bar = __c6.root().querySelector('.jfbm-bulk-bar'); const count = bar.querySelector('.jfbm-bulk-count').textContent; bar.querySelector('.jfbm-bulk-delete').focus(); bar.querySelector('.jfbm-bulk-delete').click(); return count;",
+      "save": "bulkCount"
+    },
+    {
+      "name": "the Delete 2 clips? dialog",
+      "waitFor": "!!__c6.panel('Delete 2 clips?')"
+    },
+    {
+      "name": "what it says",
+      "eval": "({ text: __c6.panel('Delete 2 clips?').querySelector('.jfbm-bulk-description').textContent, where: __c6.where() })",
+      "save": "bulkDialog",
+      "full": true
+    },
+    {
+      "name": "as expected: 2 selected, two files, whose they are, the focus on Cancel",
+      "assert": "__vars.bulkCount === '2 clips selected' && /^2 clip files \\(.+\\) will be deleted\\. /.test(__vars.bulkDialog.text) && /They are \\u2068viewer2\\u2069's clips\\.$/.test(__vars.bulkDialog.text) && __vars.bulkDialog.where.text === 'Cancel'"
+    },
+    {
+      "name": "Delete (bulk)",
+      "script": "__c6.action(__c6.panel('Delete 2 clips?'), 'Delete').click(); return true;"
+    },
+    {
+      "name": "deleted: the dialog gone, both rows gone",
+      "waitFor": "__c6.panels().length === 0 && !__c6.row(__vars.seed['Web B'].id) && !__c6.row(__vars.seed['Web C'].id) && __c6.toasts().indexOf('2 clips deleted.') >= 0",
+      "timeout": 20000
+    },
+    {
+      "name": "the page after the deletes",
+      "screenshot": "page-clips-admin.png"
+    },
+    {
+      "name": "no uncaught exception of ours (as admin)",
+      "noExceptions": true,
+      "ignore": "/CustomRatings/script|^Error: player cannot be null"
+    },
+    {
+      "name": "sign in as viewer",
+      "login": "viewer"
+    },
+    {
+      "name": "the Bookmarks script ran (viewer)",
+      "waitFor": "!!window.__jfkit && !!window.__jfkit.jfbm && !!window.ApiClient && !!ApiClient.getCurrentUserId()"
+    },
+    {
+      "name": "My Clips with a hash naming the scope",
+      "goto": "/web/index.html#/jfbm-clips?scope=all&user=0123456789abcdef0123456789abcdef"
+    },
+    {
+      "name": "helpers (viewer)",
+      "eval": "window.__c6 = (() => {\n  const k = (id) => String(id || '').replace(/-/g, '').toLowerCase();\n  const root = () => document.querySelector('#fallbackPage > [data-jfbm-page=\"clips\"]');\n  const ready = () => { const r = root(); const c = r && r.querySelector('.jfbm-clips-content'); return !!r && r.getAttribute('data-jfbm-state') === 'on' && !!c && !c.hasAttribute('aria-busy'); };\n  const row = (id) => { const r = root(); return r && id ? r.querySelector('.jfbm-clips-row[data-jfbm-clip=\"' + k(id) + '\"]') : null; };\n  const btn = (scope, t) => scope ? [...scope.querySelectorAll('button')].find(b => b.getAttribute('title') === t || b.textContent === t) || null : null;\n  const scope = () => { const r = root(); return r ? [...r.querySelectorAll('.jfbm-clips-scope-button')] : []; };\n  const owner = () => { const r = root(); return r ? r.querySelector('.jfbm-clips-owner-select') : null; };\n  const panels = () => [...document.querySelectorAll('.jfbm-backdrop .jfbm-panel')];\n  const panel = (t) => panels().find(p => p.querySelector('h3').textContent === t) || null;\n  const action = (dialog, label) => dialog ? [...dialog.querySelectorAll('.jfbm-actions button')].find(b => b.textContent === label) || null : null;\n  const toasts = () => [...document.querySelectorAll('.jfbm-toast')].map(t => (t.querySelector('span') || t).textContent);\n  const where = () => { const a = document.activeElement; const p = panels()[0]; const r = a && a.closest ? a.closest('.jfbm-clips-row') : null; return { tag: a ? a.tagName : null, body: a === document.body, inPanel: !!p && p.contains(a), text: a ? (a.textContent || '').trim() : null, title: a && a.getAttribute ? a.getAttribute('title') : null, cls: a && a.className ? String(a.className) : null, row: r ? r.getAttribute('data-jfbm-clip') : null, dialogs: panels().length }; };\n  const auth = () => ({ Authorization: 'MediaBrowser Token=\"' + ApiClient.accessToken() + '\"' });\n  const json = async (p, q) => { const r = await fetch(ApiClient.getUrl(p, q), { headers: auth() }); return r.status === 200 ? r.json() : { status: r.status }; };\n  const status = async (p, q) => (await fetch(ApiClient.getUrl(p, q), { headers: auth() })).status;\n  const rowInfo = (id) => { const x = row(id); if (!x) { return null; } const o = x.querySelector('.jfbm-clip-owner bdi'); const p = x.querySelector('.jfbm-clip-path code'); return { owner: o ? o.textContent : null, dir: o ? o.getAttribute('dir') : null, path: p ? p.textContent : null, pathDir: p ? p.getAttribute('dir') : null, copy: !!btn(x.querySelector('.jfbm-clip-path'), 'Copy the path'), actions: [...x.querySelectorAll('.jfbm-clip-actions button')].map(b => b.getAttribute('title')), box: !!x.querySelector('.jfbm-row-select-box'), text: x.textContent }; };\n  return { k, root, ready, row, btn, scope, owner, panels, panel, action, toasts, where, json, status, rowInfo };\n})(), true"
+    },
+    {
+      "name": "the page (viewer)",
+      "waitFor": "__c6.ready()",
+      "timeout": 20000
+    },
+    {
+      "name": "what viewer sees",
+      "eval": "({ scope: __c6.scope().length, bar: !!__c6.root().querySelector('.jfbm-clips-scope-bar'), owner: !!__c6.owner(), hash: location.hash, viewer2Rows: (window.__c6seed || []).length, canManage: null })",
+      "save": "viewer",
+      "full": true
+    },
+    {
+      "name": "the capabilities (viewer)",
+      "script": "return (await ApiClient.getJSON(ApiClient.getUrl('Bookmarks/Capabilities'))).CanManageAllClips;",
+      "save": "viewerCanManage"
+    },
+    {
+      "name": "as expected: no switch, no Owner select, the hash as it came, CanManageAllClips false",
+      "assert": "__vars.viewer.scope === 0 && !__vars.viewer.bar && !__vars.viewer.owner && __vars.viewer.hash === '#/jfbm-clips?scope=all&user=0123456789abcdef0123456789abcdef' && __vars.viewerCanManage === false"
+    },
+    {
+      "name": "the admin list refused to viewer",
+      "script": "return await __c6.status('Bookmarks/Admin/Clips');",
+      "save": "viewerAdmin"
+    },
+    {
+      "name": "as expected: 403",
+      "assert": "__vars.viewerAdmin === 403"
+    },
+    {
+      "name": "no uncaught exception of ours",
+      "noExceptions": true,
+      "ignore": "/CustomRatings/script|^Error: player cannot be null"
+    }
+  ]
+}

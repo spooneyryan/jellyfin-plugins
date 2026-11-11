@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  A hand-written stand-in for Jellyfin Enhanced's settings file, for the kit's reader tests: not a copy of JE's file.
+  This is the newer-version shape (standing for JE 12.12): the older-version stand-in next to it
+  (Jellyfin.Plugin.JellyfinEnhanced.xml) element for element, in the same order and with the same values, plus four
+  made-up ExampleAdded* elements standing for settings a newer JE adds, which the reader must skip. Nothing is
+  renamed, moved or removed, so the reader reads both alike.
+-->
+<PluginConfiguration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <ExampleSettingA>false</ExampleSettingA>
+  <ExampleSettingB>Example text that no test reads.</ExampleSettingB>
+  <ExampleSettingC />
+  <ExampleAddedSettingA>true</ExampleAddedSettingA>
+  <ShowUserReviews>true</ShowUserReviews>
+  <ShowUserRatingOnPosters>false</ShowUserRatingOnPosters>
+  <MirrorReviewRatingsToJellyfin>true</MirrorReviewRatingsToJellyfin>
+  <ShowReviews>false</ShowReviews>
+  <ReviewsExpandedByDefault>false</ReviewsExpandedByDefault>
+  <HideReviewsFromHiddenUsers>true</HideReviewsFromHiddenUsers>
+  <HideReviewsFromDisabledUsers>true</HideReviewsFromDisabledUsers>
+  <ActivityFeedEnabled>false</ActivityFeedEnabled>
+  <ActivityFeedShowReviewed>true</ActivityFeedShowReviewed>
+  <SpoilerStripReviews>true</SpoilerStripReviews>
+  <ExampleNumberA>1500</ExampleNumberA>
+  <ExampleAddedSettingB>example</ExampleAddedSettingB>
+  <ExampleAddedSettingC />
+  <ExampleListA>
+    <string>first example</string>
+    <string>second example</string>
+  </ExampleListA>
+  <DisableAllShortcuts>false</DisableAllShortcuts>
+  <BookmarksEnabled>true</BookmarksEnabled>
+  <BookmarksUsePluginPages>false</BookmarksUsePluginPages>
+  <BookmarksUseCustomTabs>false</BookmarksUseCustomTabs>
+  <BookmarksUseNativeTab>false</BookmarksUseNativeTab>
+  <BookmarksAutoCreateCustomTab>false</BookmarksAutoCreateCustomTab>
+  <BookmarksCustomTabJeOwned>false</BookmarksCustomTabJeOwned>
+  <ExampleAddedSettingD>false</ExampleAddedSettingD>
+  <ExampleSettingD>example</ExampleSettingD>
+  <Shortcuts>
+    <Shortcut>
+      <Name>OpenSearch</Name>
+      <Key>/</Key>
+      <Label>Open Search</Label>
+      <Category>Global</Category>
+    </Shortcut>
+    <Shortcut>
+      <Name>GoToHome</Name>
+      <Key>Shift+H</Key>
+      <Label>Go to Home</Label>
+      <Category>Global</Category>
+    </Shortcut>
+    <Shortcut>
+      <Name>GoToDashboard</Name>
+      <Key>D</Key>
+      <Label>Go to Dashboard</Label>
+      <Category>Global</Category>
+    </Shortcut>
+    <Shortcut>
+      <Name>QuickConnect</Name>
+      <Key>Q</Key>
+      <Label>Quick Connect</Label>
+      <Category>Global</Category>
+    </Shortcut>
+    <Shortcut>
+      <Name>PlayRandomItem</Name>
+      <Key>R</Key>
+      <Label>Play Random Item</Label>
+      <Category>Global</Category>
+    </Shortcut>
+    <Shortcut>
+      <Name>CycleAspectRatio</Name>
+      <Key>A</Key>
+      <Label>Cycle Aspect Ratio</Label>
+      <Category>Player</Category>
+    </Shortcut>
+    <Shortcut>
+      <Name>ShowPlaybackInfo</Name>
+      <Key>I</Key>
+      <Label>Show Playback Info</Label>
+      <Category>Player</Category>
+    </Shortcut>
+    <Shortcut>
+      <Name>SubtitleMenu</Name>
+      <Key>S</Key>
+      <Label>Subtitle Menu</Label>
+      <Category>Player</Category>
+    </Shortcut>
+    <Shortcut>
+      <Name>CycleSubtitleTracks</Name>
+      <Key>C</Key>
+      <Label>Cycle Subtitle Tracks</Label>
+      <Category>Player</Category>
+    </Shortcut>
+    <Shortcut>
+      <Name>CycleAudioTracks</Name>
+      <Key>V</Key>
+      <Label>Cycle Audio Tracks</Label>
+      <Category>Player</Category>
+    </Shortcut>
+    <Shortcut>
+      <Name>IncreasePlaybackSpeed</Name>
+      <Key>+</Key>
+      <Label>Increase Playback Speed</Label>
+      <Category>Player</Category>
+    </Shortcut>
+    <Shortcut>
+      <Name>DecreasePlaybackSpeed</Name>
+      <Key>-</Key>
+      <Label>Decrease Playback Speed</Label>
+      <Category>Player</Category>
+    </Shortcut>
+    <Shortcut>
+      <Name>ResetPlaybackSpeed</Name>
+      <Key>R</Key>
+      <Label>Reset Playback Speed</Label>
+      <Category>Player</Category>
+    </Shortcut>
+    <Shortcut>
+      <Name>BookmarkCurrentTime</Name>
+      <Key>B</Key>
+      <Label>Bookmark Current Time</Label>
+      <Category>Player</Category>
+    </Shortcut>
+    <Shortcut>
+      <Name>OpenEpisodePreview</Name>
+      <Key>P</Key>
+      <Label>Open Episode Preview</Label>
+      <Category>Player</Category>
+    </Shortcut>
+    <Shortcut>
+      <Name>SkipIntroOutro</Name>
+      <Key>O</Key>
+      <Label>Skip Intro/Outro</Label>
+      <Category>Player</Category>
+    </Shortcut>
+    <Shortcut>
+      <Name>FrameStepBack</Name>
+      <Key>,</Key>
+      <Label>Step Back One Frame</Label>
+      <Category>Player</Category>
+    </Shortcut>
+    <Shortcut>
+      <Name>FrameStepForward</Name>
+      <Key>.</Key>
+      <Label>Step Forward One Frame</Label>
+      <Category>Player</Category>
+    </Shortcut>
+    <Shortcut>
+      <Name>JumpToLastPosition</Name>
+      <Key>Z</Key>
+      <Label>Jump to Last Position</Label>
+      <Category>Player</Category>
+    </Shortcut>
+    <Shortcut>
+      <Name>JumpToPercentage</Name>
+      <Key>0-9</Key>
+      <Label>Jump to % of video</Label>
+      <Category>Player</Category>
+    </Shortcut>
+  </Shortcuts>
+  <ExampleSettingE>true</ExampleSettingE>
+</PluginConfiguration>

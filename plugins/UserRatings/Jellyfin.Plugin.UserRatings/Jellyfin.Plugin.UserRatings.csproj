@@ -1,0 +1,42 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Framework, nullable, warnings-as-errors, analyzers and InternalsVisibleTo come from the root Directory.Build.props. -->
+  <PropertyGroup>
+    <RootNamespace>Jellyfin.Plugin.UserRatings</RootNamespace>
+    <!-- Keep equal to build.yaml's version (checked by tests/Repo.Tests). Development builds are 0.3.<n>.0. -->
+    <Version>1.0.2.0</Version>
+    <AssemblyVersion>1.0.2.0</AssemblyVersion>
+    <FileVersion>1.0.2.0</FileVersion>
+    <!--
+      The kit's SQLite layer: Kit.props then compiles kit/src/Sqlite and references
+      Microsoft.Data.Sqlite.Core 9.0.11 with ExcludeAssets=runtime and PrivateAssets=all, so the plugin runs on the server's
+      own copy and ships no SQLite file (Deploy's allowlist refuses one). Set before the import, which reads it.
+    -->
+    <KitUseSqlite>true</KitUseSqlite>
+  </PropertyGroup>
+
+  <!-- The shared kit (kit/src) compiles into this assembly. -->
+  <Import Project="$(KitRoot)build\Kit.props" />
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <!-- The server provides these at runtime; never ship copies of them with the plugin. -->
+  <ItemGroup>
+    <PackageReference Include="Jellyfin.Controller">
+      <ExcludeAssets>runtime</ExcludeAssets>
+    </PackageReference>
+    <PackageReference Include="Jellyfin.Model">
+      <ExcludeAssets>runtime</ExcludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <!-- The web client (Web/js/*.js, Web/css/*.css, Web/anchors.json) is embedded by the kit's Kit.props and built into one
+       script by the kit's EmbeddedScript. The dashboard page is the settings page. -->
+  <ItemGroup>
+    <None Remove="Configuration\configPage.html" />
+    <EmbeddedResource Include="Configuration\configPage.html" />
+  </ItemGroup>
+
+</Project>

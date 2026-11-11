@@ -1,0 +1,213 @@
+{
+  "name": "User Ratings 1.0.2.0, the Jellyfin Enhanced import: in the je sandbox as admin, the desktop layout, with the synthetic reviews.json of userratings-je-import-probe.mjs --webchecks: the kit's Jellyfin Enhanced banner above the tabs, as text; the Data tab's \"Import from Jellyfin Enhanced\" section with its switch-over checklist (every JE 12.14 review setting in order: user reviews To do, translation Done, the TMDB section Optional) and Use the same hiding rules; Import waits for a dry run; the dry run (one POST 202, polled) and its report as text: new ratings, one stored detached, one left out, one clamped, JE's field names, one JE member to map, no review text anywhere on the page; that member given to viewer2 and the dry run again; Import asks first (Cancel focused), then imports with the dry run's PlanToken; the report names the import's snapshot, which the run restores at the end through the API (the import undone).",
+  "failOnException": false,
+  "timeout": 30000,
+  "steps": [
+    {
+      "name": "the details probe in every document (its request log and server())",
+      "initScript": {
+        "file": "probes/userratings-details-probe.js"
+      }
+    },
+    {
+      "name": "sign in as admin",
+      "login": "admin"
+    },
+    {
+      "name": "desktop layout",
+      "eval": "(localStorage.removeItem('layout'), true)"
+    },
+    {
+      "name": "reload",
+      "reload": true
+    },
+    {
+      "name": "admin: User Ratings 1.0.2.0 started",
+      "waitFor": "!!window.ApiClient && !!ApiClient.getCurrentUserId() && !!(window.__jfkit && window.__jfkit.jfur)",
+      "timeout": 40000
+    },
+    {
+      "name": "the served script is 1.0.2.0",
+      "assert": "window.__jfkit.jfur.version === '1.0.2.0'",
+      "message": "User Ratings 1.0.2.0 is not the script the page loaded"
+    },
+    {
+      "name": "the users' ids",
+      "script": "const norm = (v) => String(v === null || v === undefined ? '' : v).replace(/-/g, '').toLowerCase(); const u = await ApiClient.getUsers(); const id = (n) => { const x = u.find(y => y.Name === n); return x ? norm(x.Id) : null; }; const r = { admin: id('admin'), viewer: id('viewer'), viewer2: id('viewer2') }; if (!r.viewer || !r.viewer2) { throw new Error('the sandbox needs viewer and viewer2'); } return r;",
+      "save": "ids",
+      "full": true
+    },
+    {
+      "name": "mark",
+      "script": "window.__mark = __jfurDetails.requests.length; return true;"
+    },
+    {
+      "name": "open User Ratings' settings page",
+      "goto": "/web/index.html#/configurationpage?name=UserRatings"
+    },
+    {
+      "name": "the page and its tabs",
+      "waitFor": "!!document.querySelector('#UserRatingsConfigPage:not(.hide) #UserRatingsTabs')",
+      "timeout": 30000
+    },
+    {
+      "name": "the Data tab",
+      "click": "#UserRatingsTabData"
+    },
+    {
+      "name": "the Data tab mounted: the snapshots, the users and the jobs read, and the detached list",
+      "waitFor": "(() => { const r = __jfurDetails.requests.slice(window.__mark); const got = (p) => r.some(x => x.method === 'GET' && x.path === p && x.status === 200); return !document.querySelector('#UserRatingsData').classList.contains('hide') && !!document.querySelector('#UserRatingsDataRoot .jfur-data-export') && !!document.querySelector('#UserRatingsDetachedListRoot .jfur-det') && got('/UserRatings/Admin/Snapshots') && got('/UserRatings/Admin/Diagnostics') && got('/UserRatings/Admin/Jobs') && got('/UserRatings/Admin/Detached'); })()",
+      "timeout": 30000
+    },
+    {
+      "name": "the time the lists take to draw",
+      "sleep": 500
+    },
+    {
+      "name": "its requests so far",
+      "eval": "__jfurDetails.requests.slice(window.__mark).map(r => r.method + ' ' + r.path + ' ' + r.status)",
+      "save": "firstRequests",
+      "full": true
+    },
+    {
+      "name": "GETs only (and the page's own Detached/Seen): opening the tab writes nothing",
+      "assert": "__vars.firstRequests.every(r => r.indexOf('GET ') === 0 || r.indexOf('POST /UserRatings/Admin/Detached/Seen ') === 0)"
+    },
+    {
+      "name": "no select in the Data tab or the detached list (the TV layout's D-pad and OK work on every control)",
+      "assert": "document.querySelectorAll('#UserRatingsDataRoot select, #UserRatingsDetachedListRoot select').length === 0"
+    },
+    {
+      "name": "the kit's Jellyfin Enhanced banner above the tabs, as text",
+      "assert": "Array.from(document.querySelectorAll('#UserRatingsBanners .userRatingsBanner')).some(b => b.textContent.indexOf(\"Jellyfin Enhanced's User Reviews is on.\") === 0 && b.children.length === 0)"
+    },
+    {
+      "name": "the switch-over checklist: every JE 12.14 review setting, in order, as the sandbox's JE has them",
+      "eval": "Array.from(document.querySelectorAll('#UserRatingsDataRoot .jfur-data-je-item')).map(li => ({ key: li.getAttribute('data-jfur-key'), done: li.getAttribute('data-jfur-done'), state: li.querySelector('.jfur-data-je-state').textContent }))",
+      "save": "checklist",
+      "full": true
+    },
+    {
+      "name": "eleven items; user reviews on, so To do; translation off with no URL or key, so Done; the TMDB section Optional; the activity feed off (JE's default), so Show recently reviewed Done (0.3.22); none Unknown; Use the same hiding rules shown",
+      "assert": "__vars.checklist.map(i => i.key).join(',') === \"ShowUserReviews,ShowReviews,ShowAnilistReviews,ReviewTranslationEnabled,ReviewsExpandedByDefault,MirrorReviewRatingsToJellyfin,HideReviewsFromHiddenUsers,HideReviewsFromDisabledUsers,ActivityFeedShowReviewed,SpoilerStripReviews,ShowUserRatingOnPosters\" && __vars.checklist[0].state === 'To do: ' && __vars.checklist[3].state === 'Done: ' && __vars.checklist[1].state === 'Optional: ' && __vars.checklist[8].state === 'Done: ' && __vars.checklist.every(i => i.state !== 'Unknown: ') && document.querySelectorAll('#UserRatingsDataRoot .jfur-data-je-problems').length === 0 && (document.querySelector('#UserRatingsDataRoot .jfur-data-je-section .jfur-data-je-hiding').getClientRects().length > 0)"
+    },
+    {
+      "name": "Import waits for a dry run",
+      "assert": "document.querySelector('#UserRatingsDataRoot .jfur-data-je-section .jfur-data-je-import').disabled && !document.querySelector('#UserRatingsDataRoot .jfur-data-je-section .jfur-data-je-dryrun').disabled"
+    },
+    {
+      "name": "screenshot: the Jellyfin Enhanced section",
+      "screenshot": "userratings-data-je-desktop.png"
+    },
+    {
+      "name": "dry: mark",
+      "script": "window.__mark = __jfurDetails.requests.length; return true;"
+    },
+    {
+      "name": "dry: Dry run",
+      "click": "#UserRatingsDataRoot .jfur-data-je-dryrun"
+    },
+    {
+      "name": "dry: the report",
+      "waitFor": "document.querySelector('#UserRatingsDataRoot .jfur-data-je-section .jfur-data-je-report').textContent.indexOf(\"Dry run, nothing was changed. Jellyfin Enhanced's file has 8 reviews.\") === 0",
+      "timeout": 60000
+    },
+    {
+      "name": "dry: the counts, the field names, the JE member to map",
+      "eval": "({ counts: Array.from(document.querySelector('#UserRatingsDataRoot .jfur-data-je-section .jfur-data-je-report').querySelectorAll('[data-jfur-count]')).map(li => li.getAttribute('data-jfur-count')), fields: document.querySelector('#UserRatingsDataRoot .jfur-data-je-section .jfur-data-je-report').querySelector('.jfur-data-je-fields').textContent, unknown: document.querySelectorAll('#UserRatingsDataRoot [data-jfur-je-user]').length, text: document.querySelector('#UserRatingsDataRoot').textContent.indexOf('jeimp-') >= 0, markup: document.querySelector('#UserRatingsDataRoot .jfur-data-je-section .jfur-data-je-report').querySelectorAll('b, i').length })",
+      "save": "dry",
+      "full": true
+    },
+    {
+      "name": "dry: new ratings, a review stored detached, one left out and one clamped; JE's field names; one JE member to map; no review text anywhere on the page",
+      "assert": "['Created', 'StoredDetached', 'Invalid', 'Clamped'].every(k => __vars.dry.counts.indexOf(k) >= 0) && __vars.dry.fields === \"Fields in Jellyfin Enhanced's file: UserId, TmdbId, MediaType, Content, Rating, CreatedAt, UpdatedAt\" && __vars.dry.unknown === 1 && !__vars.dry.text && __vars.dry.markup === 0"
+    },
+    {
+      "name": "dry: the tab's requests since the mark",
+      "eval": "__jfurDetails.requests.slice(window.__mark).map(r => ({ method: r.method, path: r.path, query: r.query, status: r.status }))",
+      "save": "dryRequests",
+      "full": true
+    },
+    {
+      "name": "dry: one POST of the import, a dry run",
+      "assert": "(() => { const p = __vars.dryRequests.filter(x => x.method === 'POST'); return p.length === 1 && p[0].path === '/UserRatings/Admin/Import/JellyfinEnhanced' && p[0].status === 202 && /dryRun=true/.test(JSON.stringify(p[0].query || '')); })()"
+    },
+    {
+      "name": "map: the JE member given to viewer2",
+      "script": "const b = Array.from(document.querySelectorAll('#UserRatingsDataRoot [data-jfur-je-user] .jfur-data-choice')).find(x => x.textContent === 'viewer2'); if (!b) { throw new Error('no viewer2 choice'); } b.click(); return true;"
+    },
+    {
+      "name": "map: Import waits for another dry run",
+      "assert": "document.querySelector('#UserRatingsDataRoot .jfur-data-je-section .jfur-data-je-import').disabled"
+    },
+    {
+      "name": "map: Dry run",
+      "click": "#UserRatingsDataRoot .jfur-data-je-dryrun"
+    },
+    {
+      "name": "map: the report again, Import on",
+      "waitFor": "document.querySelector('#UserRatingsDataRoot .jfur-data-je-section .jfur-data-je-report').textContent.indexOf('Dry run, nothing was changed.') === 0 && !document.querySelector('#UserRatingsDataRoot .jfur-data-je-section .jfur-data-je-import').disabled",
+      "timeout": 60000
+    },
+    {
+      "name": "import: mark",
+      "script": "window.__mark = __jfurDetails.requests.length; return true;"
+    },
+    {
+      "name": "import: Import",
+      "click": "#UserRatingsDataRoot .jfur-data-je-import"
+    },
+    {
+      "name": "import: the question, the focus on Cancel",
+      "waitFor": "!!document.querySelector('.jfur-panel[role=\"dialog\"][aria-modal=\"true\"]') && document.activeElement === document.querySelector('.jfur-panel[role=\"dialog\"][aria-modal=\"true\"]').querySelector('.jfur-data-cancel')",
+      "timeout": 15000
+    },
+    {
+      "name": "import: what the question says",
+      "eval": "({ text: document.querySelector('.jfur-panel[role=\"dialog\"][aria-modal=\"true\"]').textContent, markup: document.querySelector('.jfur-panel[role=\"dialog\"][aria-modal=\"true\"]').querySelectorAll('b, i').length })",
+      "save": "jeQuestion",
+      "full": true
+    },
+    {
+      "name": "import: the question: a snapshot first, its restore the undo",
+      "assert": "__vars.jeQuestion.text.indexOf(\"Import Jellyfin Enhanced's reviews as the dry run showed? A snapshot of the ratings as they are now is taken first; restoring it undoes the import.\") >= 0"
+    },
+    {
+      "name": "import: the question's button",
+      "click": ".jfur-panel[role=\"dialog\"] .jfur-data-confirm"
+    },
+    {
+      "name": "import: imported, the report names the import's snapshot",
+      "waitFor": "!document.querySelector('.jfur-panel[role=\"dialog\"][aria-modal=\"true\"]') && document.querySelector('#UserRatingsDataRoot .jfur-data-je-section .jfur-data-je-report').textContent.indexOf('Imported.') === 0 && document.querySelector('#UserRatingsDataRoot .jfur-data-je-section .jfur-data-je-report').textContent.indexOf('The ratings from just before were kept as userratings-import-') >= 0",
+      "timeout": 60000
+    },
+    {
+      "name": "import: the snapshot's name",
+      "eval": "/kept as (userratings-import-[^ ]+[.]db)/.exec(document.querySelector('#UserRatingsDataRoot .jfur-data-je-section .jfur-data-je-report').textContent)[1]",
+      "save": "jeSnapshot"
+    },
+    {
+      "name": "import: the tab's requests since the mark",
+      "eval": "__jfurDetails.requests.slice(window.__mark).map(r => ({ method: r.method, path: r.path, query: r.query, status: r.status }))",
+      "save": "importRequests",
+      "full": true
+    },
+    {
+      "name": "import: one real run with the dry run's PlanToken",
+      "assert": "(() => { const p = __vars.importRequests.filter(x => x.method === 'POST'); const q = JSON.stringify(p.length ? p[0].query : ''); return p.length === 1 && /dryRun=false|\"dryRun\":\"false\"/.test(q) && /ifPlan=[0-9a-f]{32}|\"ifPlan\":\"[0-9a-f]{32}\"/.test(q) && p[0].status === 202; })()"
+    },
+    {
+      "name": "import: screenshot of the report",
+      "screenshot": "userratings-data-je-imported.png"
+    },
+    {
+      "name": "no uncaught exception",
+      "noExceptions": true,
+      "ignore": "/CustomRatings/script|^Error: player cannot be null"
+    },
+    {
+      "name": "clean: the import undone: its snapshot restored through the API",
+      "script": "const r = await __jfurDetails.server('POST', 'UserRatings/Admin/Snapshots/Restore?name=' + encodeURIComponent(__vars.jeSnapshot)); if (r.status !== 200) { throw new Error('restore ' + r.status); } return r.status;"
+    }
+  ]
+}

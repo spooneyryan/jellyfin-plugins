@@ -1,0 +1,19 @@
+{
+  "comment": "Kit.Tests' stand-in plugin anchors (prefix jfkt), embedded by Kit.props as Web.anchors.json: the fixture of the EmbeddedScript, ClientHealth and web coupling tests.",
+  "anchors": [
+    {
+      "name": "fixtureList",
+      "css": [".fixtureList", "#fixtureListFallback"],
+      "required": true,
+      "views": ["fixture"],
+      "note": "Kit.Tests fixture: a list the fixture page renders (no jellyfin-web chunk)."
+    },
+    {
+      "name": "fixtureButton",
+      "css": [".fixtureButton"],
+      "required": false,
+      "views": ["fixture", "other"],
+      "note": "Kit.Tests fixture: an optional button (no jellyfin-web chunk)."
+    }
+  ]
+}

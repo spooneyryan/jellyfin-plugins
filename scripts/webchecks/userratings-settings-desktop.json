@@ -1,0 +1,1040 @@
+{
+  "name": "User Ratings 1.0.2.0, the Settings tab: in the default sandbox as admin, with viewer and viewer2 in their own windows, the desktop layout: the settings page's Settings tab read with GETs only; every setting in its group and order, shown as the server holds it, with its help and default, the restart settings marked, Mirror locked, no select; the inline checks (nobody chosen for \"Only the users chosen below\", a review length under 2000, no kind) send nothing and put the focus on the first setting to fix, Undo puts every value back; another tab and back keeps a change not saved (nothing read), and with nothing changed reads again, a click made while that read is held kept; item 2b through the tab: only viewer chosen, the dry run's dialog first (in the tab's words, the users who can no longer rate), one dry run and one save with the version and only the two settings; viewer2 gets 403 \"Rating is limited to selected members.\" and the read-only note on the details page, still sees viewer's review, deletes their own older row; every user again: viewer2 rates, viewer's row unchanged; Movies out of what can be rated: viewer's read 404 and no section on the next details view, Movies back: the section again; the Top Rated page's restart notice; a save over settings saved meanwhile: the 409, nothing saved, Reload; item 15: every setting but Mirror changed through its control at once, saved after the dialog, held by the server and by PluginConfiguration, kept after the page is reloaded, then every one put back through the tab. Every setting as it began and every rating on Long Test Movie removed at the end.",
+  "failOnException": false,
+  "timeout": 30000,
+  "steps": [
+    {
+      "context": "viewer"
+    },
+    {
+      "name": "the details probe in every document (its request log and server())",
+      "initScript": {
+        "file": "probes/userratings-details-probe.js"
+      }
+    },
+    {
+      "name": "sign in as viewer",
+      "login": "viewer"
+    },
+    {
+      "name": "desktop layout",
+      "eval": "(localStorage.removeItem('layout'), true)"
+    },
+    {
+      "name": "reload",
+      "reload": true
+    },
+    {
+      "name": "viewer: User Ratings 1.0.2.0 started",
+      "waitFor": "!!window.ApiClient && !!ApiClient.getCurrentUserId() && !!(window.__jfkit && window.__jfkit.jfur)",
+      "timeout": 40000
+    },
+    {
+      "name": "the served script is 1.0.2.0",
+      "assert": "window.__jfkit.jfur.version === '1.0.2.0'",
+      "message": "User Ratings 1.0.2.0 is not the script the page loaded"
+    },
+    {
+      "context": "viewer2"
+    },
+    {
+      "name": "the details probe in every document (its request log and server())",
+      "initScript": {
+        "file": "probes/userratings-details-probe.js"
+      }
+    },
+    {
+      "name": "sign in as viewer2",
+      "login": "viewer2"
+    },
+    {
+      "name": "desktop layout",
+      "eval": "(localStorage.removeItem('layout'), true)"
+    },
+    {
+      "name": "reload",
+      "reload": true
+    },
+    {
+      "name": "viewer2: User Ratings 1.0.2.0 started",
+      "waitFor": "!!window.ApiClient && !!ApiClient.getCurrentUserId() && !!(window.__jfkit && window.__jfkit.jfur)",
+      "timeout": 40000
+    },
+    {
+      "name": "the served script is 1.0.2.0",
+      "assert": "window.__jfkit.jfur.version === '1.0.2.0'",
+      "message": "User Ratings 1.0.2.0 is not the script the page loaded"
+    },
+    {
+      "context": "main"
+    },
+    {
+      "name": "the details probe in every document (its request log and server())",
+      "initScript": {
+        "file": "probes/userratings-details-probe.js"
+      }
+    },
+    {
+      "name": "sign in as admin",
+      "login": "admin"
+    },
+    {
+      "name": "desktop layout",
+      "eval": "(localStorage.removeItem('layout'), true)"
+    },
+    {
+      "name": "reload",
+      "reload": true
+    },
+    {
+      "name": "admin: User Ratings 1.0.2.0 started",
+      "waitFor": "!!window.ApiClient && !!ApiClient.getCurrentUserId() && !!(window.__jfkit && window.__jfkit.jfur)",
+      "timeout": 40000
+    },
+    {
+      "name": "the served script is 1.0.2.0",
+      "assert": "window.__jfkit.jfur.version === '1.0.2.0'",
+      "message": "User Ratings 1.0.2.0 is not the script the page loaded"
+    },
+    {
+      "name": "the settings before the run",
+      "script": "const r = await __jfurDetails.server('GET', 'UserRatings/Admin/Settings'); if (r.status !== 200) { throw new Error('settings ' + r.status); } return r.json;",
+      "save": "before",
+      "full": true
+    },
+    {
+      "name": "the settings this run changes are at their defaults",
+      "assert": "(() => { const s = __vars.before.Settings; return s.EnableRatings === true && s.EnableReviews === true && s.WhoCanRate === 'AllUsers' && s.RaterUserIds.length === 0 && s.RateableItemTypes.indexOf('Movie') >= 0 && s.RateableItemTypes.indexOf('Trailer') < 0 && s.EnableTopRatedPage === true && s.MirrorToUserData === false && s.ReviewsPageSize < 50 && s.MaxReviewLength < 20000 && s.MinRatingsForAverage < 10 && s.SnapshotsToKeep < 365 && s.DetachedRetentionDays < 36500 && s.ModerationLogDays < 3650; })()",
+      "message": "start with the defaults for EnableRatings, EnableReviews, WhoCanRate (AllUsers, nobody chosen), RateableItemTypes (Movie in, Trailer out), EnableTopRatedPage and MirrorToUserData, and every number under its largest"
+    },
+    {
+      "name": "viewer's and viewer2's ids",
+      "eval": "(() => { const u = __vars.before.Users; const v = u.find(x => x.Name === 'viewer'), w = u.find(x => x.Name === 'viewer2'); return v && w ? { viewer: v.Id, viewer2: w.Id } : null; })()",
+      "save": "ids",
+      "full": true
+    },
+    {
+      "name": "viewer's id",
+      "eval": "__vars.ids.viewer",
+      "save": "viewerId"
+    },
+    {
+      "name": "Long Test Movie",
+      "eval": "(await ApiClient.getItems(ApiClient.getCurrentUserId(), { IncludeItemTypes: 'Movie', Recursive: true, SearchTerm: \"Long Test Movie\", Limit: 1 })).Items[0].Id",
+      "save": "movieId"
+    },
+    {
+      "name": "clean: before the run: every rating on Long Test Movie removed through the moderation API",
+      "script": "const page = await __jfurDetails.server('GET', 'UserRatings/Admin/Reviews?itemId=' + __vars.movieId + '&limit=200'); if (page.status !== 200) { throw new Error('list ' + page.status); } const removed = []; for (const row of page.json.Items) { const p = 'UserRatings/Admin/Reviews/' + row.RatingId + '?textOnly=false'; const dry = await __jfurDetails.server('DELETE', p); const done = await __jfurDetails.server('DELETE', p + '&dryRun=false&ifPreview=' + dry.json.PreviewToken); removed.push(done.status); } return removed;"
+    },
+    {
+      "context": "viewer"
+    },
+    {
+      "name": "viewer: Long Test Movie",
+      "eval": "(await ApiClient.getItems(ApiClient.getCurrentUserId(), { IncludeItemTypes: 'Movie', Recursive: true, SearchTerm: \"Long Test Movie\", Limit: 1 })).Items[0].Id",
+      "save": "movieId"
+    },
+    {
+      "name": "viewer: stars and a review through the API",
+      "script": "const a = await __jfurDetails.server('PUT', 'UserRatings/Items/' + __vars.movieId + '/Mine/Rating', { Stars: 3.5 }); const b = await __jfurDetails.server('PUT', 'UserRatings/Items/' + __vars.movieId + '/Mine/Review', { Text: \"conf webcheck review: the harbour lights <b>stay plain</b> & steady.\", IsSpoiler: false }); if (a.status !== 200 || b.status !== 200) { throw new Error('rating ' + a.status + ', review ' + b.status); } return { updated: b.json.Mine.UpdatedUtc, stars: b.json.Mine.Stars };",
+      "save": "viewerRow",
+      "full": true
+    },
+    {
+      "context": "viewer2"
+    },
+    {
+      "name": "viewer2: Long Test Movie",
+      "eval": "(await ApiClient.getItems(ApiClient.getCurrentUserId(), { IncludeItemTypes: 'Movie', Recursive: true, SearchTerm: \"Long Test Movie\", Limit: 1 })).Items[0].Id",
+      "save": "movieId"
+    },
+    {
+      "name": "viewer2: stars through the API (the older own row)",
+      "script": "const a = await __jfurDetails.server('PUT', 'UserRatings/Items/' + __vars.movieId + '/Mine/Rating', { Stars: 4 }); if (a.status !== 200) { throw new Error('rating ' + a.status); } return a.status;"
+    },
+    {
+      "context": "main"
+    },
+    {
+      "name": "mark",
+      "script": "window.__mark = __jfurDetails.requests.length; return true;"
+    },
+    {
+      "name": "open User Ratings' settings page",
+      "goto": "/web/index.html#/configurationpage?name=UserRatings"
+    },
+    {
+      "name": "the page, its tabs, and the Settings tab mounted with every setting",
+      "waitFor": "!!document.querySelector('#UserRatingsConfigPage:not(.hide) #UserRatingsTabs') && document.querySelectorAll('#UserRatingsSettingsRoot .jfur-set-row').length === 32 && !!document.querySelector('#UserRatingsSettingsRoot .jfur-set-save:not(.hide)')",
+      "timeout": 30000
+    },
+    {
+      "name": "its requests so far",
+      "eval": "__jfurDetails.requests.slice(window.__mark).map(r => r.method + ' ' + r.path)",
+      "save": "firstRequests",
+      "full": true
+    },
+    {
+      "name": "GETs only, the settings read",
+      "assert": "__vars.firstRequests.every(r => r.indexOf('GET ') === 0) && __vars.firstRequests.indexOf('GET /UserRatings/Admin/Settings') >= 0"
+    },
+    {
+      "name": "every setting shown as the server holds it: a switch's aria-checked, a number's value, the choice checked, the users and kinds ticked; each with its help and default",
+      "assert": "(() => { const canon = (v) => Array.isArray(v) ? JSON.stringify(v.map(x => String(x).replace(/-/g, '').toLowerCase()).sort()) : JSON.stringify(v); const s = __vars.before.Settings; const root = document.querySelector('#UserRatingsSettingsRoot'); const fields = Array.from(root.querySelectorAll('.jfur-set-row')).map(r => r.getAttribute('data-jfur-field')); if (JSON.stringify(fields) !== \"[\\\"EnableRatings\\\",\\\"EnableReviews\\\",\\\"WhoCanRate\\\",\\\"RaterUserIds\\\",\\\"RateableItemTypes\\\",\\\"RequirePlayedToRate\\\",\\\"MaxReviewLength\\\",\\\"AllowSpoilerFlag\\\",\\\"HideReviewsFromHiddenUsers\\\",\\\"HideReviewsFromDisabledUsers\\\",\\\"ShowReviewerAvatars\\\",\\\"ShowAverageChip\\\",\\\"ShowHistogram\\\",\\\"MinRatingsForAverage\\\",\\\"SectionExpandedByDefault\\\",\\\"ShowDetailButton\\\",\\\"ReviewsPageSize\\\",\\\"EnableWebUi\\\",\\\"ReportWebAnchorProblems\\\",\\\"SnapshotsToKeep\\\",\\\"DetachedRetentionDays\\\",\\\"ModerationLogDays\\\",\\\"DeletedUserPolicy\\\",\\\"ShowJellyfinEnhancedBanner\\\",\\\"ShowOnPosters\\\",\\\"PosterBadgeContent\\\",\\\"PosterBadgePosition\\\",\\\"EnableTopRatedPage\\\",\\\"RegisterPluginPages\\\",\\\"PageHostMode\\\",\\\"ShowFallbackNav\\\",\\\"MirrorToUserData\\\"]\") { return false; } return fields.every(k => { const r = root.querySelector('[data-jfur-field=\"' + k + '\"]'); const v = s[k]; const help = r.querySelector('.jfur-set-help').textContent; if (help.indexOf('Default: ') < 0) { return false; } if (typeof v === 'boolean') { return r.querySelector('[role=switch]').getAttribute('aria-checked') === String(v); } if (typeof v === 'number') { return r.querySelector('input').value === String(v); } if (typeof v === 'string') { const c = r.querySelector('[role=radio][aria-checked=\"true\"]'); return !!c && c.getAttribute('data-jfur-value') === v; } const on = Array.from(r.querySelectorAll('[role=checkbox][aria-checked=\"true\"]')).map(b => b.getAttribute('data-jfur-value')); return canon(on) === canon(v); }); })()"
+    },
+    {
+      "name": "the number fields as drawn",
+      "eval": "Array.from(document.querySelectorAll('#UserRatingsSettingsRoot .jfur-set-row-number')).map(r => { const i = r.querySelector('input'); return { field: r.getAttribute('data-jfur-field'), width: Math.round(i.getBoundingClientRect().width), cut: i.scrollWidth > i.clientWidth + 1, help: Math.round(r.querySelector('.jfur-set-help').getBoundingClientRect().width), row: Math.round(r.getBoundingClientRect().width) }; })",
+      "save": "numbers",
+      "full": true
+    },
+    {
+      "name": "six number fields, each 80 to 200 px wide (8em, not grown to the row by the kit's .jfur-input) with its value whole; their help as wide as the row",
+      "assert": "__vars.numbers.length === 6 && __vars.numbers.every(n => n.width >= 80 && n.width <= 200 && !n.cut && n.help >= n.row - 2 && n.row >= 400)"
+    },
+    {
+      "name": "the groups",
+      "eval": "Array.from(document.querySelectorAll('#UserRatingsSettingsRoot .jfur-set-group-title')).map(h => h.textContent)",
+      "save": "groups",
+      "full": true
+    },
+    {
+      "name": "the settings' groups, in order",
+      "assert": "JSON.stringify(__vars.groups) === \"[\\\"Ratings and reviews\\\",\\\"Reviewers\\\",\\\"Details page\\\",\\\"Web client\\\",\\\"Data and retention\\\",\\\"Jellyfin Enhanced\\\",\\\"Coming with version 1.1\\\"]\""
+    },
+    {
+      "name": "the restart settings say so; Mirror can't be turned on; no select",
+      "assert": "['EnableTopRatedPage', 'RegisterPluginPages', 'PageHostMode'].every(k => document.querySelector('#UserRatingsSettingsRoot [data-jfur-field=\"' + k + '\"] .jfur-set-help').textContent.endsWith(' Takes effect after a restart.')) && document.querySelector('#UserRatingsSettingsRoot [data-jfur-field=\"MirrorToUserData\"] [role=switch]').disabled === true && document.querySelectorAll('#UserRatingsSettingsRoot select').length === 0"
+    },
+    {
+      "name": "screenshot: the Settings tab",
+      "screenshot": "userratings-settings-desktop.png"
+    },
+    {
+      "name": "inline: mark",
+      "script": "window.__mark = __jfurDetails.requests.length; return true;"
+    },
+    {
+      "name": "inline: \"Only the users chosen below\"",
+      "click": "#UserRatingsSettingsRoot [data-jfur-field=\"WhoCanRate\"] [data-jfur-value=\"SelectedUsers\"]"
+    },
+    {
+      "name": "inline: the users picker shown, with admin, viewer and viewer2, nobody chosen marked",
+      "waitFor": "(() => { const r = document.querySelector('#UserRatingsSettingsRoot [data-jfur-field=\"RaterUserIds\"]'); const names = Array.from(r.querySelectorAll('[role=checkbox] .jfur-set-check-text')).map(n => n.textContent); return r.getClientRects().length > 0 && ['admin', 'viewer', 'viewer2'].every(n => names.indexOf(n) >= 0) && r.querySelector('.jfur-set-error').textContent.indexOf('Choose at least one user') === 0 && r.querySelector('[role=group]').getAttribute('aria-invalid') === 'true'; })()",
+      "timeout": 5000
+    },
+    {
+      "name": "inline: the users' names isolated",
+      "assert": "Array.from(document.querySelectorAll('#UserRatingsSettingsRoot [data-jfur-field=\"RaterUserIds\"] [role=checkbox] .jfur-set-check-text')).every(n => n.getAttribute('dir') === 'auto' && getComputedStyle(n).unicodeBidi === 'isolate')"
+    },
+    {
+      "name": "inline: Save",
+      "click": "#UserRatingsSettingsRoot .jfur-set-save"
+    },
+    {
+      "name": "inline: nothing sent, the status says so, the focus on the first user",
+      "waitFor": "document.querySelector('#UserRatingsSettingsRoot .jfur-set-status').textContent.indexOf('Some settings need fixing') === 0 && document.activeElement === document.querySelector('#UserRatingsSettingsRoot [data-jfur-field=\"RaterUserIds\"] [role=checkbox]')",
+      "timeout": 5000
+    },
+    {
+      "name": "inline: \"Every user\" again",
+      "click": "#UserRatingsSettingsRoot [data-jfur-field=\"WhoCanRate\"] [data-jfur-value=\"AllUsers\"]"
+    },
+    {
+      "name": "inline: a review length under 2000 typed",
+      "script": "const i = document.querySelector('#UserRatingsSettingsRoot [data-jfur-field=\"MaxReviewLength\"] input'); i.value = '1999'; i.dispatchEvent(new Event('input', { bubbles: true })); return true;"
+    },
+    {
+      "name": "inline: its message under it, aria-invalid",
+      "assert": "document.querySelector('#UserRatingsSettingsRoot [data-jfur-field=\"MaxReviewLength\"] .jfur-set-error').textContent === 'Enter a whole number from 2000 to 20000.' && document.querySelector('#UserRatingsSettingsRoot [data-jfur-field=\"MaxReviewLength\"] input').getAttribute('aria-invalid') === 'true'"
+    },
+    {
+      "name": "inline: every kind taken out",
+      "script": "for (const b of document.querySelectorAll('#UserRatingsSettingsRoot [data-jfur-field=\"RateableItemTypes\"] [role=checkbox][aria-checked=\"true\"]')) { b.click(); } return true;"
+    },
+    {
+      "name": "inline: its message",
+      "assert": "document.querySelector('#UserRatingsSettingsRoot [data-jfur-field=\"RateableItemTypes\"] .jfur-set-error').textContent === 'Choose at least one kind: with none, nothing could be rated.'"
+    },
+    {
+      "name": "inline: screenshot",
+      "screenshot": "userratings-settings-inline.png"
+    },
+    {
+      "name": "inline: Save again",
+      "click": "#UserRatingsSettingsRoot .jfur-set-save"
+    },
+    {
+      "name": "inline: the focus on the first setting to fix in the tab's order (what can be rated, before the review length)",
+      "waitFor": "document.activeElement === document.querySelector('#UserRatingsSettingsRoot [data-jfur-field=\"RateableItemTypes\"] [role=checkbox]')",
+      "timeout": 5000
+    },
+    {
+      "name": "inline: Undo changes",
+      "click": "#UserRatingsSettingsRoot .jfur-set-undo"
+    },
+    {
+      "name": "inline: every value back, no message",
+      "assert": "!document.querySelector('#UserRatingsSettingsRoot .jfur-set-invalid') && document.querySelector('#UserRatingsSettingsRoot [data-jfur-field=\"MaxReviewLength\"] input').value === String(__vars.before.Settings.MaxReviewLength) && document.querySelector('#UserRatingsSettingsRoot .jfur-set-undo').disabled"
+    },
+    {
+      "name": "the tab's POSTs since the mark",
+      "eval": "__jfurDetails.requests.slice(window.__mark).filter(r => r.method === 'POST' && r.path === '/UserRatings/Admin/Settings').map(r => ({ query: r.query, body: r.body, status: r.status }))",
+      "save": "inlinePosts",
+      "full": true
+    },
+    {
+      "name": "inline: not one POST",
+      "assert": "__vars.inlinePosts.length === 0"
+    },
+    {
+      "name": "tabs: mark",
+      "script": "window.__mark = __jfurDetails.requests.length; return true;"
+    },
+    {
+      "name": "tabs: reviews per page changed",
+      "script": "const i = document.querySelector('#UserRatingsSettingsRoot [data-jfur-field=\"ReviewsPageSize\"] input'); i.value = String(__vars.before.Settings.ReviewsPageSize + 1); i.dispatchEvent(new Event('input', { bubbles: true })); return i.value;"
+    },
+    {
+      "name": "tabs: the Moderation tab",
+      "click": "#UserRatingsTabModeration"
+    },
+    {
+      "name": "tabs: its panel shown",
+      "waitFor": "!document.querySelector('#UserRatingsModeration').classList.contains('hide') && document.querySelector('#UserRatingsSettings').classList.contains('hide')",
+      "timeout": 10000
+    },
+    {
+      "name": "tabs: back to Settings",
+      "click": "#UserRatingsTabSettings"
+    },
+    {
+      "name": "tabs: the Settings panel shown",
+      "waitFor": "!document.querySelector('#UserRatingsSettings').classList.contains('hide')",
+      "timeout": 10000
+    },
+    {
+      "name": "tabs: the time a read would take",
+      "sleep": 1500
+    },
+    {
+      "name": "tabs: the change kept and Undo on; the settings not read",
+      "assert": "document.querySelector('#UserRatingsSettingsRoot [data-jfur-field=\"ReviewsPageSize\"] input').value === String(__vars.before.Settings.ReviewsPageSize + 1) && !document.querySelector('#UserRatingsSettingsRoot .jfur-set-undo').disabled && __jfurDetails.requests.slice(window.__mark).filter(r => r.method === 'GET' && r.path === '/UserRatings/Admin/Settings').length === 0"
+    },
+    {
+      "name": "tabs: Undo changes",
+      "click": "#UserRatingsSettingsRoot .jfur-set-undo"
+    },
+    {
+      "name": "tabs: hold the Settings reads 2 s",
+      "delayRequests": {
+        "url": "/UserRatings/Admin/Settings",
+        "ms": 2000
+      }
+    },
+    {
+      "name": "tabs: the Moderation tab again",
+      "click": "#UserRatingsTabModeration"
+    },
+    {
+      "name": "tabs: its panel shown again",
+      "waitFor": "!document.querySelector('#UserRatingsModeration').classList.contains('hide')",
+      "timeout": 10000
+    },
+    {
+      "name": "tabs: back to Settings, nothing changed",
+      "click": "#UserRatingsTabSettings"
+    },
+    {
+      "name": "tabs: the ratings histogram switch clicked while the tab reads",
+      "click": "#UserRatingsSettingsRoot [data-jfur-field=\"ShowHistogram\"] [role=switch]"
+    },
+    {
+      "name": "tabs: the read answered",
+      "waitFor": "__jfurDetails.requests.slice(window.__mark).filter(r => r.method === 'GET' && r.path === '/UserRatings/Admin/Settings' && r.status === 200).length === 1",
+      "timeout": 15000
+    },
+    {
+      "name": "tabs: stop holding",
+      "delayRequests": null
+    },
+    {
+      "name": "tabs: the time the tab takes after it",
+      "sleep": 500
+    },
+    {
+      "name": "tabs: the click kept, Undo on",
+      "assert": "document.querySelector('#UserRatingsSettingsRoot [data-jfur-field=\"ShowHistogram\"] [role=switch]').getAttribute('aria-checked') === String(!__vars.before.Settings.ShowHistogram) && !document.querySelector('#UserRatingsSettingsRoot .jfur-set-undo').disabled"
+    },
+    {
+      "name": "tabs: Undo changes again",
+      "click": "#UserRatingsSettingsRoot .jfur-set-undo"
+    },
+    {
+      "name": "tabs: as read, Undo off",
+      "assert": "document.querySelector('#UserRatingsSettingsRoot [data-jfur-field=\"ShowHistogram\"] [role=switch]').getAttribute('aria-checked') === String(__vars.before.Settings.ShowHistogram === true) && document.querySelector('#UserRatingsSettingsRoot .jfur-set-undo').disabled"
+    },
+    {
+      "name": "the tab's POSTs since the mark",
+      "eval": "__jfurDetails.requests.slice(window.__mark).filter(r => r.method === 'POST' && r.path === '/UserRatings/Admin/Settings').map(r => ({ query: r.query, body: r.body, status: r.status }))",
+      "save": "tabsPosts",
+      "full": true
+    },
+    {
+      "name": "tabs: not one POST",
+      "assert": "__vars.tabsPosts.length === 0"
+    },
+    {
+      "name": "2b: mark",
+      "script": "window.__mark = __jfurDetails.requests.length; return true;"
+    },
+    {
+      "name": "2b: \"Only the users chosen below\"",
+      "click": "#UserRatingsSettingsRoot [data-jfur-field=\"WhoCanRate\"] [data-jfur-value=\"SelectedUsers\"]"
+    },
+    {
+      "name": "2b: viewer chosen",
+      "click": "#UserRatingsSettingsRoot [data-jfur-field=\"RaterUserIds\"] [data-jfur-value=\"${viewerId}\"]"
+    },
+    {
+      "name": "2b: the requests so far",
+      "script": "window.__saveMark = __jfurDetails.requests.length; return true;"
+    },
+    {
+      "name": "2b: Save",
+      "click": "#UserRatingsSettingsRoot .jfur-set-save"
+    },
+    {
+      "name": "2b: the dry run's dialog, the focus on Cancel",
+      "waitFor": "!!document.querySelector('.jfur-panel[role=\"dialog\"][aria-modal=\"true\"]') && document.activeElement === document.querySelector('.jfur-panel[role=\"dialog\"][aria-modal=\"true\"]').querySelector('.jfur-set-cancel')",
+      "timeout": 15000
+    },
+    {
+      "name": "2b: what the dialog says",
+      "eval": "({ changes: Array.from(document.querySelector('.jfur-panel[role=\"dialog\"][aria-modal=\"true\"]').querySelectorAll('.jfur-set-changes li')).map(li => li.textContent), means: Array.from(document.querySelector('.jfur-panel[role=\"dialog\"][aria-modal=\"true\"]').querySelectorAll('.jfur-set-consequences li')).map(li => li.textContent), markup: document.querySelector('.jfur-panel[role=\"dialog\"][aria-modal=\"true\"]').querySelectorAll('.jfur-set-changes b, .jfur-set-consequences b').length })",
+      "save": "only",
+      "full": true
+    },
+    {
+      "name": "2b: the dialog's Save",
+      "click": ".jfur-panel[role=\"dialog\"] .jfur-set-confirm"
+    },
+    {
+      "name": "2b: saved: the dialog closed, the settings read again, the toast",
+      "waitFor": "!document.querySelector('.jfur-panel[role=\"dialog\"][aria-modal=\"true\"]') && (() => { const r = __jfurDetails.requests.slice(window.__saveMark); const i = r.findIndex(x => x.method === 'POST' && x.path === '/UserRatings/Admin/Settings' && x.query.indexOf('dryRun=false') >= 0 && x.status === 200); return i >= 0 && r.slice(i + 1).some(x => x.method === 'GET' && x.path === '/UserRatings/Admin/Settings' && x.status === 200) && document.querySelector('#UserRatingsSettingsRoot .jfur-set-undo').disabled && document.querySelector('#UserRatingsSettingsRoot .jfur-set-save').getAttribute('aria-disabled') === 'false' && document.querySelectorAll('#UserRatingsSettingsRoot .jfur-set-row').length === 32 && Array.from(document.querySelectorAll('.jfur-toast')).some(t => t.textContent === 'Settings saved.'); })()",
+      "timeout": 15000
+    },
+    {
+      "name": "2b: the dialog in the tab's words: the change, the users who can no longer rate",
+      "assert": "__vars.only.changes.indexOf('Who can rate and review: Every user → Only the users chosen below') >= 0 && __vars.only.changes.indexOf('Users who can rate: Nobody → viewer') >= 0 && __vars.only.means.some(m => m.indexOf('can no longer rate or review. Their ratings and reviews stay and still show, and they can still delete them.') > 0) && __vars.only.markup === 0"
+    },
+    {
+      "name": "the tab's POSTs since the mark",
+      "eval": "__jfurDetails.requests.slice(window.__mark).filter(r => r.method === 'POST' && r.path === '/UserRatings/Admin/Settings').map(r => ({ query: r.query, body: r.body, status: r.status }))",
+      "save": "onlyPosts",
+      "full": true
+    },
+    {
+      "name": "2b: a dry run with the version, then the save with the same version, both 200, only the two settings sent",
+      "assert": "__vars.onlyPosts.length === 2 && __vars.onlyPosts[0].query.indexOf('version=' + __vars.before.Version) >= 0 && __vars.onlyPosts[0].query.indexOf('dryRun') < 0 && __vars.onlyPosts[1].query.indexOf('dryRun=false') >= 0 && __vars.onlyPosts.every(p => p.status === 200 && JSON.stringify(Object.keys(JSON.parse(typeof p.body === 'string' ? p.body : JSON.stringify(p.body))).sort()) === JSON.stringify(['RaterUserIds', 'WhoCanRate']))"
+    },
+    {
+      "name": "2b: the settings as the server holds them now",
+      "script": "const r = await __jfurDetails.server('GET', 'UserRatings/Admin/Settings'); if (r.status !== 200) { throw new Error('settings ' + r.status); } return r.json;",
+      "save": "only2b",
+      "full": true
+    },
+    {
+      "name": "2b: saved: only viewer can rate",
+      "assert": "__vars.only2b.Settings.WhoCanRate === 'SelectedUsers' && JSON.stringify(__vars.only2b.Settings.RaterUserIds.map(x => String(x).replace(/-/g, '').toLowerCase())) === JSON.stringify([String(__vars.viewerId).replace(/-/g, '').toLowerCase()])"
+    },
+    {
+      "context": "viewer2"
+    },
+    {
+      "name": "2b: viewer2's stars refused, the row kept",
+      "script": "const put = await __jfurDetails.server('PUT', 'UserRatings/Items/' + __vars.movieId + '/Mine/Rating', { Stars: 2 }); const item = await __jfurDetails.server('GET', 'UserRatings/Items/' + __vars.movieId); return { put: put.status, detail: put.json && put.json.detail, rate: item.json.Can.Rate, reason: item.json.Can.Reason, mine: item.json.Mine && item.json.Mine.Stars, count: item.json.Summary.Count };",
+      "save": "v2",
+      "full": true
+    },
+    {
+      "name": "2b: 403 \"Rating is limited to selected members.\", Can NotARater, the own stars as they were, both ratings counted",
+      "assert": "__vars.v2.put === 403 && __vars.v2.detail === 'Rating is limited to selected members.' && __vars.v2.rate === false && __vars.v2.reason === 'NotARater' && __vars.v2.mine === 4 && __vars.v2.count === 2"
+    },
+    {
+      "name": "2b: viewer2: away from any details page first (the same hash again draws nothing new)",
+      "script": "location.hash = '#/home'; return true;"
+    },
+    {
+      "name": "2b: viewer2: no details page shown",
+      "waitFor": "!document.querySelector('#itemDetailPage:not(.hide)')",
+      "timeout": 15000
+    },
+    {
+      "name": "2b: viewer2: its details page",
+      "script": "location.hash = '#/details?id=' + __vars.movieId; return true;"
+    },
+    {
+      "name": "2b: viewer2: drawn",
+      "waitFor": "(() => { const p = document.querySelector('#itemDetailPage:not(.hide)'); return !!p && location.hash.indexOf(__vars.movieId) > 0 && !!p.querySelector('.mainDetailButtons .btnPlay:not(.hide)'); })()",
+      "timeout": 30000
+    },
+    {
+      "name": "2b: viewer2: the section mounted for it",
+      "waitFor": "(() => { const s = __jfurDetails.section(); return !!s && s.getAttribute('data-jfur-item') === __vars.movieId && !!s.querySelector('.jfur-summary[data-jfur-summary]'); })()",
+      "timeout": 15000
+    },
+    {
+      "sleep": 600
+    },
+    {
+      "name": "2b: viewer2's details page: the stars read-only with the note, viewer's review shown (as text)",
+      "waitFor": "(() => { const s = __jfurDetails.section(); const ro = s && s.querySelector('.jfur-mine-readonly'); return !!ro && ro.getClientRects().length > 0 && ro.textContent.indexOf('Rating is limited to selected members.') >= 0 && Array.from(s.querySelectorAll('.jfur-review-text')).some(n => n.textContent === \"conf webcheck review: the harbour lights <b>stay plain</b> & steady.\") && !s.querySelector('.jfur-review b'); })()",
+      "timeout": 15000
+    },
+    {
+      "name": "2b: screenshot of viewer2's read-only stars",
+      "screenshot": "userratings-settings-2b-readonly.png"
+    },
+    {
+      "name": "2b: viewer2 deletes their own older row",
+      "script": "const r = await __jfurDetails.server('DELETE', 'UserRatings/Items/' + __vars.movieId + '/Mine'); return r.status;",
+      "save": "v2delete"
+    },
+    {
+      "name": "2b: 204",
+      "assert": "__vars.v2delete === 204"
+    },
+    {
+      "context": "viewer"
+    },
+    {
+      "name": "2b: viewer still can rate",
+      "script": "const item = await __jfurDetails.server('GET', 'UserRatings/Items/' + __vars.movieId); return item.json.Can.Rate;",
+      "save": "vCan"
+    },
+    {
+      "name": "2b: Can.Rate",
+      "assert": "__vars.vCan === true"
+    },
+    {
+      "context": "main"
+    },
+    {
+      "name": "2b: viewer no longer chosen (the picker still shown)",
+      "click": "#UserRatingsSettingsRoot [data-jfur-field=\"RaterUserIds\"] [data-jfur-value=\"${viewerId}\"]"
+    },
+    {
+      "name": "2b: nobody chosen is marked at once",
+      "assert": "document.querySelector('#UserRatingsSettingsRoot [data-jfur-field=\"RaterUserIds\"] .jfur-set-error').textContent.indexOf('Choose at least one user') === 0"
+    },
+    {
+      "name": "2b: \"Every user\" again",
+      "click": "#UserRatingsSettingsRoot [data-jfur-field=\"WhoCanRate\"] [data-jfur-value=\"AllUsers\"]"
+    },
+    {
+      "name": "2b: the mark gone with the picker",
+      "assert": "!document.querySelector('#UserRatingsSettingsRoot [data-jfur-field=\"RaterUserIds\"].jfur-set-invalid') && document.querySelector('#UserRatingsSettingsRoot [data-jfur-field=\"RaterUserIds\"]').getClientRects().length === 0"
+    },
+    {
+      "name": "2b back: the requests so far",
+      "script": "window.__saveMark = __jfurDetails.requests.length; return true;"
+    },
+    {
+      "name": "2b back: Save",
+      "click": "#UserRatingsSettingsRoot .jfur-set-save"
+    },
+    {
+      "name": "2b back: the dry run's dialog, the focus on Cancel",
+      "waitFor": "!!document.querySelector('.jfur-panel[role=\"dialog\"][aria-modal=\"true\"]') && document.activeElement === document.querySelector('.jfur-panel[role=\"dialog\"][aria-modal=\"true\"]').querySelector('.jfur-set-cancel')",
+      "timeout": 15000
+    },
+    {
+      "name": "2b back: what the dialog says",
+      "eval": "({ changes: Array.from(document.querySelector('.jfur-panel[role=\"dialog\"][aria-modal=\"true\"]').querySelectorAll('.jfur-set-changes li')).map(li => li.textContent), means: Array.from(document.querySelector('.jfur-panel[role=\"dialog\"][aria-modal=\"true\"]').querySelectorAll('.jfur-set-consequences li')).map(li => li.textContent), markup: document.querySelector('.jfur-panel[role=\"dialog\"][aria-modal=\"true\"]').querySelectorAll('.jfur-set-changes b, .jfur-set-consequences b').length })",
+      "save": "all",
+      "full": true
+    },
+    {
+      "name": "2b back: the dialog's Save",
+      "click": ".jfur-panel[role=\"dialog\"] .jfur-set-confirm"
+    },
+    {
+      "name": "2b back: saved: the dialog closed, the settings read again, the toast",
+      "waitFor": "!document.querySelector('.jfur-panel[role=\"dialog\"][aria-modal=\"true\"]') && (() => { const r = __jfurDetails.requests.slice(window.__saveMark); const i = r.findIndex(x => x.method === 'POST' && x.path === '/UserRatings/Admin/Settings' && x.query.indexOf('dryRun=false') >= 0 && x.status === 200); return i >= 0 && r.slice(i + 1).some(x => x.method === 'GET' && x.path === '/UserRatings/Admin/Settings' && x.status === 200) && document.querySelector('#UserRatingsSettingsRoot .jfur-set-undo').disabled && document.querySelector('#UserRatingsSettingsRoot .jfur-set-save').getAttribute('aria-disabled') === 'false' && document.querySelectorAll('#UserRatingsSettingsRoot .jfur-set-row').length === 32 && Array.from(document.querySelectorAll('.jfur-toast')).some(t => t.textContent === 'Settings saved.'); })()",
+      "timeout": 15000
+    },
+    {
+      "name": "2b back: every user again, nobody chosen, the users who can rate again",
+      "assert": "__vars.all.changes.indexOf('Who can rate and review: Only the users chosen below → Every user') >= 0 && __vars.all.changes.indexOf('Users who can rate: viewer → Nobody') >= 0 && __vars.all.means.some(m => m.indexOf('can now rate and review.') > 0)"
+    },
+    {
+      "context": "viewer2"
+    },
+    {
+      "name": "2b back: viewer2 rates again",
+      "script": "const put = await __jfurDetails.server('PUT', 'UserRatings/Items/' + __vars.movieId + '/Mine/Rating', { Stars: 2.5 }); return put.status;",
+      "save": "v2again"
+    },
+    {
+      "name": "2b back: 200",
+      "assert": "__vars.v2again === 200"
+    },
+    {
+      "name": "2b back: viewer2: away from any details page first (the same hash again draws nothing new)",
+      "script": "location.hash = '#/home'; return true;"
+    },
+    {
+      "name": "2b back: viewer2: no details page shown",
+      "waitFor": "!document.querySelector('#itemDetailPage:not(.hide)')",
+      "timeout": 15000
+    },
+    {
+      "name": "2b back: viewer2: its details page",
+      "script": "location.hash = '#/details?id=' + __vars.movieId; return true;"
+    },
+    {
+      "name": "2b back: viewer2: drawn",
+      "waitFor": "(() => { const p = document.querySelector('#itemDetailPage:not(.hide)'); return !!p && location.hash.indexOf(__vars.movieId) > 0 && !!p.querySelector('.mainDetailButtons .btnPlay:not(.hide)'); })()",
+      "timeout": 30000
+    },
+    {
+      "name": "2b back: viewer2: the section mounted for it",
+      "waitFor": "(() => { const s = __jfurDetails.section(); return !!s && s.getAttribute('data-jfur-item') === __vars.movieId && !!s.querySelector('.jfur-summary[data-jfur-summary]'); })()",
+      "timeout": 15000
+    },
+    {
+      "sleep": 600
+    },
+    {
+      "name": "2b back: viewer2's stars no longer read-only",
+      "waitFor": "(() => { const s = __jfurDetails.section(); const ro = s && s.querySelector('.jfur-mine-readonly'); return !!s && (!ro || ro.getClientRects().length === 0); })()",
+      "timeout": 15000
+    },
+    {
+      "context": "main"
+    },
+    {
+      "name": "2b back: viewer's row unchanged by the settings",
+      "script": "const p = await __jfurDetails.server('GET', 'UserRatings/Admin/Reviews?itemId=' + __vars.movieId); const row = p.json.Items.find(x => x.UserName === 'viewer'); return { stars: row.Stars, text: row.Text, updated: row.UpdatedUtc };",
+      "save": "vAfter",
+      "full": true
+    },
+    {
+      "name": "2b back: the same stars, words and time",
+      "assert": "__vars.vAfter.stars === 3.5 && __vars.vAfter.text === \"conf webcheck review: the harbour lights <b>stay plain</b> & steady.\" && Date.parse(__vars.vAfter.updated) === Date.parse(__vars.viewerRow.updated)"
+    },
+    {
+      "name": "kinds: Movies taken out",
+      "click": "#UserRatingsSettingsRoot [data-jfur-field=\"RateableItemTypes\"] [data-jfur-value=\"Movie\"]"
+    },
+    {
+      "name": "kinds: the requests so far",
+      "script": "window.__saveMark = __jfurDetails.requests.length; return true;"
+    },
+    {
+      "name": "kinds: Save",
+      "click": "#UserRatingsSettingsRoot .jfur-set-save"
+    },
+    {
+      "name": "kinds: the dry run's dialog, the focus on Cancel",
+      "waitFor": "!!document.querySelector('.jfur-panel[role=\"dialog\"][aria-modal=\"true\"]') && document.activeElement === document.querySelector('.jfur-panel[role=\"dialog\"][aria-modal=\"true\"]').querySelector('.jfur-set-cancel')",
+      "timeout": 15000
+    },
+    {
+      "name": "kinds: what the dialog says",
+      "eval": "({ changes: Array.from(document.querySelector('.jfur-panel[role=\"dialog\"][aria-modal=\"true\"]').querySelectorAll('.jfur-set-changes li')).map(li => li.textContent), means: Array.from(document.querySelector('.jfur-panel[role=\"dialog\"][aria-modal=\"true\"]').querySelectorAll('.jfur-set-consequences li')).map(li => li.textContent), markup: document.querySelector('.jfur-panel[role=\"dialog\"][aria-modal=\"true\"]').querySelectorAll('.jfur-set-changes b, .jfur-set-consequences b').length })",
+      "save": "noMovies",
+      "full": true
+    },
+    {
+      "name": "kinds: the dialog's Save",
+      "click": ".jfur-panel[role=\"dialog\"] .jfur-set-confirm"
+    },
+    {
+      "name": "kinds: saved: the dialog closed, the settings read again, the toast",
+      "waitFor": "!document.querySelector('.jfur-panel[role=\"dialog\"][aria-modal=\"true\"]') && (() => { const r = __jfurDetails.requests.slice(window.__saveMark); const i = r.findIndex(x => x.method === 'POST' && x.path === '/UserRatings/Admin/Settings' && x.query.indexOf('dryRun=false') >= 0 && x.status === 200); return i >= 0 && r.slice(i + 1).some(x => x.method === 'GET' && x.path === '/UserRatings/Admin/Settings' && x.status === 200) && document.querySelector('#UserRatingsSettingsRoot .jfur-set-undo').disabled && document.querySelector('#UserRatingsSettingsRoot .jfur-set-save').getAttribute('aria-disabled') === 'false' && document.querySelectorAll('#UserRatingsSettingsRoot .jfur-set-row').length === 32 && Array.from(document.querySelectorAll('.jfur-toast')).some(t => t.textContent === 'Settings saved.'); })()",
+      "timeout": 15000
+    },
+    {
+      "name": "kinds: the dialog names Movies, its ratings and reviews, and that nothing is deleted",
+      "assert": "__vars.noMovies.changes.some(c => c.indexOf('What can be rated: ') === 0 && c.split(' → ')[0].indexOf('Movies') >= 0 && c.split(' → ')[1].indexOf('Movies') < 0) && __vars.noMovies.means.some(m => m.indexOf('The ratings on Movies (') === 0 && m.indexOf(') stop showing and can') > 0 && m.indexOf('be changed. Nothing is deleted: ') > 0)"
+    },
+    {
+      "context": "viewer"
+    },
+    {
+      "name": "kinds: viewer's read of the movie",
+      "script": "const r = await __jfurDetails.server('GET', 'UserRatings/Items/' + __vars.movieId); return r.status;",
+      "save": "noMovieRead"
+    },
+    {
+      "name": "kinds: 404 (a kind that can't be rated)",
+      "assert": "__vars.noMovieRead === 404"
+    },
+    {
+      "name": "kinds: viewer's details page",
+      "script": "location.hash = '#/details?id=' + __vars.movieId; return true;"
+    },
+    {
+      "name": "kinds: drawn",
+      "waitFor": "(() => { const p = document.querySelector('#itemDetailPage:not(.hide)'); return !!p && location.hash.indexOf(__vars.movieId) > 0 && !!p.querySelector('.mainDetailButtons .btnPlay:not(.hide)'); })()",
+      "timeout": 30000
+    },
+    {
+      "sleep": 3000
+    },
+    {
+      "name": "kinds: no section on the next details view (no restart)",
+      "assert": "!__jfurDetails.section()"
+    },
+    {
+      "context": "main"
+    },
+    {
+      "name": "kinds: Movies back",
+      "click": "#UserRatingsSettingsRoot [data-jfur-field=\"RateableItemTypes\"] [data-jfur-value=\"Movie\"]"
+    },
+    {
+      "name": "kinds back: the requests so far",
+      "script": "window.__saveMark = __jfurDetails.requests.length; return true;"
+    },
+    {
+      "name": "kinds back: Save",
+      "click": "#UserRatingsSettingsRoot .jfur-set-save"
+    },
+    {
+      "name": "kinds back: saved without a question (nothing to say): no dialog, the settings read again, the toast",
+      "waitFor": "!document.querySelector('.jfur-panel[role=\"dialog\"][aria-modal=\"true\"]') && (() => { const r = __jfurDetails.requests.slice(window.__saveMark); const i = r.findIndex(x => x.method === 'POST' && x.path === '/UserRatings/Admin/Settings' && x.query.indexOf('dryRun=false') >= 0 && x.status === 200); return i >= 0 && r.slice(i + 1).some(x => x.method === 'GET' && x.path === '/UserRatings/Admin/Settings' && x.status === 200) && document.querySelector('#UserRatingsSettingsRoot .jfur-set-undo').disabled && document.querySelector('#UserRatingsSettingsRoot .jfur-set-save').getAttribute('aria-disabled') === 'false' && document.querySelectorAll('#UserRatingsSettingsRoot .jfur-set-row').length === 32 && Array.from(document.querySelectorAll('.jfur-toast')).some(t => t.textContent === 'Settings saved.'); })()",
+      "timeout": 15000
+    },
+    {
+      "context": "viewer"
+    },
+    {
+      "name": "kinds back: viewer: away from any details page first (the same hash again draws nothing new)",
+      "script": "location.hash = '#/home'; return true;"
+    },
+    {
+      "name": "kinds back: viewer: no details page shown",
+      "waitFor": "!document.querySelector('#itemDetailPage:not(.hide)')",
+      "timeout": 15000
+    },
+    {
+      "name": "kinds back: viewer: its details page",
+      "script": "location.hash = '#/details?id=' + __vars.movieId; return true;"
+    },
+    {
+      "name": "kinds back: viewer: drawn",
+      "waitFor": "(() => { const p = document.querySelector('#itemDetailPage:not(.hide)'); return !!p && location.hash.indexOf(__vars.movieId) > 0 && !!p.querySelector('.mainDetailButtons .btnPlay:not(.hide)'); })()",
+      "timeout": 30000
+    },
+    {
+      "name": "kinds back: viewer: the section mounted for it",
+      "waitFor": "(() => { const s = __jfurDetails.section(); return !!s && s.getAttribute('data-jfur-item') === __vars.movieId && !!s.querySelector('.jfur-summary[data-jfur-summary]'); })()",
+      "timeout": 15000
+    },
+    {
+      "sleep": 600
+    },
+    {
+      "name": "kinds back: the item read again, both ratings counted",
+      "script": "const r = await __jfurDetails.server('GET', 'UserRatings/Items/' + __vars.movieId); return { status: r.status, count: r.json && r.json.Summary && r.json.Summary.Count };",
+      "save": "moviesBack",
+      "full": true
+    },
+    {
+      "name": "kinds back: 200, two ratings",
+      "assert": "__vars.moviesBack.status === 200 && __vars.moviesBack.count === 2"
+    },
+    {
+      "context": "main"
+    },
+    {
+      "name": "restart: the Top Rated page off",
+      "click": "#UserRatingsSettingsRoot [data-jfur-field=\"EnableTopRatedPage\"] [role=switch]"
+    },
+    {
+      "name": "restart: the requests so far",
+      "script": "window.__saveMark = __jfurDetails.requests.length; return true;"
+    },
+    {
+      "name": "restart: Save",
+      "click": "#UserRatingsSettingsRoot .jfur-set-save"
+    },
+    {
+      "name": "restart: the dry run's dialog, the focus on Cancel",
+      "waitFor": "!!document.querySelector('.jfur-panel[role=\"dialog\"][aria-modal=\"true\"]') && document.activeElement === document.querySelector('.jfur-panel[role=\"dialog\"][aria-modal=\"true\"]').querySelector('.jfur-set-cancel')",
+      "timeout": 15000
+    },
+    {
+      "name": "restart: what the dialog says",
+      "eval": "({ changes: Array.from(document.querySelector('.jfur-panel[role=\"dialog\"][aria-modal=\"true\"]').querySelectorAll('.jfur-set-changes li')).map(li => li.textContent), means: Array.from(document.querySelector('.jfur-panel[role=\"dialog\"][aria-modal=\"true\"]').querySelectorAll('.jfur-set-consequences li')).map(li => li.textContent), markup: document.querySelector('.jfur-panel[role=\"dialog\"][aria-modal=\"true\"]').querySelectorAll('.jfur-set-changes b, .jfur-set-consequences b').length })",
+      "save": "topRated",
+      "full": true
+    },
+    {
+      "name": "restart: the dialog's Save",
+      "click": ".jfur-panel[role=\"dialog\"] .jfur-set-confirm"
+    },
+    {
+      "name": "restart: saved: the dialog closed, the settings read again, the toast",
+      "waitFor": "!document.querySelector('.jfur-panel[role=\"dialog\"][aria-modal=\"true\"]') && (() => { const r = __jfurDetails.requests.slice(window.__saveMark); const i = r.findIndex(x => x.method === 'POST' && x.path === '/UserRatings/Admin/Settings' && x.query.indexOf('dryRun=false') >= 0 && x.status === 200); return i >= 0 && r.slice(i + 1).some(x => x.method === 'GET' && x.path === '/UserRatings/Admin/Settings' && x.status === 200) && document.querySelector('#UserRatingsSettingsRoot .jfur-set-undo').disabled && document.querySelector('#UserRatingsSettingsRoot .jfur-set-save').getAttribute('aria-disabled') === 'false' && document.querySelectorAll('#UserRatingsSettingsRoot .jfur-set-row').length === 32 && Array.from(document.querySelectorAll('.jfur-toast')).some(t => t.textContent === 'Settings saved.'); })()",
+      "timeout": 15000
+    },
+    {
+      "name": "restart: the dialog says it takes effect after a restart",
+      "assert": "__vars.topRated.means.indexOf('Takes effect after the server restarts: Top Rated page.') >= 0"
+    },
+    {
+      "name": "restart: the notice names it",
+      "waitFor": "(() => { const n = document.querySelector('#UserRatingsSettingsRoot .jfur-set-message .jfur-notice-text'); return !!n && n.textContent === 'Restart the server for these to take effect: Top Rated page.'; })()",
+      "timeout": 10000
+    },
+    {
+      "name": "restart: the Top Rated page on again",
+      "click": "#UserRatingsSettingsRoot [data-jfur-field=\"EnableTopRatedPage\"] [role=switch]"
+    },
+    {
+      "name": "restart back: the requests so far",
+      "script": "window.__saveMark = __jfurDetails.requests.length; return true;"
+    },
+    {
+      "name": "restart back: Save",
+      "click": "#UserRatingsSettingsRoot .jfur-set-save"
+    },
+    {
+      "name": "restart back: the dry run's dialog, the focus on Cancel",
+      "waitFor": "!!document.querySelector('.jfur-panel[role=\"dialog\"][aria-modal=\"true\"]') && document.activeElement === document.querySelector('.jfur-panel[role=\"dialog\"][aria-modal=\"true\"]').querySelector('.jfur-set-cancel')",
+      "timeout": 15000
+    },
+    {
+      "name": "restart back: what the dialog says",
+      "eval": "({ changes: Array.from(document.querySelector('.jfur-panel[role=\"dialog\"][aria-modal=\"true\"]').querySelectorAll('.jfur-set-changes li')).map(li => li.textContent), means: Array.from(document.querySelector('.jfur-panel[role=\"dialog\"][aria-modal=\"true\"]').querySelectorAll('.jfur-set-consequences li')).map(li => li.textContent), markup: document.querySelector('.jfur-panel[role=\"dialog\"][aria-modal=\"true\"]').querySelectorAll('.jfur-set-changes b, .jfur-set-consequences b').length })",
+      "save": "topRatedBack",
+      "full": true
+    },
+    {
+      "name": "restart back: the dialog's Save",
+      "click": ".jfur-panel[role=\"dialog\"] .jfur-set-confirm"
+    },
+    {
+      "name": "restart back: saved: the dialog closed, the settings read again, the toast",
+      "waitFor": "!document.querySelector('.jfur-panel[role=\"dialog\"][aria-modal=\"true\"]') && (() => { const r = __jfurDetails.requests.slice(window.__saveMark); const i = r.findIndex(x => x.method === 'POST' && x.path === '/UserRatings/Admin/Settings' && x.query.indexOf('dryRun=false') >= 0 && x.status === 200); return i >= 0 && r.slice(i + 1).some(x => x.method === 'GET' && x.path === '/UserRatings/Admin/Settings' && x.status === 200) && document.querySelector('#UserRatingsSettingsRoot .jfur-set-undo').disabled && document.querySelector('#UserRatingsSettingsRoot .jfur-set-save').getAttribute('aria-disabled') === 'false' && document.querySelectorAll('#UserRatingsSettingsRoot .jfur-set-row').length === 32 && Array.from(document.querySelectorAll('.jfur-toast')).some(t => t.textContent === 'Settings saved.'); })()",
+      "timeout": 15000
+    },
+    {
+      "name": "409: mark",
+      "script": "window.__mark = __jfurDetails.requests.length; return true;"
+    },
+    {
+      "name": "409: reviews per page changed in the tab",
+      "script": "const i = document.querySelector('#UserRatingsSettingsRoot [data-jfur-field=\"ReviewsPageSize\"] input'); i.value = String(__vars.before.Settings.ReviewsPageSize + 1); i.dispatchEvent(new Event('input', { bubbles: true })); return i.value;"
+    },
+    {
+      "name": "409: meanwhile the histogram switched through the API (another window)",
+      "script": "const now = await __jfurDetails.server('GET', 'UserRatings/Admin/Settings'); const r = await __jfurDetails.server('POST', 'UserRatings/Admin/Settings?version=' + now.json.Version + '&dryRun=false', { ShowHistogram: !now.json.Settings.ShowHistogram }); return r.status;",
+      "save": "meanwhile"
+    },
+    {
+      "name": "409: Save",
+      "click": "#UserRatingsSettingsRoot .jfur-set-save"
+    },
+    {
+      "name": "409: nothing saved, the notice names what changed, with Reload",
+      "waitFor": "(() => { const n = document.querySelector('#UserRatingsSettingsRoot .jfur-set-message .jfur-notice-text'); const b = document.querySelector('#UserRatingsSettingsRoot .jfur-set-message button'); return !!n && n.textContent === 'The settings were saved since you opened them (by someone else, or in another window): Ratings histogram. Reload them, then make your change again. Nothing was saved.' && !!b && b.textContent === 'Reload'; })()",
+      "timeout": 10000
+    },
+    {
+      "name": "the tab's POSTs since the mark",
+      "eval": "__jfurDetails.requests.slice(window.__mark).filter(r => r.method === 'POST' && r.path === '/UserRatings/Admin/Settings').map(r => ({ query: r.query, body: r.body, status: r.status }))",
+      "save": "conflict",
+      "full": true
+    },
+    {
+      "name": "409: the dry run's 409, no save",
+      "assert": "__vars.meanwhile === 200 && __vars.conflict.length === 1 && __vars.conflict[0].status === 409"
+    },
+    {
+      "name": "409: Reload",
+      "click": "#UserRatingsSettingsRoot .jfur-set-message button"
+    },
+    {
+      "name": "409: the settings as they are now: the histogram as switched, reviews per page as saved",
+      "waitFor": "document.querySelector('#UserRatingsSettingsRoot [data-jfur-field=\"ShowHistogram\"] [role=switch]').getAttribute('aria-checked') === String(!__vars.before.Settings.ShowHistogram) && document.querySelector('#UserRatingsSettingsRoot [data-jfur-field=\"ReviewsPageSize\"] input').value === String(__vars.before.Settings.ReviewsPageSize) && !document.querySelector('#UserRatingsSettingsRoot .jfur-set-message .jfur-notice')",
+      "timeout": 10000
+    },
+    {
+      "name": "409: the histogram back through the API",
+      "script": "const now = await __jfurDetails.server('GET', 'UserRatings/Admin/Settings'); const r = await __jfurDetails.server('POST', 'UserRatings/Admin/Settings?version=' + now.json.Version + '&dryRun=false', { ShowHistogram: __vars.before.Settings.ShowHistogram }); return r.status;"
+    },
+    {
+      "name": "409: reload the page",
+      "reload": true
+    },
+    {
+      "name": "409: the Settings tab mounted again",
+      "waitFor": "!!window.ApiClient && document.querySelectorAll('#UserRatingsSettingsRoot .jfur-set-row').length === 32 && !!document.querySelector('#UserRatingsSettingsRoot .jfur-set-save:not(.hide)')",
+      "timeout": 40000
+    },
+    {
+      "name": "all: the settings as the server holds them now",
+      "script": "const r = await __jfurDetails.server('GET', 'UserRatings/Admin/Settings'); if (r.status !== 200) { throw new Error('settings ' + r.status); } return r.json;",
+      "save": "preAll",
+      "full": true
+    },
+    {
+      "name": "all: every step before put back what it changed: the settings as before the run",
+      "assert": "(() => { const canon = (v) => Array.isArray(v) ? JSON.stringify(v.map(x => String(x).replace(/-/g, '').toLowerCase()).sort()) : JSON.stringify(v); return Object.keys(__vars.before.Settings).every(k => canon(__vars.preAll.Settings[k]) === canon(__vars.before.Settings[k])); })()"
+    },
+    {
+      "name": "all: every setting but Mirror changed through its control (each switch flipped, each number one more, each choice the next, only viewer chosen, Trailers added)",
+      "script": "const s = __vars.before.Settings; const want = {}; for (const k of Object.keys(s)) { const v = s[k]; if (k === 'MirrorToUserData') { continue; } if (typeof v === 'boolean') { want[k] = !v; } else if (typeof v === 'number') { want[k] = v + 1; } else if (typeof v === 'string') { const names = Array.from(document.querySelectorAll('#UserRatingsSettingsRoot [data-jfur-field=\"' + k + '\"] [role=radio]')).map(b => b.getAttribute('data-jfur-value')); const at = names.findIndex(n => n.toLowerCase() === v.toLowerCase()); want[k] = names[(at + 1) % names.length]; } } want.WhoCanRate = 'SelectedUsers'; want.RaterUserIds = [__vars.viewerId]; want.RateableItemTypes = s.RateableItemTypes.concat(['Trailer']); const root = document.querySelector('#UserRatingsSettingsRoot'); const rowOf = (k) => root.querySelector('[data-jfur-field=\"' + k + '\"]'); const idOf = (x) => String(x).replace(/-/g, '').toLowerCase(); for (const k of Object.keys(want)) { const v = want[k]; const r = rowOf(k); if (!r) { throw new Error('no row for ' + k); } if (typeof v === 'boolean') { const b = r.querySelector('[role=switch]'); if ((b.getAttribute('aria-checked') === 'true') !== v) { b.click(); } } else if (typeof v === 'number') { const i = r.querySelector('input'); i.value = String(v); i.dispatchEvent(new Event('input', { bubbles: true })); } else if (typeof v === 'string') { const c = r.querySelector('[role=radio][data-jfur-value=\"' + v + '\"]'); if (!c) { throw new Error(k + ' has no choice ' + v); } c.click(); } else if (Array.isArray(v)) { for (const b of r.querySelectorAll('[role=checkbox]')) { const on = v.some(x => idOf(x) === idOf(b.getAttribute('data-jfur-value'))); if ((b.getAttribute('aria-checked') === 'true') !== on) { b.click(); } } } } return want;",
+      "save": "want",
+      "full": true
+    },
+    {
+      "name": "all: 31 settings changed",
+      "assert": "Object.keys(__vars.want).length === 31"
+    },
+    {
+      "name": "all: no message",
+      "assert": "!document.querySelector('#UserRatingsSettingsRoot .jfur-set-invalid')"
+    },
+    {
+      "name": "all: screenshot",
+      "screenshot": "userratings-settings-all.png"
+    },
+    {
+      "name": "all: the requests so far",
+      "script": "window.__saveMark = __jfurDetails.requests.length; return true;"
+    },
+    {
+      "name": "all: Save",
+      "click": "#UserRatingsSettingsRoot .jfur-set-save"
+    },
+    {
+      "name": "all: the dry run's dialog, the focus on Cancel",
+      "waitFor": "!!document.querySelector('.jfur-panel[role=\"dialog\"][aria-modal=\"true\"]') && document.activeElement === document.querySelector('.jfur-panel[role=\"dialog\"][aria-modal=\"true\"]').querySelector('.jfur-set-cancel')",
+      "timeout": 15000
+    },
+    {
+      "name": "all: what the dialog says",
+      "eval": "({ changes: Array.from(document.querySelector('.jfur-panel[role=\"dialog\"][aria-modal=\"true\"]').querySelectorAll('.jfur-set-changes li')).map(li => li.textContent), means: Array.from(document.querySelector('.jfur-panel[role=\"dialog\"][aria-modal=\"true\"]').querySelectorAll('.jfur-set-consequences li')).map(li => li.textContent), markup: document.querySelector('.jfur-panel[role=\"dialog\"][aria-modal=\"true\"]').querySelectorAll('.jfur-set-changes b, .jfur-set-consequences b').length })",
+      "save": "allDialog",
+      "full": true
+    },
+    {
+      "name": "all: the dialog's Save",
+      "click": ".jfur-panel[role=\"dialog\"] .jfur-set-confirm"
+    },
+    {
+      "name": "all: saved: the dialog closed, the settings read again, the toast",
+      "waitFor": "!document.querySelector('.jfur-panel[role=\"dialog\"][aria-modal=\"true\"]') && (() => { const r = __jfurDetails.requests.slice(window.__saveMark); const i = r.findIndex(x => x.method === 'POST' && x.path === '/UserRatings/Admin/Settings' && x.query.indexOf('dryRun=false') >= 0 && x.status === 200); return i >= 0 && r.slice(i + 1).some(x => x.method === 'GET' && x.path === '/UserRatings/Admin/Settings' && x.status === 200) && document.querySelector('#UserRatingsSettingsRoot .jfur-set-undo').disabled && document.querySelector('#UserRatingsSettingsRoot .jfur-set-save').getAttribute('aria-disabled') === 'false' && document.querySelectorAll('#UserRatingsSettingsRoot .jfur-set-row').length === 32 && Array.from(document.querySelectorAll('.jfur-toast')).some(t => t.textContent === 'Settings saved.'); })()",
+      "timeout": 15000
+    },
+    {
+      "name": "all: the dialog lists 31 changes; the restart settings named",
+      "assert": "__vars.allDialog.changes.length === 31 && __vars.allDialog.means.some(m => m.indexOf('Takes effect after the server restarts: ') === 0)"
+    },
+    {
+      "name": "all: the settings as the server holds them now",
+      "script": "const r = await __jfurDetails.server('GET', 'UserRatings/Admin/Settings'); if (r.status !== 200) { throw new Error('settings ' + r.status); } return r.json;",
+      "save": "allSaved",
+      "full": true
+    },
+    {
+      "name": "all: the server holds each as sent, Mirror as it was",
+      "assert": "(() => { const canon = (v) => Array.isArray(v) ? JSON.stringify(v.map(x => String(x).replace(/-/g, '').toLowerCase()).sort()) : JSON.stringify(v); return Object.keys(__vars.want).every(k => canon(__vars.allSaved.Settings[k]) === canon(__vars.want[k])) && __vars.allSaved.Settings.MirrorToUserData === __vars.before.Settings.MirrorToUserData && __vars.allSaved.Version !== __vars.before.Version; })()"
+    },
+    {
+      "name": "all: PluginConfiguration holds them too",
+      "script": "const canon = (v) => Array.isArray(v) ? JSON.stringify(v.map(x => String(x).replace(/-/g, '').toLowerCase()).sort()) : JSON.stringify(v); const c = await ApiClient.getPluginConfiguration('f53c7c34-8cba-4846-b43b-956816b2f6ae'); return Object.keys(__vars.want).filter(k => canon(c[k]) !== canon(__vars.want[k]));",
+      "save": "configDiffers",
+      "full": true
+    },
+    {
+      "name": "all: none differs",
+      "assert": "__vars.configDiffers.length === 0"
+    },
+    {
+      "name": "all: reload the page",
+      "reload": true
+    },
+    {
+      "name": "all: the Settings tab mounted again",
+      "waitFor": "!!window.ApiClient && document.querySelectorAll('#UserRatingsSettingsRoot .jfur-set-row').length === 32 && !!document.querySelector('#UserRatingsSettingsRoot .jfur-set-save:not(.hide)')",
+      "timeout": 40000
+    },
+    {
+      "name": "all: after the reload every control shows the value saved",
+      "assert": "(() => { const canon = (v) => Array.isArray(v) ? JSON.stringify(v.map(x => String(x).replace(/-/g, '').toLowerCase()).sort()) : JSON.stringify(v); const root = document.querySelector('#UserRatingsSettingsRoot'); return Object.keys(__vars.want).every(k => { const r = root.querySelector('[data-jfur-field=\"' + k + '\"]'); const v = __vars.want[k]; if (typeof v === 'boolean') { return r.querySelector('[role=switch]').getAttribute('aria-checked') === String(v); } if (typeof v === 'number') { return r.querySelector('input').value === String(v); } if (typeof v === 'string') { const c = r.querySelector('[role=radio][aria-checked=\"true\"]'); return !!c && c.getAttribute('data-jfur-value') === v; } return canon(Array.from(r.querySelectorAll('[role=checkbox][aria-checked=\"true\"]')).map(b => b.getAttribute('data-jfur-value'))) === canon(v); }); })()"
+    },
+    {
+      "name": "all: every setting put back through its control",
+      "script": "const want = {}; for (const k of Object.keys(__vars.want)) { want[k] = __vars.before.Settings[k]; } const root = document.querySelector('#UserRatingsSettingsRoot'); const rowOf = (k) => root.querySelector('[data-jfur-field=\"' + k + '\"]'); const idOf = (x) => String(x).replace(/-/g, '').toLowerCase(); for (const k of Object.keys(want)) { const v = want[k]; const r = rowOf(k); if (!r) { throw new Error('no row for ' + k); } if (typeof v === 'boolean') { const b = r.querySelector('[role=switch]'); if ((b.getAttribute('aria-checked') === 'true') !== v) { b.click(); } } else if (typeof v === 'number') { const i = r.querySelector('input'); i.value = String(v); i.dispatchEvent(new Event('input', { bubbles: true })); } else if (typeof v === 'string') { const c = r.querySelector('[role=radio][data-jfur-value=\"' + v + '\"]'); if (!c) { throw new Error(k + ' has no choice ' + v); } c.click(); } else if (Array.isArray(v)) { for (const b of r.querySelectorAll('[role=checkbox]')) { const on = v.some(x => idOf(x) === idOf(b.getAttribute('data-jfur-value'))); if ((b.getAttribute('aria-checked') === 'true') !== on) { b.click(); } } } } return Object.keys(want).length;"
+    },
+    {
+      "name": "all back: the requests so far",
+      "script": "window.__saveMark = __jfurDetails.requests.length; return true;"
+    },
+    {
+      "name": "all back: Save",
+      "click": "#UserRatingsSettingsRoot .jfur-set-save"
+    },
+    {
+      "name": "all back: the dry run's dialog, the focus on Cancel",
+      "waitFor": "!!document.querySelector('.jfur-panel[role=\"dialog\"][aria-modal=\"true\"]') && document.activeElement === document.querySelector('.jfur-panel[role=\"dialog\"][aria-modal=\"true\"]').querySelector('.jfur-set-cancel')",
+      "timeout": 15000
+    },
+    {
+      "name": "all back: what the dialog says",
+      "eval": "({ changes: Array.from(document.querySelector('.jfur-panel[role=\"dialog\"][aria-modal=\"true\"]').querySelectorAll('.jfur-set-changes li')).map(li => li.textContent), means: Array.from(document.querySelector('.jfur-panel[role=\"dialog\"][aria-modal=\"true\"]').querySelectorAll('.jfur-set-consequences li')).map(li => li.textContent), markup: document.querySelector('.jfur-panel[role=\"dialog\"][aria-modal=\"true\"]').querySelectorAll('.jfur-set-changes b, .jfur-set-consequences b').length })",
+      "save": "backDialog",
+      "full": true
+    },
+    {
+      "name": "all back: the dialog's Save",
+      "click": ".jfur-panel[role=\"dialog\"] .jfur-set-confirm"
+    },
+    {
+      "name": "all back: saved: the dialog closed, the settings read again, the toast",
+      "waitFor": "!document.querySelector('.jfur-panel[role=\"dialog\"][aria-modal=\"true\"]') && (() => { const r = __jfurDetails.requests.slice(window.__saveMark); const i = r.findIndex(x => x.method === 'POST' && x.path === '/UserRatings/Admin/Settings' && x.query.indexOf('dryRun=false') >= 0 && x.status === 200); return i >= 0 && r.slice(i + 1).some(x => x.method === 'GET' && x.path === '/UserRatings/Admin/Settings' && x.status === 200) && document.querySelector('#UserRatingsSettingsRoot .jfur-set-undo').disabled && document.querySelector('#UserRatingsSettingsRoot .jfur-set-save').getAttribute('aria-disabled') === 'false' && document.querySelectorAll('#UserRatingsSettingsRoot .jfur-set-row').length === 32 && Array.from(document.querySelectorAll('.jfur-toast')).some(t => t.textContent === 'Settings saved.'); })()",
+      "timeout": 15000
+    },
+    {
+      "name": "all back: the settings as the server holds them now",
+      "script": "const r = await __jfurDetails.server('GET', 'UserRatings/Admin/Settings'); if (r.status !== 200) { throw new Error('settings ' + r.status); } return r.json;",
+      "save": "backSaved",
+      "full": true
+    },
+    {
+      "name": "all back: the server holds every setting as before the run",
+      "assert": "(() => { const canon = (v) => Array.isArray(v) ? JSON.stringify(v.map(x => String(x).replace(/-/g, '').toLowerCase()).sort()) : JSON.stringify(v); return Object.keys(__vars.before.Settings).every(k => canon(__vars.backSaved.Settings[k]) === canon(__vars.before.Settings[k])); })()"
+    },
+    {
+      "name": "no uncaught exception",
+      "noExceptions": true,
+      "ignore": "/CustomRatings/script|^Error: player cannot be null"
+    },
+    {
+      "name": "clean: every setting as it was before the run (what differs sent back through the Settings API)",
+      "script": "const canon = (v) => Array.isArray(v) ? JSON.stringify(v.map(x => String(x).replace(/-/g, '').toLowerCase()).sort()) : JSON.stringify(v); const now = await __jfurDetails.server('GET', 'UserRatings/Admin/Settings'); const change = {}; for (const k of Object.keys(__vars.before.Settings)) { if (canon(now.json.Settings[k]) !== canon(__vars.before.Settings[k])) { change[k] = __vars.before.Settings[k]; } } if (Object.keys(change).length > 0) { const r = await __jfurDetails.server('POST', 'UserRatings/Admin/Settings?version=' + now.json.Version + '&dryRun=false', change); if (r.status !== 200) { throw new Error('restore ' + r.status + ' ' + JSON.stringify(r.json)); } } const after = await __jfurDetails.server('GET', 'UserRatings/Admin/Settings'); return { changed: Object.keys(change), same: Object.keys(__vars.before.Settings).every(k => canon(after.json.Settings[k]) === canon(__vars.before.Settings[k])) };",
+      "save": "restored",
+      "full": true
+    },
+    {
+      "name": "clean: every setting as it began",
+      "assert": "__vars.restored.same === true"
+    },
+    {
+      "name": "clean: at the end: every rating on Long Test Movie removed through the moderation API",
+      "script": "const page = await __jfurDetails.server('GET', 'UserRatings/Admin/Reviews?itemId=' + __vars.movieId + '&limit=200'); if (page.status !== 200) { throw new Error('list ' + page.status); } const removed = []; for (const row of page.json.Items) { const p = 'UserRatings/Admin/Reviews/' + row.RatingId + '?textOnly=false'; const dry = await __jfurDetails.server('DELETE', p); const done = await __jfurDetails.server('DELETE', p + '&dryRun=false&ifPreview=' + dry.json.PreviewToken); removed.push(done.status); } return removed;"
+    },
+    {
+      "name": "clean: Long Test Movie has no rating left",
+      "script": "const page = await __jfurDetails.server('GET', 'UserRatings/Admin/Reviews?itemId=' + __vars.movieId); if (page.status !== 200 || page.json.TotalRecordCount !== 0) { throw new Error('left: ' + page.status + ' ' + (page.json && page.json.TotalRecordCount)); } return true;"
+    }
+  ]
+}

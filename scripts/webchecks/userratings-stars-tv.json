@@ -1,0 +1,678 @@
+{
+  "name": "User Ratings 1.0.2 in the TV layout: the star widget of the served ClientScript on Long Test Movie as viewer in jellyfin-web 10.11.5's TV layout: the − / + buttons hidden and the slider alone in its row; the D-pad reaches it from Play; the 3 px ring; Left/Right step by half a star with the focus kept and jellyfin-web's window handler seeing them prevented; OK saves; PageUp, PageDown, End, Home; Up and Down leave with the value kept and come back; disabled with a reason it leaves the D-pad alone; Back (Escape) is jellyfin-web's.",
+  "failOnException": false,
+  "timeout": 30000,
+  "steps": [
+    {
+      "name": "the star probe in every document (it mounts the served 30-stars.js)",
+      "initScript": {
+        "file": "probes/userratings-stars-probe.js"
+      }
+    },
+    {
+      "name": "sign in as viewer",
+      "login": "viewer"
+    },
+    {
+      "name": "tv layout",
+      "eval": "(localStorage.setItem('layout', 'tv'), true)"
+    },
+    {
+      "name": "reload",
+      "reload": true
+    },
+    {
+      "name": "layout-tv applied, User Ratings' script started",
+      "waitFor": "document.documentElement.classList.contains('layout-tv') && !!window.ApiClient && !!ApiClient.getCurrentUserId() && !!(window.__jfkit && window.__jfkit.jfur)",
+      "timeout": 40000
+    },
+    {
+      "name": "Long Test Movie",
+      "eval": "(await ApiClient.getItems(ApiClient.getCurrentUserId(), { IncludeItemTypes: 'Movie', Recursive: true, SearchTerm: \"Long Test Movie\", Limit: 1 })).Items[0].Id",
+      "save": "movieId"
+    },
+    {
+      "name": "its details page",
+      "script": "location.hash = '#/details?id=' + __vars.movieId; return true;"
+    },
+    {
+      "name": "drawn",
+      "waitFor": "(() => { const p = document.querySelector('#itemDetailPage:not(.hide)'); return !!p && location.hash.indexOf(__vars.movieId) > 0 && !!p.querySelector('.mainDetailButtons .btnPlay:not(.hide)'); })()",
+      "timeout": 30000
+    },
+    {
+      "sleep": 1500
+    },
+    {
+      "name": "mount the widget (alone in its row, Clear and Write a review below, read-only stars)",
+      "eval": "__jfurStars.mount({})",
+      "save": "mounted",
+      "full": true
+    },
+    {
+      "name": "mounted from the served ClientScript of 1.0.2",
+      "assert": "__vars.mounted.ok === true && __vars.mounted.version === '1.0.2.0'",
+      "message": "the probe could not mount the widget of User Ratings 1.0.2"
+    },
+    {
+      "name": "TV: styles",
+      "eval": "__jfurStars.styles()",
+      "save": "tvStyles",
+      "full": true
+    },
+    {
+      "name": "TV: the − / + buttons hidden, the slider alone in its row, the value text larger",
+      "assert": "(s => s.minus === 'none' && s.plus === 'none' && s.rowFocusables.length === 1 && parseFloat(s.valueFontSize) > parseFloat(s.rowFontSize) * 1.2)(__vars.tvStyles) && __jfurStars.widget.element.classList.contains('jfur-rating-tv')"
+    },
+    {
+      "name": "TV: focus the Play button",
+      "script": "__jfurStars.log.length = 0; document.querySelector('#itemDetailPage:not(.hide) .mainDetailButtons .btnPlay').focus(); return __jfurStars.active();"
+    },
+    {
+      "name": "TV: ArrowDown 1 (to the slider)",
+      "key": "ArrowDown",
+      "if": "!__jfurStars.onSlider()"
+    },
+    {
+      "sleep": 200,
+      "if": "!__jfurStars.onSlider()"
+    },
+    {
+      "name": "TV: ArrowDown 2 (to the slider)",
+      "key": "ArrowDown",
+      "if": "!__jfurStars.onSlider()"
+    },
+    {
+      "sleep": 200,
+      "if": "!__jfurStars.onSlider()"
+    },
+    {
+      "name": "TV: ArrowDown 3 (to the slider)",
+      "key": "ArrowDown",
+      "if": "!__jfurStars.onSlider()"
+    },
+    {
+      "sleep": 200,
+      "if": "!__jfurStars.onSlider()"
+    },
+    {
+      "name": "TV: ArrowDown 4 (to the slider)",
+      "key": "ArrowDown",
+      "if": "!__jfurStars.onSlider()"
+    },
+    {
+      "sleep": 200,
+      "if": "!__jfurStars.onSlider()"
+    },
+    {
+      "name": "TV: ArrowDown 5 (to the slider)",
+      "key": "ArrowDown",
+      "if": "!__jfurStars.onSlider()"
+    },
+    {
+      "sleep": 200,
+      "if": "!__jfurStars.onSlider()"
+    },
+    {
+      "name": "TV: ArrowDown 6 (to the slider)",
+      "key": "ArrowDown",
+      "if": "!__jfurStars.onSlider()"
+    },
+    {
+      "sleep": 200,
+      "if": "!__jfurStars.onSlider()"
+    },
+    {
+      "name": "TV: the slider reached with the D-pad",
+      "eval": "({ onSlider: __jfurStars.onSlider(), presses: __jfurStars.log.filter(e => e.kind === 'key-capture' && e.key === 'ArrowDown').length, path: __jfurStars.log.filter(e => e.kind === 'focus').map(f => f.target) })",
+      "save": "tvReach",
+      "full": true
+    },
+    {
+      "name": "TV: reached within 6 presses",
+      "assert": "__jfurStars.onSlider() && __vars.tvReach.presses <= 6"
+    },
+    {
+      "name": "TV: the 3 px ring",
+      "eval": "__jfurStars.styles()",
+      "save": "tvRing",
+      "full": true
+    },
+    {
+      "name": "TV: the ring shows",
+      "assert": "(s => s.focused && s.outline.style === 'solid' && s.outline.width === '3px')(__vars.tvRing)"
+    },
+    {
+      "name": "TV Right 1: mark",
+      "script": "window.__mark = __jfurStars.log.length; window.__markAbs = Math.round(performance.now()) - 1; return true;"
+    },
+    {
+      "name": "TV Right 1: ArrowRight",
+      "key": "ArrowRight"
+    },
+    {
+      "sleep": 200
+    },
+    {
+      "name": "TV Right 1: after ArrowRight",
+      "eval": "(() => { const since = __jfurStars.log.slice(window.__mark); const pick = (kind) => since.filter(e => e.kind === kind).pop() || null; const cap = pick('key-capture'); const bub = pick('key-bubble'); return Object.assign(__jfurStars.state(), { key: \"ArrowRight\", capture: cap && { key: cap.key, prevented: cap.prevented }, bubble: bub ? { prevented: bub.prevented, target: bub.target } : 'not reached', changes: since.filter(e => e.kind === 'change').map(e => e.value + ':' + e.how), jeCalls: window.__jeSpy ? window.__jeSpy.calls.filter(c => c.ms >= window.__markAbs).map(c => c.fn) : null }); })()",
+      "full": true
+    },
+    {
+      "name": "TV Right 1: ArrowRight consumed, the focus stays",
+      "assert": "(__jfurStars.log.slice(window.__mark).filter(e => e.kind === 'key-bubble').pop() || {}).prevented === true && __jfurStars.onSlider()",
+      "message": "ArrowRight: consumed, the focus stays"
+    },
+    {
+      "name": "TV Right 2: mark",
+      "script": "window.__mark = __jfurStars.log.length; window.__markAbs = Math.round(performance.now()) - 1; return true;"
+    },
+    {
+      "name": "TV Right 2: ArrowRight",
+      "key": "ArrowRight"
+    },
+    {
+      "sleep": 200
+    },
+    {
+      "name": "TV Right 2: after ArrowRight",
+      "eval": "(() => { const since = __jfurStars.log.slice(window.__mark); const pick = (kind) => since.filter(e => e.kind === kind).pop() || null; const cap = pick('key-capture'); const bub = pick('key-bubble'); return Object.assign(__jfurStars.state(), { key: \"ArrowRight\", capture: cap && { key: cap.key, prevented: cap.prevented }, bubble: bub ? { prevented: bub.prevented, target: bub.target } : 'not reached', changes: since.filter(e => e.kind === 'change').map(e => e.value + ':' + e.how), jeCalls: window.__jeSpy ? window.__jeSpy.calls.filter(c => c.ms >= window.__markAbs).map(c => c.fn) : null }); })()",
+      "full": true
+    },
+    {
+      "name": "TV Right 2: ArrowRight consumed, the focus stays",
+      "assert": "(__jfurStars.log.slice(window.__mark).filter(e => e.kind === 'key-bubble').pop() || {}).prevented === true && __jfurStars.onSlider()",
+      "message": "ArrowRight: consumed, the focus stays"
+    },
+    {
+      "name": "TV Right 3: mark",
+      "script": "window.__mark = __jfurStars.log.length; window.__markAbs = Math.round(performance.now()) - 1; return true;"
+    },
+    {
+      "name": "TV Right 3: ArrowRight",
+      "key": "ArrowRight"
+    },
+    {
+      "sleep": 200
+    },
+    {
+      "name": "TV Right 3: after ArrowRight",
+      "eval": "(() => { const since = __jfurStars.log.slice(window.__mark); const pick = (kind) => since.filter(e => e.kind === kind).pop() || null; const cap = pick('key-capture'); const bub = pick('key-bubble'); return Object.assign(__jfurStars.state(), { key: \"ArrowRight\", capture: cap && { key: cap.key, prevented: cap.prevented }, bubble: bub ? { prevented: bub.prevented, target: bub.target } : 'not reached', changes: since.filter(e => e.kind === 'change').map(e => e.value + ':' + e.how), jeCalls: window.__jeSpy ? window.__jeSpy.calls.filter(c => c.ms >= window.__markAbs).map(c => c.fn) : null }); })()",
+      "full": true
+    },
+    {
+      "name": "TV Right 3: ArrowRight consumed, the focus stays",
+      "assert": "(__jfurStars.log.slice(window.__mark).filter(e => e.kind === 'key-bubble').pop() || {}).prevented === true && __jfurStars.onSlider()",
+      "message": "ArrowRight: consumed, the focus stays"
+    },
+    {
+      "name": "TV Right 4: mark",
+      "script": "window.__mark = __jfurStars.log.length; window.__markAbs = Math.round(performance.now()) - 1; return true;"
+    },
+    {
+      "name": "TV Right 4: ArrowRight",
+      "key": "ArrowRight"
+    },
+    {
+      "sleep": 200
+    },
+    {
+      "name": "TV Right 4: after ArrowRight",
+      "eval": "(() => { const since = __jfurStars.log.slice(window.__mark); const pick = (kind) => since.filter(e => e.kind === kind).pop() || null; const cap = pick('key-capture'); const bub = pick('key-bubble'); return Object.assign(__jfurStars.state(), { key: \"ArrowRight\", capture: cap && { key: cap.key, prevented: cap.prevented }, bubble: bub ? { prevented: bub.prevented, target: bub.target } : 'not reached', changes: since.filter(e => e.kind === 'change').map(e => e.value + ':' + e.how), jeCalls: window.__jeSpy ? window.__jeSpy.calls.filter(c => c.ms >= window.__markAbs).map(c => c.fn) : null }); })()",
+      "full": true
+    },
+    {
+      "name": "TV Right 4: ArrowRight consumed, the focus stays",
+      "assert": "(__jfurStars.log.slice(window.__mark).filter(e => e.kind === 'key-bubble').pop() || {}).prevented === true && __jfurStars.onSlider()",
+      "message": "ArrowRight: consumed, the focus stays"
+    },
+    {
+      "name": "TV Right 5: mark",
+      "script": "window.__mark = __jfurStars.log.length; window.__markAbs = Math.round(performance.now()) - 1; return true;"
+    },
+    {
+      "name": "TV Right 5: ArrowRight",
+      "key": "ArrowRight"
+    },
+    {
+      "sleep": 200
+    },
+    {
+      "name": "TV Right 5: after ArrowRight",
+      "eval": "(() => { const since = __jfurStars.log.slice(window.__mark); const pick = (kind) => since.filter(e => e.kind === kind).pop() || null; const cap = pick('key-capture'); const bub = pick('key-bubble'); return Object.assign(__jfurStars.state(), { key: \"ArrowRight\", capture: cap && { key: cap.key, prevented: cap.prevented }, bubble: bub ? { prevented: bub.prevented, target: bub.target } : 'not reached', changes: since.filter(e => e.kind === 'change').map(e => e.value + ':' + e.how), jeCalls: window.__jeSpy ? window.__jeSpy.calls.filter(c => c.ms >= window.__markAbs).map(c => c.fn) : null }); })()",
+      "full": true
+    },
+    {
+      "name": "TV Right 5: ArrowRight consumed, the focus stays",
+      "assert": "(__jfurStars.log.slice(window.__mark).filter(e => e.kind === 'key-bubble').pop() || {}).prevented === true && __jfurStars.onSlider()",
+      "message": "ArrowRight: consumed, the focus stays"
+    },
+    {
+      "name": "TV Right 6: mark",
+      "script": "window.__mark = __jfurStars.log.length; window.__markAbs = Math.round(performance.now()) - 1; return true;"
+    },
+    {
+      "name": "TV Right 6: ArrowRight",
+      "key": "ArrowRight"
+    },
+    {
+      "sleep": 200
+    },
+    {
+      "name": "TV Right 6: after ArrowRight",
+      "eval": "(() => { const since = __jfurStars.log.slice(window.__mark); const pick = (kind) => since.filter(e => e.kind === kind).pop() || null; const cap = pick('key-capture'); const bub = pick('key-bubble'); return Object.assign(__jfurStars.state(), { key: \"ArrowRight\", capture: cap && { key: cap.key, prevented: cap.prevented }, bubble: bub ? { prevented: bub.prevented, target: bub.target } : 'not reached', changes: since.filter(e => e.kind === 'change').map(e => e.value + ':' + e.how), jeCalls: window.__jeSpy ? window.__jeSpy.calls.filter(c => c.ms >= window.__markAbs).map(c => c.fn) : null }); })()",
+      "full": true
+    },
+    {
+      "name": "TV Right 6: ArrowRight consumed, the focus stays",
+      "assert": "(__jfurStars.log.slice(window.__mark).filter(e => e.kind === 'key-bubble').pop() || {}).prevented === true && __jfurStars.onSlider()",
+      "message": "ArrowRight: consumed, the focus stays"
+    },
+    {
+      "name": "TV Right 7: mark",
+      "script": "window.__mark = __jfurStars.log.length; window.__markAbs = Math.round(performance.now()) - 1; return true;"
+    },
+    {
+      "name": "TV Right 7: ArrowRight",
+      "key": "ArrowRight"
+    },
+    {
+      "sleep": 200
+    },
+    {
+      "name": "TV Right 7: after ArrowRight",
+      "eval": "(() => { const since = __jfurStars.log.slice(window.__mark); const pick = (kind) => since.filter(e => e.kind === kind).pop() || null; const cap = pick('key-capture'); const bub = pick('key-bubble'); return Object.assign(__jfurStars.state(), { key: \"ArrowRight\", capture: cap && { key: cap.key, prevented: cap.prevented }, bubble: bub ? { prevented: bub.prevented, target: bub.target } : 'not reached', changes: since.filter(e => e.kind === 'change').map(e => e.value + ':' + e.how), jeCalls: window.__jeSpy ? window.__jeSpy.calls.filter(c => c.ms >= window.__markAbs).map(c => c.fn) : null }); })()",
+      "full": true
+    },
+    {
+      "name": "TV Right 7: ArrowRight consumed, the focus stays",
+      "assert": "(__jfurStars.log.slice(window.__mark).filter(e => e.kind === 'key-bubble').pop() || {}).prevented === true && __jfurStars.onSlider()",
+      "message": "ArrowRight: consumed, the focus stays"
+    },
+    {
+      "name": "TV: seven Rights gave 3.5",
+      "assert": "__jfurStars.widget.value() === 3.5 && __jfurStars.onSlider()"
+    },
+    {
+      "name": "TV Left: mark",
+      "script": "window.__mark = __jfurStars.log.length; window.__markAbs = Math.round(performance.now()) - 1; return true;"
+    },
+    {
+      "name": "TV Left: ArrowLeft",
+      "key": "ArrowLeft"
+    },
+    {
+      "sleep": 200
+    },
+    {
+      "name": "TV Left: after ArrowLeft",
+      "eval": "(() => { const since = __jfurStars.log.slice(window.__mark); const pick = (kind) => since.filter(e => e.kind === kind).pop() || null; const cap = pick('key-capture'); const bub = pick('key-bubble'); return Object.assign(__jfurStars.state(), { key: \"ArrowLeft\", capture: cap && { key: cap.key, prevented: cap.prevented }, bubble: bub ? { prevented: bub.prevented, target: bub.target } : 'not reached', changes: since.filter(e => e.kind === 'change').map(e => e.value + ':' + e.how), jeCalls: window.__jeSpy ? window.__jeSpy.calls.filter(c => c.ms >= window.__markAbs).map(c => c.fn) : null }); })()",
+      "full": true
+    },
+    {
+      "name": "TV Left: ArrowLeft as expected",
+      "assert": "(__jfurStars.log.slice(window.__mark).filter(e => e.kind === 'key-bubble').pop() || {}).prevented === true && __jfurStars.widget.value() === 3 && __jfurStars.onSlider()",
+      "message": "ArrowLeft: not as expected"
+    },
+    {
+      "name": "TV OK: mark",
+      "script": "window.__mark = __jfurStars.log.length; window.__markAbs = Math.round(performance.now()) - 1; return true;"
+    },
+    {
+      "name": "TV OK: Enter",
+      "key": "Enter"
+    },
+    {
+      "sleep": 100
+    },
+    {
+      "name": "TV OK: after Enter",
+      "eval": "(() => { const since = __jfurStars.log.slice(window.__mark); const pick = (kind) => since.filter(e => e.kind === kind).pop() || null; const cap = pick('key-capture'); const bub = pick('key-bubble'); return Object.assign(__jfurStars.state(), { key: \"Enter\", capture: cap && { key: cap.key, prevented: cap.prevented }, bubble: bub ? { prevented: bub.prevented, target: bub.target } : 'not reached', changes: since.filter(e => e.kind === 'change').map(e => e.value + ':' + e.how), jeCalls: window.__jeSpy ? window.__jeSpy.calls.filter(c => c.ms >= window.__markAbs).map(c => c.fn) : null }); })()",
+      "full": true
+    },
+    {
+      "name": "TV OK: Enter saves now",
+      "assert": "(__jfurStars.log.slice(window.__mark).filter(e => e.kind === 'key-bubble').pop() || {}).prevented === true && ((() => { const c = (__jfurStars.commits.length ? __jfurStars.commits[__jfurStars.commits.length - 1] : { value: null, t: -1 }); const press = __jfurStars.log.slice(window.__mark).find(e => e.kind === 'key-capture' && e.key === \"Enter\"); return c.value === 3 && !!press && c.t - press.t < 100; })() || ((__jfurStars.commits.length ? __jfurStars.commits[__jfurStars.commits.length - 1] : { value: null, t: -1 }).value === 3 && !__jfurStars.widget.isPending()))",
+      "message": "Enter: saves now"
+    },
+    {
+      "name": "TV PageUp: mark",
+      "script": "window.__mark = __jfurStars.log.length; window.__markAbs = Math.round(performance.now()) - 1; return true;"
+    },
+    {
+      "name": "TV PageUp: PageUp",
+      "key": "PageUp"
+    },
+    {
+      "sleep": 200
+    },
+    {
+      "name": "TV PageUp: after PageUp",
+      "eval": "(() => { const since = __jfurStars.log.slice(window.__mark); const pick = (kind) => since.filter(e => e.kind === kind).pop() || null; const cap = pick('key-capture'); const bub = pick('key-bubble'); return Object.assign(__jfurStars.state(), { key: \"PageUp\", capture: cap && { key: cap.key, prevented: cap.prevented }, bubble: bub ? { prevented: bub.prevented, target: bub.target } : 'not reached', changes: since.filter(e => e.kind === 'change').map(e => e.value + ':' + e.how), jeCalls: window.__jeSpy ? window.__jeSpy.calls.filter(c => c.ms >= window.__markAbs).map(c => c.fn) : null }); })()",
+      "full": true
+    },
+    {
+      "name": "TV PageUp: PageUp as expected",
+      "assert": "(__jfurStars.log.slice(window.__mark).filter(e => e.kind === 'key-bubble').pop() || {}).prevented === true && __jfurStars.widget.value() === 4",
+      "message": "PageUp: not as expected"
+    },
+    {
+      "name": "TV PageDown: mark",
+      "script": "window.__mark = __jfurStars.log.length; window.__markAbs = Math.round(performance.now()) - 1; return true;"
+    },
+    {
+      "name": "TV PageDown: PageDown",
+      "key": "PageDown"
+    },
+    {
+      "sleep": 200
+    },
+    {
+      "name": "TV PageDown: after PageDown",
+      "eval": "(() => { const since = __jfurStars.log.slice(window.__mark); const pick = (kind) => since.filter(e => e.kind === kind).pop() || null; const cap = pick('key-capture'); const bub = pick('key-bubble'); return Object.assign(__jfurStars.state(), { key: \"PageDown\", capture: cap && { key: cap.key, prevented: cap.prevented }, bubble: bub ? { prevented: bub.prevented, target: bub.target } : 'not reached', changes: since.filter(e => e.kind === 'change').map(e => e.value + ':' + e.how), jeCalls: window.__jeSpy ? window.__jeSpy.calls.filter(c => c.ms >= window.__markAbs).map(c => c.fn) : null }); })()",
+      "full": true
+    },
+    {
+      "name": "TV PageDown: PageDown as expected",
+      "assert": "(__jfurStars.log.slice(window.__mark).filter(e => e.kind === 'key-bubble').pop() || {}).prevented === true && __jfurStars.widget.value() === 3",
+      "message": "PageDown: not as expected"
+    },
+    {
+      "name": "TV End: mark",
+      "script": "window.__mark = __jfurStars.log.length; window.__markAbs = Math.round(performance.now()) - 1; return true;"
+    },
+    {
+      "name": "TV End: End",
+      "key": "End"
+    },
+    {
+      "sleep": 200
+    },
+    {
+      "name": "TV End: after End",
+      "eval": "(() => { const since = __jfurStars.log.slice(window.__mark); const pick = (kind) => since.filter(e => e.kind === kind).pop() || null; const cap = pick('key-capture'); const bub = pick('key-bubble'); return Object.assign(__jfurStars.state(), { key: \"End\", capture: cap && { key: cap.key, prevented: cap.prevented }, bubble: bub ? { prevented: bub.prevented, target: bub.target } : 'not reached', changes: since.filter(e => e.kind === 'change').map(e => e.value + ':' + e.how), jeCalls: window.__jeSpy ? window.__jeSpy.calls.filter(c => c.ms >= window.__markAbs).map(c => c.fn) : null }); })()",
+      "full": true
+    },
+    {
+      "name": "TV End: End as expected",
+      "assert": "(__jfurStars.log.slice(window.__mark).filter(e => e.kind === 'key-bubble').pop() || {}).prevented === true && __jfurStars.widget.value() === 5",
+      "message": "End: not as expected"
+    },
+    {
+      "name": "TV Home: mark",
+      "script": "window.__mark = __jfurStars.log.length; window.__markAbs = Math.round(performance.now()) - 1; return true;"
+    },
+    {
+      "name": "TV Home: Home",
+      "key": "Home"
+    },
+    {
+      "sleep": 200
+    },
+    {
+      "name": "TV Home: after Home",
+      "eval": "(() => { const since = __jfurStars.log.slice(window.__mark); const pick = (kind) => since.filter(e => e.kind === kind).pop() || null; const cap = pick('key-capture'); const bub = pick('key-bubble'); return Object.assign(__jfurStars.state(), { key: \"Home\", capture: cap && { key: cap.key, prevented: cap.prevented }, bubble: bub ? { prevented: bub.prevented, target: bub.target } : 'not reached', changes: since.filter(e => e.kind === 'change').map(e => e.value + ':' + e.how), jeCalls: window.__jeSpy ? window.__jeSpy.calls.filter(c => c.ms >= window.__markAbs).map(c => c.fn) : null }); })()",
+      "full": true
+    },
+    {
+      "name": "TV Home: Home as expected",
+      "assert": "(__jfurStars.log.slice(window.__mark).filter(e => e.kind === 'key-bubble').pop() || {}).prevented === true && __jfurStars.widget.value() === 0.5",
+      "message": "Home: not as expected"
+    },
+    {
+      "name": "TV: Right 1 (to 3.0)",
+      "key": "ArrowRight"
+    },
+    {
+      "sleep": 120
+    },
+    {
+      "name": "TV: Right 2 (to 3.0)",
+      "key": "ArrowRight"
+    },
+    {
+      "sleep": 120
+    },
+    {
+      "name": "TV: Right 3 (to 3.0)",
+      "key": "ArrowRight"
+    },
+    {
+      "sleep": 120
+    },
+    {
+      "name": "TV: Right 4 (to 3.0)",
+      "key": "ArrowRight"
+    },
+    {
+      "sleep": 120
+    },
+    {
+      "name": "TV: Right 5 (to 3.0)",
+      "key": "ArrowRight"
+    },
+    {
+      "sleep": 120
+    },
+    {
+      "name": "TV Up: mark",
+      "script": "window.__mark = __jfurStars.log.length; window.__markAbs = Math.round(performance.now()) - 1; return true;"
+    },
+    {
+      "name": "TV Up: ArrowUp",
+      "key": "ArrowUp"
+    },
+    {
+      "sleep": 400
+    },
+    {
+      "name": "TV Up: after ArrowUp",
+      "eval": "(() => { const since = __jfurStars.log.slice(window.__mark); const pick = (kind) => since.filter(e => e.kind === kind).pop() || null; const cap = pick('key-capture'); const bub = pick('key-bubble'); return Object.assign(__jfurStars.state(), { key: \"ArrowUp\", capture: cap && { key: cap.key, prevented: cap.prevented }, bubble: bub ? { prevented: bub.prevented, target: bub.target } : 'not reached', changes: since.filter(e => e.kind === 'change').map(e => e.value + ':' + e.how), jeCalls: window.__jeSpy ? window.__jeSpy.calls.filter(c => c.ms >= window.__markAbs).map(c => c.fn) : null }); })()",
+      "full": true
+    },
+    {
+      "name": "TV Up: ArrowUp not handled: the focus left upwards, the value kept",
+      "assert": "(__jfurStars.log.slice(window.__mark).filter(e => e.kind === 'key-bubble').pop() || { prevented: false }).prevented === false && !__jfurStars.onSlider() && __jfurStars.widget.value() === 3",
+      "message": "ArrowUp: not handled: the focus left upwards, the value kept"
+    },
+    {
+      "name": "TV Down back: mark",
+      "script": "window.__mark = __jfurStars.log.length; window.__markAbs = Math.round(performance.now()) - 1; return true;"
+    },
+    {
+      "name": "TV Down back: ArrowDown",
+      "key": "ArrowDown"
+    },
+    {
+      "sleep": 400
+    },
+    {
+      "name": "TV Down back: after ArrowDown",
+      "eval": "(() => { const since = __jfurStars.log.slice(window.__mark); const pick = (kind) => since.filter(e => e.kind === kind).pop() || null; const cap = pick('key-capture'); const bub = pick('key-bubble'); return Object.assign(__jfurStars.state(), { key: \"ArrowDown\", capture: cap && { key: cap.key, prevented: cap.prevented }, bubble: bub ? { prevented: bub.prevented, target: bub.target } : 'not reached', changes: since.filter(e => e.kind === 'change').map(e => e.value + ':' + e.how), jeCalls: window.__jeSpy ? window.__jeSpy.calls.filter(c => c.ms >= window.__markAbs).map(c => c.fn) : null }); })()",
+      "full": true
+    },
+    {
+      "name": "TV Down back: ArrowDown back on the slider",
+      "assert": "__jfurStars.onSlider() && __jfurStars.widget.value() === 3",
+      "message": "ArrowDown: back on the slider"
+    },
+    {
+      "name": "TV Down out: mark",
+      "script": "window.__mark = __jfurStars.log.length; window.__markAbs = Math.round(performance.now()) - 1; return true;"
+    },
+    {
+      "name": "TV Down out: ArrowDown",
+      "key": "ArrowDown"
+    },
+    {
+      "sleep": 400
+    },
+    {
+      "name": "TV Down out: after ArrowDown",
+      "eval": "(() => { const since = __jfurStars.log.slice(window.__mark); const pick = (kind) => since.filter(e => e.kind === kind).pop() || null; const cap = pick('key-capture'); const bub = pick('key-bubble'); return Object.assign(__jfurStars.state(), { key: \"ArrowDown\", capture: cap && { key: cap.key, prevented: cap.prevented }, bubble: bub ? { prevented: bub.prevented, target: bub.target } : 'not reached', changes: since.filter(e => e.kind === 'change').map(e => e.value + ':' + e.how), jeCalls: window.__jeSpy ? window.__jeSpy.calls.filter(c => c.ms >= window.__markAbs).map(c => c.fn) : null }); })()",
+      "full": true
+    },
+    {
+      "name": "TV Down out: ArrowDown not handled: down to the next row (Clear, Write a review), the value kept",
+      "assert": "(__jfurStars.log.slice(window.__mark).filter(e => e.kind === 'key-bubble').pop() || { prevented: false }).prevented === false && !__jfurStars.onSlider() && __jfurStars.widget.value() === 3 && /jfur-probe-(clear|write)/.test(__jfurStars.active())",
+      "message": "ArrowDown: not handled: down to the next row (Clear, Write a review), the value kept"
+    },
+    {
+      "name": "TV Up back: mark",
+      "script": "window.__mark = __jfurStars.log.length; window.__markAbs = Math.round(performance.now()) - 1; return true;"
+    },
+    {
+      "name": "TV Up back: ArrowUp",
+      "key": "ArrowUp"
+    },
+    {
+      "sleep": 400
+    },
+    {
+      "name": "TV Up back: after ArrowUp",
+      "eval": "(() => { const since = __jfurStars.log.slice(window.__mark); const pick = (kind) => since.filter(e => e.kind === kind).pop() || null; const cap = pick('key-capture'); const bub = pick('key-bubble'); return Object.assign(__jfurStars.state(), { key: \"ArrowUp\", capture: cap && { key: cap.key, prevented: cap.prevented }, bubble: bub ? { prevented: bub.prevented, target: bub.target } : 'not reached', changes: since.filter(e => e.kind === 'change').map(e => e.value + ':' + e.how), jeCalls: window.__jeSpy ? window.__jeSpy.calls.filter(c => c.ms >= window.__markAbs).map(c => c.fn) : null }); })()",
+      "full": true
+    },
+    {
+      "name": "TV Up back: ArrowUp back on the slider",
+      "assert": "__jfurStars.onSlider()",
+      "message": "ArrowUp: back on the slider"
+    },
+    {
+      "sleep": 700
+    },
+    {
+      "name": "TV: the saves so far (none for a value back at the saved one)",
+      "eval": "__jfurStars.commits.map(c => c.value)",
+      "full": true
+    },
+    {
+      "name": "TV: the last save is the saved value, nothing pending",
+      "assert": "(__jfurStars.commits.length ? __jfurStars.commits[__jfurStars.commits.length - 1] : { value: null, t: -1 }).value === __jfurStars.widget.savedValue() && !__jfurStars.widget.isPending()"
+    },
+    {
+      "name": "TV: disabled with a reason",
+      "script": "__jfurStars.widget.setDisabled({ reason: 'NeedsPlay', note: 'Play this first: rating it needs it to be played' }); __jfurStars.widget.slider.focus(); return __jfurStars.state();",
+      "full": true
+    },
+    {
+      "name": "TV disabled Right: mark",
+      "script": "window.__mark = __jfurStars.log.length; window.__markAbs = Math.round(performance.now()) - 1; return true;"
+    },
+    {
+      "name": "TV disabled Right: ArrowRight",
+      "key": "ArrowRight"
+    },
+    {
+      "sleep": 300
+    },
+    {
+      "name": "TV disabled Right: after ArrowRight",
+      "eval": "(() => { const since = __jfurStars.log.slice(window.__mark); const pick = (kind) => since.filter(e => e.kind === kind).pop() || null; const cap = pick('key-capture'); const bub = pick('key-bubble'); return Object.assign(__jfurStars.state(), { key: \"ArrowRight\", capture: cap && { key: cap.key, prevented: cap.prevented }, bubble: bub ? { prevented: bub.prevented, target: bub.target } : 'not reached', changes: since.filter(e => e.kind === 'change').map(e => e.value + ':' + e.how), jeCalls: window.__jeSpy ? window.__jeSpy.calls.filter(c => c.ms >= window.__markAbs).map(c => c.fn) : null }); })()",
+      "full": true
+    },
+    {
+      "name": "TV disabled Right: ArrowRight left to jellyfin-web, the value kept",
+      "assert": "(__jfurStars.log.slice(window.__mark).filter(e => e.kind === 'key-bubble').pop() || { prevented: false }).prevented === false && __jfurStars.widget.value() === 3",
+      "message": "ArrowRight: left to jellyfin-web, the value kept"
+    },
+    {
+      "name": "TV disabled Down: the slider focused",
+      "script": "__jfurStars.widget.slider.focus(); return __jfurStars.onSlider();"
+    },
+    {
+      "name": "TV disabled Down: mark",
+      "script": "window.__mark = __jfurStars.log.length; window.__markAbs = Math.round(performance.now()) - 1; return true;"
+    },
+    {
+      "name": "TV disabled Down: ArrowDown",
+      "key": "ArrowDown"
+    },
+    {
+      "sleep": 400
+    },
+    {
+      "name": "TV disabled Down: after ArrowDown",
+      "eval": "(() => { const since = __jfurStars.log.slice(window.__mark); const pick = (kind) => since.filter(e => e.kind === kind).pop() || null; const cap = pick('key-capture'); const bub = pick('key-bubble'); return Object.assign(__jfurStars.state(), { key: \"ArrowDown\", capture: cap && { key: cap.key, prevented: cap.prevented }, bubble: bub ? { prevented: bub.prevented, target: bub.target } : 'not reached', changes: since.filter(e => e.kind === 'change').map(e => e.value + ':' + e.how), jeCalls: window.__jeSpy ? window.__jeSpy.calls.filter(c => c.ms >= window.__markAbs).map(c => c.fn) : null }); })()",
+      "full": true
+    },
+    {
+      "name": "TV disabled Down: ArrowDown the D-pad moves on",
+      "assert": "!__jfurStars.onSlider()",
+      "message": "ArrowDown: the D-pad moves on"
+    },
+    {
+      "name": "TV: enabled again, the slider focused",
+      "script": "__jfurStars.widget.setDisabled(null); __jfurStars.widget.slider.focus(); return __jfurStars.onSlider();"
+    },
+    {
+      "name": "TV: screenshot",
+      "screenshot": "userratings-stars-tv.png"
+    },
+    {
+      "name": "TV: the hash before Back",
+      "eval": "location.hash",
+      "save": "hashBefore"
+    },
+    {
+      "name": "TV Back: mark",
+      "script": "window.__mark = __jfurStars.log.length; window.__markAbs = Math.round(performance.now()) - 1; return true;"
+    },
+    {
+      "name": "TV Back: Escape",
+      "key": "Escape"
+    },
+    {
+      "sleep": 1500
+    },
+    {
+      "name": "TV Back: after Escape",
+      "eval": "(() => { const since = __jfurStars.log.slice(window.__mark); const pick = (kind) => since.filter(e => e.kind === kind).pop() || null; const cap = pick('key-capture'); const bub = pick('key-bubble'); return Object.assign(__jfurStars.state(), { key: \"Escape\", capture: cap && { key: cap.key, prevented: cap.prevented }, bubble: bub ? { prevented: bub.prevented, target: bub.target } : 'not reached', changes: since.filter(e => e.kind === 'change').map(e => e.value + ':' + e.how), jeCalls: window.__jeSpy ? window.__jeSpy.calls.filter(c => c.ms >= window.__markAbs).map(c => c.fn) : null }); })()",
+      "full": true
+    },
+    {
+      "name": "TV: Back (Escape) is jellyfin-web's: the page left, the slider never handled it",
+      "eval": "({ hash: location.hash, left: location.hash.indexOf(__vars.movieId) < 0, sliderPrevented: __jfurStars.log.filter(e => e.kind === 'key-bubble' && e.key === 'Escape').map(e => e.prevented) })",
+      "save": "tvBack",
+      "full": true
+    },
+    {
+      "name": "TV: Back navigated",
+      "assert": "__vars.tvBack.left === true"
+    },
+    {
+      "name": "the default layout again",
+      "eval": "(localStorage.removeItem('layout'), true)"
+    },
+    {
+      "name": "requests to User Ratings' routes but the script",
+      "eval": "performance.getEntriesByType('resource').map(e => e.name.replace(location.origin, '')).filter(n => /\\/UserRatings\\//i.test(n) && !/\\/UserRatings\\/ClientScript/i.test(n))",
+      "save": "apiCalls",
+      "full": true
+    },
+    {
+      "name": "none: the widget never calls the API",
+      "assert": "__vars.apiCalls.length === 0"
+    },
+    {
+      "name": "the details section's reads, answered 404 by the probe (the details section kept out)",
+      "eval": "__jfurStars.stubbed",
+      "save": "stubbed",
+      "full": true
+    },
+    {
+      "name": "the section asked for the item and showed nothing",
+      "assert": "__vars.stubbed.some(u => /\\/UserRatings\\/Items\\//.test(u)) && document.querySelectorAll('.jfur-section').length === 0"
+    },
+    {
+      "name": "no uncaught exception",
+      "noExceptions": true,
+      "ignore": "/CustomRatings/script|^Error: player cannot be null"
+    },
+    {
+      "name": "TV: the key log",
+      "eval": "__jfurStars.log.filter(e => e.kind !== 'pointer')",
+      "full": true
+    }
+  ]
+}

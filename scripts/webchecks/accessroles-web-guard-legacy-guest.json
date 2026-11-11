@@ -1,0 +1,19 @@
+{
+  "description": "The web guard on the legacy desktop, every section locked: viewer with the probe's Guest role. jfar-lock-allsettings hides the drawer's Settings link; the header's user button stays (the TV layout's only way to Sign out); the Settings menu page stays reachable with every section's link hidden, Sign out and the note \"Settings are managed by your administrator\" right above it, as text. Reads only.",
+  "timeout": 30000,
+  "steps": [
+    { "name": "sign in as viewer", "login": "viewer" },
+    { "name": "the guard has viewer's /Me (every section locked)", "waitFor": "!!window.__jfkit && !!window.__jfkit.jfar && __jfkit.jfar.instance.accessRoles.rules().source === 'me' && document.documentElement.classList.contains('jfar-lock-allsettings')" },
+    { "name": "open the drawer", "script": "const b = document.querySelector('.mainDrawerButton'); if (b) b.click(); await new Promise((r) => setTimeout(r, 900)); return !!b;", "save": "drawerButton" },
+    { "name": "the drawer's Settings link is hidden, the header's user button shown", "assert": "(() => { const s = document.querySelector('.mainDrawer .btnSettings') || document.querySelector('a.navMenuOption[data-itemid=\"settings\"]'); const u = document.querySelector('.skinHeader .headerUserButton'); return (!s || getComputedStyle(s).display === 'none') && !!u && getComputedStyle(u).display !== 'none'; })()" },
+    { "screenshot": "accessroles-web-guard-legacy-guest-drawer.png" },
+    { "name": "close the drawer", "key": "Escape" },
+    { "name": "open the Settings menu (the user button's target)", "goto": "/web/index.html#/mypreferencesmenu" },
+    { "name": "the Settings menu is shown", "waitFor": "!!document.querySelector('#myPreferencesMenuPage:not(.hide) .btnLogout') && !!document.querySelector('#myPreferencesMenuPage:not(.hide) [data-jfar-note]')" },
+    { "sleep": 600 },
+    { "name": "every section's link hidden; Sign out shown, the note right above it, as text", "assert": "(() => { const p = document.querySelector('#myPreferencesMenuPage:not(.hide)'); const links = ['.lnkUserProfile', '.lnkDisplayPreferences', '.lnkHomePreferences', '.lnkPlaybackPreferences', '.lnkSubtitlePreferences', '.lnkControlsPreferences', '.lnkQuickConnectPreferences'].map((s) => p.querySelector(s)).filter(Boolean); const out = p.querySelector('.btnLogout'); const note = p.querySelector('[data-jfar-note]'); return links.length >= 6 && links.every((l) => getComputedStyle(l).display === 'none') && getComputedStyle(out).display !== 'none' && note.nextElementSibling === out && note.textContent === 'Settings are managed by your administrator' && note.children.length === 0; })()" },
+    { "name": "the page stayed (the Settings menu is never redirected)", "assert": "location.hash.startsWith('#/mypreferencesmenu')" },
+    { "screenshot": "accessroles-web-guard-legacy-guest-settings.png" },
+    { "name": "no uncaught exceptions (the stale CustomRatings tag excepted)", "noExceptions": true, "ignore": "/CustomRatings/script" }
+  ]
+}

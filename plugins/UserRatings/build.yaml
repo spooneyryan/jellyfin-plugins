@@ -1,0 +1,51 @@
+---
+name: "User Ratings"
+guid: "f53c7c34-8cba-4846-b43b-956816b2f6ae"
+version: "1.0.2.0"
+targetAbi: "10.11.5.0"
+framework: "net9.0"
+overview: "Five-star ratings with half stars and reviews, shared by every member of the server"
+description: >
+  Lets members rate any movie, show, season, episode, album, book or video
+  from half a star to five stars and write a review, on the item's details
+  page; everyone on the server sees every member's ratings and reviews on the
+  items they can open, with the member average. Admins can limit who may
+  rate, moderate reviews and import Jellyfin Enhanced's reviews. Ratings
+  follow their items through library scans and moves and are kept while a
+  drive is away; the settings page has every setting, the moderation, and
+  the Data tab: export, import, snapshots and restore, the detached
+  ratings, and the export back to Jellyfin Enhanced.
+category: "General"
+owner: "NoRepine"
+artifacts:
+- "Jellyfin.Plugin.UserRatings.dll"
+changelog: |
+  1.0.2
+  - First public release.
+  - Members rate movies, shows, episodes and more from half a star to five stars and write reviews, shared with every member of the server.
+  - Admins choose who may rate, moderate reviews, and export, import and restore the ratings. Jellyfin Enhanced's reviews can be imported and exported back.
+  1.0.1
+  - Fixes. A user deleted while their ratings couldn't be changed, then
+    brought back by restoring Jellyfin's database, keeps their ratings:
+    the deleted-user policy still waiting for them is dropped, never
+    applied. An administrator whose libraries are ticked one by one is
+    told how to get the Data tab's tools: tick "Enable access to all
+    libraries" on their account's Access tab (or, with Access Roles, give
+    their role all libraries), Save, and reload. The Jellyfin Enhanced dry
+    run's sample of an entry it couldn't read names it plainly. The
+    documentation says that deleting a user can't be undone from the Data
+    tab, and to check Jellyfin Enhanced's two hiding rules while the
+    server still runs before going back to it. No data change: 1.0.0's
+    ratings, settings and snapshots are used as they are.
+  1.0.0
+  - The first release, for Jellyfin 10.11.5. Members rate anything from
+    half a star to five stars and write a review on its details page, in
+    "Member ratings & reviews"; everyone sees every member's ratings and
+    reviews on what they can open, with the members' average beside the
+    other scores and a Rate button. Ratings follow their items through
+    renames and moves, wait while a drive is away, and come back from
+    the archive with their item. Admins choose who may rate,
+    remove reviews (logged), and on the Data tab export, import and
+    restore the ratings. Jellyfin Enhanced's reviews come in with a dry
+    run first and a checklist for turning its own reviews off, and go back
+    with Export for Jellyfin Enhanced.

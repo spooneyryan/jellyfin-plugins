@@ -1,0 +1,316 @@
+{
+  "comment": "Chapter names for the name dialog's suggestion rule. words: what a generator script derived from Jellyfin 10.11.5's Localization/Core/*.json (the ChapterNameValue formats of 89 cultures stripped of numbers, punctuation, symbols and spaces and lower-cased), which Web/js/36-name-dialog.js carries as CHAPTER_WORDS_WITH_NUMBER and CHAPTER_WORDS_WITHOUT_NUMBER (Web/ChapterSuggestionTests keeps them equal). cases: names with whether they are generic, so never suggested; chapter-names.test.mjs runs them through the built ClientScript.",
+  "words": {
+    "withNumber": [
+      "bab",
+      "bagian",
+      "bölüm",
+      "caibidil",
+      "capitolo",
+      "capitolul",
+      "capítol",
+      "capítulo",
+      "chapit",
+      "chapitre",
+      "chapter",
+      "chaptra",
+      "chibolim",
+      "chikamu",
+      "didanedi",
+      "hoofdstuk",
+      "hoofstuk",
+      "jelenet",
+      "kabanata",
+      "kafli",
+      "kapitel",
+      "kapitlu",
+      "kapitola",
+      "kapittel",
+      "kapittul",
+      "kapitulua",
+      "kappale",
+      "nodaļa",
+      "peatükk",
+      "pennod",
+      "phâncảnh",
+      "piece",
+      "poglavje",
+      "poglavlje",
+      "rozdział",
+      "sahna",
+      "scena",
+      "ĉapitro",
+      "κεφάλαιο",
+      "глава",
+      "дел",
+      "поглавље",
+      "раздзел",
+      "рбүлэг",
+      "сцена",
+      "գլուխ",
+      "פרק",
+      "الفصل",
+      "باب",
+      "قسمت",
+      "अध्याय",
+      "धडा",
+      "অধ্যায়",
+      "ਚੈਪਟਰ",
+      "ବିଭାଗ",
+      "அத்தியாயம்",
+      "ಅಧ್ಯಾಯ",
+      "അധ്യായം",
+      "บทที่",
+      "အခန်း",
+      "თავი",
+      "ជំពូក",
+      "チャプター",
+      "章節",
+      "章节",
+      "第章",
+      "챕터"
+    ],
+    "withoutNumber": [
+      "kapituj",
+      "باب",
+      "అధ్యాయం"
+    ]
+  },
+  "cases": [
+    {
+      "name": "Opening",
+      "generic": false,
+      "note": "a sandbox movie's title (Titled MKV)"
+    },
+    {
+      "name": "Bank job",
+      "generic": false,
+      "note": "a sandbox movie's title"
+    },
+    {
+      "name": "Chase",
+      "generic": false,
+      "note": "a sandbox movie's title"
+    },
+    {
+      "name": "Chapter 4",
+      "generic": true,
+      "note": "a sandbox movie: an embedded generic title"
+    },
+    {
+      "name": "Chapter 5",
+      "generic": true,
+      "note": "a sandbox movie: Jellyfin named the untitled fifth chapter"
+    },
+    {
+      "name": "Kapitel 5",
+      "generic": true,
+      "note": "a sandbox movie on a de server"
+    },
+    {
+      "name": "Chapter 1",
+      "generic": true,
+      "note": "a sandbox movie (Untitled)"
+    },
+    {
+      "name": "Kapitel 1",
+      "generic": true,
+      "note": "a sandbox movie (Untitled) on a de server"
+    },
+    {
+      "name": "Chapter 01",
+      "generic": true,
+      "note": "a sandbox movie (Ripper Names)"
+    },
+    {
+      "name": "Chapter 2",
+      "generic": true,
+      "note": "a sandbox movie (Ripper Names)"
+    },
+    {
+      "name": "Kapitel 3",
+      "generic": true,
+      "note": "a sandbox movie (Ripper Names)"
+    },
+    {
+      "name": "Chapitre 4",
+      "generic": true,
+      "note": "a sandbox movie (Ripper Names)"
+    },
+    {
+      "name": "Capítulo 5",
+      "generic": true,
+      "note": "a sandbox movie (Ripper Names); an earlier regex missed it"
+    },
+    {
+      "name": "00:00:40,000",
+      "generic": true,
+      "note": "a sandbox movie (Time Names): a comma, which TimeSpan.TryParse refuses, so Jellyfin kept it"
+    },
+    {
+      "name": "00:00:00.000",
+      "generic": true,
+      "note": "a sandbox movie (Time Names): Jellyfin renames it, a ripper may not"
+    },
+    {
+      "name": "0:00:20",
+      "generic": true,
+      "note": "a sandbox movie (Time Names)"
+    },
+    {
+      "name": "Chapter 1-2",
+      "generic": true,
+      "note": "seen on a server in use: \"Chapter #-#\""
+    },
+    {
+      "name": "Глава 01",
+      "generic": true,
+      "note": "seen on a server in use: Russian"
+    },
+    {
+      "name": "(01)00:00:00:000",
+      "generic": true,
+      "note": "seen on a server in use: \"(#)#:#:#:#\""
+    },
+    {
+      "name": "第 01 章",
+      "generic": true,
+      "note": "seen on a server in use: Chinese"
+    },
+    {
+      "name": "Capitolo 1",
+      "generic": true,
+      "note": "seen on a server in use: Italian"
+    },
+    {
+      "name": "Rozdział 7",
+      "generic": true,
+      "note": "seen on a server in use: Polish"
+    },
+    {
+      "name": "章节 2",
+      "generic": true,
+      "note": "seen on a server in use: Chinese (simplified)"
+    },
+    {
+      "name": "Hoofdstuk 3",
+      "generic": true,
+      "note": "seen on a server in use: Dutch"
+    },
+    {
+      "name": "Chapter 1.",
+      "generic": true,
+      "note": "seen on a server in use: \"Chapter #.\""
+    },
+    {
+      "name": "12-3",
+      "generic": true,
+      "note": "seen on a server in use: \"#-#\""
+    },
+    {
+      "name": "Chapter  7",
+      "generic": true,
+      "note": "seen on a server in use: two spaces"
+    },
+    {
+      "name": "chapter#9",
+      "generic": true,
+      "note": "seen on a server in use: \"chapter#\""
+    },
+    {
+      "name": "CHAPTER 12",
+      "generic": true,
+      "note": "any case"
+    },
+    {
+      "name": "Bölüm 2",
+      "generic": true,
+      "note": "Turkish"
+    },
+    {
+      "name": "チャプター 3",
+      "generic": true,
+      "note": "Japanese"
+    },
+    {
+      "name": "阉3章",
+      "generic": false,
+      "note": "not a Jellyfin format: a word that is in no list"
+    },
+    {
+      "name": "Kapituj",
+      "generic": true,
+      "note": "Albanian: every chapter gets the same name (no {0})"
+    },
+    {
+      "name": "باب",
+      "generic": true,
+      "note": "Urdu (Pakistan): no {0}"
+    },
+    {
+      "name": "అధ్యాయం",
+      "generic": true,
+      "note": "Telugu: no {0}"
+    },
+    {
+      "name": "Chapter",
+      "generic": false,
+      "note": "the word alone without a digit is not one of the three no-number formats"
+    },
+    {
+      "name": "Capítulo 5",
+      "generic": true,
+      "note": "NFD input: normalised to NFC first"
+    },
+    {
+      "name": "",
+      "generic": true,
+      "note": "empty"
+    },
+    {
+      "name": "   ",
+      "generic": true,
+      "note": "blank"
+    },
+    {
+      "name": "—",
+      "generic": true,
+      "note": "nothing but punctuation"
+    },
+    {
+      "name": "Bank job 2",
+      "generic": false,
+      "note": "a title with a digit or a word"
+    },
+    {
+      "name": "Part 2",
+      "generic": false,
+      "note": "a title with a digit or a word"
+    },
+    {
+      "name": "Scene 3",
+      "generic": false,
+      "note": "a title with a digit or a word"
+    },
+    {
+      "name": "Chapter 1 - Opening",
+      "generic": false,
+      "note": "a title with a digit or a word"
+    },
+    {
+      "name": "The Heist",
+      "generic": false,
+      "note": "a title"
+    },
+    {
+      "name": "Épilogue",
+      "generic": false,
+      "note": "a title with an accent"
+    },
+    {
+      "name": "Act 3: The Vault",
+      "generic": false,
+      "note": "a title with a digit"
+    }
+  ]
+}

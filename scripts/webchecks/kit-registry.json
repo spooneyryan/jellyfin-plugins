@@ -1,0 +1,64 @@
+{
+  "name": "The kit registry in the browser: window.__jfkit lists every plugin whose script tag is on the page, all with the same kit version, which is the version and kit version each plugin's GET /<Route>/Admin/Diagnostics reports; and the console shows no error or warning from our scripts (probes/console-probe.js: a ClientScript or AdminScript frame, or a [<Plugin>] or [<prefix>] message) on the login page, Home, a details page with the editor, the player with its bookmarks list and Bookmarks' settings page on the dashboard. As admin, on Long Test Movie; bookmarks unchanged.",
+  "failOnException": false,
+  "timeout": 30000,
+  "steps": [
+    { "name": "console probe in every document", "initScript": { "file": "probes/console-probe.js" } },
+    { "name": "sign in as admin (the login page runs our scripts signed out first)", "login": "admin" },
+    { "name": "the home page", "waitFor": "!!document.querySelector('.homePage:not(.hide)')" },
+    {
+      "name": "our script tags on the page, each with its kit registered",
+      "waitFor": "(() => { const tags = [...document.querySelectorAll('script')].map(s => [...s.attributes].map(a => a.name).find(n => /^data-jf[a-z]+-plugin$/.test(n))).filter(Boolean).map(n => n.slice(5, -7)); const reg = window.__jfkit || {}; if (!tags.length || !tags.every(p => reg[p] && reg[p].kit)) return false; const routes = {}; [...document.querySelectorAll('script')].forEach(s => { const n = [...s.attributes].map(a => a.name).find(x => /^data-jf[a-z]+-plugin$/.test(x)); const m = /[.][.][/]([A-Za-z]+)[/]ClientScript/.exec(s.getAttribute('src') || ''); if (n && m) routes[n.slice(5, -7)] = m[1]; }); return { tags, routes, kits: Object.keys(reg).map(p => ({ prefix: p, plugin: reg[p].plugin, version: reg[p].version, kit: reg[p].kit })) }; })()",
+      "save": "registry",
+      "full": true
+    },
+    {
+      "name": "window.__jfkit lists exactly the plugins with a tag, all with the same kit version",
+      "assert": "__vars.registry.kits.length === __vars.registry.tags.length && __vars.registry.tags.every(t => __vars.registry.kits.some(k => k.prefix === t)) && new Set(__vars.registry.kits.map(k => k.kit)).size === 1",
+      "message": "a plugin's kit is missing from window.__jfkit, or the kit versions differ"
+    },
+    {
+      "name": "each plugin's Diagnostics (server side, at the route its tag's src names: User Ratings is UserRatings): its version and kit version",
+      "eval": "Promise.all(__vars.registry.kits.map(async k => { const d = await ApiClient.getJSON(ApiClient.getUrl(__vars.registry.routes[k.prefix] + '/Admin/Diagnostics')); return { prefix: k.prefix, plugin: k.plugin, client: { version: k.version, kit: k.kit }, server: { version: d.PluginVersion, kit: d.KitVersion } }; }))",
+      "save": "versions",
+      "full": true
+    },
+    {
+      "name": "the browser runs the build the server has: same plugin and kit versions",
+      "assert": "__vars.versions.every(v => v.client.version === v.server.version && v.client.kit === v.server.kit)",
+      "message": "a plugin's script and its server report different versions"
+    },
+    {
+      "name": "find Long Test Movie",
+      "eval": "(await ApiClient.getItems(ApiClient.getCurrentUserId(), { IncludeItemTypes: 'Movie', Recursive: true, SearchTerm: 'Long Test Movie', Limit: 1 })).Items[0].Id",
+      "save": "movieId"
+    },
+    { "name": "open the details page", "goto": "/web/index.html#/details?id=${movieId}" },
+    { "name": "the Add bookmark button", "waitFor": "!!document.querySelector('#itemDetailPage:not(.hide) .mainDetailButtons .btnBookmarkItem')", "timeout": 20000 },
+    { "name": "open the editor", "click": "#itemDetailPage:not(.hide) .mainDetailButtons .btnBookmarkItem" },
+    { "name": "the editor", "waitFor": "!!document.querySelector('.jfbm-backdrop .jfbm-panel')" },
+    { "name": "Escape closes it", "key": "Escape" },
+    { "name": "closed", "waitFor": "!document.querySelector('.jfbm-backdrop')" },
+    { "name": "details page with a Play button", "waitFor": "!!document.querySelector('#itemDetailPage:not(.hide) .mainDetailButtons .btnPlay:not(.hide)')", "timeout": 20000 },
+    { "name": "start playback", "click": "#itemDetailPage:not(.hide) .mainDetailButtons .btnPlay:not(.hide)" },
+    { "name": "video page, video playing", "waitFor": "location.hash.indexOf('#/video') === 0 && (v => !!v && !v.paused && v.currentTime > 1)(document.querySelector('.videoPlayerContainer video'))", "timeout": 60000 },
+    { "name": "the three player buttons", "waitFor": "document.querySelectorAll('.videoOsdBottom .buttons .btnBookmarkAdd, .videoOsdBottom .buttons .btnBookmarkRange, .videoOsdBottom .buttons .btnBookmarkList').length === 3", "timeout": 20000 },
+    { "name": "open the player's bookmarks list", "click": ".videoOsdBottom .buttons .btnBookmarkList", "js": true },
+    { "name": "the list dialog", "waitFor": "(() => { const p = document.querySelector('.jfbm-backdrop .jfbm-panel'); return !!p && p.querySelector('h3').textContent === 'Bookmarks'; })()" },
+    { "sleep": 1000 },
+    { "name": "Escape closes the list", "key": "Escape" },
+    { "name": "list closed", "waitFor": "!document.querySelector('.jfbm-backdrop')" },
+    { "name": "leave the player", "goto": "/web/index.html#/details?id=${movieId}" },
+    { "name": "details page again", "waitFor": "!!document.querySelector('#itemDetailPage:not(.hide) .mainDetailButtons .btnBookmarkItem')", "timeout": 20000 },
+    { "name": "open Bookmarks' settings page (dashboard)", "goto": "/web/index.html#/configurationpage?name=Bookmarks" },
+    { "name": "its form and its Diagnostics section", "waitFor": "(() => { const p = document.querySelector('#BookmarksConfigPage:not(.hide)'); return !!p && !!p.querySelector('#BookmarksConfigForm') && document.querySelector('#BookmarksDiagnosticsSummary').textContent.length > 0; })()", "timeout": 20000 },
+    { "sleep": 2000 },
+    { "name": "back to Home", "goto": "/web/index.html#/home" },
+    { "name": "the home page again", "waitFor": "!!document.querySelector('.homePage:not(.hide)')", "timeout": 20000 },
+    { "sleep": 1000 },
+    { "name": "everything the console probe recorded", "eval": "__consoleProbe.summary()", "save": "console", "full": true },
+    { "name": "entries from our scripts", "eval": "__consoleProbe.ours()", "save": "ours", "full": true },
+    { "name": "the console shows no error or warning from our scripts", "assert": "__vars.ours.length === 0", "message": "our scripts wrote to the console (see the 'entries from our scripts' step)" },
+    { "name": "no uncaught exceptions (the stale CustomRatings tag, and jellyfin-web's own 'player cannot be null' when the player is left, excepted)", "noExceptions": true, "ignore": "/CustomRatings/script|^Error: player cannot be null" }
+  ]
+}

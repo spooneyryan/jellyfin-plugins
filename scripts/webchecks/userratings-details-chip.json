@@ -1,0 +1,556 @@
+{
+  "name": "User Ratings 1.0.2.0, the chip and the Rate button (ShowDetailButton): in the default sandbox as viewer, the desktop layout: the member-average chip on Long Test Movie as the server's summary calls for it (\"Members x.x/5 (n)\" last in the media-info row, its name and title \"Member average x.x out of 5, n ratings\", the group glyph drawn) and following a rating; jellyfin-web's write of the row takes it and the scanner puts it back once; ShowDetailButton Auto: no Rate button on the Movie, one before More on Test Series, its season and Test Album A, and Rate (a mouse click) opens the section and focuses the slider in view with no request; the season's empty, hidden row is shown while it holds the chip; Back and Forward across the items leave one chip and one section, for the item shown; on Versions Movie the other version chosen and favourite toggled and back keep the chip; the health check reports nothing. The member's rows are deleted at the end.",
+  "failOnException": false,
+  "timeout": 30000,
+  "steps": [
+    {
+      "name": "the details probe in every document (it watches the section the served script mounts)",
+      "initScript": {
+        "file": "probes/userratings-details-probe.js"
+      }
+    },
+    {
+      "name": "sign in as viewer",
+      "login": "viewer"
+    },
+    {
+      "name": "desktop layout",
+      "eval": "(localStorage.removeItem('layout'), true)"
+    },
+    {
+      "name": "reload",
+      "reload": true
+    },
+    {
+      "name": "the layout applied, User Ratings 1.0.2.0 started",
+      "waitFor": "document.documentElement.classList.contains('layout-desktop') && !!window.ApiClient && !!ApiClient.getCurrentUserId() && !!(window.__jfkit && window.__jfkit.jfur)",
+      "timeout": 40000
+    },
+    {
+      "name": "the served script is 1.0.2.0",
+      "assert": "window.__jfkit.jfur.version === '1.0.2.0'",
+      "message": "User Ratings 1.0.2.0 is not the script the page loaded"
+    },
+    {
+      "name": "Long Test Movie",
+      "eval": "(await ApiClient.getItems(ApiClient.getCurrentUserId(), { IncludeItemTypes: 'Movie', Recursive: true, SearchTerm: \"Long Test Movie\", Limit: 1 })).Items[0].Id",
+      "save": "movieId"
+    },
+    {
+      "name": "clean: Long Test Movie without a rating of this member",
+      "script": "const r = await __jfurDetails.server('DELETE', 'UserRatings/Items/' + __vars.movieId + '/Mine'); return r.status;",
+      "save": "cleaned"
+    },
+    {
+      "name": "Test Series",
+      "eval": "(await ApiClient.getItems(ApiClient.getCurrentUserId(), { IncludeItemTypes: 'Series', Recursive: true, SearchTerm: \"Test Series\", Limit: 1 })).Items[0].Id",
+      "save": "seriesId"
+    },
+    {
+      "name": "Test Series' first season",
+      "eval": "(await ApiClient.getItems(ApiClient.getCurrentUserId(), { ParentId: __vars.seriesId, IncludeItemTypes: 'Season', SortBy: 'SortName' })).Items[0].Id",
+      "save": "seasonId"
+    },
+    {
+      "name": "clean: the first season without a rating of this member",
+      "script": "const r = await __jfurDetails.server('DELETE', 'UserRatings/Items/' + __vars.seasonId + '/Mine'); return r.status;",
+      "save": "cleaned"
+    },
+    {
+      "name": "Test Album A",
+      "eval": "(await ApiClient.getItems(ApiClient.getCurrentUserId(), { IncludeItemTypes: 'MusicAlbum', Recursive: true, SearchTerm: \"Test Album A\", Limit: 1 })).Items[0].Id",
+      "save": "albumId"
+    },
+    {
+      "name": "Long Test Movie: its details page",
+      "script": "location.hash = '#/details?id=' + __vars.movieId; return true;"
+    },
+    {
+      "name": "Long Test Movie: drawn",
+      "waitFor": "(() => { const p = document.querySelector('#itemDetailPage:not(.hide)'); return !!p && location.hash.indexOf(__vars.movieId) > 0 && !!p.querySelector('.mainDetailButtons .btnPlay:not(.hide)'); })()",
+      "timeout": 30000
+    },
+    {
+      "name": "Long Test Movie: the section mounted for it",
+      "waitFor": "(() => { const s = __jfurDetails.section(); return !!s && s.getAttribute('data-jfur-item') === __vars.movieId && !!s.querySelector('.jfur-summary[data-jfur-summary]'); })()",
+      "timeout": 15000
+    },
+    {
+      "sleep": 400
+    },
+    {
+      "name": "Long Test Movie before: the chip the server's summary calls for",
+      "eval": "__jfurDetails.expectedChip(__vars.movieId)",
+      "save": "chipBefore",
+      "full": true
+    },
+    {
+      "name": "Long Test Movie before: the chip and the Rate button",
+      "eval": "__jfurDetails.extras()",
+      "save": "xBefore",
+      "full": true
+    },
+    {
+      "name": "the chip as the summary calls for it (none while there is no average), no Rate button on a Movie (Auto, no Jellyfin Enhanced)",
+      "assert": "((x, e) => e === null ? x.chip === null && x.chips === 0 : !!x.chip && x.chips === 1 && x.chip.item === __vars.movieId && x.chip.displayed && x.row.chipLast && x.chip.value === e.value && x.chip.label === e.label && x.chip.title === e.label && x.chip.iconWidth > 0)(__vars.xBefore, __vars.chipBefore) && (x => x.rate === null && x.rates === 0)(__vars.xBefore)"
+    },
+    {
+      "name": "the slider focused",
+      "script": "__jfurDetails.slider().focus(); return __jfurDetails.onSlider();"
+    },
+    {
+      "name": "Right 1",
+      "key": "ArrowRight"
+    },
+    {
+      "name": "Right 2",
+      "key": "ArrowRight"
+    },
+    {
+      "name": "Right 3",
+      "key": "ArrowRight"
+    },
+    {
+      "name": "Right 4",
+      "key": "ArrowRight"
+    },
+    {
+      "name": "Right 5",
+      "key": "ArrowRight"
+    },
+    {
+      "name": "Right 6",
+      "key": "ArrowRight"
+    },
+    {
+      "name": "Right 7",
+      "key": "ArrowRight"
+    },
+    {
+      "name": "Enter saves 3.5",
+      "key": "Enter"
+    },
+    {
+      "sleep": 900
+    },
+    {
+      "name": "the server: after the rating",
+      "eval": "__jfurDetails.mine(__vars.movieId)",
+      "save": "chipServer",
+      "full": true
+    },
+    {
+      "name": "Long Test Movie after: the chip the server's summary calls for",
+      "eval": "__jfurDetails.expectedChip(__vars.movieId)",
+      "save": "chipAfter",
+      "full": true
+    },
+    {
+      "name": "Long Test Movie after: the chip and the Rate button",
+      "eval": "__jfurDetails.extras()",
+      "save": "xAfter",
+      "full": true
+    },
+    {
+      "name": "the rating saved; the chip follows the summary: \"Members x.x/5 (n)\" last in the media-info row, named and titled \"Member average x.x out of 5, n ratings\", the group glyph drawn, the word shown at this width",
+      "assert": "__vars.chipServer.stars === 3.5 && __vars.chipAfter !== null && ((x, e) => e === null ? x.chip === null && x.chips === 0 : !!x.chip && x.chips === 1 && x.chip.item === __vars.movieId && x.chip.displayed && x.row.chipLast && x.chip.value === e.value && x.chip.label === e.label && x.chip.title === e.label && x.chip.iconWidth > 0)(__vars.xAfter, __vars.chipAfter) && __vars.xAfter.chip.word === 'Members' && __vars.xAfter.chip.wordDisplayed"
+    },
+    {
+      "name": "jellyfin-web's write of the row (innerHTML, as when another version is chosen): the row as it wrote it, without the chip",
+      "script": "const row = document.querySelector('#itemDetailPage:not(.hide) .itemMiscInfo-primary'); row.innerHTML = Array.prototype.filter.call(row.children, c => !c.classList.contains('jfur-chip')).map(c => c.outerHTML).join(''); return row.children.length;"
+    },
+    {
+      "sleep": 800
+    },
+    {
+      "name": "after the row's write: the chip and the Rate button",
+      "eval": "__jfurDetails.extras()",
+      "save": "xRewrite",
+      "full": true
+    },
+    {
+      "name": "the scanner put the chip back, once, last, as it was",
+      "assert": "((x, e) => e === null ? x.chip === null && x.chips === 0 : !!x.chip && x.chips === 1 && x.chip.item === __vars.movieId && x.chip.displayed && x.row.chipLast && x.chip.value === e.value && x.chip.label === e.label && x.chip.title === e.label && x.chip.iconWidth > 0)(__vars.xRewrite, __vars.chipAfter)"
+    },
+    {
+      "name": "Test Series: mark",
+      "script": "window.__mark = __jfurDetails.requests.length; window.__keys = __jfurDetails.log.length; return true;"
+    },
+    {
+      "name": "Test Series: its details page",
+      "script": "location.hash = '#/details?id=' + __vars.seriesId; return true;"
+    },
+    {
+      "name": "Test Series: drawn",
+      "waitFor": "(() => { const p = document.querySelector('#itemDetailPage:not(.hide)'); return !!p && location.hash.indexOf(__vars.seriesId) > 0 && !!p.querySelector('.mainDetailButtons .btnPlay:not(.hide)'); })()",
+      "timeout": 30000
+    },
+    {
+      "name": "Test Series: the section mounted for it",
+      "waitFor": "(() => { const s = __jfurDetails.section(); return !!s && s.getAttribute('data-jfur-item') === __vars.seriesId && !!s.querySelector('.jfur-summary[data-jfur-summary]'); })()",
+      "timeout": 15000
+    },
+    {
+      "sleep": 400
+    },
+    {
+      "name": "Test Series: the chip and the Rate button",
+      "eval": "__jfurDetails.extras()",
+      "save": "xSeries",
+      "full": true
+    },
+    {
+      "name": "Test Series (Auto: its child list comes first): the Rate button before More, the only one, no TV jump button",
+      "assert": "(x => !!x.rate && x.rates === 1 && x.rate.displayed && x.rate.title === 'Rate' && x.rate.label === 'Rate' && /btnMoreCommands/.test(x.rate.next) && x.jumps === 0)(__vars.xSeries)"
+    },
+    {
+      "name": "Test Series: Rate (a mouse click)",
+      "click": "#itemDetailPage:not(.hide) .mainDetailButtons .jfur-rate"
+    },
+    {
+      "sleep": 700
+    },
+    {
+      "name": "Rate: the slider focused, in view, the section open",
+      "assert": "__jfurDetails.onSlider() && (b => b.y >= 0 && b.y + b.h <= window.innerHeight)(__jfurDetails.box(__jfurDetails.slider())) && __jfurDetails.state().expanded === 'true'"
+    },
+    {
+      "name": "Rate sent no request of the section",
+      "assert": "__jfurDetails.since(window.__mark).filter(r => r.indexOf('GET ') !== 0).length === 0"
+    },
+    {
+      "name": "Test Series' first season: its details page",
+      "script": "location.hash = '#/details?id=' + __vars.seasonId; return true;"
+    },
+    {
+      "name": "Test Series' first season: drawn",
+      "waitFor": "(() => { const p = document.querySelector('#itemDetailPage:not(.hide)'); return !!p && location.hash.indexOf(__vars.seasonId) > 0 && !!p.querySelector('.mainDetailButtons .btnPlay:not(.hide)'); })()",
+      "timeout": 30000
+    },
+    {
+      "name": "Test Series' first season: the section mounted for it",
+      "waitFor": "(() => { const s = __jfurDetails.section(); return !!s && s.getAttribute('data-jfur-item') === __vars.seasonId && !!s.querySelector('.jfur-summary[data-jfur-summary]'); })()",
+      "timeout": 15000
+    },
+    {
+      "sleep": 400
+    },
+    {
+      "name": "the season before: the chip and the Rate button",
+      "eval": "__jfurDetails.extras()",
+      "save": "xSeasonBefore",
+      "full": true
+    },
+    {
+      "name": "the season (Auto): the Rate button; jellyfin-web left its media-info row empty and hidden, and there is no chip",
+      "assert": "(x => !!x.rate && x.rates === 1 && x.rate.displayed && x.rate.title === 'Rate' && x.rate.label === 'Rate' && /btnMoreCommands/.test(x.rate.next) && x.jumps === 0)(__vars.xSeasonBefore) && __vars.xSeasonBefore.chip === null && !!__vars.xSeasonBefore.row && __vars.xSeasonBefore.row.hidden && __vars.xSeasonBefore.row.items === 0"
+    },
+    {
+      "name": "the season: a rating of the member's through the API (4 stars)",
+      "script": "const r = await __jfurDetails.server('PUT', 'UserRatings/Items/' + __vars.seasonId + '/Mine/Rating', { Stars: 4 }); return r.status;",
+      "save": "seasonPut"
+    },
+    {
+      "name": "to Test Series and back to the season",
+      "script": "location.hash = '#/details?id=' + __vars.seriesId; return true;"
+    },
+    {
+      "waitFor": "(() => { const p = document.querySelector('#itemDetailPage:not(.hide)'); return !!p && location.hash.indexOf(__vars.seriesId) > 0 && !!p.querySelector('.mainDetailButtons .btnPlay:not(.hide)'); })()",
+      "timeout": 30000
+    },
+    {
+      "sleep": 800
+    },
+    {
+      "name": "the season again: its details page",
+      "script": "location.hash = '#/details?id=' + __vars.seasonId; return true;"
+    },
+    {
+      "name": "the season again: drawn",
+      "waitFor": "(() => { const p = document.querySelector('#itemDetailPage:not(.hide)'); return !!p && location.hash.indexOf(__vars.seasonId) > 0 && !!p.querySelector('.mainDetailButtons .btnPlay:not(.hide)'); })()",
+      "timeout": 30000
+    },
+    {
+      "name": "the season again: the section mounted for it",
+      "waitFor": "(() => { const s = __jfurDetails.section(); return !!s && s.getAttribute('data-jfur-item') === __vars.seasonId && !!s.querySelector('.jfur-summary[data-jfur-summary]'); })()",
+      "timeout": 15000
+    },
+    {
+      "sleep": 400
+    },
+    {
+      "sleep": 400
+    },
+    {
+      "name": "the season after: the chip the server's summary calls for",
+      "eval": "__jfurDetails.expectedChip(__vars.seasonId)",
+      "save": "seasonChip",
+      "full": true
+    },
+    {
+      "name": "the season after: the chip and the Rate button",
+      "eval": "__jfurDetails.extras()",
+      "save": "xSeasonAfter",
+      "full": true
+    },
+    {
+      "name": "the season's row un-hidden while it holds the chip, the chip as the summary calls for it",
+      "assert": "__vars.seasonPut === 200 && __vars.seasonChip !== null && ((x, e) => e === null ? x.chip === null && x.chips === 0 : !!x.chip && x.chips === 1 && x.chip.item === __vars.seasonId && x.chip.displayed && x.row.chipLast && x.chip.value === e.value && x.chip.label === e.label && x.chip.title === e.label && x.chip.iconWidth > 0)(__vars.xSeasonAfter, __vars.seasonChip) && !__vars.xSeasonAfter.row.hidden && __vars.xSeasonAfter.row.displayed && __vars.xSeasonAfter.row.unhid"
+    },
+    {
+      "name": "clean: the first season without a rating of this member",
+      "script": "const r = await __jfurDetails.server('DELETE', 'UserRatings/Items/' + __vars.seasonId + '/Mine'); return r.status;",
+      "save": "cleaned"
+    },
+    {
+      "name": "Test Album A: its details page",
+      "script": "location.hash = '#/details?id=' + __vars.albumId; return true;"
+    },
+    {
+      "name": "Test Album A: drawn",
+      "waitFor": "(() => { const p = document.querySelector('#itemDetailPage:not(.hide)'); return !!p && location.hash.indexOf(__vars.albumId) > 0 && !!p.querySelector('.mainDetailButtons .btnPlay:not(.hide)'); })()",
+      "timeout": 30000
+    },
+    {
+      "name": "Test Album A: the section mounted for it",
+      "waitFor": "(() => { const s = __jfurDetails.section(); return !!s && s.getAttribute('data-jfur-item') === __vars.albumId && !!s.querySelector('.jfur-summary[data-jfur-summary]'); })()",
+      "timeout": 15000
+    },
+    {
+      "sleep": 400
+    },
+    {
+      "name": "Test Album A: the chip and the Rate button",
+      "eval": "__jfurDetails.extras()",
+      "save": "xAlbum",
+      "full": true
+    },
+    {
+      "name": "Test Album A (Auto): the Rate button before More",
+      "assert": "(x => !!x.rate && x.rates === 1 && x.rate.displayed && x.rate.title === 'Rate' && x.rate.label === 'Rate' && /btnMoreCommands/.test(x.rate.next) && x.jumps === 0)(__vars.xAlbum)"
+    },
+    {
+      "name": "Long Test Movie again: its details page",
+      "script": "location.hash = '#/details?id=' + __vars.movieId; return true;"
+    },
+    {
+      "name": "Long Test Movie again: drawn",
+      "waitFor": "(() => { const p = document.querySelector('#itemDetailPage:not(.hide)'); return !!p && location.hash.indexOf(__vars.movieId) > 0 && !!p.querySelector('.mainDetailButtons .btnPlay:not(.hide)'); })()",
+      "timeout": 30000
+    },
+    {
+      "name": "Long Test Movie again: the section mounted for it",
+      "waitFor": "(() => { const s = __jfurDetails.section(); return !!s && s.getAttribute('data-jfur-item') === __vars.movieId && !!s.querySelector('.jfur-summary[data-jfur-summary]'); })()",
+      "timeout": 15000
+    },
+    {
+      "sleep": 400
+    },
+    {
+      "name": "Long Test Movie again: the chip and the Rate button",
+      "eval": "__jfurDetails.extras()",
+      "save": "xBack",
+      "full": true
+    },
+    {
+      "name": "back on the Movie: its chip, no Rate button, nothing of ours left on the other pages",
+      "assert": "((x, e) => e === null ? x.chip === null && x.chips === 0 : !!x.chip && x.chips === 1 && x.chip.item === __vars.movieId && x.chip.displayed && x.row.chipLast && x.chip.value === e.value && x.chip.label === e.label && x.chip.title === e.label && x.chip.iconWidth > 0)(__vars.xBack, __vars.chipAfter) && (x => x.rate === null && x.rates === 0)(__vars.xBack)"
+    },
+    {
+      "name": "history back 1",
+      "script": "history.back(); await new Promise(r => setTimeout(r, 1800)); return location.hash.slice(0, 60);"
+    },
+    {
+      "name": "history back 2",
+      "script": "history.back(); await new Promise(r => setTimeout(r, 1800)); return location.hash.slice(0, 60);"
+    },
+    {
+      "name": "history back 3",
+      "script": "history.back(); await new Promise(r => setTimeout(r, 1800)); return location.hash.slice(0, 60);"
+    },
+    {
+      "name": "after three Backs: the section mounted for the item shown",
+      "waitFor": "(() => { const s = __jfurDetails.section(); return !!s && location.hash.indexOf(s.getAttribute('data-jfur-item')) > 0; })()",
+      "timeout": 15000
+    },
+    {
+      "sleep": 600
+    },
+    {
+      "name": "after three Backs: at most one chip and one section, the chip the shown item's",
+      "eval": "(() => { const x = __jfurDetails.extras(); const s = __jfurDetails.section(); return { chips: x.chips, rates: x.rates, sections: document.querySelectorAll('.jfur-section').length, shown: s ? s.getAttribute('data-jfur-item') : null, chip: x.chip ? x.chip.item : null }; })()",
+      "save": "xHistory",
+      "full": true
+    },
+    {
+      "name": "no duplicate chip, Rate button or section after Back across three items",
+      "assert": "__vars.xHistory.chips <= 1 && __vars.xHistory.rates <= 1 && __vars.xHistory.sections === 1 && (__vars.xHistory.chip === null || __vars.xHistory.chip === __vars.xHistory.shown)"
+    },
+    {
+      "name": "history forward 1",
+      "script": "history.forward(); await new Promise(r => setTimeout(r, 1800)); return location.hash.slice(0, 60);"
+    },
+    {
+      "name": "history forward 2",
+      "script": "history.forward(); await new Promise(r => setTimeout(r, 1800)); return location.hash.slice(0, 60);"
+    },
+    {
+      "name": "history forward 3",
+      "script": "history.forward(); await new Promise(r => setTimeout(r, 1800)); return location.hash.slice(0, 60);"
+    },
+    {
+      "waitFor": "(() => { const s = __jfurDetails.section(); return !!s && s.getAttribute('data-jfur-item') === __vars.movieId && !!s.querySelector('.jfur-summary[data-jfur-summary]'); })()",
+      "timeout": 15000
+    },
+    {
+      "name": "forward to the Movie again: the chip and the Rate button",
+      "eval": "__jfurDetails.extras()",
+      "save": "xForward",
+      "full": true
+    },
+    {
+      "name": "forward again on the Movie: its one chip",
+      "assert": "((x, e) => e === null ? x.chip === null && x.chips === 0 : !!x.chip && x.chips === 1 && x.chip.item === __vars.movieId && x.chip.displayed && x.row.chipLast && x.chip.value === e.value && x.chip.label === e.label && x.chip.title === e.label && x.chip.iconWidth > 0)(__vars.xForward, __vars.chipAfter)"
+    },
+    {
+      "name": "Versions Movie (two versions, - 1080p and - 720p)",
+      "eval": "(await ApiClient.getItems(ApiClient.getCurrentUserId(), { IncludeItemTypes: 'Movie', Recursive: true, SearchTerm: \"Versions Movie\", Limit: 1 })).Items[0].Id",
+      "save": "versionsId"
+    },
+    {
+      "name": "clean: Versions Movie without a rating of this member",
+      "script": "const r = await __jfurDetails.server('DELETE', 'UserRatings/Items/' + __vars.versionsId + '/Mine'); return r.status;",
+      "save": "cleaned"
+    },
+    {
+      "name": "Versions Movie: a rating of the member's through the API (4.5 stars)",
+      "script": "const r = await __jfurDetails.server('PUT', 'UserRatings/Items/' + __vars.versionsId + '/Mine/Rating', { Stars: 4.5 }); return r.status;",
+      "save": "versionsPut"
+    },
+    {
+      "name": "Versions Movie: its details page",
+      "script": "location.hash = '#/details?id=' + __vars.versionsId; return true;"
+    },
+    {
+      "name": "Versions Movie: drawn",
+      "waitFor": "(() => { const p = document.querySelector('#itemDetailPage:not(.hide)'); return !!p && location.hash.indexOf(__vars.versionsId) > 0 && !!p.querySelector('.mainDetailButtons .btnPlay:not(.hide)'); })()",
+      "timeout": 30000
+    },
+    {
+      "name": "Versions Movie: the section mounted for it",
+      "waitFor": "(() => { const s = __jfurDetails.section(); return !!s && s.getAttribute('data-jfur-item') === __vars.versionsId && !!s.querySelector('.jfur-summary[data-jfur-summary]'); })()",
+      "timeout": 15000
+    },
+    {
+      "sleep": 400
+    },
+    {
+      "name": "Versions Movie: the chip the server's summary calls for",
+      "eval": "__jfurDetails.expectedChip(__vars.versionsId)",
+      "save": "versionsChip",
+      "full": true
+    },
+    {
+      "name": "Versions Movie: the chip and the Rate button",
+      "eval": "__jfurDetails.extras()",
+      "save": "xVersions",
+      "full": true
+    },
+    {
+      "name": "Versions Movie: the chip as its summary calls for it",
+      "assert": "__vars.versionsPut === 200 && __vars.versionsChip !== null && ((x, e) => e === null ? x.chip === null && x.chips === 0 : !!x.chip && x.chips === 1 && x.chip.item === __vars.versionsId && x.chip.displayed && x.row.chipLast && x.chip.value === e.value && x.chip.label === e.label && x.chip.title === e.label && x.chip.iconWidth > 0)(__vars.xVersions, __vars.versionsChip)"
+    },
+    {
+      "name": "the source list: the other version chosen (jellyfin-web writes the media-info row again)",
+      "script": "const row = document.querySelector('#itemDetailPage:not(.hide) .itemMiscInfo-primary'); row.firstElementChild.setAttribute('data-jfur-mark', ''); const s = document.querySelector('#itemDetailPage:not(.hide) select.selectSource'); if (!s || s.options.length < 2) { return null; } s.selectedIndex = (s.selectedIndex + 1) % s.options.length; s.dispatchEvent(new Event('change', { bubbles: true })); return s.options.length;",
+      "save": "versionOptions"
+    },
+    {
+      "sleep": 1500
+    },
+    {
+      "name": "after the other version: the chip and the Rate button",
+      "eval": "__jfurDetails.extras()",
+      "save": "xVersions2",
+      "full": true
+    },
+    {
+      "name": "the row written again by jellyfin-web (the marked item gone)",
+      "eval": "!document.querySelector('#itemDetailPage:not(.hide) .itemMiscInfo-primary [data-jfur-mark]')",
+      "save": "versionRewrote"
+    },
+    {
+      "name": "after the other version: the row written again, the chip back, once, last in the row",
+      "assert": "__vars.versionOptions >= 2 && __vars.versionRewrote === true && ((x, e) => e === null ? x.chip === null && x.chips === 0 : !!x.chip && x.chips === 1 && x.chip.item === __vars.versionsId && x.chip.displayed && x.row.chipLast && x.chip.value === e.value && x.chip.label === e.label && x.chip.title === e.label && x.chip.iconWidth > 0)(__vars.xVersions2, __vars.versionsChip)"
+    },
+    {
+      "name": "Versions Movie: favourite as found",
+      "eval": "(async () => (await ApiClient.getItem(ApiClient.getCurrentUserId(), __vars.versionsId)).UserData.IsFavorite)()",
+      "save": "favouriteBefore"
+    },
+    {
+      "name": "favourite toggled (no write of the row on 10.11.5)",
+      "click": "#itemDetailPage:not(.hide) .mainDetailButtons .btnUserRating"
+    },
+    {
+      "sleep": 1000
+    },
+    {
+      "name": "after favourite: the chip and the Rate button",
+      "eval": "__jfurDetails.extras()",
+      "save": "xFavourite",
+      "full": true
+    },
+    {
+      "name": "favourite toggled back, as found",
+      "click": "#itemDetailPage:not(.hide) .mainDetailButtons .btnUserRating"
+    },
+    {
+      "sleep": 1000
+    },
+    {
+      "name": "after favourite back: the chip and the Rate button",
+      "eval": "__jfurDetails.extras()",
+      "save": "xFavouriteOff",
+      "full": true
+    },
+    {
+      "name": "the chip through favourite toggled and back",
+      "assert": "((x, e) => e === null ? x.chip === null && x.chips === 0 : !!x.chip && x.chips === 1 && x.chip.item === __vars.versionsId && x.chip.displayed && x.row.chipLast && x.chip.value === e.value && x.chip.label === e.label && x.chip.title === e.label && x.chip.iconWidth > 0)(__vars.xFavourite, __vars.versionsChip) && ((x, e) => e === null ? x.chip === null && x.chips === 0 : !!x.chip && x.chips === 1 && x.chip.item === __vars.versionsId && x.chip.displayed && x.row.chipLast && x.chip.value === e.value && x.chip.label === e.label && x.chip.title === e.label && x.chip.iconWidth > 0)(__vars.xFavouriteOff, __vars.versionsChip)"
+    },
+    {
+      "name": "Versions Movie: favourite after",
+      "eval": "(async () => (await ApiClient.getItem(ApiClient.getCurrentUserId(), __vars.versionsId)).UserData.IsFavorite)()",
+      "save": "versionsFavourite"
+    },
+    {
+      "name": "favourite as found",
+      "assert": "__vars.versionsFavourite === __vars.favouriteBefore"
+    },
+    {
+      "name": "clean: Versions Movie at the end without a rating of this member",
+      "script": "const r = await __jfurDetails.server('DELETE', 'UserRatings/Items/' + __vars.versionsId + '/Mine'); return r.status;",
+      "save": "cleaned"
+    },
+    {
+      "name": "the health check: no anchor of User Ratings missing on these pages",
+      "eval": "window.__jfkit.jfur.health.missing()",
+      "save": "missing",
+      "full": true
+    },
+    {
+      "name": "nothing missing",
+      "assert": "__vars.missing.length === 0"
+    },
+    {
+      "name": "clean: Long Test Movie at the end without a rating of this member",
+      "script": "const r = await __jfurDetails.server('DELETE', 'UserRatings/Items/' + __vars.movieId + '/Mine'); return r.status;",
+      "save": "cleaned"
+    },
+    {
+      "name": "no uncaught exception",
+      "noExceptions": true,
+      "ignore": "/CustomRatings/script|^Error: player cannot be null"
+    }
+  ]
+}

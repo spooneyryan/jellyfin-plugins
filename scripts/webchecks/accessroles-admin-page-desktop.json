@@ -1,0 +1,480 @@
+{
+  "description": "Creating, assigning, overriding, unmanaging and deleting on Access Roles' dashboard page at 1366 px, as admin, on the probe's two users pageprobe-kid and pageprobe-teen (accessroles-admin-page-probe.mjs makes them and puts everything back): the Roles tab's New role from the Kid preset (its locks, Only…, the Dashboard row's sentence following \"Block Dashboard data and server calls\", \"Administrators are not restricted.\"), named \"Page probe Kid\" with one library, previewed (nobody's access changes) and created; the Users tab's bulk Assign roles of it to both users, previewed per user (newly locked, libraries written) as Users/Bulk's own dry run; another administrator then changes pageprobe-kid through the API, so Assign is a 409 Changed naming them (a plain sentence, Assign disabled, nothing written) until \"Reload and keep my changes\" reads it again; then another administrator adds a Subtitles lock to the role (no token of the bulk's request covers the role, its preview's PreviewToken does), so Assign is a 409 Changed naming both users with nothing written, and after \"Reload and keep my changes\" the new preview (Subtitles newly locked) is saved; pageprobe-kid's panel: the Effective access with its sources, a Home override Unlock previewed and saved; Unmanage user with the choice asked first (no dry run until it is made), Keep's dry run held 4 s while Restore's answers at once, the late Keep answer dropped, Restore saved; then the Roles tab's Delete of the role, its last member pageprobe-teen leaving management with Restore, after another administrator changed the teen and changed it back: a 409 Changed naming the teen, the role kept, then Reload and keep my changes (Restore kept) and Delete. Every dialog is the kit's; the focus goes back where it was. Writes only the probe's role and the two users' assignments; the library sync writes their access, and Restore writes it back.",
+  "timeout": 30000,
+  "steps": [
+    {
+      "name": "sign in as admin",
+      "login": "admin"
+    },
+    {
+      "name": "the web client is ready",
+      "waitFor": "!!window.ApiClient && !!ApiClient.getCurrentUserId()"
+    },
+    {
+      "name": "open Access Roles' page",
+      "goto": "/web/index.html#/configurationpage?name=AccessRoles"
+    },
+    {
+      "name": "the module mounted: the tabs, the status loaded, the loading note hidden",
+      "waitFor": "(() => { const p = document.querySelector('#AccessRolesConfigPage:not(.hide)'); return !!p && p.querySelectorAll('[role=\"tab\"]').length === 8 && p.querySelectorAll('#AccessRolesStatus table').length === 5 && p.querySelector('#AccessRolesScriptNote').hidden === true; })()",
+      "timeout": 30000
+    },
+    {
+      "name": "the check's helpers",
+      "script": "window.__arPage = {\n  page: () => document.querySelector('#AccessRolesConfigPage:not(.hide)'),\n  panels: () => [...document.querySelectorAll('.jfar-backdrop .jfar-panel')],\n  top: () => __arPage.panels().pop() || null,\n  title: () => { const t = __arPage.top(); return t ? t.querySelector('.jfar-panel-header h3').textContent : null; },\n  buttons: (root) => [...(root || document).querySelectorAll('button')],\n  button: (root, text) => __arPage.buttons(root).find(b => b.textContent === text) || null,\n  press: (root, text) => { const b = __arPage.button(root, text); if (!b) throw new Error('no button ' + text); if (b.disabled) throw new Error(text + ' is disabled'); b.click(); return true; },\n  user: (name) => [...__arPage.page().querySelectorAll('.jfar-page-user')].find(r => r.querySelector('.jfar-page-user-name').textContent === name) || null,\n  role: (name) => [...__arPage.page().querySelectorAll('.jfar-page-role')].find(r => r.querySelector('.jfar-page-role-name').textContent === name) || null,\n  check: (root, text) => { const l = [...root.querySelectorAll('label')].find(l => l.textContent.startsWith(text)); return l ? l.querySelector('input') : null; },\n  shown: (el) => !!el && el.getClientRects().length > 0 && !el.closest('[hidden]'),\n  seen: [],\n  toasts: () => __arPage.seen.concat([...document.querySelectorAll('.jfar-toast')].map(t => t.textContent)),\n  // Another administrator, through the API (the page's own session; the review's races).\n  api: (type, path, body) => ApiClient.ajax({ type, url: ApiClient.getUrl(path), data: body ? JSON.stringify(body) : undefined, contentType: 'application/json', dataType: 'json' }),\n  rows: () => ApiClient.getJSON(ApiClient.getUrl('AccessRoles/Admin/Users')),\n  row: async (name) => (await __arPage.rows()).find(r => r.Name === name) || null,\n  // The dialog's 409 Changed sentence when it is shown, else null.\n  stale: () => { const t = __arPage.top(); const s = t && t.querySelector('.jfar-page-stale'); return s && __arPage.shown(s) ? s.querySelector('.jfar-page-stale-text').textContent : null; },\n  previewLines: () => [...__arPage.top().querySelectorAll('.jfar-page-preview-line')].map(l => l.textContent)\n};\n// Every toast's text as it comes (a toast goes after 4 s, maybe before a wait sees it).\nnew MutationObserver(() => { document.querySelectorAll('.jfar-toast').forEach(t => { if (!__arPage.seen.includes(t.textContent)) __arPage.seen.push(t.textContent); }); }).observe(document.body, { childList: true, subtree: true });\nreturn true;"
+    },
+    {
+      "name": "the Roles tab",
+      "click": "#AccessRolesTabRoles"
+    },
+    {
+      "name": "the Roles panel shown, New role enabled",
+      "waitFor": "__arPage.shown(document.querySelector('#AccessRolesPanelRoles')) && document.querySelector('#AccessRolesTabRoles').getAttribute('aria-selected') === 'true' && document.querySelector('#AccessRolesNewRole').disabled === false"
+    },
+    {
+      "name": "New role",
+      "click": "#AccessRolesNewRole"
+    },
+    {
+      "name": "the presets",
+      "waitFor": "__arPage.title() === 'New role' && __arPage.top().querySelectorAll('[data-preset]').length === 4"
+    },
+    {
+      "name": "the Kid preset",
+      "click": ".jfar-backdrop [data-preset=\"Kid\"]"
+    },
+    {
+      "name": "the editor from the preset, the focus in it",
+      "waitFor": "__arPage.title() === 'New role: Kid' && __arPage.top().contains(document.activeElement)"
+    },
+    {
+      "name": "what the preset set",
+      "eval": "(() => { const t = __arPage.top(); return { locks: [...t.querySelectorAll('input[data-lock]')].filter(i => i.checked).map(i => i.getAttribute('data-lock')), mode: t.querySelector('select').value, hints: [...t.querySelectorAll('.jfar-page-check-hint')].map(h => h.textContent), dashboard: t.querySelector('.jfar-page-dashboard-text').textContent, admins: t.textContent.includes('Administrators are not restricted.'), libraries: [...t.querySelectorAll('.jfar-page-picker input[data-library-id]')].length }; })()",
+      "save": "preset",
+      "full": true
+    },
+    {
+      "name": "Kid: eight locks, Only…, the Dashboard blocked, \"hidden only\" marked, a library to pick",
+      "assert": "JSON.stringify(__vars.preset.locks) === JSON.stringify(['Profile','DisplayAccount','Home','Controls','QuickConnect','EnhancedPanel','AdminSurfaces','UserDirectory']) && __vars.preset.mode === 'Only' && __vars.preset.hints.includes('hidden only') && __vars.preset.hints.includes('server-enforced') && /also blocks the admin data and server calls/.test(__vars.preset.dashboard) && __vars.preset.admins && __vars.preset.libraries > 0"
+    },
+    {
+      "name": "the Dashboard row: \"Block Dashboard data and server calls\" off and on again",
+      "script": "const t = __arPage.top(); const box = t.querySelector('input[data-lock=\"AdminSurfaces\"]'); box.click(); const off = t.querySelector('.jfar-page-dashboard-text').textContent; box.click(); return { off, on: t.querySelector('.jfar-page-dashboard-text').textContent, checked: box.checked };",
+      "save": "dashboardRow"
+    },
+    {
+      "name": "the sentence follows the box",
+      "assert": "/doesn't block the admin data and server calls/.test(__vars.dashboardRow.off) && /also blocks the admin data and server calls/.test(__vars.dashboardRow.on) && __vars.dashboardRow.checked === true"
+    },
+    {
+      "name": "Only… with nothing picked: Create",
+      "script": "__arPage.press(__arPage.top(), 'Create'); return true;"
+    },
+    {
+      "name": "refused in the page (pick a library), no preview",
+      "waitFor": "__arPage.top().querySelector('.jfar-page-error').textContent === 'Pick at least one library.' && __arPage.panels().length === 1 && __arPage.title() === 'New role: Kid'",
+      "timeout": 5000
+    },
+    {
+      "name": "the name",
+      "type": "Page probe Kid",
+      "selector": ".jfar-backdrop .jfar-field input",
+      "clear": true
+    },
+    {
+      "name": "one library: the first enabled one that isn't the Collections library",
+      "script": "const t = __arPage.top(); const label = [...t.querySelectorAll('.jfar-page-picker label')].find(l => !/disabled|collection/.test(l.textContent)); const box = label.querySelector('input'); box.click(); return { id: box.getAttribute('data-library-id'), name: label.querySelector('.jfar-page-check-text span').textContent, checked: box.checked };",
+      "save": "library"
+    },
+    {
+      "sleep": 200
+    },
+    {
+      "screenshot": "accessroles-admin-page-editor.png"
+    },
+    {
+      "name": "Create: the preview first",
+      "script": "__arPage.press(__arPage.top(), 'Create'); return true;"
+    },
+    {
+      "name": "the preview: nobody's access changes, Create enabled",
+      "waitFor": "__arPage.title() === \"Create role Page probe Kid\" && !!__arPage.top().querySelector('.jfar-page-preview-summary') && __arPage.button(__arPage.top(), 'Create').disabled === false"
+    },
+    {
+      "name": "what it says",
+      "assert": "__arPage.top().querySelector('.jfar-page-preview-summary').textContent === 'This changes nobody\\'s access.'"
+    },
+    {
+      "name": "create",
+      "script": "__arPage.press(__arPage.top(), 'Create'); return true;"
+    },
+    {
+      "name": "both dialogs closed, the role listed with its libraries and Dashboard row, a toast",
+      "waitFor": "__arPage.panels().length === 0 && !!__arPage.role(\"Page probe Kid\") && __arPage.toasts().includes(\"Role Page probe Kid saved.\")",
+      "timeout": 20000
+    },
+    {
+      "name": "the role's lines",
+      "eval": "[...__arPage.role(\"Page probe Kid\").querySelectorAll('.jfar-page-role-line')].map(l => l.textContent)",
+      "save": "roleLines"
+    },
+    {
+      "name": "no member yet, its locks, Only: the library, the Dashboard blocked, other users hidden",
+      "assert": "__vars.roleLines[0] === 'No one has this role yet' && /^Settings locked: Profile/.test(__vars.roleLines[1]) && __vars.roleLines[2] === 'Libraries: Only: ' + __vars.library.name && /^Dashboard: /.test(__vars.roleLines[3]) && __vars.roleLines[4] === 'Other users: hidden'"
+    },
+    {
+      "name": "the Users tab",
+      "click": "#AccessRolesTabUsers"
+    },
+    {
+      "name": "the probe's users listed",
+      "waitFor": "__arPage.shown(document.querySelector('#AccessRolesPanelUsers')) && !!__arPage.user(\"pageprobe-kid\") && !!__arPage.user(\"pageprobe-teen\")"
+    },
+    {
+      "name": "tick both",
+      "script": "for (const n of [\"pageprobe-kid\", \"pageprobe-teen\"]) __arPage.user(n).querySelector('input[type=checkbox]').click(); return document.querySelector('#AccessRolesPanelUsers .jfar-page-count').textContent;",
+      "save": "count"
+    },
+    {
+      "name": "two selected, Assign roles enabled",
+      "assert": "__vars.count === '2 users selected' && document.querySelector('#AccessRolesBulkAssign').disabled === false"
+    },
+    {
+      "name": "Assign roles…",
+      "click": "#AccessRolesBulkAssign"
+    },
+    {
+      "name": "the roles to give",
+      "waitFor": "__arPage.title() === 'Assign roles for 2 users'"
+    },
+    {
+      "name": "tick the probe's role, Continue",
+      "script": "__arPage.check(__arPage.top(), \"Page probe Kid\").click(); __arPage.press(__arPage.top(), 'Continue'); return true;"
+    },
+    {
+      "name": "the preview of both users' whole assignments",
+      "waitFor": "__arPage.title() === 'Assign roles' && !!__arPage.top().querySelector('.jfar-page-preview-summary') && __arPage.button(__arPage.top(), 'Assign').disabled === false",
+      "timeout": 20000
+    },
+    {
+      "name": "what it says, per user",
+      "eval": "(() => { const t = __arPage.top(); return { summary: t.querySelector('.jfar-page-preview-summary').textContent, users: [...t.querySelectorAll('.jfar-page-preview-user')].map(u => ({ name: u.querySelector('.jfar-page-preview-name').textContent, lines: [...u.querySelectorAll('.jfar-page-preview-line')].map(l => l.textContent) })) }; })()",
+      "save": "bulkPreview",
+      "full": true
+    },
+    {
+      "name": "two users, each newly locked and their library access written",
+      "assert": "__vars.bulkPreview.summary === 'This changes the access of 2 users:' && __vars.bulkPreview.users.length === 2 && __vars.bulkPreview.users.every(u => u.lines.some(l => /^Newly locked: Profile/.test(l)) && u.lines.includes('The library sync will write their library access.'))"
+    },
+    {
+      "sleep": 200
+    },
+    {
+      "screenshot": "accessroles-admin-page-bulk-preview.png"
+    },
+    {
+      "name": "another administrator changes pageprobe-kid after the preview (a Playback lock of their own, through the API)",
+      "script": "const kid = await __arPage.row('pageprobe-kid'); await __arPage.api('PUT', 'AccessRoles/Admin/Users/' + kid.UserId, { UserId: kid.UserId, RoleIds: [], LockOverrides: { Playback: 'Lock' }, Libraries: { Mode: 'Inherit', Add: [], Remove: [] }, State: 'Managed', IfUpdatedAt: kid.UpdatedUtc || null }); const now = await __arPage.row('pageprobe-kid'); return { state: now.State, roles: now.RoleIds.length };",
+      "save": "kidRaced"
+    },
+    {
+      "name": "the kid is managed now, with no role",
+      "assert": "__vars.kidRaced.state === 'Managed' && __vars.kidRaced.roles === 0"
+    },
+    {
+      "name": "Assign: the preview's request, out of date now",
+      "script": "__arPage.press(__arPage.top(), 'Assign'); return true;"
+    },
+    {
+      "name": "409 Changed: the plain sentence naming pageprobe-kid with Reload and keep my changes, Assign disabled, the old preview gone",
+      "waitFor": "__arPage.title() === 'Assign roles' && __arPage.stale() === 'This changed after you opened it (pageprobe-kid), in another tab or by another administrator, so nothing was saved. Reload to read it again with your changes put back over it, and check the new preview before you save.' && !!__arPage.button(__arPage.top(), 'Reload and keep my changes') && __arPage.button(__arPage.top(), 'Assign').disabled === true && !__arPage.top().querySelector('.jfar-page-preview-summary')",
+      "timeout": 20000
+    },
+    {
+      "name": "nothing was written: neither user has the role, the teen still unmanaged",
+      "eval": "(async () => { const rows = await __arPage.rows(); return ['pageprobe-kid', 'pageprobe-teen'].map(n => { const r = rows.find(x => x.Name === n); return { name: n, roles: r.RoleIds.length, state: r.State }; }); })()",
+      "save": "afterBulkRace",
+      "full": true
+    },
+    {
+      "name": "no role given to anyone",
+      "assert": "__vars.afterBulkRace.every(u => u.roles === 0) && __vars.afterBulkRace[1].state === 'NotManaged'"
+    },
+    {
+      "sleep": 200
+    },
+    {
+      "screenshot": "accessroles-admin-page-bulk-changed.png"
+    },
+    {
+      "name": "Reload and keep my changes",
+      "script": "__arPage.press(__arPage.top(), 'Reload and keep my changes'); return true;"
+    },
+    {
+      "name": "the new preview: both users again, Assign enabled, the sentence gone",
+      "waitFor": "__arPage.title() === 'Assign roles' && __arPage.stale() === null && !!__arPage.top().querySelector('.jfar-page-preview-summary') && __arPage.top().querySelector('.jfar-page-preview-summary').textContent === 'This changes the access of 2 users:' && __arPage.button(__arPage.top(), 'Assign').disabled === false",
+      "timeout": 20000
+    },
+    {
+      "name": "another administrator adds a Subtitles lock to Page probe Kid after this preview (through the API; the bulk's IfUpdatedAt doesn't cover the role, its preview's PreviewToken does)",
+      "script": "const roles = () => ApiClient.getJSON(ApiClient.getUrl('AccessRoles/Admin/Roles')); const r = (await roles()).find(x => x.Name === \"Page probe Kid\"); await __arPage.api('PUT', 'AccessRoles/Admin/Roles/' + r.Id, { Name: r.Name, Description: r.Description, Locks: r.Locks.concat(['Subtitles']), Libraries: { Mode: r.Libraries.Mode, Refs: r.Libraries.Refs.map(x => ({ Id: x.Id })) }, IfUpdatedAt: r.UpdatedUtc, IfMembers: r.MembersToken }); const now = (await roles()).find(x => x.Name === \"Page probe Kid\"); return { locks: now.Locks };",
+      "save": "roleRaced"
+    },
+    {
+      "name": "the role locks Subtitles now",
+      "assert": "__vars.roleRaced.locks.includes('Subtitles')"
+    },
+    {
+      "name": "Assign: the preview's effect, out of date now",
+      "script": "__arPage.press(__arPage.top(), 'Assign'); return true;"
+    },
+    {
+      "name": "409 Changed (ifPreview): the plain sentence naming both users with Reload and keep my changes, Assign disabled, the old preview gone",
+      "waitFor": "__arPage.title() === 'Assign roles' && /^This changed after you opened it \\((pageprobe-kid, pageprobe-teen|pageprobe-teen, pageprobe-kid)\\), in another tab or by another administrator, so nothing was saved\\. /.test(__arPage.stale() || '') && !!__arPage.button(__arPage.top(), 'Reload and keep my changes') && __arPage.button(__arPage.top(), 'Assign').disabled === true && !__arPage.top().querySelector('.jfar-page-preview-summary')",
+      "timeout": 20000
+    },
+    {
+      "name": "nothing was written: neither user has the role",
+      "eval": "(async () => { const rows = await __arPage.rows(); return ['pageprobe-kid', 'pageprobe-teen'].map(n => { const r = rows.find(x => x.Name === n); return { name: n, roles: r.RoleIds.length, state: r.State }; }); })()",
+      "save": "afterRoleRace"
+    },
+    {
+      "name": "no role given to anyone, the teen still unmanaged",
+      "assert": "__vars.afterRoleRace.every(u => u.roles === 0) && __vars.afterRoleRace[1].state === 'NotManaged'"
+    },
+    {
+      "sleep": 200
+    },
+    {
+      "screenshot": "accessroles-admin-page-bulk-role-changed.png"
+    },
+    {
+      "name": "Reload and keep my changes (the role as it is now)",
+      "script": "__arPage.press(__arPage.top(), 'Reload and keep my changes'); return true;"
+    },
+    {
+      "name": "the new preview: both users, Subtitles newly locked for each, Assign enabled",
+      "waitFor": "__arPage.title() === 'Assign roles' && __arPage.stale() === null && !!__arPage.top().querySelector('.jfar-page-preview-summary') && __arPage.top().querySelector('.jfar-page-preview-summary').textContent === 'This changes the access of 2 users:' && [...__arPage.top().querySelectorAll('.jfar-page-preview-user')].every(u => [...u.querySelectorAll('.jfar-page-preview-line')].some(l => /^Newly locked: .*Subtitles/.test(l.textContent))) && __arPage.button(__arPage.top(), 'Assign').disabled === false",
+      "timeout": 20000
+    },
+    {
+      "name": "assign",
+      "script": "__arPage.press(__arPage.top(), 'Assign'); return true;"
+    },
+    {
+      "name": "both have the role, the selection cleared",
+      "waitFor": "__arPage.panels().length === 0 && [\"pageprobe-kid\", \"pageprobe-teen\"].every(n => { const r = __arPage.user(n); return !!r && r.querySelector('.jfar-page-user-line').textContent === \"Roles: Page probe Kid · Managed\"; }) && document.querySelector('#AccessRolesPanelUsers .jfar-page-count').textContent === 'No user selected'",
+      "timeout": 20000
+    },
+    {
+      "name": "open pageprobe-kid's panel (the focus on the name first)",
+      "script": "const b = __arPage.user(\"pageprobe-kid\").querySelector('.jfar-page-user-name'); b.focus(); b.click(); return true;"
+    },
+    {
+      "name": "the panel with the effective access",
+      "waitFor": "__arPage.title() === \"pageprobe-kid\" && !!__arPage.top().querySelector('#AccessRolesEffective')",
+      "timeout": 20000
+    },
+    {
+      "name": "what the panel shows",
+      "eval": "(() => { const t = __arPage.top(); return { roles: [...t.querySelectorAll('#AccessRolesUserRoles label')].filter(l => l.querySelector('input').checked).map(l => l.textContent), overrides: [...t.querySelectorAll('#AccessRolesUserOverrides .jfar-page-check-hint')].map(h => h.textContent), mode: t.querySelector('#AccessRolesUserMode').value, effective: [...t.querySelectorAll('#AccessRolesEffective li')].map(l => l.textContent), summary: t.querySelector('.jfar-page-effective-summary').textContent }; })()",
+      "save": "panel",
+      "full": true
+    },
+    {
+      "name": "the role ticked, the locks by the role, the library granted by it, the others not granted",
+      "assert": "__vars.panel.roles.length === 1 && __vars.panel.roles[0] === \"Page probe Kid\" && __vars.panel.overrides.includes(\"Now: Locked by role Page probe Kid\") && __vars.panel.mode === 'Inherit' && __vars.panel.effective.includes(__vars.library.name + ': granted by role ' + \"Page probe Kid\") && __vars.panel.effective.filter(l => /: not granted by any role$/.test(l)).length > 0 && __vars.panel.summary === 'They see 1 library.'"
+    },
+    {
+      "sleep": 200
+    },
+    {
+      "screenshot": "accessroles-admin-page-panel.png"
+    },
+    {
+      "name": "Home: Unlock for this user, Save",
+      "script": "const t = __arPage.top(); const s = t.querySelector('select[data-lock=\"Home\"]'); s.value = 'Unlock'; s.dispatchEvent(new Event('change', { bubbles: true })); t.querySelector('#AccessRolesUserSave').click(); return true;"
+    },
+    {
+      "name": "the preview: Home unlocked for them",
+      "waitFor": "__arPage.title() === \"Save pageprobe-kid\" && __arPage.button(__arPage.top(), 'Save') && __arPage.button(__arPage.top(), 'Save').disabled === false && [...__arPage.top().querySelectorAll('.jfar-page-preview-line')].some(l => l.textContent === 'Unlocked: Home screen')",
+      "timeout": 20000
+    },
+    {
+      "name": "save",
+      "script": "__arPage.press(__arPage.top(), 'Save'); return true;"
+    },
+    {
+      "name": "the panel again, with the override's source",
+      "waitFor": "__arPage.panels().length === 1 && __arPage.title() === \"pageprobe-kid\" && [...__arPage.top().querySelectorAll('#AccessRolesUserOverrides .jfar-page-check-hint')].some(h => h.textContent === 'Now: Unlocked for this user') && __arPage.toasts().includes(\"Saved pageprobe-kid.\")",
+      "timeout": 20000
+    },
+    {
+      "name": "Unmanage user…",
+      "script": "__arPage.top().querySelector('#AccessRolesUnmanage').click(); return true;"
+    },
+    {
+      "name": "the choice is asked first: no dry run until it is made (a hint instead of a preview), Unmanage disabled",
+      "waitFor": "__arPage.title() === \"Unmanage pageprobe-kid\" && __arPage.shown(__arPage.top().querySelector('.jfar-page-preview-choice')) && !__arPage.top().querySelector('.jfar-page-preview-summary') && __arPage.top().textContent.includes('Choose what their library access becomes; the preview follows.') && __arPage.button(__arPage.top(), 'Unmanage').disabled === true",
+      "timeout": 20000
+    },
+    {
+      "sleep": 200
+    },
+    {
+      "screenshot": "accessroles-admin-page-unmanage-choice.png"
+    },
+    {
+      "name": "hold Unmanage's dry runs 4 s (a slow answer)",
+      "delayRequests": {
+        "url": "/Unmanage",
+        "ms": 4000
+      }
+    },
+    {
+      "name": "Keep current access (its dry run held)",
+      "script": "__arPage.top().querySelector('input[type=radio][value=\"Keep\"]').click(); return true;"
+    },
+    {
+      "sleep": 400
+    },
+    {
+      "name": "stop holding",
+      "delayRequests": null
+    },
+    {
+      "name": "Restore original access (its dry run answered at once)",
+      "script": "__arPage.top().querySelector('input[type=radio][value=\"Restore\"]').click(); return true;"
+    },
+    {
+      "name": "the preview again: their original access restored, Unmanage enabled (before the held Keep answer)",
+      "waitFor": "__arPage.previewLines().some(l => /is no longer managed for libraries\\. Their original access is restored: /.test(l)) && __arPage.button(__arPage.top(), 'Unmanage').disabled === false",
+      "timeout": 3500
+    },
+    {
+      "sleep": 5000
+    },
+    {
+      "name": "after the held Keep answer arrived",
+      "eval": "({ checked: __arPage.top().querySelector('input[type=radio]:checked').value, restored: __arPage.previewLines().some(l => /Their original access is restored: /.test(l)), frozen: __arPage.previewLines().some(l => /frozen/.test(l)), save: __arPage.button(__arPage.top(), 'Unmanage').disabled === false })",
+      "save": "lateKeep",
+      "full": true
+    },
+    {
+      "name": "the late answer was dropped: Restore chosen, its preview shown, Unmanage enabled",
+      "assert": "__vars.lateKeep.checked === 'Restore' && __vars.lateKeep.restored === true && __vars.lateKeep.frozen === false && __vars.lateKeep.save === true"
+    },
+    {
+      "name": "unmanage",
+      "script": "__arPage.press(__arPage.top(), 'Unmanage'); return true;"
+    },
+    {
+      "name": "the panel again, with no assignment (no Unmanage user)",
+      "waitFor": "__arPage.panels().length === 1 && __arPage.title() === \"pageprobe-kid\" && !__arPage.top().querySelector('#AccessRolesUnmanage') && __arPage.toasts().includes(\"Unmanaged pageprobe-kid.\")",
+      "timeout": 20000
+    },
+    {
+      "name": "close the panel",
+      "script": "__arPage.press(__arPage.top(), 'Close'); return true;"
+    },
+    {
+      "name": "closed, the focus on the user's name",
+      "waitFor": "__arPage.panels().length === 0 && document.activeElement === __arPage.user(\"pageprobe-kid\").querySelector('.jfar-page-user-name')"
+    },
+    {
+      "name": "the Roles tab again",
+      "click": "#AccessRolesTabRoles"
+    },
+    {
+      "name": "the role has one member now",
+      "waitFor": "__arPage.shown(document.querySelector('#AccessRolesPanelRoles')) && __arPage.role(\"Page probe Kid\").querySelector('.jfar-page-role-line').textContent === \"Members: pageprobe-teen\""
+    },
+    {
+      "name": "Delete",
+      "script": "__arPage.role(\"Page probe Kid\").querySelector('[data-action=\"delete\"]').click(); return true;"
+    },
+    {
+      "name": "its member named",
+      "waitFor": "__arPage.title() === \"Delete role Page probe Kid\" && __arPage.top().textContent.includes(\"Its 1 member loses it: pageprobe-teen.\")"
+    },
+    {
+      "name": "Continue",
+      "script": "__arPage.press(__arPage.top(), 'Continue'); return true;"
+    },
+    {
+      "name": "the preview: the member leaves library management, the choice required",
+      "waitFor": "__arPage.panels().length === 2 && __arPage.title() === \"Delete role Page probe Kid\" && !!__arPage.top().querySelector('.jfar-page-preview-summary') && __arPage.shown(__arPage.top().querySelector('.jfar-page-preview-choice')) && __arPage.button(__arPage.top(), 'Delete').disabled === true && __arPage.top().textContent.includes(\"pageprobe-teen is no longer managed for libraries.\")",
+      "timeout": 20000
+    },
+    {
+      "name": "Restore original access",
+      "script": "__arPage.top().querySelector('input[type=radio][value=\"Restore\"]').click(); return true;"
+    },
+    {
+      "name": "Delete enabled",
+      "waitFor": "__arPage.button(__arPage.top(), 'Delete').disabled === false && [...__arPage.top().querySelectorAll('.jfar-page-preview-line')].some(l => /Their original access is restored: /.test(l.textContent))",
+      "timeout": 20000
+    },
+    {
+      "name": "another administrator changes pageprobe-teen and changes it back (the role's members token moves, the assignment is as it was)",
+      "script": "const put = async (overrides) => { const t = await __arPage.row('pageprobe-teen'); return __arPage.api('PUT', 'AccessRoles/Admin/Users/' + t.UserId, { UserId: t.UserId, RoleIds: t.RoleIds, LockOverrides: overrides, Libraries: { Mode: 'Inherit', Add: [], Remove: [] }, State: 'Managed', IfUpdatedAt: t.UpdatedUtc }); }; await put({ Subtitles: 'Lock' }); await put({}); const t = await __arPage.row('pageprobe-teen'); return { roles: t.RoleIds.length, state: t.State };",
+      "save": "teenRaced"
+    },
+    {
+      "name": "the teen still has the role",
+      "assert": "__vars.teenRaced.roles === 1 && __vars.teenRaced.state === 'Managed'"
+    },
+    {
+      "name": "Delete: the preview's request, out of date now",
+      "script": "__arPage.press(__arPage.top(), 'Delete'); return true;"
+    },
+    {
+      "name": "409 Changed: the sentence naming pageprobe-teen with Reload and keep my changes, Delete disabled",
+      "waitFor": "__arPage.panels().length === 2 && __arPage.title() === \"Delete role Page probe Kid\" && __arPage.stale() === 'This changed after you opened it (pageprobe-teen), in another tab or by another administrator, so nothing was saved. Reload to read it again with your changes put back over it, and check the new preview before you save.' && __arPage.button(__arPage.top(), 'Delete').disabled === true",
+      "timeout": 20000
+    },
+    {
+      "name": "nothing was deleted: the role is there, the teen has it",
+      "eval": "(async () => ({ role: (await ApiClient.getJSON(ApiClient.getUrl('AccessRoles/Admin/Roles'))).some(r => r.Name === \"Page probe Kid\"), teen: (await __arPage.row('pageprobe-teen')).RoleIds.length }))()",
+      "save": "afterDeleteRace",
+      "full": true
+    },
+    {
+      "name": "the role and its member as they were",
+      "assert": "__vars.afterDeleteRace.role === true && __vars.afterDeleteRace.teen === 1"
+    },
+    {
+      "name": "Reload and keep my changes",
+      "script": "__arPage.press(__arPage.top(), 'Reload and keep my changes'); return true;"
+    },
+    {
+      "name": "the new preview: Restore kept, Delete enabled",
+      "waitFor": "__arPage.stale() === null && __arPage.top().querySelector('input[type=radio]:checked') && __arPage.top().querySelector('input[type=radio]:checked').value === 'Restore' && __arPage.previewLines().some(l => /Their original access is restored: /.test(l)) && __arPage.button(__arPage.top(), 'Delete').disabled === false",
+      "timeout": 20000
+    },
+    {
+      "name": "delete",
+      "script": "__arPage.press(__arPage.top(), 'Delete'); return true;"
+    },
+    {
+      "name": "the role gone, the dialogs closed",
+      "waitFor": "__arPage.panels().length === 0 && !__arPage.role(\"Page probe Kid\") && __arPage.toasts().includes(\"Role Page probe Kid deleted.\")",
+      "timeout": 20000
+    },
+    {
+      "name": "every value is text: no element the page made from a value (no img, b, i, script under the page or a dialog)",
+      "assert": "__arPage.page().querySelectorAll('img, b, i, script').length === 0"
+    },
+    {
+      "sleep": 300
+    },
+    {
+      "screenshot": "accessroles-admin-page-done.png"
+    },
+    {
+      "name": "no uncaught exceptions (the stale CustomRatings tag excepted)",
+      "noExceptions": true,
+      "ignore": "/CustomRatings/script"
+    }
+  ]
+}

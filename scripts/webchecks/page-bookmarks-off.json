@@ -1,0 +1,64 @@
+{
+  "name": "As admin: the My Bookmarks page turned off by the setting EnableBookmarksPage (read per request, no restart): after a reload no 'Library tools' link leads to it, its route #/jfbm-bookmarks shows 'My Bookmarks is turned off by your server admin.' under its own title with no 'Page not found', the shell endpoint answers 200 with that note and no page marker, the capabilities say Pages.Bookmarks false, a video's 'My bookmarks' section shows no See all (My Clips, still on, still linked), and the My Clips page's header has no My Bookmarks link; then the setting is put back and the link returns. Changes EnableBookmarksPage through the configuration API and restores it at the end (sandbox data only); makes one bookmark on a movie and deletes it. Run by bookmarks-page-probe.mjs.",
+  "failOnException": false,
+  "timeout": 30000,
+  "steps": [
+    { "name": "sign in as admin", "login": "admin" },
+    { "name": "the Bookmarks script ran", "waitFor": "!!window.__jfkit && !!window.__jfkit.jfbm && !!window.ApiClient && !!ApiClient.getCurrentUserId()" },
+    { "name": "the page is on to begin with", "assert": "(await ApiClient.getJSON(ApiClient.getUrl('Bookmarks/Capabilities'))).Pages.Bookmarks === true" },
+    { "name": "find a movie", "eval": "(await ApiClient.getItems(ApiClient.getCurrentUserId(), { IncludeItemTypes: 'Movie', Recursive: true, Limit: 1, SortBy: 'SortName' })).Items[0].Id", "save": "movieId" },
+    {
+      "name": "a bookmark on it through the API, so its page shows the section",
+      "script": "const b = await ApiClient.ajax({ type: 'POST', url: ApiClient.getUrl('Bookmarks'), data: JSON.stringify({ ItemId: __vars.movieId, StartTicks: 50000000, Name: 'page-probe off check' }), contentType: 'application/json', dataType: 'json' }); return b.Id;",
+      "save": "bookmarkId"
+    },
+    {
+      "name": "EnableBookmarksPage off through the configuration API",
+      "script": "const id = 'd0ee1b2a-7f71-4654-8ff2-163a81441b03'; const c = await ApiClient.getPluginConfiguration(id); c.EnableBookmarksPage = false; await ApiClient.updatePluginConfiguration(id, c); const r = await ApiClient.getPluginConfiguration(id); return { EnableBookmarksPage: r.EnableBookmarksPage, PageHostMode: r.PageHostMode };",
+      "save": "off",
+      "full": true
+    },
+    { "name": "off", "assert": "__vars.off.EnableBookmarksPage === false" },
+    { "name": "the capabilities follow at once", "assert": "(await ApiClient.getJSON(ApiClient.getUrl('Bookmarks/Capabilities'))).Pages.Bookmarks === false" },
+    { "name": "reload, so index.html carries the fragment with the page off", "reload": true },
+    { "name": "the home page is shown and the script ran", "waitFor": "!!document.querySelector('.homePage:not(.hide)') && !!window.__jfkit && !!window.__jfkit.jfbm && !!ApiClient.getCurrentUserId()" },
+    { "name": "index.html lists the page as off", "eval": "fetch(new URL('index.html', location.href), { cache: 'no-store' }).then(r => r.text()).then(t => { const s = t.match(/<script type=\"application\\/json\" data-jfbm-head data-jfbm-pages>([^<]*)<\\/script>/); return s ? JSON.parse(s[1]) : null; })", "save": "head", "full": true },
+    { "name": "known, off", "assert": "!!__vars.head && __vars.head.pages.includes('bookmarks') && __vars.head.off.includes('bookmarks')" },
+    { "name": "open the drawer", "click": ".skinHeader .mainDrawerButton" },
+    { "name": "drawer open", "waitFor": "(() => { const a = document.querySelector('.mainDrawer .userMenuOptions'); if (!a) return false; const r = a.getBoundingClientRect(); return r.width > 0 && r.height > 0; })()" },
+    { "sleep": 1500 },
+    { "name": "no link to the page", "assert": "!document.querySelector('.mainDrawer .jfkit-nav a[data-jfbm-nav=\"bookmarks\"]')" },
+    { "screenshot": "page-bookmarks-off-drawer.png" },
+    { "name": "its route", "goto": "/web/index.html#/jfbm-bookmarks" },
+    {
+      "name": "the note under the page's own title, no 'Page not found', no toolbar",
+      "waitFor": "(() => { const r = document.querySelector('#fallbackPage > [data-jfbm-page=\"bookmarks\"][data-jfbm-mounted][data-jfbm-state=\"off\"]'); if (!r) return false; const nf = [...document.querySelectorAll('#fallbackPage > :not([data-jfbm-page]) h1')].some(h => h.getClientRects().length > 0); return { note: (r.querySelector('.jfbm-page-note') || { textContent: '' }).textContent, toolbar: !!r.querySelector('.jfbm-page-toolbar'), notFound: nf, title: (document.querySelector('.skinHeader .pageTitle') || { textContent: '' }).textContent.trim() }; })()",
+      "timeout": 20000,
+      "save": "route",
+      "full": true
+    },
+    { "name": "as expected", "assert": "__vars.route.note === 'My Bookmarks is turned off by your server admin.' && !__vars.route.toolbar && !__vars.route.notFound && __vars.route.title === 'My Bookmarks'" },
+    { "sleep": 300 },
+    { "screenshot": "page-bookmarks-off-route.png" },
+    { "name": "the shell: 200 text/html, the note, no page marker", "script": "const a = await fetch(ApiClient.getUrl('Bookmarks/Pages/bookmarks'), { headers: { Authorization: 'MediaBrowser Token=\"' + ApiClient.accessToken() + '\"' } }); const t = await a.text(); return { status: a.status, type: a.headers.get('content-type'), note: t.includes('My Bookmarks is turned off by your server admin.'), marker: t.includes('data-jfbm-page=') };", "save": "shell", "full": true },
+    { "name": "as expected", "assert": "__vars.shell.status === 200 && __vars.shell.type.startsWith('text/html') && __vars.shell.note && !__vars.shell.marker" },
+    { "name": "the movie's page", "goto": "/web/index.html#/details?id=${movieId}" },
+    { "name": "'My bookmarks (n)' without See all (no page to link), My Clips still linked", "waitFor": "(() => { const s = document.querySelector('#itemDetailPage:not(.hide) .jfbm-section'); if (!s || s.classList.contains('hide') || !/^My bookmarks \\(\\d+\\)$/.test(s.querySelector('h2').textContent)) return false; const l = s.querySelector('.jfbm-section-links'); const links = l ? [...l.querySelectorAll('a')] : []; return !!l && !l.classList.contains('hide') && links.length === 1 && links[0].getAttribute('data-jfbm-link') === 'clips' && links[0].textContent.trim() === 'My Clips'; })()", "timeout": 20000 },
+    { "name": "My Clips", "goto": "/web/index.html#/jfbm-clips" },
+    { "name": "the My Clips page, its header without a My Bookmarks link", "waitFor": "(() => { const r = document.querySelector('#fallbackPage > [data-jfbm-page=\"clips\"][data-jfbm-mounted][data-jfbm-state=\"on\"]'); if (!r) return false; const c = r.querySelector('.jfbm-clips-content'); if (!c || c.hasAttribute('aria-busy')) return false; const h = r.querySelector('.jfbm-clips-header'); return !!h && !h.querySelector('a') && !r.querySelector('.jfbm-clips-bookmarks-link'); })()", "timeout": 20000 },
+    { "name": "no uncaught exception of ours", "noExceptions": true, "ignore": "/CustomRatings/script|^Error: player cannot be null" },
+
+    {
+      "name": "EnableBookmarksPage back on",
+      "script": "const id = 'd0ee1b2a-7f71-4654-8ff2-163a81441b03'; const c = await ApiClient.getPluginConfiguration(id); c.EnableBookmarksPage = true; await ApiClient.updatePluginConfiguration(id, c); return (await ApiClient.getPluginConfiguration(id)).EnableBookmarksPage;"
+    },
+    { "name": "the bookmark deleted", "script": "await ApiClient.ajax({ type: 'DELETE', url: ApiClient.getUrl('Bookmarks/' + __vars.bookmarkId, { deleteClip: 'true' }) }); return true;" },
+    { "name": "home", "goto": "/web/index.html#/home" },
+    { "name": "the home route taken", "waitFor": "location.hash.startsWith('#/home')" },
+    { "name": "reload, so index.html carries the fragment with the page on again", "reload": true },
+    { "name": "the home page is shown and the script ran", "waitFor": "!!document.querySelector('.homePage:not(.hide)') && !!window.__jfkit && !!window.__jfkit.jfbm && !!ApiClient.getCurrentUserId()" },
+    { "name": "open the drawer", "click": ".skinHeader .mainDrawerButton" },
+    { "name": "the link is back", "waitFor": "(() => { const a = document.querySelector('.mainDrawer .jfkit-nav a[data-jfbm-nav=\"bookmarks\"]'); if (!a) return false; const r = a.getBoundingClientRect(); return r.width > 0 && r.height > 0; })()", "timeout": 15000 },
+    { "name": "the capabilities offer the page again", "assert": "(await ApiClient.getJSON(ApiClient.getUrl('Bookmarks/Capabilities'))).Pages.Bookmarks === true" }
+  ]
+}

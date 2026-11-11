@@ -1,0 +1,227 @@
+{
+  "description": "Library Maintenance's Dashboard page delivered as the kit's AdminScript pattern, as admin at 1366 px. The first open from the Dashboard drawer renders the tabs and the data at once, with no navigation away and back; the LibraryMaintenanceJs stub's dynamic import() of /LibraryMaintenance/AdminScript is one request per document; an extra &tab= parameter on #/configurationpage reaches mount's params; history.replaceState on that route doesn't reload the page, a hash change does (a new view, the module not fetched again); leaving and coming back renders again; a reload straight into the page renders. Read-only: it changes nothing on the server.",
+  "timeout": 30000,
+  "steps": [
+    {
+      "name": "sign in as admin",
+      "login": "admin"
+    },
+    {
+      "name": "the web client is ready",
+      "waitFor": "!!window.ApiClient && !!ApiClient.getCurrentUserId()"
+    },
+    {
+      "name": "the Dashboard",
+      "goto": "/web/index.html#/dashboard"
+    },
+    {
+      "name": "the drawer lists Library Maintenance",
+      "waitFor": "[...document.querySelectorAll('a[href]')].some(a => /configurationpage\\?name=LibraryMaintenance$/.test(a.getAttribute('href')))",
+      "timeout": 30000
+    },
+    {
+      "name": "the drawer link",
+      "eval": "(a => ({ href: a.getAttribute('href'), text: a.textContent.trim() }))([...document.querySelectorAll('a[href]')].find(a => /configurationpage\\?name=LibraryMaintenance$/.test(a.getAttribute('href'))))",
+      "save": "link",
+      "full": true
+    },
+    {
+      "name": "the probe's helpers, and nothing of ours loaded yet",
+      "script": "window.__lmAdmin = {\n  page: () => document.querySelector('#LibraryMaintenanceConfigPage:not(.hide)'),\n  imports: () => performance.getEntriesByType('resource').filter(e => e.name.indexOf('/LibraryMaintenance/AdminScript') >= 0).length,\n  stubs: () => performance.getEntriesByType('resource').filter(e => /configurationpage\\?name=LibraryMaintenanceJs/.test(e.name)).length,\n  loads: () => performance.getEntriesByType('resource').filter(e => e.name.indexOf('/LibraryMaintenance/Admin/Diagnostics') >= 0).length,\n  selected: () => { const p = __lmAdmin.page(); return p ? [...p.querySelectorAll('[role=\"tab\"][aria-selected=\"true\"]')].map(t => t.textContent) : null; },\n  rendered: () => { const p = __lmAdmin.page(); return !!p && p.querySelectorAll('[role=\"tab\"]').length === 3 && /^(Index: |The index hasn't been built)/.test((p.querySelector('#LibraryMaintenanceDuplicatesStatus') || {}).textContent || '') && !p.querySelector('#LibraryMaintenanceScriptNote'); },\n  history: history.length\n};\nreturn { imports: __lmAdmin.imports(), stubs: __lmAdmin.stubs(), page: !!document.querySelector('#LibraryMaintenanceConfigPage') };",
+      "save": "before",
+      "full": true
+    },
+    {
+      "name": "nothing of ours before the first open",
+      "assert": "__vars.before.imports === 0 && __vars.before.stubs === 0 && !__vars.before.page"
+    },
+    {
+      "name": "the clock",
+      "script": "window.__lmAdmin.t0 = performance.now(); return true;"
+    },
+    {
+      "name": "open the page from the drawer (the first open in this document)",
+      "click": "a[href$=\"configurationpage?name=LibraryMaintenance\"]"
+    },
+    {
+      "name": "the tabs and the data, with no navigation away and back",
+      "waitFor": "__lmAdmin.rendered()",
+      "timeout": 20000
+    },
+    {
+      "name": "the first open",
+      "eval": "({ ms: Math.round(performance.now() - __lmAdmin.t0), hash: location.hash, imports: __lmAdmin.imports(), stubs: __lmAdmin.stubs(), loads: __lmAdmin.loads(), selected: __lmAdmin.selected(), historyGrewBy: history.length - __lmAdmin.history, status: __lmAdmin.page().querySelector('#LibraryMaintenanceDuplicatesStatus').textContent, title: document.title, adminStyles: !!document.getElementById('jflm-admin-styles'), clientScripts: Array.prototype.map.call(document.querySelectorAll('script[data-jflm-plugin]'), function (s) { return s.getAttribute('src'); }) })",
+      "save": "first",
+      "full": true
+    },
+    {
+      "name": "one module request, one stub request, the data loaded, Duplicates open, one navigation, at most one ClientScript tag and only index.html's (1.1.0.4 adds one for Move; 1.0 has none)",
+      "assert": "__vars.first.imports === 1 && __vars.first.stubs === 1 && __vars.first.loads === 1 && JSON.stringify(__vars.first.selected) === '[\"Duplicates\"]' && __vars.first.historyGrewBy <= 1 && __vars.first.adminStyles && __vars.first.clientScripts.length <= 1 && __vars.first.clientScripts.every(function (s) { return String(s).indexOf('LibraryMaintenance/ClientScript?v=') >= 0; }) && /^#\\/configurationpage\\?name=LibraryMaintenance$/.test(__vars.first.hash)"
+    },
+    {
+      "screenshot": "librarymaintenance-admin-script-first-open.png"
+    },
+    {
+      "name": "the Diagnostics tab",
+      "click": "#LibraryMaintenanceTabDiagnostics"
+    },
+    {
+      "name": "its body",
+      "waitFor": "/PluginVersion(0\\.4|1\\.\\d+)\\.\\d+\\.\\d+/.test(document.querySelector('#LibraryMaintenanceDiagnosticsBody').textContent)"
+    },
+    {
+      "screenshot": "librarymaintenance-admin-script-diagnostics.png"
+    },
+    {
+      "name": "the view, kept to compare",
+      "script": "window.__lmAdmin.view = __lmAdmin.page(); window.__lmAdmin.marker = 'lmadmin-' + Date.now(); return true;"
+    },
+    {
+      "name": "history.replaceState with another tab on the same route",
+      "script": "history.replaceState(history.state, '', location.href.replace(/#.*$/, '#/configurationpage?name=LibraryMaintenance&tab=Settings')); return location.hash;",
+      "save": "replaced"
+    },
+    {
+      "sleep": 2500
+    },
+    {
+      "name": "after replaceState",
+      "eval": "({ hash: location.hash, sameView: __lmAdmin.page() === __lmAdmin.view, marker: !!window.__lmAdmin.marker, imports: __lmAdmin.imports(), loads: __lmAdmin.loads(), selected: __lmAdmin.selected() })",
+      "save": "afterReplace",
+      "full": true
+    },
+    {
+      "name": "replaceState doesn't reload or re-render the page",
+      "assert": "__vars.afterReplace.sameView && __vars.afterReplace.imports === 1 && __vars.afterReplace.loads === __vars.first.loads && JSON.stringify(__vars.afterReplace.selected) === '[\"Diagnostics\"]'"
+    },
+    {
+      "name": "a hash change to the same route with &tab=settings (a navigation: the address replaceState left differs in the case of the tab)",
+      "script": "location.hash = '#/configurationpage?name=LibraryMaintenance&tab=settings'; return true;"
+    },
+    {
+      "name": "a page with the Settings tab open",
+      "waitFor": "__lmAdmin.rendered() && JSON.stringify(__lmAdmin.selected()) === '[\"Settings\"]'",
+      "timeout": 20000
+    },
+    {
+      "name": "after the hash change",
+      "eval": "({ hash: location.hash, sameView: __lmAdmin.page() === __lmAdmin.view, imports: __lmAdmin.imports(), stubs: __lmAdmin.stubs(), loads: __lmAdmin.loads(), views: document.querySelectorAll('#LibraryMaintenanceConfigPage').length })",
+      "save": "afterHash",
+      "full": true
+    },
+    {
+      "name": "the tab parameter reached mount's params; the module wasn't fetched again",
+      "assert": "__vars.afterHash.imports === 1 && __vars.afterHash.loads > __vars.first.loads"
+    },
+    {
+      "screenshot": "librarymaintenance-admin-script-tab-settings.png"
+    },
+    {
+      "name": "away to the Dashboard",
+      "goto": "/web/index.html#/dashboard"
+    },
+    {
+      "name": "the Dashboard is shown",
+      "waitFor": "!__lmAdmin.page()",
+      "timeout": 20000
+    },
+    {
+      "name": "back",
+      "script": "history.back(); return true;"
+    },
+    {
+      "name": "the page again, rendered",
+      "waitFor": "__lmAdmin.rendered()",
+      "timeout": 20000
+    },
+    {
+      "name": "after away and back",
+      "eval": "({ hash: location.hash, imports: __lmAdmin.imports(), loads: __lmAdmin.loads(), selected: __lmAdmin.selected(), views: document.querySelectorAll('#LibraryMaintenanceConfigPage').length })",
+      "save": "afterBack",
+      "full": true
+    },
+    {
+      "name": "the data loaded again, the module not fetched again",
+      "assert": "__vars.afterBack.imports === 1 && __vars.afterBack.loads > __vars.afterHash.loads"
+    },
+    {
+      "name": "a reload straight into the page, with &tab=Diagnostics",
+      "goto": "/web/index.html#/configurationpage?name=LibraryMaintenance&tab=Diagnostics"
+    },
+    {
+      "name": "the address holds &tab=Diagnostics before the reload (else the reload can open the page before it)",
+      "waitFor": "location.hash.indexOf('&tab=Diagnostics') >= 0",
+      "timeout": 15000
+    },
+    {
+      "reload": true
+    },
+    {
+      "name": "the web client is ready again",
+      "waitFor": "!!window.ApiClient && !!ApiClient.getCurrentUserId()",
+      "timeout": 30000
+    },
+    {
+      "name": "the helpers again (a new document)",
+      "script": "window.__lmAdmin = window.__lmAdmin || {\n  page: () => document.querySelector('#LibraryMaintenanceConfigPage:not(.hide)'),\n  imports: () => performance.getEntriesByType('resource').filter(e => e.name.indexOf('/LibraryMaintenance/AdminScript') >= 0).length,\n  selected: () => { const p = __lmAdmin.page(); return p ? [...p.querySelectorAll('[role=\"tab\"][aria-selected=\"true\"]')].map(t => t.textContent) : null; },\n  rendered: () => { const p = __lmAdmin.page(); return !!p && p.querySelectorAll('[role=\"tab\"]').length === 3 && /^(Index: |The index hasn't been built)/.test((p.querySelector('#LibraryMaintenanceDuplicatesStatus') || {}).textContent || '') && !p.querySelector('#LibraryMaintenanceScriptNote'); }\n};\nreturn true;"
+    },
+    {
+      "name": "rendered on the Diagnostics tab",
+      "waitFor": "__lmAdmin.rendered() && JSON.stringify(__lmAdmin.selected()) === '[\"Diagnostics\"]'",
+      "timeout": 30000
+    },
+    {
+      "name": "after the reload",
+      "eval": "({ hash: location.hash, imports: __lmAdmin.imports(), selected: __lmAdmin.selected() })",
+      "save": "afterReload",
+      "full": true
+    },
+    {
+      "screenshot": "librarymaintenance-admin-script-reload.png"
+    },
+    {
+      "name": "sign in as viewer (not an administrator)",
+      "login": "viewer"
+    },
+    {
+      "name": "the web client is ready as viewer",
+      "waitFor": "!!window.ApiClient && !!ApiClient.getCurrentUserId()",
+      "timeout": 30000
+    },
+    {
+      "name": "the viewer's calls",
+      "eval": "(async () => { const h = { Authorization: 'MediaBrowser Token=\"' + ApiClient.accessToken() + '\"' }; const diagnostics = await fetch(ApiClient.getUrl('LibraryMaintenance/Admin/Diagnostics'), { headers: h }); const script = await fetch(ApiClient.getUrl('LibraryMaintenance/AdminScript')); return { diagnostics: diagnostics.status, adminScript: script.status, adminScriptType: script.headers.get('content-type') }; })()",
+      "save": "viewer",
+      "full": true
+    },
+    {
+      "name": "Diagnostics 403 to a user; the static module is anonymous",
+      "assert": "__vars.viewer.diagnostics === 403 && __vars.viewer.adminScript === 200 && /javascript/.test(__vars.viewer.adminScriptType)"
+    },
+    {
+      "name": "the viewer opens the page's address",
+      "goto": "/web/index.html#/configurationpage?name=LibraryMaintenance"
+    },
+    {
+      "sleep": 3000
+    },
+    {
+      "name": "what the viewer sees",
+      "eval": "({ hash: location.hash, page: !!document.querySelector('#LibraryMaintenanceConfigPage:not(.hide)'), tabs: document.querySelectorAll('#LibraryMaintenanceConfigPage [role=\"tab\"]').length, status: (document.querySelector('#LibraryMaintenanceDuplicatesStatus') || {}).textContent || null })",
+      "save": "viewerPage",
+      "full": true
+    },
+    {
+      "name": "the viewer never sees the page's data",
+      "assert": "!__vars.viewerPage.status || !/^(Index: |The index hasn't been built)/.test(__vars.viewerPage.status)"
+    },
+    {
+      "screenshot": "librarymaintenance-admin-script-viewer.png"
+    },
+    {
+      "name": "no uncaught exceptions (the stale CustomRatings tag excepted)",
+      "noExceptions": true,
+      "ignore": "/CustomRatings/script"
+    }
+  ]
+}

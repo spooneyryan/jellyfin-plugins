@@ -1,0 +1,235 @@
+{
+  "name": "Smart Search's note on an auto-collection's details page, at 1366x900: WC AC Note made through the API as admin; its collection's page has the note right above the collection's items (Updates automatically from a saved search · updated …) with Edit (the Auto-collections tab's editor on it) and Refresh now (Updating…, then updated just now and a toast); a movie's page has none, and the collection's page again has one note; viewer sees the text only; on a phone it fits the screen; with ShowCollectionNote off there is none. Screenshots smartsearch-collectionnote*.png.",
+  "failOnException": false,
+  "timeout": 30000,
+  "steps": [
+    {
+      "name": "a desktop screen",
+      "emulate": "desktop"
+    },
+    {
+      "name": "page helpers (admin)",
+      "initScript": "\nwindow.__ss = {\n  root: () => [...document.querySelectorAll('[data-jfss-page=\"search\"][data-jfss-mounted] .jfss-search')].find(x => x.getClientRects().length > 0) || null,\n  q: (s) => { const r = window.__ss.root(); return r ? r.querySelector(s) : null; },\n  all: (s) => { const r = window.__ss.root(); return r ? [...r.querySelectorAll(s)] : []; },\n  noHScroll: () => document.documentElement.scrollWidth <= innerWidth && window.__ss.root().scrollWidth <= window.__ss.root().clientWidth + 1,\n  box: (e) => { const r = e.getBoundingClientRect(); return [Math.round(r.width), Math.round(r.height)]; },\n  api: async (method, path, body) => { const r = await fetch(ApiClient.getUrl(path), { method, headers: { 'X-Emby-Token': ApiClient.accessToken(), 'Content-Type': 'application/json' }, body: body === undefined ? undefined : JSON.stringify(body) }); const t = await r.text(); return { status: r.status, body: t ? JSON.parse(t) : null }; },\n  cleanup: async (prefix) => { let n = 0; const acs = (await window.__ss.api('GET', 'SmartSearch/AutoCollections')).body || []; for (const a of acs) { if (a.Name.indexOf(prefix) === 0) { await window.__ss.api('DELETE', 'SmartSearch/AutoCollections/' + a.Id + '?deleteCollection=true'); n++; } } const list = (await window.__ss.api('GET', 'SmartSearch/Queries?scope=Mine&limit=500')).body.Items; for (const q of list) { if (q.Name.indexOf(prefix) === 0) { await window.__ss.api('DELETE', 'SmartSearch/Queries/' + q.Id + '?detachAutoCollections=true'); n++; } } return n; },\n  movies: async (name) => { const libs = (await window.__ss.api('GET', 'SmartSearch/Libraries')).body; const movies = libs.find(l => l.Name === 'Movies').Id; return (await window.__ss.api('POST', 'SmartSearch/Queries', { Name: name, Description: '', Shared: false, Query: { Version: 1, Scope: { ItemKinds: ['Movie'], LibraryIds: [movies], IncludeMissing: false }, Where: { Match: 'All', Children: [] }, Sort: [{ Key: 'SortName', Order: 'Ascending' }] } })).body; },\n  dialog: () => { const d = [...document.querySelectorAll('[role=\"dialog\"]')].filter(x => x.getClientRects().length > 0); return d[d.length - 1] || null; },\n  dq: (s) => { const d = window.__ss.dialog(); return d ? d.querySelector(s) : null; },\n  dset: (s, v) => { const e = window.__ss.dq(s); e.value = v; e.dispatchEvent(new Event('input', { bubbles: true })); e.dispatchEvent(new Event('change', { bubbles: true })); return true; },\n  dbutton: (text) => { const d = window.__ss.dialog(); return d ? [...d.querySelectorAll('button')].find(b => b.textContent === text) || null : null; },\n  rows: () => window.__ss.all('.jfss-ac-row'),\n  names: () => window.__ss.rows().map(r => r.querySelector('.jfss-ac-open').textContent),\n  row: (name) => window.__ss.rows().find(r => r.querySelector('.jfss-ac-open').textContent === name) || null,\n  status: (name) => { const r = window.__ss.row(name); return r ? r.querySelector('.jfss-ac-status').textContent : null; },\n  action: (name, cls) => { const r = window.__ss.row(name); return r ? r.querySelector(cls) : null; },\n  savedRow: (name) => window.__ss.all('.jfss-saved-row').find(r => r.querySelector('.jfss-saved-open').textContent === name) || null,\n  toast: () => [...document.querySelectorAll('.jfss-toast')].map(t => t.textContent.replace(/[\\u2066-\\u2069]/g, '')).join(' | '),\n  ready: () => !!window.__ss.q('.jfss-collections-panel') && !!window.__ss.q('.jfss-ac-count') && /auto-collection/.test(window.__ss.q('.jfss-ac-count').textContent + (window.__ss.q('.jfss-ac-notices') || {}).textContent)\n};\n"
+    },
+    {
+      "name": "note helpers (admin)",
+      "initScript": "\nwindow.__note = {\n  node: () => [...document.querySelectorAll('[data-jfss-collection-note]')].find(x => x.getClientRects().length > 0) || null,\n  all: () => document.querySelectorAll('[data-jfss-collection-note]').length,\n  text: () => { const n = window.__note.node(); return n ? n.querySelector('.jfss-ac-note-text').textContent : null; },\n  page: () => [...document.querySelectorAll('#itemDetailPage')].find(x => !x.classList.contains('hide') && x.getClientRects().length > 0) || null,\n  details: (id) => '/web/index.html#/details?id=' + id + '&serverId=' + ApiClient.serverId(),\n  shown: (id) => { const p = window.__note.page(); return !!p && new URLSearchParams(location.hash.split('?')[1] || '').get('id') === id && !!p.querySelector('.detailPagePrimaryContainer, .detailPageSecondaryContainer'); },\n  misses: () => window.__jfkit.jfss.instance.health.missing().map(m => m.anchor)\n};\n"
+    },
+    {
+      "name": "sign in as admin",
+      "login": "admin"
+    },
+    {
+      "name": "the Smart Search script ran (admin)",
+      "waitFor": "!!window.__jfkit && !!window.__jfkit.jfss && !!window.ApiClient && !!ApiClient.getCurrentUserId()",
+      "timeout": 20000
+    },
+    {
+      "name": "admin: earlier runs removed, WC AC Note made from a query over Movies; its collection's id and a movie's",
+      "script": "const removed = await __ss.cleanup('WC AC Note'); const q = await __ss.movies('WC AC Note'); const preview = (await __ss.api('POST', 'SmartSearch/AutoCollections/Preview', { Definition: { Name: 'WC AC Note', Source: { SavedQueryId: q.Id } } })).body; const r = await __ss.api('POST', 'SmartSearch/AutoCollections', { Definition: { Name: 'WC AC Note', Source: { SavedQueryId: q.Id } }, AcceptedPreviewHash: preview.PreviewHash }); const movie = (await __ss.api('GET', 'Items?Recursive=true&IncludeItemTypes=Movie&Limit=1&userId=' + ApiClient.getCurrentUserId())).body.Items[0]; return { removed, status: r.status, def: r.body.Id, box: r.body.CollectionId, movie: movie.Id };",
+      "save": "made"
+    },
+    {
+      "name": "made, with its collection",
+      "assert": "(__vars.made.status === 201 || __vars.made.status === 202) && !!__vars.made.def && !!__vars.made.box"
+    },
+    {
+      "name": "the collection's page",
+      "script": "location.hash = __note.details(__vars.made.box).split('#')[1]; return true;"
+    },
+    {
+      "name": "the note on it",
+      "waitFor": "__note.shown(__vars.made.box) && !!__note.node() && /updated/.test(__note.text())",
+      "timeout": 30000
+    },
+    {
+      "name": "the note for admin",
+      "eval": "(() => { const n = __note.node(); const column = n.parentNode; return { text: __note.text(), beforeItems: !!n.nextElementSibling && n.nextElementSibling.classList.contains('collectionItems'), inPrimary: !!column.closest('.detailPagePrimaryContent'), top: Math.round(n.getBoundingClientRect().top), edit: (n.querySelector('a.jfss-ac-note-edit') || {}).textContent, href: (n.querySelector('a.jfss-ac-note-edit') || { getAttribute: () => '' }).getAttribute('href'), refresh: (n.querySelector('button.jfss-ac-note-refresh') || {}).textContent, count: __note.all(), box: __ss.box(n) }; })()",
+      "save": "admin"
+    },
+    {
+      "name": "right above the collection's items, in view: the text, Edit (the tab's editor) and Refresh now",
+      "assert": "/^Updates automatically from a saved search · updated (just now|\\d+ minutes? ago)$/.test(__vars.admin.text) && __vars.admin.beforeItems && __vars.admin.inPrimary && __vars.admin.top < 600 && __vars.admin.edit === 'Edit' && __vars.admin.href.indexOf('tab=collections') >= 0 && __vars.admin.href.indexOf('edit=' + __vars.made.def.replace(/-/g, '')) >= 0 && __vars.admin.refresh === 'Refresh now' && __vars.admin.count === 1"
+    },
+    {
+      "screenshot": "smartsearch-collectionnote.png"
+    },
+    {
+      "name": "wait a minute, so an update shows a new time",
+      "sleep": 61000
+    },
+    {
+      "name": "Refresh now",
+      "script": "__note.node().querySelector('button.jfss-ac-note-refresh').click(); return true;"
+    },
+    {
+      "name": "updating, Refresh now off",
+      "waitFor": "/updating/.test(__note.text()) && __note.node().querySelector('button.jfss-ac-note-refresh').disabled",
+      "timeout": 5000
+    },
+    {
+      "name": "updated again, with its toast",
+      "waitFor": "/updated just now$/.test(__note.text()) && !__note.node().querySelector('button.jfss-ac-note-refresh').disabled && __ss.toast().indexOf('WC AC Note is up to date.') >= 0",
+      "timeout": 150000
+    },
+    {
+      "name": "Edit",
+      "script": "__note.node().querySelector('a.jfss-ac-note-edit').click(); return true;"
+    },
+    {
+      "name": "the tab's editor on WC AC Note",
+      "waitFor": "!!__ss.dq('.jfss-ac-name') && __ss.dq('.jfss-ac-name').value === 'WC AC Note'",
+      "timeout": 20000
+    },
+    {
+      "key": "Escape"
+    },
+    {
+      "name": "a movie's page",
+      "script": "location.hash = __note.details(__vars.made.movie).split('#')[1]; return true;"
+    },
+    {
+      "name": "the movie's page shown",
+      "waitFor": "__note.shown(__vars.made.movie)",
+      "timeout": 20000
+    },
+    {
+      "sleep": 1500
+    },
+    {
+      "name": "no note there",
+      "assert": "__note.all() === 0"
+    },
+    {
+      "name": "back on the collection's page (jellyfin-web's view cache)",
+      "script": "location.hash = __note.details(__vars.made.box).split('#')[1]; return true;"
+    },
+    {
+      "name": "one note again",
+      "waitFor": "__note.shown(__vars.made.box) && !!__note.node() && __note.all() === 1",
+      "timeout": 20000
+    },
+    {
+      "name": "no anchor reported missing",
+      "assert": "__note.misses().indexOf('collectionNoteBefore') < 0"
+    },
+    {
+      "name": "viewer, in a browser of its own",
+      "context": "viewer"
+    },
+    {
+      "name": "a desktop screen (viewer)",
+      "emulate": "desktop"
+    },
+    {
+      "name": "page helpers (viewer)",
+      "initScript": "\nwindow.__ss = {\n  root: () => [...document.querySelectorAll('[data-jfss-page=\"search\"][data-jfss-mounted] .jfss-search')].find(x => x.getClientRects().length > 0) || null,\n  q: (s) => { const r = window.__ss.root(); return r ? r.querySelector(s) : null; },\n  all: (s) => { const r = window.__ss.root(); return r ? [...r.querySelectorAll(s)] : []; },\n  noHScroll: () => document.documentElement.scrollWidth <= innerWidth && window.__ss.root().scrollWidth <= window.__ss.root().clientWidth + 1,\n  box: (e) => { const r = e.getBoundingClientRect(); return [Math.round(r.width), Math.round(r.height)]; },\n  api: async (method, path, body) => { const r = await fetch(ApiClient.getUrl(path), { method, headers: { 'X-Emby-Token': ApiClient.accessToken(), 'Content-Type': 'application/json' }, body: body === undefined ? undefined : JSON.stringify(body) }); const t = await r.text(); return { status: r.status, body: t ? JSON.parse(t) : null }; },\n  cleanup: async (prefix) => { let n = 0; const acs = (await window.__ss.api('GET', 'SmartSearch/AutoCollections')).body || []; for (const a of acs) { if (a.Name.indexOf(prefix) === 0) { await window.__ss.api('DELETE', 'SmartSearch/AutoCollections/' + a.Id + '?deleteCollection=true'); n++; } } const list = (await window.__ss.api('GET', 'SmartSearch/Queries?scope=Mine&limit=500')).body.Items; for (const q of list) { if (q.Name.indexOf(prefix) === 0) { await window.__ss.api('DELETE', 'SmartSearch/Queries/' + q.Id + '?detachAutoCollections=true'); n++; } } return n; },\n  movies: async (name) => { const libs = (await window.__ss.api('GET', 'SmartSearch/Libraries')).body; const movies = libs.find(l => l.Name === 'Movies').Id; return (await window.__ss.api('POST', 'SmartSearch/Queries', { Name: name, Description: '', Shared: false, Query: { Version: 1, Scope: { ItemKinds: ['Movie'], LibraryIds: [movies], IncludeMissing: false }, Where: { Match: 'All', Children: [] }, Sort: [{ Key: 'SortName', Order: 'Ascending' }] } })).body; },\n  dialog: () => { const d = [...document.querySelectorAll('[role=\"dialog\"]')].filter(x => x.getClientRects().length > 0); return d[d.length - 1] || null; },\n  dq: (s) => { const d = window.__ss.dialog(); return d ? d.querySelector(s) : null; },\n  dset: (s, v) => { const e = window.__ss.dq(s); e.value = v; e.dispatchEvent(new Event('input', { bubbles: true })); e.dispatchEvent(new Event('change', { bubbles: true })); return true; },\n  dbutton: (text) => { const d = window.__ss.dialog(); return d ? [...d.querySelectorAll('button')].find(b => b.textContent === text) || null : null; },\n  rows: () => window.__ss.all('.jfss-ac-row'),\n  names: () => window.__ss.rows().map(r => r.querySelector('.jfss-ac-open').textContent),\n  row: (name) => window.__ss.rows().find(r => r.querySelector('.jfss-ac-open').textContent === name) || null,\n  status: (name) => { const r = window.__ss.row(name); return r ? r.querySelector('.jfss-ac-status').textContent : null; },\n  action: (name, cls) => { const r = window.__ss.row(name); return r ? r.querySelector(cls) : null; },\n  savedRow: (name) => window.__ss.all('.jfss-saved-row').find(r => r.querySelector('.jfss-saved-open').textContent === name) || null,\n  toast: () => [...document.querySelectorAll('.jfss-toast')].map(t => t.textContent.replace(/[\\u2066-\\u2069]/g, '')).join(' | '),\n  ready: () => !!window.__ss.q('.jfss-collections-panel') && !!window.__ss.q('.jfss-ac-count') && /auto-collection/.test(window.__ss.q('.jfss-ac-count').textContent + (window.__ss.q('.jfss-ac-notices') || {}).textContent)\n};\n"
+    },
+    {
+      "name": "note helpers (viewer)",
+      "initScript": "\nwindow.__note = {\n  node: () => [...document.querySelectorAll('[data-jfss-collection-note]')].find(x => x.getClientRects().length > 0) || null,\n  all: () => document.querySelectorAll('[data-jfss-collection-note]').length,\n  text: () => { const n = window.__note.node(); return n ? n.querySelector('.jfss-ac-note-text').textContent : null; },\n  page: () => [...document.querySelectorAll('#itemDetailPage')].find(x => !x.classList.contains('hide') && x.getClientRects().length > 0) || null,\n  details: (id) => '/web/index.html#/details?id=' + id + '&serverId=' + ApiClient.serverId(),\n  shown: (id) => { const p = window.__note.page(); return !!p && new URLSearchParams(location.hash.split('?')[1] || '').get('id') === id && !!p.querySelector('.detailPagePrimaryContainer, .detailPageSecondaryContainer'); },\n  misses: () => window.__jfkit.jfss.instance.health.missing().map(m => m.anchor)\n};\n"
+    },
+    {
+      "name": "sign in as viewer",
+      "login": "viewer"
+    },
+    {
+      "name": "the Smart Search script ran (viewer)",
+      "waitFor": "!!window.__jfkit && !!window.__jfkit.jfss && !!window.ApiClient && !!ApiClient.getCurrentUserId()",
+      "timeout": 20000
+    },
+    {
+      "name": "viewer opens the collection's page",
+      "script": "location.hash = __note.details(__vars.made.box).split('#')[1]; return true;"
+    },
+    {
+      "name": "the note for viewer",
+      "waitFor": "__note.shown(__vars.made.box) && !!__note.node()",
+      "timeout": 30000
+    },
+    {
+      "name": "viewer's note",
+      "eval": "({ text: __note.text(), buttons: __note.node().querySelectorAll('button, a').length })",
+      "save": "viewer"
+    },
+    {
+      "name": "the text only, without Edit or Refresh now",
+      "assert": "/^Updates automatically from a saved search · updated/.test(__vars.viewer.text) && __vars.viewer.buttons === 0"
+    },
+    {
+      "name": "a phone: 390x844, touch (viewer)",
+      "emulate": {
+        "width": 390,
+        "height": 844,
+        "deviceScaleFactor": 1,
+        "mobile": true,
+        "touch": true
+      }
+    },
+    {
+      "name": "reload (phone)",
+      "reload": true
+    },
+    {
+      "name": "the note on the phone",
+      "waitFor": "__note.shown(__vars.made.box) && !!__note.node()",
+      "timeout": 30000
+    },
+    {
+      "name": "the phone's note",
+      "eval": "({ box: __ss.box(__note.node()), right: Math.round(__note.node().getBoundingClientRect().right), width: innerWidth, noHScroll: document.documentElement.scrollWidth <= innerWidth })",
+      "save": "phone",
+      "full": true
+    },
+    {
+      "name": "within the screen",
+      "assert": "__vars.phone.right <= __vars.phone.width && __vars.phone.noHScroll"
+    },
+    {
+      "screenshot": "smartsearch-collectionnote-phone.png"
+    },
+    {
+      "name": "back to admin",
+      "context": "main"
+    },
+    {
+      "name": "ShowCollectionNote off",
+      "script": "const id = 'd92488d5-409f-4ad0-af1d-3615db9d0513'; const c = (await __ss.api('GET', 'Plugins/' + id + '/Configuration')).body; c.ShowCollectionNote = false; return (await __ss.api('POST', 'Plugins/' + id + '/Configuration', c)).status;",
+      "save": "off"
+    },
+    {
+      "name": "reload (setting off)",
+      "reload": true
+    },
+    {
+      "name": "the collection's page again",
+      "waitFor": "!!window.__note && !!window.ApiClient && __note.shown(__vars.made.box)",
+      "timeout": 30000
+    },
+    {
+      "sleep": 2000
+    },
+    {
+      "name": "the setting off: no note",
+      "assert": "__vars.off === 204 && __note.all() === 0"
+    },
+    {
+      "name": "ShowCollectionNote on again",
+      "script": "const id = 'd92488d5-409f-4ad0-af1d-3615db9d0513'; const c = (await __ss.api('GET', 'Plugins/' + id + '/Configuration')).body; c.ShowCollectionNote = true; return (await __ss.api('POST', 'Plugins/' + id + '/Configuration', c)).status;",
+      "save": "on"
+    },
+    {
+      "name": "the setting restored",
+      "assert": "__vars.on === 204"
+    },
+    {
+      "name": "remove it",
+      "script": "return await __ss.cleanup('WC AC Note');"
+    },
+    {
+      "name": "no uncaught exception (the stale CustomRatings tag is known noise)",
+      "noExceptions": true,
+      "ignore": "CustomRatings"
+    }
+  ]
+}

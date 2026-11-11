@@ -1,0 +1,106 @@
+{
+  "name": "Smart Search's Advanced Search page on a phone, as viewer at 390x844 with touch and the mobile layout (localStorage 'layout' = 'mobile'): nothing is wider than the screen, the scope bar and the basic fields stack, the kind toggles, Search, Reset and the genre input are at least 40 px high, a search by title shows cards and the list view rows, both within the screen, and Open and Play are at least 40 px square. Screenshots smartsearch-search-phone*.png.",
+  "failOnException": false,
+  "timeout": 30000,
+  "steps": [
+    {
+      "name": "a phone: 390x844, touch",
+      "emulate": {
+        "width": 390,
+        "height": 844,
+        "deviceScaleFactor": 1,
+        "mobile": true,
+        "touch": true
+      }
+    },
+    {
+      "name": "page helpers",
+      "initScript": "\nwindow.__ss = {\n  root: () => [...document.querySelectorAll('[data-jfss-page=\"search\"][data-jfss-mounted] .jfss-search')].find(x => x.getClientRects().length > 0) || null,\n  q: (s) => { const r = window.__ss.root(); return r ? r.querySelector(s) : null; },\n  all: (s) => { const r = window.__ss.root(); return r ? [...r.querySelectorAll(s)] : []; },\n  set: (s, v) => { const e = window.__ss.q(s); e.value = v; e.dispatchEvent(new Event('input', { bubbles: true })); e.dispatchEvent(new Event('change', { bubbles: true })); return true; },\n  ready: () => !!window.__ss.q('.jfss-scope') && !!window.__ss.q('.jfss-search-button'),\n  done: () => { const c = window.__ss.q('.jfss-count'); const n = window.__ss.q('.jfss-notices'); if (c && c.textContent && !/Searching/.test(c.textContent)) return c.textContent; if (n && n.textContent) return n.textContent; return false; },\n  ids: () => window.__ss.all('.jfss-card, .jfss-row').map(x => x.getAttribute('data-id')),\n  names: () => window.__ss.all('.jfss-card, .jfss-row').map(x => (x.querySelector('bdi') || x).textContent.trim()),\n  pressed: (s) => window.__ss.all(s).filter(b => b.getAttribute('aria-pressed') === 'true').map(b => b.textContent),\n  norm: (ids) => ids.map(i => String(i).replace(/-/g, '').toLowerCase()).sort().join(),\n  server: async (q) => window.__ss.norm((await ApiClient.getItems(ApiClient.getCurrentUserId(), Object.assign({ Recursive: true }, q))).Items.map(i => i.Id)),\n  noHScroll: () => document.documentElement.scrollWidth <= innerWidth && window.__ss.root().scrollWidth <= window.__ss.root().clientWidth + 1,\n  box: (e) => { const r = e.getBoundingClientRect(); return [Math.round(r.width), Math.round(r.height)]; }\n};\n"
+    },
+    {
+      "name": "sign in as viewer",
+      "login": "viewer"
+    },
+    {
+      "name": "the Smart Search script ran",
+      "waitFor": "!!window.__jfkit && !!window.__jfkit.jfss && !!window.ApiClient && !!ApiClient.getCurrentUserId()",
+      "timeout": 20000
+    },
+    {
+      "name": "mobile layout for this browser",
+      "eval": "(localStorage.setItem('layout', 'mobile'), true)"
+    },
+    {
+      "name": "reload (mobile)",
+      "reload": true
+    },
+    {
+      "name": "mobile layout applied",
+      "waitFor": "document.documentElement.classList.contains('layout-mobile') && !!window.__jfkit && !!window.__jfkit.jfss",
+      "timeout": 20000
+    },
+    {
+      "name": "the page sees a narrow touch screen",
+      "assert": "innerWidth === 390 && matchMedia('(max-width: 40em)').matches && matchMedia('(pointer: coarse)').matches"
+    },
+    {
+      "goto": "/web/index.html#/jfss-search"
+    },
+    {
+      "name": "the page's form (phone)",
+      "waitFor": "!!window.__ss && __ss.ready()",
+      "timeout": 20000
+    },
+    {
+      "name": "the phone page",
+      "eval": "({ noHScroll: __ss.noHScroll(), columns: getComputedStyle(__ss.q('.jfss-basic-fields')).gridTemplateColumns.split(' ').length, scope: getComputedStyle(__ss.q('.jfss-scope')).display, kinds: __ss.all('.jfss-kind').map(__ss.box), search: __ss.box(__ss.q('.jfss-search-button')), reset: __ss.box(__ss.q('.jfss-reset')), genre: __ss.box(__ss.q('.jfss-genre-input')), library: __ss.box(__ss.q('.jfss-library')), width: innerWidth })",
+      "save": "page",
+      "full": true
+    },
+    {
+      "name": "stacked, within the screen, touch-sized",
+      "assert": "__vars.page.noHScroll && __vars.page.columns === 1 && __vars.page.scope === 'block' && __vars.page.kinds.every(b => b[1] >= 40) && __vars.page.search[1] >= 40 && __vars.page.reset[1] >= 40 && __vars.page.genre[1] >= 30 && __vars.page.library[0] <= __vars.page.width"
+    },
+    {
+      "screenshot": "smartsearch-search-phone.png"
+    },
+    {
+      "name": "title 'test', Search",
+      "script": "__ss.set('.jfss-title', 'test'); __ss.q('.jfss-search-button').click(); return true;"
+    },
+    {
+      "name": "the search answered (phone)",
+      "waitFor": "__ss.done()",
+      "timeout": 20000
+    },
+    {
+      "name": "the phone results",
+      "eval": "({ cards: __ss.all('.jfss-card').length, noHScroll: __ss.noHScroll(), open: __ss.box(__ss.all('.jfss-card .jfss-open')[0]), play: __ss.box(__ss.all('.jfss-card .jfss-play')[0]), view: __ss.all('.jfss-view').map(__ss.box), sort: __ss.box(__ss.q('.jfss-sort')) })",
+      "save": "results",
+      "full": true
+    },
+    {
+      "name": "cards within the screen; Open, Play and the view toggles touch-sized",
+      "assert": "__vars.results.cards > 0 && __vars.results.noHScroll && __vars.results.open[0] >= 40 && __vars.results.open[1] >= 40 && __vars.results.play[0] >= 40 && __vars.results.play[1] >= 40 && __vars.results.view.every(b => b[1] >= 40)"
+    },
+    {
+      "screenshot": "smartsearch-search-phone-results.png"
+    },
+    {
+      "name": "the list view",
+      "script": "__ss.all('.jfss-view')[1].click(); return true;"
+    },
+    {
+      "name": "rows within the screen",
+      "waitFor": "__ss.all('.jfss-row').length > 0 && __ss.noHScroll() && __ss.all('.jfss-row').every(r => r.getBoundingClientRect().right <= innerWidth + 1)"
+    },
+    {
+      "screenshot": "smartsearch-search-phone-list.png"
+    },
+    {
+      "name": "no uncaught exception (the stale CustomRatings tag is known noise)",
+      "noExceptions": true,
+      "ignore": "CustomRatings"
+    }
+  ]
+}

@@ -1,0 +1,47 @@
+{
+  "comment": "The jellyfin-web anchors User Ratings uses (by the kit's anchor rules), the one place their selectors are written. Kit.props embeds this file as Web.anchors.json: the kit's EmbeddedScript puts it into the ClientScript (kit.anchors.find/all, reached through Web/js/10-selectors.js), the server accepts only these names and views in ClientHealth reports, and scripts/Test-WebAnchors.ps1 looks for them in the installed jellyfin-web bundle. css is the primary selector, then the fallbacks, tried in order. The entries were verified 2026-10-19 on Movie, Series, Season, Episode, MusicAlbum, Book and Video pages in the desktop, experimental and TV layouts, each listed once a script uses it: the details page's three for the ratings section, and miscInfo, detailButtons and detailButtonsBefore for the chip and the Rate button. Jellyfin Enhanced's Reviews section isn't jellyfin-web's, so it isn't here: the kit finds it (kit.je.reviews, KIT_ANCHORS.jeReviews), a presence probe never health-checked.",
+  "anchors": [
+    {
+      "name": "detailPage",
+      "css": ["#itemDetailPage:not(.hide)", ".itemDetailPage:not(.hide)"],
+      "required": true,
+      "views": ["details"],
+      "note": "The shown item details view (itemDetails-index-html chunk; cached views stay in the DOM hidden). One match on every page type in all three layouts (the experimental layout keeps this legacy view). Missing: no User Ratings UI on details pages."
+    },
+    {
+      "name": "detailContent",
+      "css": [".detailPageSecondaryContainer .detailPageContent", ".detailPageContent", ".detailPagePrimaryContent .detailSection"],
+      "required": true,
+      "views": ["details"],
+      "note": "The secondary column the ratings section goes into (itemDetails-index-html chunk). On Series, Season and MusicAlbum pages it comes after the child list. Missing: no section."
+    },
+    {
+      "name": "sectionBefore",
+      "css": ["#castCollapsible", "#guestCastCollapsible", "#similarCollapsible"],
+      "required": false,
+      "views": ["details"],
+      "note": "The section goes before the first of these inside detailContent, else at its end (itemDetails-index-html chunk). #castCollapsible is in the DOM on every page type, hidden without cast. Missing: the section is appended; no feature is lost."
+    },
+    {
+      "name": "miscInfo",
+      "css": [".itemMiscInfo-primary", ".itemMiscInfo"],
+      "required": false,
+      "views": ["details"],
+      "note": "The media-info row the member-average chip ends (itemDetails chunk, fillPrimaryMediaInfo). Written with innerHTML per page load and when another version is chosen or the item edited, which takes the chip: the scanner puts it back. Empty and hidden on Season and Book pages, so the chip un-hides it while there. Missing: no chip."
+    },
+    {
+      "name": "detailButtons",
+      "css": [".mainDetailButtons"],
+      "required": false,
+      "views": ["details"],
+      "note": "The buttons row the Rate button goes into (ShowDetailButton). Present and laid out on every page type and layout. Missing: no Rate button; the section is still there, and reached by scrolling or the D-pad."
+    },
+    {
+      "name": "detailButtonsBefore",
+      "css": [".btnMoreCommands"],
+      "required": false,
+      "views": ["details"],
+      "note": "Inside detailButtons: the Rate button goes before More (the three dots), the last button on every page type. Missing: the Rate button goes at the row's end."
+    }
+  ]
+}

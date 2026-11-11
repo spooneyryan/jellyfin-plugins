@@ -1,0 +1,108 @@
+{
+  "name": "Smart Search's Advanced Search page in the TV layout (localStorage 'layout' = 'tv'; html.layout-tv), as viewer at 1366x900: the root carries jfss-tv, no field takes the focus, the basic fields stack in one column, a search by title through the keyboard (focus, Enter on the Search button) shows cards with Open and Play, the pager has no observer (Load more waits for the remote), every focusable control is reachable and at least 32 px high, and nothing is wider than the screen. Screenshots smartsearch-search-tv*.png.",
+  "failOnException": false,
+  "timeout": 30000,
+  "steps": [
+    {
+      "name": "a desktop screen",
+      "emulate": "desktop"
+    },
+    {
+      "name": "page helpers",
+      "initScript": "\nwindow.__ss = {\n  root: () => [...document.querySelectorAll('[data-jfss-page=\"search\"][data-jfss-mounted] .jfss-search')].find(x => x.getClientRects().length > 0) || null,\n  q: (s) => { const r = window.__ss.root(); return r ? r.querySelector(s) : null; },\n  all: (s) => { const r = window.__ss.root(); return r ? [...r.querySelectorAll(s)] : []; },\n  set: (s, v) => { const e = window.__ss.q(s); e.value = v; e.dispatchEvent(new Event('input', { bubbles: true })); e.dispatchEvent(new Event('change', { bubbles: true })); return true; },\n  ready: () => !!window.__ss.q('.jfss-scope') && !!window.__ss.q('.jfss-search-button'),\n  done: () => { const c = window.__ss.q('.jfss-count'); const n = window.__ss.q('.jfss-notices'); if (c && c.textContent && !/Searching/.test(c.textContent)) return c.textContent; if (n && n.textContent) return n.textContent; return false; },\n  ids: () => window.__ss.all('.jfss-card, .jfss-row').map(x => x.getAttribute('data-id')),\n  names: () => window.__ss.all('.jfss-card, .jfss-row').map(x => (x.querySelector('bdi') || x).textContent.trim()),\n  pressed: (s) => window.__ss.all(s).filter(b => b.getAttribute('aria-pressed') === 'true').map(b => b.textContent),\n  norm: (ids) => ids.map(i => String(i).replace(/-/g, '').toLowerCase()).sort().join(),\n  server: async (q) => window.__ss.norm((await ApiClient.getItems(ApiClient.getCurrentUserId(), Object.assign({ Recursive: true }, q))).Items.map(i => i.Id)),\n  noHScroll: () => document.documentElement.scrollWidth <= innerWidth && window.__ss.root().scrollWidth <= window.__ss.root().clientWidth + 1,\n  box: (e) => { const r = e.getBoundingClientRect(); return [Math.round(r.width), Math.round(r.height)]; }\n};\n"
+    },
+    {
+      "name": "sign in as viewer",
+      "login": "viewer"
+    },
+    {
+      "name": "the Smart Search script ran",
+      "waitFor": "!!window.__jfkit && !!window.__jfkit.jfss && !!window.ApiClient && !!ApiClient.getCurrentUserId()",
+      "timeout": 20000
+    },
+    {
+      "name": "TV layout for this browser",
+      "eval": "(localStorage.setItem('layout', 'tv'), true)"
+    },
+    {
+      "name": "reload (TV)",
+      "reload": true
+    },
+    {
+      "name": "TV layout applied",
+      "waitFor": "document.documentElement.classList.contains('layout-tv') && !!window.__jfkit && !!window.__jfkit.jfss && __jfkit.jfss.instance.layout.isTv()",
+      "timeout": 20000
+    },
+    {
+      "goto": "/web/index.html#/jfss-search"
+    },
+    {
+      "name": "the page's form (TV)",
+      "waitFor": "!!window.__ss && __ss.ready()",
+      "timeout": 20000
+    },
+    {
+      "name": "the TV page",
+      "eval": "({ tv: __ss.root().classList.contains('jfss-tv'), focus: document.activeElement === __ss.q('.jfss-title'), columns: getComputedStyle(__ss.q('.jfss-basic-fields')).gridTemplateColumns.split(' ').length, noHScroll: __ss.noHScroll(), small: __ss.all('button, input, select, a').filter(e => e.getClientRects().length > 0 && e.getBoundingClientRect().height < 32 && e.type !== 'checkbox').map(e => e.className) })",
+      "save": "page",
+      "full": true
+    },
+    {
+      "name": "jfss-tv, no focus taken, one column, nothing too wide or too small",
+      "assert": "__vars.page.tv && !__vars.page.focus && __vars.page.columns === 1 && __vars.page.noHScroll && __vars.page.small.length === 0"
+    },
+    {
+      "screenshot": "smartsearch-search-tv.png"
+    },
+    {
+      "name": "focus the title",
+      "script": "__ss.q('.jfss-title').focus(); return document.activeElement === __ss.q('.jfss-title');"
+    },
+    {
+      "name": "type 'test'",
+      "type": "test"
+    },
+    {
+      "name": "focus Search",
+      "script": "__ss.q('.jfss-search-button').focus(); return document.activeElement === __ss.q('.jfss-search-button');"
+    },
+    {
+      "key": "Enter"
+    },
+    {
+      "name": "the search answered (TV)",
+      "waitFor": "__ss.done()",
+      "timeout": 20000
+    },
+    {
+      "name": "the TV results",
+      "eval": "(async () => ({ mine: __ss.norm(__ss.ids()), server: await __ss.server({ IncludeItemTypes: 'Movie,Series', SearchTerm: 'test' }), open: __ss.all('.jfss-card .jfss-open').length, play: __ss.all('.jfss-card .jfss-play').length, cards: __ss.all('.jfss-card').length, pagerHidden: __ss.q('.jfss-pager') ? __ss.q('.jfss-pager').classList.contains('hide') : null, noHScroll: __ss.noHScroll() }))()",
+      "save": "results",
+      "full": true
+    },
+    {
+      "name": "what /Items finds; Open and Play on every card",
+      "assert": "__vars.results.cards > 0 && __vars.results.mine === __vars.results.server && __vars.results.open === __vars.results.cards && __vars.results.play === __vars.results.cards && __vars.results.noHScroll"
+    },
+    {
+      "screenshot": "smartsearch-search-tv-results.png"
+    },
+    {
+      "name": "focus the first card's Open and press Enter",
+      "script": "const a = __ss.all('.jfss-card')[0].querySelector('.jfss-open'); a.focus(); window.__ssOpened = __ss.all('.jfss-card')[0].getAttribute('data-id'); return document.activeElement === a;"
+    },
+    {
+      "key": "Enter"
+    },
+    {
+      "name": "its details page",
+      "waitFor": "location.hash.indexOf('#/details?id=' + window.__ssOpened) === 0",
+      "timeout": 20000
+    },
+    {
+      "name": "no uncaught exception (the stale CustomRatings tag is known noise)",
+      "noExceptions": true,
+      "ignore": "CustomRatings"
+    }
+  ]
+}

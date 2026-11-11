@@ -1,0 +1,71 @@
+# MVC controller names (the class name without "Controller") that a plugin controller must never use.
+# Jellyfin Enhanced 12.8's global response filters key on the MVC "controller" and "action" route values, so a plugin
+# controller named like a core one gets JE's Hidden Content filtering and Spoiler Guard stripping.
+# Read by kit/testsupport/Api/ControllerNameChecks.cs; compared case-insensitively.
+
+# --- core: every controller class of Jellyfin 10.11.5
+# (git show v10.11.5: Jellyfin.Api/Controllers/*Controller.cs, plus MediaBrowser.Providers/Plugins/Tmdb/Api/TmdbController.cs)
+ActivityLog
+ApiKey
+Artists
+Audio
+Backup
+Branding
+Channels
+ClientLog
+Collection
+Configuration
+Dashboard
+Devices
+DisplayPreferences
+DynamicHls
+Environment
+Filter
+Genres
+HlsSegment
+Image
+InstantMix
+ItemLookup
+ItemRefresh
+ItemUpdate
+Items
+Library
+LibraryStructure
+LiveTv
+Localization
+Lyrics
+MediaInfo
+MediaSegments
+Movies
+MusicGenres
+Package
+Persons
+Playlists
+Playstate
+Plugins
+QuickConnect
+RemoteImage
+ScheduledTasks
+Search
+Session
+Startup
+Studios
+Subtitle
+Suggestions
+SyncPlay
+System
+TimeSync
+Tmdb
+Trailers
+Trickplay
+TvShows
+UniversalAudio
+User
+UserLibrary
+UserViews
+VideoAttachments
+Videos
+Years
+
+# --- keyed on by Jellyfin Enhanced 12.8's filters without being core controllers (from an IL dump of JE: HiddenContentResponseFilter)
+HomeScreen

@@ -1,0 +1,214 @@
+{
+  "name": "My Clips' Rename on the TV layout, as admin, over \"clip-rename-probe Web C\" and \"clip-rename-probe Web E\" (Web E renamed on My Bookmarks): the remote's OK on a row's Rename clip opens exactly one dialog with the focus in the name; a new name typed; the D-pad goes down to \"Also rename the file\", Cancel and Rename; OK renames, the focus back on the row, one dialog all along; Rename file's confirmation starts on Cancel, one ArrowDown reaches Rename file, OK renames the file.",
+  "failOnException": false,
+  "timeout": 30000,
+  "steps": [
+    {
+      "name": "sign in as admin",
+      "login": "admin"
+    },
+    {
+      "name": "the Bookmarks script ran",
+      "waitFor": "!!window.__jfkit && !!window.__jfkit.jfbm && !!window.ApiClient && !!ApiClient.getCurrentUserId()"
+    },
+    {
+      "name": "TV layout for this browser",
+      "eval": "(localStorage.setItem('layout', 'tv'), true)"
+    },
+    {
+      "name": "reload (TV)",
+      "reload": true
+    },
+    {
+      "name": "TV layout applied",
+      "waitFor": "document.documentElement.classList.contains('layout-tv') && !!window.__jfkit && !!window.__jfkit.jfbm && !!ApiClient.getCurrentUserId()"
+    },
+    {
+      "name": "helpers",
+      "eval": "window.__c5 = (() => {\n  const k = (id) => String(id || '').replace(/-/g, '').toLowerCase();\n  const root = () => document.querySelector('#fallbackPage > [data-jfbm-page=\"clips\"]');\n  const ready = () => { const r = root(); const c = r && r.querySelector('.jfbm-clips-content'); return !!r && r.getAttribute('data-jfbm-state') === 'on' && !!c && !c.hasAttribute('aria-busy'); };\n  const row = (id) => { const r = root(); return r && id ? r.querySelector('.jfbm-clips-row[data-jfbm-clip=\"' + k(id) + '\"]') : null; };\n  const title = (id) => { const x = row(id); const b = x && x.querySelector('.listItemBodyText bdi'); return b ? b.textContent : null; };\n  const btn = (scope, t) => scope ? [...scope.querySelectorAll('button')].find(b => b.getAttribute('title') === t) || null : null;\n  const panels = () => [...document.querySelectorAll('.jfbm-backdrop .jfbm-panel')];\n  const panel = (t) => panels().find(p => p.querySelector('h3').textContent === t) || null;\n  const action = (dialog, label) => dialog ? [...dialog.querySelectorAll('.jfbm-actions button')].find(b => b.textContent === label) || null : null;\n  const toasts = () => [...document.querySelectorAll('.jfbm-toast')].map(t => (t.querySelector('span') || t).textContent);\n  const badges = (id) => { const x = row(id); return x ? [...x.querySelectorAll('.jfbm-badge')].map(b => b.textContent) : null; };\n  const where = () => { const a = document.activeElement; const p = panels()[0]; const r = a && a.closest ? a.closest('.jfbm-clips-row') : null; return { tag: a ? a.tagName : null, body: a === document.body, inPanel: !!p && p.contains(a), text: a ? (a.textContent || '').trim() : null, title: a && a.getAttribute ? a.getAttribute('title') : null, cls: a && a.className ? String(a.className) : null, type: a && a.getAttribute ? a.getAttribute('type') : null, row: r ? r.getAttribute('data-jfbm-clip') : null, dialogs: panels().length }; };\n  const auth = () => ({ Authorization: 'MediaBrowser Token=\"' + ApiClient.accessToken() + '\"' });\n  const json = async (p, q) => { const r = await fetch(ApiClient.getUrl(p, q), { headers: auth() }); return r.status === 200 ? r.json() : { status: r.status }; };\n  const clip = async (name) => ((await json('Bookmarks/Clips', { searchTerm: name, limit: 20 })).Items || []).find(c => c.Name === name || (c.Name || '').startsWith(name + ' ')) || null;\n  return { k, root, ready, row, title, btn, panels, panel, action, toasts, badges, where, json, clip };\n})(), true"
+    },
+    {
+      "name": "the probe's clips",
+      "script": "const r = {}; for (const n of [\"Web C\",\"Web E\"]) { const c = await __c5.clip('clip-rename-probe ' + n); if (!c) throw new Error('no clip clip-rename-probe ' + n + ': the probe seeds it first'); r[n] = { id: __c5.k(c.Id), name: c.Name, file: c.Clip.FileName, state: c.Clip.State, outdated: c.Clip.IsNameOutdated }; } return r;",
+      "save": "seed",
+      "full": true
+    },
+    {
+      "name": "as seeded",
+      "assert": "__vars.seed['Web C'].state === 'Ready' && __vars.seed['Web E'].outdated === true"
+    },
+    {
+      "name": "My Clips, searched for them (TV)",
+      "goto": "/web/index.html#/jfbm-clips?q=clip-rename-probe%20Web"
+    },
+    {
+      "name": "helpers (on the page)",
+      "eval": "window.__c5 = (() => {\n  const k = (id) => String(id || '').replace(/-/g, '').toLowerCase();\n  const root = () => document.querySelector('#fallbackPage > [data-jfbm-page=\"clips\"]');\n  const ready = () => { const r = root(); const c = r && r.querySelector('.jfbm-clips-content'); return !!r && r.getAttribute('data-jfbm-state') === 'on' && !!c && !c.hasAttribute('aria-busy'); };\n  const row = (id) => { const r = root(); return r && id ? r.querySelector('.jfbm-clips-row[data-jfbm-clip=\"' + k(id) + '\"]') : null; };\n  const title = (id) => { const x = row(id); const b = x && x.querySelector('.listItemBodyText bdi'); return b ? b.textContent : null; };\n  const btn = (scope, t) => scope ? [...scope.querySelectorAll('button')].find(b => b.getAttribute('title') === t) || null : null;\n  const panels = () => [...document.querySelectorAll('.jfbm-backdrop .jfbm-panel')];\n  const panel = (t) => panels().find(p => p.querySelector('h3').textContent === t) || null;\n  const action = (dialog, label) => dialog ? [...dialog.querySelectorAll('.jfbm-actions button')].find(b => b.textContent === label) || null : null;\n  const toasts = () => [...document.querySelectorAll('.jfbm-toast')].map(t => (t.querySelector('span') || t).textContent);\n  const badges = (id) => { const x = row(id); return x ? [...x.querySelectorAll('.jfbm-badge')].map(b => b.textContent) : null; };\n  const where = () => { const a = document.activeElement; const p = panels()[0]; const r = a && a.closest ? a.closest('.jfbm-clips-row') : null; return { tag: a ? a.tagName : null, body: a === document.body, inPanel: !!p && p.contains(a), text: a ? (a.textContent || '').trim() : null, title: a && a.getAttribute ? a.getAttribute('title') : null, cls: a && a.className ? String(a.className) : null, type: a && a.getAttribute ? a.getAttribute('type') : null, row: r ? r.getAttribute('data-jfbm-clip') : null, dialogs: panels().length }; };\n  const auth = () => ({ Authorization: 'MediaBrowser Token=\"' + ApiClient.accessToken() + '\"' });\n  const json = async (p, q) => { const r = await fetch(ApiClient.getUrl(p, q), { headers: auth() }); return r.status === 200 ? r.json() : { status: r.status }; };\n  const clip = async (name) => ((await json('Bookmarks/Clips', { searchTerm: name, limit: 20 })).Items || []).find(c => c.Name === name || (c.Name || '').startsWith(name + ' ')) || null;\n  return { k, root, ready, row, title, btn, panels, panel, action, toasts, badges, where, json, clip };\n})(), true"
+    },
+    {
+      "name": "their rows (TV)",
+      "waitFor": "__c5.ready() && !!__c5.row(__vars.seed['Web C'].id) && !!__c5.row(__vars.seed['Web E'].id)",
+      "timeout": 20000
+    },
+    {
+      "name": "TV: C's Rename clip focused",
+      "script": "const b = __c5.btn(__c5.row(__vars.seed['Web C'].id), 'Rename clip'); b.focus(); return document.activeElement === b;",
+      "save": "focused"
+    },
+    {
+      "name": "as expected",
+      "assert": "__vars.focused === true"
+    },
+    {
+      "name": "count the dialogs from here (TV)",
+      "script": "window.__c5max = document.querySelectorAll('.jfbm-backdrop').length; window.__c5obs = new MutationObserver(() => { window.__c5max = Math.max(window.__c5max, document.querySelectorAll('.jfbm-backdrop').length); }); window.__c5obs.observe(document.body, { childList: true }); return window.__c5max;"
+    },
+    {
+      "name": "TV: OK (Enter)",
+      "key": "Enter"
+    },
+    {
+      "name": "the Rename clip dialog (TV)",
+      "waitFor": "!!__c5.panel('Rename clip')"
+    },
+    {
+      "name": "where the focus is (TV)",
+      "eval": "__c5.where()",
+      "save": "t1",
+      "full": true
+    },
+    {
+      "name": "TV: one dialog, the focus in the name",
+      "assert": "__vars.t1.inPanel && /jfbm-clip-rename-input/.test(__vars.t1.cls) && __vars.t1.dialogs === 1"
+    },
+    {
+      "name": "TV: a new name",
+      "type": "clip-rename-probe Web C renamed",
+      "selector": ".jfbm-clip-rename-input",
+      "clear": true
+    },
+    {
+      "name": "TV: ArrowDown (the D-pad)",
+      "key": "ArrowDown"
+    },
+    {
+      "name": "on the box",
+      "eval": "__c5.where()",
+      "save": "t2",
+      "full": true
+    },
+    {
+      "name": "TV: the D-pad left the field for \"Also rename the file\", still ticked",
+      "assert": "__vars.t2.inPanel && /jfbm-clip-rename-file-box/.test(__vars.t2.cls) && __c5.panel('Rename clip').querySelector('.jfbm-clip-rename-file-box').checked === true"
+    },
+    {
+      "name": "TV: the box at the label's size (the TV rule), 24 px at least",
+      "eval": "((b) => ({ w: b.getBoundingClientRect().width, h: b.getBoundingClientRect().height }))(__c5.panel('Rename clip').querySelector('.jfbm-clip-rename-file-box'))",
+      "save": "box"
+    },
+    {
+      "name": "as expected",
+      "assert": "__vars.box.w >= 24 && __vars.box.h >= 24"
+    },
+    {
+      "name": "TV: ArrowDown",
+      "key": "ArrowDown"
+    },
+    {
+      "name": "on Cancel",
+      "assert": "((w) => w.inPanel && w.text === 'Cancel')(__c5.where())"
+    },
+    {
+      "name": "TV: ArrowDown again",
+      "key": "ArrowDown"
+    },
+    {
+      "name": "on Rename",
+      "assert": "((w) => w.inPanel && w.text === 'Rename')(__c5.where())"
+    },
+    {
+      "name": "the dialog (TV)",
+      "screenshot": "page-clips-rename-tv.png"
+    },
+    {
+      "name": "TV: OK renames",
+      "key": "Enter"
+    },
+    {
+      "name": "renamed (TV): the dialog gone, the row's title the new name",
+      "waitFor": "__c5.panels().length === 0 && __c5.title(__vars.seed['Web C'].id) === 'clip-rename-probe Web C renamed'",
+      "timeout": 15000
+    },
+    {
+      "name": "C on the server and the focus (TV)",
+      "script": "const c = await __c5.clip('clip-rename-probe Web C renamed'); return { file: c && c.Clip.FileName, where: __c5.where(), maxDialogs: window.__c5max };",
+      "save": "t3",
+      "full": true
+    },
+    {
+      "name": "TV: the file renamed, one dialog all along, the focus back on the row's Rename clip (not BODY)",
+      "assert": "__vars.t3.file === __vars.seed['Web C'].file.replace('clip-rename-probe Web C [', 'clip-rename-probe Web C renamed [') && __vars.t3.maxDialogs === 1 && !__vars.t3.where.body && __vars.t3.where.row === __vars.seed['Web C'].id && __vars.t3.where.title === 'Rename clip'"
+    },
+    {
+      "name": "TV: E's Rename file focused",
+      "script": "const b = __c5.btn(__c5.row(__vars.seed['Web E'].id), 'Rename file'); b.focus(); return document.activeElement === b;",
+      "save": "focused"
+    },
+    {
+      "name": "as expected",
+      "assert": "__vars.focused === true"
+    },
+    {
+      "name": "count the dialogs from here (TV, Rename file)",
+      "script": "window.__c5max = document.querySelectorAll('.jfbm-backdrop').length; window.__c5obs = new MutationObserver(() => { window.__c5max = Math.max(window.__c5max, document.querySelectorAll('.jfbm-backdrop').length); }); window.__c5obs.observe(document.body, { childList: true }); return window.__c5max;"
+    },
+    {
+      "name": "TV: OK on Rename file",
+      "key": "Enter"
+    },
+    {
+      "name": "the Rename file? dialog (TV)",
+      "waitFor": "!!__c5.panel('Rename file?')"
+    },
+    {
+      "name": "TV: the focus on Cancel",
+      "assert": "((w) => w.inPanel && w.text === 'Cancel' && w.dialogs === 1)(__c5.where())"
+    },
+    {
+      "name": "TV: ArrowDown (Rename file)",
+      "key": "ArrowDown"
+    },
+    {
+      "name": "on Rename file",
+      "assert": "((w) => w.inPanel && w.text === 'Rename file')(__c5.where())"
+    },
+    {
+      "name": "TV: OK renames the file",
+      "key": "Enter"
+    },
+    {
+      "name": "renamed (TV): the dialog gone, the badge gone",
+      "waitFor": "__c5.panels().length === 0 && !__c5.badges(__vars.seed['Web E'].id).includes('Name changed')",
+      "timeout": 15000
+    },
+    {
+      "name": "E on the server and the focus (TV)",
+      "script": "const c = await __c5.clip(__vars.seed['Web E'].name); return { file: c && c.Clip.FileName, outdated: c && c.Clip.IsNameOutdated, where: __c5.where(), maxDialogs: window.__c5max };",
+      "save": "t4",
+      "full": true
+    },
+    {
+      "name": "TV: E's file has the clip's name, one dialog, the focus on the row",
+      "assert": "__vars.t4.outdated === false && __vars.t4.file !== __vars.seed['Web E'].file && __vars.t4.maxDialogs === 1 && !__vars.t4.where.body && __vars.t4.where.row === __vars.seed['Web E'].id"
+    },
+    {
+      "name": "the default layout again",
+      "eval": "(localStorage.removeItem('layout'), true)"
+    },
+    {
+      "name": "no uncaught exception of ours",
+      "noExceptions": true,
+      "ignore": "/CustomRatings/script|^Error: player cannot be null"
+    }
+  ]
+}

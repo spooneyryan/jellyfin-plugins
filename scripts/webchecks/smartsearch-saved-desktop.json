@@ -1,0 +1,533 @@
+{
+  "name": "Smart Search's saved queries on a desktop (1366x900), in the default FallbackOnly mode, the flows save, open, edit and update, share and duplicate, and delete. As admin: viewer2 restricted to every library but Movies 2, earlier runs' queries removed, two shared queries saved (WC Two libraries over Movies and Movies 2 with no rule; one named with markup, a right-to-left override and a control character). As viewer: the tabs; a title search saved through the save dialog (Enter with no name asks for one; description; Share), the header names it and the hash holds its id; an edit turns Save on and Save changes it on the server; its link from the address bar and after a hard reload fills the form and runs it by id; Save as new makes a second, and Back and Forward between the two links render each; the Saved tab lists the user's own with Rename, Duplicate, Stop sharing, Copy link, Delete, and admin's with Duplicate and Copy link, by owner name; the odd name is text in a bdi (no element, the control character as U+FFFD); find and the Mine filter in the hash; rename, share (confirmed) and duplicate admin's query; Copy link; delete (confirmed) the query open on the Search tab, which closes. As viewer2: viewer's shared query by name; admin's WC Two libraries shows '1 library not available to you', never Movies 2's name or id anywhere in the page, and finds exactly viewer2's movies of Movies, run by id. Sharing turned off by admin: viewer2's list loses others' shared queries; then on again. Screenshots smartsearch-saved-*.png. Needs a sandbox seeded by Initialize-Sandbox.ps1.",
+  "failOnException": false,
+  "timeout": 30000,
+  "steps": [
+    {
+      "name": "a desktop screen",
+      "emulate": "desktop"
+    },
+    {
+      "name": "page helpers (admin)",
+      "initScript": "\nwindow.__ss = {\n  root: () => [...document.querySelectorAll('[data-jfss-page=\"search\"][data-jfss-mounted] .jfss-search')].find(x => x.getClientRects().length > 0) || null,\n  q: (s) => { const r = window.__ss.root(); return r ? r.querySelector(s) : null; },\n  all: (s) => { const r = window.__ss.root(); return r ? [...r.querySelectorAll(s)] : []; },\n  set: (s, v) => { const e = window.__ss.q(s); e.value = v; e.dispatchEvent(new Event('input', { bubbles: true })); e.dispatchEvent(new Event('change', { bubbles: true })); return true; },\n  ready: () => !!window.__ss.q('.jfss-scope') && !!window.__ss.q('.jfss-search-button'),\n  done: () => { const c = window.__ss.q('.jfss-count'); const n = window.__ss.q('.jfss-notices'); if (c && c.textContent && !/Searching/.test(c.textContent)) return c.textContent; if (n && n.textContent) return n.textContent; return false; },\n  ids: () => window.__ss.all('.jfss-card, .jfss-row').map(x => x.getAttribute('data-id')),\n  norm: (ids) => ids.map(i => String(i).replace(/-/g, '').toLowerCase()).sort().join(),\n  noHScroll: () => document.documentElement.scrollWidth <= innerWidth && window.__ss.root().scrollWidth <= window.__ss.root().clientWidth + 1,\n  box: (e) => { const r = e.getBoundingClientRect(); return [Math.round(r.width), Math.round(r.height)]; },\n  api: async (method, path, body) => { const r = await fetch(ApiClient.getUrl(path), { method, headers: { 'X-Emby-Token': ApiClient.accessToken(), 'Content-Type': 'application/json' }, body: body === undefined ? undefined : JSON.stringify(body) }); const t = await r.text(); return { status: r.status, body: t ? JSON.parse(t) : null }; },\n  cleanup: async (prefix) => { const list = (await window.__ss.api('GET', 'SmartSearch/Queries?scope=Mine&limit=500')).body.Items; let n = 0; for (const q of list) { if (q.Name.indexOf(prefix) === 0) { await window.__ss.api('DELETE', 'SmartSearch/Queries/' + q.Id); n++; } } return n; },\n  dialog: () => { const d = [...document.querySelectorAll('[role=\"dialog\"]')].filter(x => x.getClientRects().length > 0); return d[d.length - 1] || null; },\n  dbutton: (text) => { const d = window.__ss.dialog(); return d ? [...d.querySelectorAll('button')].find(b => b.textContent === text) || null : null; },\n  rows: () => window.__ss.all('.jfss-saved-row'),\n  names: () => window.__ss.rows().map(r => r.querySelector('.jfss-saved-open').textContent),\n  row: (name) => window.__ss.rows().find(r => r.querySelector('.jfss-saved-open').textContent === name) || null,\n  action: (name, cls) => { const r = window.__ss.row(name); return r ? r.querySelector(cls) : null; },\n  toast: () => [...document.querySelectorAll('.jfss-toast')].map(t => t.textContent).join(' | '),\n  runs: (id) => performance.getEntriesByType('resource').filter(e => e.name.indexOf('SmartSearch/Queries/' + id + '/Search') >= 0).length,\n  searches: () => performance.getEntriesByType('resource').filter(e => /SmartSearch\\/Search$/.test(e.name)).length\n};\n"
+    },
+    {
+      "name": "sign in as admin",
+      "login": "admin"
+    },
+    {
+      "name": "the Smart Search script ran (admin)",
+      "waitFor": "!!window.__jfkit && !!window.__jfkit.jfss && !!window.ApiClient && !!ApiClient.getCurrentUserId()",
+      "timeout": 20000
+    },
+    {
+      "name": "admin: restrict viewer2 to every library but Movies 2, remove earlier runs' queries, save two shared queries (one over Movies and Movies 2 with no rule; one with a name of markup, a right-to-left override and a control character)",
+      "script": "\nconst libs = (await __ss.api('GET', 'SmartSearch/Libraries')).body;\nconst movies = libs.find(l => l.Name === 'Movies').Id, movies2 = libs.find(l => l.Name === 'Movies 2').Id;\nconst users = (await __ss.api('GET', 'Users')).body;\nconst v2 = users.find(u => u.Name === 'viewer2');\nconst folders = (await __ss.api('GET', 'Library/MediaFolders')).body.Items.filter(f => f.Name !== 'Movies 2').map(f => f.Id);\nconst policy = Object.assign({}, v2.Policy, { EnableAllFolders: false, EnabledFolders: folders });\nconst p = await __ss.api('POST', 'Users/' + v2.Id + '/Policy', policy);\nconst removed = await __ss.cleanup('WC ');\nconst query = (libraries) => ({ Version: 1, Scope: { ItemKinds: ['Movie'], LibraryIds: libraries, IncludeMissing: false }, Where: { Match: 'All', Children: [] }, Sort: [{ Key: 'SortName', Order: 'Ascending' }] });\nconst a = await __ss.api('POST', 'SmartSearch/Queries', { Name: 'WC Two libraries', Description: 'Every movie of two libraries', Shared: true, Query: query([movies, movies2]) });\nconst b = await __ss.api('POST', 'SmartSearch/Queries', { Name: 'WC <img src=x onerror=\\\"window.__pwned=1\\\">\\u202Eevil\\u0007 \\u05E9\\u05DC\\u05D5\\u05DD', Description: '<b>not bold</b>', Shared: true, Query: query([movies]) });\nreturn { policy: p.status, removed, a: a.status, b: b.status, twoId: a.body.Id, evilId: b.body.Id, movies, movies2, evilName: b.body.Name };\n",
+      "save": "setup",
+      "full": true
+    },
+    {
+      "name": "the setup",
+      "assert": "__vars.setup.policy === 204 && __vars.setup.a === 201 && __vars.setup.b === 201"
+    },
+    {
+      "name": "viewer, in a browser of its own",
+      "context": "viewer"
+    },
+    {
+      "name": "a desktop screen (viewer)",
+      "emulate": "desktop"
+    },
+    {
+      "name": "page helpers (viewer)",
+      "initScript": "\nwindow.__ss = {\n  root: () => [...document.querySelectorAll('[data-jfss-page=\"search\"][data-jfss-mounted] .jfss-search')].find(x => x.getClientRects().length > 0) || null,\n  q: (s) => { const r = window.__ss.root(); return r ? r.querySelector(s) : null; },\n  all: (s) => { const r = window.__ss.root(); return r ? [...r.querySelectorAll(s)] : []; },\n  set: (s, v) => { const e = window.__ss.q(s); e.value = v; e.dispatchEvent(new Event('input', { bubbles: true })); e.dispatchEvent(new Event('change', { bubbles: true })); return true; },\n  ready: () => !!window.__ss.q('.jfss-scope') && !!window.__ss.q('.jfss-search-button'),\n  done: () => { const c = window.__ss.q('.jfss-count'); const n = window.__ss.q('.jfss-notices'); if (c && c.textContent && !/Searching/.test(c.textContent)) return c.textContent; if (n && n.textContent) return n.textContent; return false; },\n  ids: () => window.__ss.all('.jfss-card, .jfss-row').map(x => x.getAttribute('data-id')),\n  norm: (ids) => ids.map(i => String(i).replace(/-/g, '').toLowerCase()).sort().join(),\n  noHScroll: () => document.documentElement.scrollWidth <= innerWidth && window.__ss.root().scrollWidth <= window.__ss.root().clientWidth + 1,\n  box: (e) => { const r = e.getBoundingClientRect(); return [Math.round(r.width), Math.round(r.height)]; },\n  api: async (method, path, body) => { const r = await fetch(ApiClient.getUrl(path), { method, headers: { 'X-Emby-Token': ApiClient.accessToken(), 'Content-Type': 'application/json' }, body: body === undefined ? undefined : JSON.stringify(body) }); const t = await r.text(); return { status: r.status, body: t ? JSON.parse(t) : null }; },\n  cleanup: async (prefix) => { const list = (await window.__ss.api('GET', 'SmartSearch/Queries?scope=Mine&limit=500')).body.Items; let n = 0; for (const q of list) { if (q.Name.indexOf(prefix) === 0) { await window.__ss.api('DELETE', 'SmartSearch/Queries/' + q.Id); n++; } } return n; },\n  dialog: () => { const d = [...document.querySelectorAll('[role=\"dialog\"]')].filter(x => x.getClientRects().length > 0); return d[d.length - 1] || null; },\n  dbutton: (text) => { const d = window.__ss.dialog(); return d ? [...d.querySelectorAll('button')].find(b => b.textContent === text) || null : null; },\n  rows: () => window.__ss.all('.jfss-saved-row'),\n  names: () => window.__ss.rows().map(r => r.querySelector('.jfss-saved-open').textContent),\n  row: (name) => window.__ss.rows().find(r => r.querySelector('.jfss-saved-open').textContent === name) || null,\n  action: (name, cls) => { const r = window.__ss.row(name); return r ? r.querySelector(cls) : null; },\n  toast: () => [...document.querySelectorAll('.jfss-toast')].map(t => t.textContent).join(' | '),\n  runs: (id) => performance.getEntriesByType('resource').filter(e => e.name.indexOf('SmartSearch/Queries/' + id + '/Search') >= 0).length,\n  searches: () => performance.getEntriesByType('resource').filter(e => /SmartSearch\\/Search$/.test(e.name)).length\n};\n"
+    },
+    {
+      "name": "sign in as viewer",
+      "login": "viewer"
+    },
+    {
+      "name": "the Smart Search script ran (viewer)",
+      "waitFor": "!!window.__jfkit && !!window.__jfkit.jfss && !!window.ApiClient && !!ApiClient.getCurrentUserId()",
+      "timeout": 20000
+    },
+    {
+      "name": "remove viewer's queries of earlier runs",
+      "script": "return await __ss.cleanup('WC ');"
+    },
+    {
+      "goto": "/web/index.html#/jfss-search"
+    },
+    {
+      "name": "the page",
+      "waitFor": "!!window.__ss && __ss.ready()",
+      "timeout": 20000
+    },
+    {
+      "name": "the tabs",
+      "eval": "({ tabs: __ss.all('[role=\"tab\"]').map(t => t.textContent + ':' + t.getAttribute('aria-selected')), save: !!__ss.q('.jfss-save') && !__ss.q('.jfss-save').disabled, asNew: __ss.q('.jfss-save-as-new').classList.contains('hide'), share: __ss.q('.jfss-share-toggle').classList.contains('hide') })",
+      "save": "tabs",
+      "full": true
+    },
+    {
+      "name": "Search and Saved queries, Search selected; Save on, Save as new and Share hidden",
+      "assert": "__vars.tabs.tabs.join() === 'Search:true,Saved queries:false' && __vars.tabs.save && __vars.tabs.asNew && __vars.tabs.share"
+    },
+    {
+      "name": "F3: title 'blade', Movies only, Search",
+      "script": "__ss.all('.jfss-kind')[1].click(); __ss.set('.jfss-title', 'blade'); __ss.q('.jfss-search-button').click(); return true;"
+    },
+    {
+      "name": "the search answered",
+      "waitFor": "__ss.done()",
+      "timeout": 20000
+    },
+    {
+      "name": "Save",
+      "click": "[data-jfss-page=\"search\"] .jfss-save"
+    },
+    {
+      "name": "the save dialog, the focus on its name",
+      "waitFor": "!!__ss.dialog() && document.activeElement === __ss.dialog().querySelector('.jfss-name-input')"
+    },
+    {
+      "name": "Enter with no name",
+      "key": "Enter"
+    },
+    {
+      "name": "the name is asked for",
+      "waitFor": "__ss.dialog().querySelector('[data-jfss-dialog-error=\"name\"]').textContent === 'Enter a name.'"
+    },
+    {
+      "name": "type the name",
+      "type": "WC Blade"
+    },
+    {
+      "name": "a description, and Share",
+      "script": "const d = __ss.dialog(); d.querySelector('.jfss-description-input').value = 'From the webcheck'; d.querySelector('.jfss-share-box').click(); return d.querySelector('.jfss-share-box').checked;"
+    },
+    {
+      "screenshot": "smartsearch-saved-dialog.png"
+    },
+    {
+      "name": "Save (the dialog)",
+      "click": "[role=\"dialog\"] .jfss-dialog-submit"
+    },
+    {
+      "name": "saved: the header names it, the hash holds its id",
+      "waitFor": "!__ss.dialog() && !!__ss.q('.jfss-saved-name') && __ss.q('.jfss-saved-name').textContent === 'WC Blade' && /[?&]query=[0-9a-f]{32}/.test(location.hash)",
+      "timeout": 15000
+    },
+    {
+      "name": "the saved query",
+      "eval": "(async () => { const id = /[?&]query=([0-9a-f]{32})/.exec(location.hash)[1]; const q = (await __ss.api('GET', 'SmartSearch/Queries/' + id)).body; return { id, name: q.Name, description: q.Description, shared: q.Shared, rules: q.Query.Where.Children, kinds: q.Query.Scope.ItemKinds, save: __ss.q('.jfss-save').disabled, shareOn: __ss.q('.jfss-share-toggle').getAttribute('aria-pressed'), badge: __ss.q('.jfss-badge-shared') && __ss.q('.jfss-badge-shared').textContent, toast: __ss.toast() }; })()",
+      "save": "blade",
+      "full": true
+    },
+    {
+      "name": "the server has it as the form said; Save off until an edit; Shared",
+      "assert": "__vars.blade.name === 'WC Blade' && __vars.blade.description === 'From the webcheck' && __vars.blade.shared === true && __vars.blade.rules.length === 1 && __vars.blade.rules[0].Value === 'blade' && __vars.blade.kinds.join() === 'Movie' && __vars.blade.save === true && __vars.blade.shareOn === 'true' && __vars.blade.badge === 'Shared' && /Saved .WC Blade.\\./.test(__vars.blade.toast)"
+    },
+    {
+      "name": "its id",
+      "eval": "__vars.blade.id",
+      "save": "bladeId"
+    },
+    {
+      "screenshot": "smartsearch-saved-header.png"
+    },
+    {
+      "name": "F4: an edit (title 'runner') turns Save on",
+      "script": "__ss.set('.jfss-title', 'runner'); return !__ss.q('.jfss-save').disabled;",
+      "save": "saveOn"
+    },
+    {
+      "name": "Save is on",
+      "assert": "__vars.saveOn === true"
+    },
+    {
+      "name": "Save (in place)",
+      "click": "[data-jfss-page=\"search\"] .jfss-save"
+    },
+    {
+      "name": "changed on the server",
+      "waitFor": "(async () => (await __ss.api('GET', 'SmartSearch/Queries/' + __vars.blade.id)).body.Query.Where.Children[0].Value === 'runner')()",
+      "timeout": 15000
+    },
+    {
+      "name": "Save off again",
+      "waitFor": "__ss.q('.jfss-save').disabled === true"
+    },
+    {
+      "name": "its link, typed in the address bar",
+      "goto": "/web/index.html#/jfss-search?query=${bladeId}"
+    },
+    {
+      "name": "the page (the link)",
+      "waitFor": "!!window.__ss && __ss.ready()",
+      "timeout": 20000
+    },
+    {
+      "name": "the link's search",
+      "waitFor": "__ss.done()",
+      "timeout": 20000
+    },
+    {
+      "name": "the link's page",
+      "eval": "({ title: __ss.q('.jfss-title').value, name: __ss.q('.jfss-saved-name').textContent, byId: __ss.runs(__vars.blade.id), hash: location.hash, kinds: __ss.all('.jfss-kind').filter(b => b.getAttribute('aria-pressed') === 'true').map(b => b.textContent).join() })",
+      "save": "link",
+      "full": true
+    },
+    {
+      "name": "the form from the saved query, run by its id; the hash as typed",
+      "assert": "__vars.link.title === 'runner' && __vars.link.name === 'WC Blade' && __vars.link.byId >= 1 && __vars.link.hash === '#/jfss-search?query=' + __vars.blade.id && __vars.link.kinds === 'Movies'"
+    },
+    {
+      "name": "a hard reload",
+      "reload": true
+    },
+    {
+      "name": "after the reload",
+      "waitFor": "!!window.__ss && !!__ss.root() && !!__ss.q('.jfss-saved-name') && __ss.q('.jfss-saved-name').textContent === 'WC Blade' && __ss.q('.jfss-title').value === 'runner' && !!__ss.done()",
+      "timeout": 25000
+    },
+    {
+      "name": "title 'test', Save as new…",
+      "script": "__ss.set('.jfss-title', 'test'); __ss.q('.jfss-save-as-new').click(); return true;"
+    },
+    {
+      "name": "the dialog",
+      "waitFor": "!!__ss.dialog() && __ss.dialog().querySelector('h3').textContent === 'Save as a new query'"
+    },
+    {
+      "name": "type its name",
+      "type": "WC Test"
+    },
+    {
+      "key": "Enter"
+    },
+    {
+      "name": "the second query is open",
+      "waitFor": "!__ss.dialog() && __ss.q('.jfss-saved-name').textContent === 'WC Test'",
+      "timeout": 15000
+    },
+    {
+      "name": "its id",
+      "eval": "/[?&]query=([0-9a-f]{32})/.exec(location.hash)[1]",
+      "save": "testId"
+    },
+    {
+      "name": "the first query's link",
+      "goto": "/web/index.html#/jfss-search?query=${bladeId}"
+    },
+    {
+      "name": "the first",
+      "waitFor": "!!__ss.root() && !!__ss.q('.jfss-saved-name') && __ss.q('.jfss-saved-name').textContent === 'WC Blade' && __ss.q('.jfss-title').value === 'runner' && !!__ss.done()",
+      "timeout": 20000
+    },
+    {
+      "name": "the second query's link",
+      "script": "location.hash = '#/jfss-search?query=' + __vars.testId; return true;"
+    },
+    {
+      "name": "the second",
+      "waitFor": "!!__ss.root() && !!__ss.q('.jfss-saved-name') && __ss.q('.jfss-saved-name').textContent === 'WC Test' && __ss.q('.jfss-title').value === 'test' && !!__ss.done()",
+      "timeout": 20000
+    },
+    {
+      "name": "Back",
+      "script": "history.back(); return true;"
+    },
+    {
+      "name": "Back shows the first again",
+      "waitFor": "!!__ss.root() && !!__ss.q('.jfss-saved-name') && __ss.q('.jfss-saved-name').textContent === 'WC Blade' && __ss.q('.jfss-title').value === 'runner' && !!__ss.done()",
+      "timeout": 20000
+    },
+    {
+      "name": "Forward",
+      "script": "history.forward(); return true;"
+    },
+    {
+      "name": "Forward shows the second again",
+      "waitFor": "!!__ss.root() && !!__ss.q('.jfss-saved-name') && __ss.q('.jfss-saved-name').textContent === 'WC Test' && !!__ss.done()",
+      "timeout": 20000
+    },
+    {
+      "name": "the Saved queries tab",
+      "click": "[data-jfss-page=\"search\"] [role=\"tab\"][data-jfss-tab=\"saved\"]"
+    },
+    {
+      "name": "the list",
+      "waitFor": "__ss.names().includes('WC Blade') && __ss.names().includes('WC Two libraries')",
+      "timeout": 15000
+    },
+    {
+      "name": "the list's rows",
+      "eval": "({ hash: location.hash, names: __ss.names(), mine: __ss.action('WC Blade', '.jfss-saved-actions') && [...__ss.action('WC Blade', '.jfss-saved-actions').querySelectorAll('button')].map(b => b.getAttribute('aria-label')), theirs: [...__ss.action('WC Two libraries', '.jfss-saved-actions').querySelectorAll('button')].map(b => b.getAttribute('aria-label')), owner: __ss.action('WC Two libraries', '.jfss-saved-owner').textContent, noHScroll: __ss.noHScroll() })",
+      "save": "list",
+      "full": true
+    },
+    {
+      "name": "the user's own and admin's shared; own rows' actions; others' Duplicate and Copy link only",
+      "assert": "/tab=saved/.test(__vars.list.hash) && __vars.list.mine.join('|') === 'Rename WC Blade|Duplicate WC Blade|Stop sharing WC Blade|Copy the link to WC Blade|Delete WC Blade' && __vars.list.theirs.join('|') === 'Duplicate WC Two libraries|Copy the link to WC Two libraries' && __vars.list.owner === 'Shared by admin' && __vars.list.noHScroll"
+    },
+    {
+      "name": "the name of markup and controls",
+      "eval": "(() => { const r = __ss.rows().find(x => x.getAttribute('data-jfss-query') === __vars.setup.evilId); const bdi = r.querySelector('.jfss-saved-open bdi'); return { text: bdi.textContent, dir: bdi.getAttribute('dir'), elements: r.querySelectorAll('img, b').length, description: r.querySelector('.jfss-saved-description').textContent, pwned: window.__pwned === undefined, label: r.querySelector('.jfss-duplicate').getAttribute('aria-label') }; })()",
+      "save": "evil",
+      "full": true
+    },
+    {
+      "name": "it is text: no element from it, the control character as U+FFFD, isolated in a bdi",
+      "assert": "__vars.evil.text === 'WC <img src=x onerror=\\\"window.__pwned=1\\\">\\u202Eevil\\uFFFD \\u05E9\\u05DC\\u05D5\\u05DD' && __vars.evil.dir === 'auto' && __vars.evil.elements === 0 && __vars.evil.description === '<b>not bold</b>' && __vars.evil.pwned && __vars.evil.label === 'Duplicate ' + __vars.evil.text"
+    },
+    {
+      "screenshot": "smartsearch-saved-list.png"
+    },
+    {
+      "name": "find 'two'",
+      "script": "__ss.q('.jfss-find').focus(); return true;"
+    },
+    {
+      "name": "type it",
+      "type": "two"
+    },
+    {
+      "name": "found",
+      "waitFor": "__ss.names().join() === 'WC Two libraries' && /find=two/.test(location.hash)"
+    },
+    {
+      "name": "clear the find",
+      "script": "__ss.set('.jfss-find', ''); return true;"
+    },
+    {
+      "name": "the find cleared",
+      "waitFor": "!/find=/.test(location.hash) && __ss.names().includes('WC Two libraries')"
+    },
+    {
+      "name": "filter Mine",
+      "script": "__ss.all('.jfss-filter')[0].click(); return true;"
+    },
+    {
+      "name": "Mine: the user's own only",
+      "waitFor": "__ss.names().length === 2 && __ss.names().slice().sort().join() === 'WC Blade,WC Test' && /scope=Mine/.test(location.hash)",
+      "timeout": 15000
+    },
+    {
+      "name": "filter All",
+      "script": "__ss.all('.jfss-filter')[2].click(); return true;"
+    },
+    {
+      "name": "All again",
+      "waitFor": "__ss.names().includes('WC Two libraries')",
+      "timeout": 15000
+    },
+    {
+      "name": "F5: Rename WC Test",
+      "script": "__ss.action('WC Test', '.jfss-rename').click(); return true;"
+    },
+    {
+      "name": "the rename dialog with its name",
+      "waitFor": "!!__ss.dialog() && __ss.dialog().querySelector('h3').textContent === 'Rename' && __ss.dialog().querySelector('.jfss-name-input').value === 'WC Test'"
+    },
+    {
+      "name": "a new name",
+      "script": "const i = __ss.dialog().querySelector('.jfss-name-input'); i.value = 'WC Test renamed'; i.focus(); return true;"
+    },
+    {
+      "key": "Enter"
+    },
+    {
+      "name": "renamed in the list",
+      "waitFor": "!__ss.dialog() && __ss.names().includes('WC Test renamed') && !__ss.names().includes('WC Test')",
+      "timeout": 15000
+    },
+    {
+      "name": "Share WC Test renamed",
+      "script": "__ss.action('WC Test renamed', '.jfss-share').click(); return true;"
+    },
+    {
+      "name": "the share question",
+      "waitFor": "!!__ss.dialog() && __ss.dialog().querySelector('h3').textContent === 'Share this query'"
+    },
+    {
+      "screenshot": "smartsearch-saved-share.png"
+    },
+    {
+      "name": "Share",
+      "script": "__ss.dbutton('Share').click(); return true;"
+    },
+    {
+      "name": "shared",
+      "waitFor": "!__ss.dialog() && !!__ss.action('WC Test renamed', '.jfss-share') && __ss.action('WC Test renamed', '.jfss-share').getAttribute('aria-label') === 'Stop sharing WC Test renamed'",
+      "timeout": 15000
+    },
+    {
+      "name": "Duplicate admin's WC Two libraries",
+      "script": "__ss.action('WC Two libraries', '.jfss-duplicate').click(); return true;"
+    },
+    {
+      "name": "the duplicate dialog",
+      "waitFor": "!!__ss.dialog() && __ss.dialog().querySelector('.jfss-name-input').value === 'WC Two libraries'"
+    },
+    {
+      "name": "Save the copy",
+      "script": "__ss.dialog().querySelector('.jfss-dialog-submit').click(); return true;"
+    },
+    {
+      "name": "the copy is the user's",
+      "waitFor": "!__ss.dialog() && __ss.rows().filter(r => r.querySelector('.jfss-saved-open').textContent === 'WC Two libraries').length === 2 && __ss.rows().some(r => r.querySelector('.jfss-saved-open').textContent === 'WC Two libraries' && !!r.querySelector('.jfss-delete'))",
+      "timeout": 15000
+    },
+    {
+      "name": "Copy link of WC Blade",
+      "script": "__ss.action('WC Blade', '.jfss-copy-link').click(); return true;"
+    },
+    {
+      "name": "copied, or shown",
+      "waitFor": "/Link copied\\./.test(__ss.toast()) || (!!__ss.dialog() && !!__ss.dialog().querySelector('.jfss-link-input'))",
+      "timeout": 10000
+    },
+    {
+      "name": "the link",
+      "eval": "(async () => { const d = __ss.dialog(); let link = d && d.querySelector('.jfss-link-input') ? d.querySelector('.jfss-link-input').value : null; if (!link) { try { link = await navigator.clipboard.readText(); } catch (e) { link = 'unreadable'; } } if (d) { d.querySelector('button').click(); } return link; })()",
+      "save": "copied"
+    },
+    {
+      "name": "the query's link on this server (when the clipboard can be read back)",
+      "assert": "__vars.copied === 'unreadable' || __vars.copied === location.origin + '/web/index.html#/jfss-search?query=' + __vars.blade.id || __vars.copied === location.href.split('#')[0] + '#/jfss-search?query=' + __vars.blade.id"
+    },
+    {
+      "name": "open WC Blade from the list",
+      "script": "__ss.row('WC Blade').querySelector('.jfss-saved-open').click(); return true;"
+    },
+    {
+      "name": "opened",
+      "waitFor": "!!__ss.root() && !!__ss.q('.jfss-saved-name') && __ss.q('.jfss-saved-name').textContent === 'WC Blade' && /tab=search/.test(location.hash) && !!__ss.done()",
+      "timeout": 20000
+    },
+    {
+      "name": "back to the list",
+      "script": "__ss.q('[data-jfss-tab=\"saved\"]').click(); return true;"
+    },
+    {
+      "name": "the list again",
+      "waitFor": "__ss.names().includes('WC Blade')",
+      "timeout": 15000
+    },
+    {
+      "name": "F6: Delete WC Blade",
+      "script": "__ss.action('WC Blade', '.jfss-delete').focus(); __ss.action('WC Blade', '.jfss-delete').click(); return true;"
+    },
+    {
+      "name": "the delete question",
+      "waitFor": "!!__ss.dialog() && __ss.dialog().querySelector('p').textContent === 'Delete \\u2068WC Blade\\u2069? This can\\'t be undone.'"
+    },
+    {
+      "screenshot": "smartsearch-saved-delete.png"
+    },
+    {
+      "name": "Delete",
+      "script": "__ss.dbutton('Delete').click(); return true;"
+    },
+    {
+      "name": "gone from the list and the server; the open query closed",
+      "waitFor": "(async () => !__ss.dialog() && !__ss.names().includes('WC Blade') && (await __ss.api('GET', 'SmartSearch/Queries/' + __vars.blade.id)).status === 404 && !/query=/.test(location.hash))()",
+      "timeout": 15000
+    },
+    {
+      "name": "viewer2, in a browser of its own",
+      "context": "viewer2"
+    },
+    {
+      "name": "a desktop screen (viewer2)",
+      "emulate": "desktop"
+    },
+    {
+      "name": "page helpers (viewer2)",
+      "initScript": "\nwindow.__ss = {\n  root: () => [...document.querySelectorAll('[data-jfss-page=\"search\"][data-jfss-mounted] .jfss-search')].find(x => x.getClientRects().length > 0) || null,\n  q: (s) => { const r = window.__ss.root(); return r ? r.querySelector(s) : null; },\n  all: (s) => { const r = window.__ss.root(); return r ? [...r.querySelectorAll(s)] : []; },\n  set: (s, v) => { const e = window.__ss.q(s); e.value = v; e.dispatchEvent(new Event('input', { bubbles: true })); e.dispatchEvent(new Event('change', { bubbles: true })); return true; },\n  ready: () => !!window.__ss.q('.jfss-scope') && !!window.__ss.q('.jfss-search-button'),\n  done: () => { const c = window.__ss.q('.jfss-count'); const n = window.__ss.q('.jfss-notices'); if (c && c.textContent && !/Searching/.test(c.textContent)) return c.textContent; if (n && n.textContent) return n.textContent; return false; },\n  ids: () => window.__ss.all('.jfss-card, .jfss-row').map(x => x.getAttribute('data-id')),\n  norm: (ids) => ids.map(i => String(i).replace(/-/g, '').toLowerCase()).sort().join(),\n  noHScroll: () => document.documentElement.scrollWidth <= innerWidth && window.__ss.root().scrollWidth <= window.__ss.root().clientWidth + 1,\n  box: (e) => { const r = e.getBoundingClientRect(); return [Math.round(r.width), Math.round(r.height)]; },\n  api: async (method, path, body) => { const r = await fetch(ApiClient.getUrl(path), { method, headers: { 'X-Emby-Token': ApiClient.accessToken(), 'Content-Type': 'application/json' }, body: body === undefined ? undefined : JSON.stringify(body) }); const t = await r.text(); return { status: r.status, body: t ? JSON.parse(t) : null }; },\n  cleanup: async (prefix) => { const list = (await window.__ss.api('GET', 'SmartSearch/Queries?scope=Mine&limit=500')).body.Items; let n = 0; for (const q of list) { if (q.Name.indexOf(prefix) === 0) { await window.__ss.api('DELETE', 'SmartSearch/Queries/' + q.Id); n++; } } return n; },\n  dialog: () => { const d = [...document.querySelectorAll('[role=\"dialog\"]')].filter(x => x.getClientRects().length > 0); return d[d.length - 1] || null; },\n  dbutton: (text) => { const d = window.__ss.dialog(); return d ? [...d.querySelectorAll('button')].find(b => b.textContent === text) || null : null; },\n  rows: () => window.__ss.all('.jfss-saved-row'),\n  names: () => window.__ss.rows().map(r => r.querySelector('.jfss-saved-open').textContent),\n  row: (name) => window.__ss.rows().find(r => r.querySelector('.jfss-saved-open').textContent === name) || null,\n  action: (name, cls) => { const r = window.__ss.row(name); return r ? r.querySelector(cls) : null; },\n  toast: () => [...document.querySelectorAll('.jfss-toast')].map(t => t.textContent).join(' | '),\n  runs: (id) => performance.getEntriesByType('resource').filter(e => e.name.indexOf('SmartSearch/Queries/' + id + '/Search') >= 0).length,\n  searches: () => performance.getEntriesByType('resource').filter(e => /SmartSearch\\/Search$/.test(e.name)).length\n};\n"
+    },
+    {
+      "name": "sign in as viewer2",
+      "login": "viewer2"
+    },
+    {
+      "name": "the Smart Search script ran (viewer2)",
+      "waitFor": "!!window.__jfkit && !!window.__jfkit.jfss && !!window.ApiClient && !!ApiClient.getCurrentUserId()",
+      "timeout": 20000
+    },
+    {
+      "goto": "/web/index.html#/jfss-search?tab=saved"
+    },
+    {
+      "name": "viewer2's list",
+      "waitFor": "!!window.__ss && __ss.names().includes('WC Two libraries') && __ss.names().includes('WC Test renamed')",
+      "timeout": 20000
+    },
+    {
+      "name": "viewer's shared query is there, by viewer",
+      "assert": "__ss.action('WC Test renamed', '.jfss-saved-owner').textContent === 'Shared by viewer'"
+    },
+    {
+      "name": "open WC Two libraries",
+      "script": "__ss.row('WC Two libraries').querySelector('.jfss-saved-open').click(); return true;"
+    },
+    {
+      "name": "it ran",
+      "waitFor": "!!__ss.root() && !!__ss.q('.jfss-saved-name') && __ss.q('.jfss-saved-name').textContent === 'WC Two libraries' && !!__ss.done() && !/Searching/.test(__ss.q('.jfss-count').textContent)",
+      "timeout": 25000
+    },
+    {
+      "name": "what viewer2 sees",
+      "eval": "(async () => ({ chip: __ss.q('.jfss-badge-unavailable') && __ss.q('.jfss-badge-unavailable').textContent, advanced: __ss.q('.jfss-basic-fields').classList.contains('hide') && !__ss.q('.jfss-advanced').classList.contains('hide') && __ss.all('.jfss-mode').filter(b => b.getAttribute('aria-pressed') === 'true').map(b => b.textContent).join() === 'Advanced' && __ss.q('.jfss-mode[data-jfss-mode=\"basic\"]').disabled, mine: __ss.norm(__ss.ids()), server: __ss.norm((await ApiClient.getItems(ApiClient.getCurrentUserId(), { Recursive: true, IncludeItemTypes: 'Movie', ParentId: __vars.setup.movies })).Items.map(i => i.Id)), byId: __ss.runs(__vars.setup.twoId), html: document.documentElement.outerHTML.toLowerCase().indexOf(__vars.setup.movies2.replace(/-/g, '').toLowerCase()) < 0 && document.documentElement.outerHTML.indexOf(__vars.setup.movies2) < 0, pageText: __ss.root().textContent.indexOf('Movies 2') < 0, hash: location.hash }))()",
+      "save": "v2",
+      "full": true
+    },
+    {
+      "name": "one library not available, never named or its id shown; open in the advanced form (the basic form can't hold a library the user can't open); the movies of Movies viewer2 can see; run by id",
+      "assert": "__vars.v2.chip === '1 library not available to you' && __vars.v2.advanced && __vars.v2.mine === __vars.v2.server && __vars.v2.mine.length > 0 && __vars.v2.byId >= 1 && __vars.v2.html && __vars.v2.pageText && __vars.v2.hash.indexOf(__vars.setup.movies2) < 0"
+    },
+    {
+      "screenshot": "smartsearch-saved-unavailable.png"
+    },
+    {
+      "name": "admin again",
+      "context": "main"
+    },
+    {
+      "name": "sharing off",
+      "script": "const id = 'd92488d5409f4ad0af1d3615db9d0513'; const c = (await __ss.api('GET', 'Plugins/' + id + '/Configuration')).body; c.AllowQuerySharing = false; return (await __ss.api('POST', 'Plugins/' + id + '/Configuration', c)).status;",
+      "save": "off"
+    },
+    {
+      "name": "viewer2 again",
+      "context": "viewer2"
+    },
+    {
+      "goto": "/web/index.html#/jfss-search?tab=saved&run=0"
+    },
+    {
+      "name": "the list without others' shared queries",
+      "waitFor": "!!window.__ss && !!__ss.q('.jfss-saved-count') && /saved quer/.test(__ss.q('.jfss-saved-count').textContent) && !__ss.names().includes('WC Two libraries') && !__ss.names().includes('WC Test renamed')",
+      "timeout": 20000
+    },
+    {
+      "name": "admin, sharing on again",
+      "context": "main"
+    },
+    {
+      "name": "sharing on",
+      "script": "const id = 'd92488d5409f4ad0af1d3615db9d0513'; const c = (await __ss.api('GET', 'Plugins/' + id + '/Configuration')).body; c.AllowQuerySharing = true; return (await __ss.api('POST', 'Plugins/' + id + '/Configuration', c)).status;",
+      "save": "on"
+    },
+    {
+      "name": "the setting changed and back",
+      "assert": "__vars.off === 204 && __vars.on === 204"
+    },
+    {
+      "name": "no uncaught exception (the stale CustomRatings tag is known noise)",
+      "noExceptions": true,
+      "ignore": "CustomRatings"
+    }
+  ]
+}

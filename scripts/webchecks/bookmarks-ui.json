@@ -1,0 +1,136 @@
+{
+  "name": "Bookmarks' web UI end to end (since 1.1 with its editor, rows and section: the Name field first and focused, the Note a textarea, rows by their display title, 'My bookmarks (n)'): the details section, the editor (invalid input, add, edit), the delete confirmation, the player buttons, the B shortcut (its toast offers Name it since 1.1), the player bookmarks list and its seek, and the range button. Every step saves a normalised DOM snapshot (probes/dom-snapshot.js), so two runs, before and after a change, can be compared with compare-snapshots.mjs (against Bookmarks 1.0: --ignore-classes dialog,emby-input,emby-select-withcolor,button-submit --ignore-attrs aria-label,aria-labelledby,id, which leaves only 1.0's stray 'null' text in the delete confirmation; scripts/README.md). Resets the admin's bookmarks on Long Test Movie to two known ones first (sandbox data only).",
+  "failOnException": false,
+  "timeout": 30000,
+  "steps": [
+    { "name": "DOM snapshot helper in every document", "initScript": { "file": "probes/dom-snapshot.js" } },
+    { "name": "sign in as admin", "login": "admin" },
+    { "name": "the Bookmarks script ran", "waitFor": "!!window.__domSnap && document.querySelectorAll('#jfbm-styles').length === 1" },
+    {
+      "name": "find Long Test Movie",
+      "eval": "(await ApiClient.getItems(ApiClient.getCurrentUserId(), { IncludeItemTypes: 'Movie', Recursive: true, SearchTerm: 'Long Test Movie', Limit: 1 })).Items[0].Id",
+      "save": "movieId"
+    },
+    {
+      "name": "reset the movie's bookmarks to a point at 0:15 ('webcheck') and a range 0:30-0:40 ('webcheck-ui range')",
+      "script": "const itemId = __vars.movieId; const url = (p, q) => ApiClient.getUrl(p, q); for (const b of await ApiClient.getJSON(url('Bookmarks', { itemId }))) { await ApiClient.ajax({ type: 'DELETE', url: url('Bookmarks/' + b.Id, { deleteClip: 'true' }) }); } for (const body of [{ ItemId: itemId, StartTicks: 150000000, Note: 'webcheck' }, { ItemId: itemId, StartTicks: 300000000, EndTicks: 400000000, Note: 'webcheck-ui range' }]) { await ApiClient.ajax({ type: 'POST', url: url('Bookmarks'), data: JSON.stringify(body), contentType: 'application/json', dataType: 'json' }); } return (await ApiClient.getJSON(url('Bookmarks', { itemId }))).map(b => ({ StartTicks: b.StartTicks, EndTicks: b.EndTicks, Note: b.Note }));",
+      "full": true
+    },
+    { "name": "open the details page", "goto": "/web/index.html#/details?id=${movieId}" },
+    {
+      "name": "the Bookmarks section lists the two bookmarks",
+      "waitFor": "(() => { const s = document.querySelector('#itemDetailPage:not(.hide) .jfbm-section'); return !!s && !s.classList.contains('hide') && s.querySelector('h2').textContent === 'My bookmarks (2)' && s.querySelectorAll('.jfbm-row').length === 2; })()"
+    },
+    { "name": "snapshot: details section", "eval": "__domSnap('#itemDetailPage:not(.hide) .jfbm-section')", "save": "snapDetailsSection", "full": true },
+    { "name": "snapshot: Add bookmark button", "eval": "__domSnap('#itemDetailPage:not(.hide) .mainDetailButtons .btnBookmarkItem')", "save": "snapAddButton", "full": true },
+    {
+      "name": "the Add bookmark button sits before the more-commands button",
+      "assert": "(() => { const b = document.querySelector('#itemDetailPage:not(.hide) .mainDetailButtons .btnBookmarkItem'); return !!b && !!b.nextElementSibling && b.nextElementSibling.classList.contains('btnMoreCommands'); })()"
+    },
+    {
+      "name": "the section is the first child of the page content",
+      "assert": "document.querySelector('#itemDetailPage:not(.hide) .detailPageContent').firstElementChild.classList.contains('jfbm-section')"
+    },
+    { "screenshot": "bookmarks-ui-details.png" },
+
+    { "name": "open the editor with Add bookmark", "click": "#itemDetailPage:not(.hide) .mainDetailButtons .btnBookmarkItem" },
+    { "name": "the New bookmark editor, with the focus in its Name field", "waitFor": "(() => { const p = document.querySelector('.jfbm-backdrop .jfbm-panel'); return !!p && p.querySelector('h3').textContent === 'New bookmark' && document.activeElement === p.querySelector('input[maxlength=\"100\"]'); })()" },
+    { "name": "snapshot: New bookmark editor", "eval": "__domSnap('.jfbm-backdrop')", "save": "snapEditorNew", "full": true },
+    { "screenshot": "bookmarks-ui-editor.png" },
+    { "name": "type an invalid start", "type": "abc", "selector": ".jfbm-panel input[placeholder=\"h:mm:ss\"]", "clear": true },
+    { "name": "submit", "click": ".jfbm-panel button[type=submit]" },
+    { "name": "the start is refused", "waitFor": "document.querySelector('.jfbm-panel .jfbm-error').textContent === 'Enter the start as h:mm:ss, for example 1:02:03.5.'" },
+    { "name": "type a valid start", "type": "0:07", "selector": ".jfbm-panel input[placeholder=\"h:mm:ss\"]", "clear": true },
+    { "name": "type a note", "type": "webcheck-ui created", "selector": ".jfbm-panel textarea[maxlength=\"500\"]", "clear": true },
+    { "name": "save", "click": ".jfbm-panel button[type=submit]" },
+    { "name": "the editor closes and a toast confirms", "waitFor": "!document.querySelector('.jfbm-backdrop') && [...document.querySelectorAll('.jfbm-toast')].some(t => t.textContent === 'Bookmark added at 0:07.')" },
+    { "name": "snapshot: toast after adding", "eval": "__domSnap('.jfbm-toasts')", "save": "snapToastAdded", "full": true },
+    { "name": "the section now lists three", "waitFor": "document.querySelector('#itemDetailPage:not(.hide) .jfbm-section h2').textContent === 'My bookmarks (3)'" },
+    { "name": "snapshot: details section with three", "eval": "__domSnap('#itemDetailPage:not(.hide) .jfbm-section')", "save": "snapDetailsSection3", "full": true },
+
+    {
+      "name": "open the delete confirmation of the new bookmark",
+      "script": "const row = [...document.querySelectorAll('#itemDetailPage:not(.hide) .jfbm-row')].find(r => r.textContent.includes('webcheck-ui created')); row.querySelector('.jfbm-row-actions button[title=\"Delete\"]').click(); return true;"
+    },
+    { "name": "the confirmation", "waitFor": "(() => { const p = document.querySelector('.jfbm-backdrop .jfbm-panel'); return !!p && p.querySelector('h3').textContent === 'Delete bookmark?'; })()" },
+    { "name": "snapshot: delete confirmation", "eval": "__domSnap('.jfbm-backdrop')", "save": "snapDeleteConfirm", "full": true },
+    { "screenshot": "bookmarks-ui-delete.png" },
+    {
+      "name": "confirm",
+      "script": "[...document.querySelectorAll('.jfbm-panel .jfbm-actions button')].find(b => b.textContent === 'Delete').click(); return true;"
+    },
+    { "name": "deleted, with a toast", "waitFor": "!document.querySelector('.jfbm-backdrop') && [...document.querySelectorAll('.jfbm-toast')].some(t => t.textContent === 'Bookmark deleted.') && document.querySelector('#itemDetailPage:not(.hide) .jfbm-section h2').textContent === 'My bookmarks (2)'" },
+
+    {
+      "name": "open the range bookmark's editor",
+      "script": "const row = [...document.querySelectorAll('#itemDetailPage:not(.hide) .jfbm-row')].find(r => r.textContent.includes('webcheck-ui range')); row.querySelector('.jfbm-row-actions button[title=\"Edit\"]').click(); return true;"
+    },
+    {
+      "name": "the Edit bookmark editor with the stored times, the note and the range length, Name focused",
+      "waitFor": "(() => { const p = document.querySelector('.jfbm-backdrop .jfbm-panel'); if (!p || p.querySelector('h3').textContent !== 'Edit bookmark') return false; const v = [...p.querySelectorAll('input[type=text]')].map(i => i.value); return v[0] === '' && v[1] === '0:30.0' && v[2] === '0:40.0' && p.querySelector('textarea').value === 'webcheck-ui range' && p.querySelector('.jfbm-hint').textContent === 'Range length 0:10.0' && document.activeElement === p.querySelector('input[maxlength=\"100\"]'); })()"
+    },
+    { "name": "snapshot: Edit bookmark editor", "eval": "__domSnap('.jfbm-backdrop')", "save": "snapEditorEdit", "full": true },
+    { "name": "Escape closes it", "key": "Escape" },
+    { "name": "closed", "waitFor": "!document.querySelector('.jfbm-backdrop')" },
+
+    { "name": "details page with a Play button", "waitFor": "!!document.querySelector('#itemDetailPage:not(.hide) .mainDetailButtons .btnPlay:not(.hide)')", "timeout": 20000 },
+    { "name": "start playback", "click": "#itemDetailPage:not(.hide) .mainDetailButtons .btnPlay:not(.hide)" },
+    {
+      "name": "video page, video playing",
+      "waitFor": "location.hash.indexOf('#/video') === 0 && (v => !!v && !v.paused && v.currentTime > 1)(document.querySelector('.videoPlayerContainer video'))",
+      "timeout": 60000
+    },
+    { "name": "the three player buttons", "waitFor": "document.querySelectorAll('.videoOsdBottom .buttons .btnBookmarkAdd, .videoOsdBottom .buttons .btnBookmarkRange, .videoOsdBottom .buttons .btnBookmarkList').length === 3", "timeout": 20000 },
+    {
+      "name": "snapshot: player buttons and their neighbours",
+      "eval": "(() => { const add = document.querySelector('.videoOsdBottom .buttons .btnBookmarkAdd'); const buttons = [...add.parentElement.children]; const i = buttons.indexOf(add); return { buttons: [add, add.nextElementSibling, add.nextElementSibling.nextElementSibling].map(b => __domSnap(b)), next: (buttons[i + 3] && buttons[i + 3].className) || null }; })()",
+      "save": "snapPlayerButtons",
+      "full": true
+    },
+    { "name": "the earlier toasts have gone (they last 4 s), so the next snapshot holds only B's", "waitFor": "document.querySelectorAll('.jfbm-toast').length === 0", "timeout": 10000 },
+    { "sleep": 500 },
+    { "name": "press Shift, then Shift+B", "key": "Shift" },
+    { "key": "Shift+B" },
+    {
+      "name": "B created a bookmark, with a toast that offers Edit",
+      "waitFor": "(async () => (await ApiClient.getJSON(ApiClient.getUrl('Bookmarks', { itemId: __vars.movieId }))).length === 3 && [...document.querySelectorAll('.jfbm-toast')].some(t => /^Bookmarked at \\d+:\\d\\d\\.Name it$/.test(t.textContent)))()",
+      "timeout": 10000
+    },
+    { "name": "snapshot: toast after B", "eval": "JSON.parse(JSON.stringify(__domSnap('.jfbm-toasts')).replace(/\\d+:\\d\\d(\\.\\d)?/g, '<t>'))", "save": "snapToastB", "full": true },
+    { "screenshot": "bookmarks-ui-player-toast.png" },
+    { "name": "open the player's bookmarks list", "click": ".videoOsdBottom .buttons .btnBookmarkList", "js": true },
+    { "name": "the list dialog with three rows", "waitFor": "(() => { const p = document.querySelector('.jfbm-backdrop .jfbm-panel'); return !!p && p.querySelector('h3').textContent === 'Bookmarks' && p.querySelectorAll('.jfbm-row').length === 3; })()" },
+    { "name": "snapshot: player bookmarks list", "eval": "JSON.parse(JSON.stringify(__domSnap('.jfbm-backdrop')).replace(/\\d+:\\d\\d(\\.\\d)?/g, '<t>'))", "save": "snapPlayerList", "full": true },
+    { "screenshot": "bookmarks-ui-player-list.png" },
+    {
+      "name": "jump to 0:15",
+      "script": "[...document.querySelectorAll('.jfbm-panel .jfbm-row')].find(r => r.textContent.includes('webcheck') && !r.textContent.includes('range')).querySelector('.jfbm-time-button').click(); return true;"
+    },
+    { "name": "the dialog closes", "waitFor": "!document.querySelector('.jfbm-backdrop')" },
+    {
+      "name": "the session plays at about 0:15 (Sessions API seek)",
+      "waitFor": "(async () => { const s = (await ApiClient.getJSON(ApiClient.getUrl('Sessions', { deviceId: ApiClient.deviceId() })))[0]; const p = s && s.PlayState && s.PlayState.PositionTicks; return typeof p === 'number' && p >= 140000000 && p < 250000000 ? p : false; })()",
+      "timeout": 20000
+    },
+    { "name": "mark a range start", "click": ".videoOsdBottom .buttons .btnBookmarkRange", "js": true },
+    { "name": "the range toast and the active button", "waitFor": "document.querySelector('.btnBookmarkRange').classList.contains('jfbm-active') && [...document.querySelectorAll('.jfbm-toast')].some(t => /^Range starts at \\d+:\\d\\d\\. Press the scissors again at the end\\.Cancel$/.test(t.textContent))" },
+    { "name": "snapshot: range button while active", "eval": "JSON.parse(JSON.stringify(__domSnap('.btnBookmarkRange')).replace(/\\d+:\\d\\d(\\.\\d)?/g, '<t>'))", "save": "snapRangeActive", "full": true },
+    { "sleep": 2500 },
+    { "name": "mark the range end", "click": ".videoOsdBottom .buttons .btnBookmarkRange", "js": true },
+    {
+      "name": "the editor opens with the range, Name focused",
+      "waitFor": "(() => { const p = document.querySelector('.jfbm-backdrop .jfbm-panel'); if (!p || p.querySelector('h3').textContent !== 'New bookmark') return false; const v = [...p.querySelectorAll('input[type=text]')].map(i => i.value); return v[0] === '' && document.activeElement === p.querySelector('input[maxlength=\"100\"]') && /^\\d+:\\d\\d\\.\\d$/.test(v[1]) && /^\\d+:\\d\\d\\.\\d$/.test(v[2]) && /^Range length \\d+:\\d\\d\\.\\d/.test(p.querySelector('.jfbm-hint').textContent) && !document.querySelector('.btnBookmarkRange').classList.contains('jfbm-active'); })()"
+    },
+    { "name": "snapshot: range editor", "eval": "JSON.parse(JSON.stringify(__domSnap('.jfbm-backdrop')).replace(/\\d+:\\d\\d(\\.\\d)?/g, '<t>'))", "save": "snapRangeEditor", "full": true },
+    { "screenshot": "bookmarks-ui-range-editor.png" },
+    { "name": "Escape closes it", "key": "Escape" },
+    { "name": "closed", "waitFor": "!document.querySelector('.jfbm-backdrop')" },
+    { "name": "leave the player", "goto": "/web/index.html#/details?id=${movieId}" },
+    { "name": "details page again", "waitFor": "(() => { const s = document.querySelector('#itemDetailPage:not(.hide) .jfbm-section'); return !!s && s.querySelector('h2').textContent === 'My bookmarks (3)'; })()", "timeout": 20000 },
+    {
+      "name": "remove the bookmark made with B",
+      "script": "for (const b of await ApiClient.getJSON(ApiClient.getUrl('Bookmarks', { itemId: __vars.movieId }))) { if (!b.Note) { await ApiClient.ajax({ type: 'DELETE', url: ApiClient.getUrl('Bookmarks/' + b.Id, { deleteClip: 'true' }) }); } } return (await ApiClient.getJSON(ApiClient.getUrl('Bookmarks', { itemId: __vars.movieId }))).length;"
+    },
+    { "name": "no uncaught exceptions (the stale CustomRatings tag, and jellyfin-web's own 'player cannot be null' when the player is left, excepted)", "noExceptions": true, "ignore": "/CustomRatings/script|^Error: player cannot be null" }
+  ]
+}

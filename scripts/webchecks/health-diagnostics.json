@@ -1,0 +1,24 @@
+{
+  "description": "The kit's client health reports in Diagnostics: as admin, after health-missing-anchor.json and health-native.json on a fresh server process. GET /Bookmarks/Admin/Diagnostics lists the viewer's report (web 10.11.5) and viewer2's (web unknown, Jellyfin Media Player 1.12.0) and nothing forged; the report counts show the dropped ones (MaxEntries 200, none made room); the settings page's Diagnostics section shows both rows, written as text, and counts every dropped report in its summary.",
+  "steps": [
+    { "name": "sign in as admin", "login": "admin" },
+    { "name": "the Bookmarks script ran", "waitFor": "!!window.__jfkit && !!window.__jfkit.jfbm && !!window.ApiClient && !!ApiClient.getCurrentUserId()" },
+    { "name": "GET /Bookmarks/Admin/Diagnostics", "eval": "await ApiClient.getJSON(ApiClient.getUrl('Bookmarks/Admin/Diagnostics'))", "save": "diagnostics", "full": true },
+    { "name": "the viewer's report: detailButtons on details, web 10.11.5, required", "assert": "__vars.diagnostics.ClientHealth.some(e => e.Anchor === 'detailButtons' && e.View === 'details' && e.WebVersion === '10.11.5' && e.Client === 'Jellyfin Web' && e.Required === true && e.Users === 1 && e.Reports === 1)" },
+    { "name": "viewer2's report: WebVersion null, Jellyfin Media Player 1.12.0", "assert": "__vars.diagnostics.ClientHealth.some(e => e.Anchor === 'detailButtons' && e.WebVersion === null && e.Client === 'Jellyfin Media Player' && e.ClientVersion === '1.12.0')" },
+    { "name": "nothing forged was kept: two entries, both detailButtons on details", "assert": "__vars.diagnostics.ClientHealth.length === 2 && __vars.diagnostics.ClientHealth.every(e => e.Anchor === 'detailButtons' && e.View === 'details')" },
+    { "name": "the counts: 2 accepted, 7 invalid (the Arabic-Indic digits too), 5 rate-limited, 1 too large, none from too many web clients, none made room", "assert": "(r => r.Accepted === 2 && r.Invalid === 7 && r.RateLimited === 5 && r.TooLarge === 1 && r.TooManyWebClients === 0 && r.Overflow === 0 && r.Disabled === 0)(__vars.diagnostics.WebAnchors.Reports)" },
+    { "name": "the rest of the kit shape", "assert": "(d => d.PluginVersion === '1.2.2.0' && d.Abi.Active === true && d.Store.Status && d.WebAnchors.Reporting === true && d.WebAnchors.Declared.includes('detailButtons') && d.WebAnchors.Problems.length === 0 && d.WebAnchors.MaxEntries === 200 && Array.isArray(d.Pages))(__vars.diagnostics)" },
+    { "name": "open Bookmarks' settings page", "goto": "/web/index.html#/configurationpage?name=Bookmarks" },
+    { "name": "its Diagnostics section lists both reports", "waitFor": "(() => { const t = document.querySelector('#BookmarksClientHealth table'); return !!t && t.querySelectorAll('tr').length === 3; })()", "timeout": 20000 },
+    { "name": "the rows, as text", "eval": "[...document.querySelectorAll('#BookmarksClientHealth tr')].map(r => [...r.children].map(c => c.textContent))", "save": "rows", "full": true },
+    { "name": "one row per web client", "assert": "(t => t.includes('web 10.11.5') && t.includes('web unknown (Jellyfin Media Player 1.12.0)') && t.includes('detailButtons'))(JSON.stringify(__vars.rows))" },
+    { "name": "the summary", "eval": "document.querySelector('#BookmarksDiagnosticsSummary').textContent", "save": "summary", "full": true },
+    { "name": "the summary counts every dropped report", "assert": "__vars.summary.includes('Browser reports: recorded; 2 accepted, 13 dropped (invalid, too frequent, too many web clients for one user, too large or not recorded).')" },
+    { "name": "the list has room: no note that it is full", "assert": "!document.querySelector('#BookmarksClientHealth p')" },
+    { "name": "open the Diagnostics tab and scroll to it", "script": "const p = document.querySelector('#BookmarksConfigPage:not(.hide)'); p.querySelector('#BookmarksTabDiagnostics').click(); p.querySelector('#BookmarksDiagnostics').scrollIntoView(); return !p.querySelector('#BookmarksDiagnostics').classList.contains('hide');" },
+    { "sleep": 300 },
+    { "screenshot": "health-diagnostics-settings.png" },
+    { "name": "no uncaught exceptions (the stale CustomRatings tag excepted)", "noExceptions": true, "ignore": "/CustomRatings/script" }
+  ]
+}

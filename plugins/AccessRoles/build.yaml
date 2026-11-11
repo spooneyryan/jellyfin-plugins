@@ -1,0 +1,72 @@
+---
+name: "Access Roles"
+guid: "7cbc1019-49a5-4b97-8aa2-279de946ef88"
+version: "1.0.3.0"
+targetAbi: "10.11.5.0"
+framework: "net9.0"
+overview: "Roles that keep non-admin users out of settings, the Dashboard's data and libraries they may not open"
+description: >
+  Defines roles of locks and library grants and assigns them to users, so
+  non-admin users can be kept out of their own settings pages per section,
+  out of the admin data and server calls they could still reach, and out of
+  libraries their roles don't grant. Roles, assignments, the effective
+  rules, a preview of every change and the audit log, through
+  the admin API, and the library sync, which writes managed users' library
+  access, also into an admin's own policy save and at a managed user's
+  sign-in; new users get the default roles, and the current setup can be
+  imported unchanged; the settings locks are enforced on the server (refused
+  or merged), and the web client hides the locked settings entry points and
+  pages; the Dashboard's data and server calls are kept from non-admins whose
+  role blocks them, configuration reads, the restart and the public user list
+  are hardened server-wide, and items of libraries a user may not open are
+  kept out of every API answer that leaked them.
+category: "General"
+owner: "NoRepine"
+artifacts:
+- "Jellyfin.Plugin.AccessRoles.dll"
+changelog: |
+  1.0.3
+  - First public release.
+  - Roles for your Jellyfin users: lock parts of their own settings, keep them away from the Dashboard's data and from other users, and choose which libraries they can open.
+  - The server enforces the roles for every client, not just the web client, and every change is previewed before it is saved.
+  1.0.2
+  - Corrected texts. The Libraries tab, the Remove references dialog and the
+    server's answer said that an All except role or a user's Remove list
+    keeps a deleted library left out only until you grant it again. They
+    keep leaving it out after Grant again too, as 1.0.1 already did, until
+    you untick the library in that role or that user's Remove list; the
+    texts now say so. The restart setting and the Overview no longer say
+    the setting also keeps non-admins from shutting the server down:
+    Jellyfin itself lets only administrators shut it down, with the setting
+    on or off.
+  - Fixes in the shared code the plugin is built with: a deleted user's
+    policy that failed is tried again at the next maintenance, a user who
+    is back on the server is skipped and never given it, and Remap by name
+    checks more before it writes. An item the server can't load (such as
+    Jellyfin's own placeholder for detached user data) now counts as not
+    found instead of failing the request.
+  - No data change: 1.0.1's data file, hold file and snapshots are read as
+    they are.
+  1.0.1
+  - Fixes from the final verification of 1.0.0. Restoring a snapshot runs
+    one at a time (a second is refused with nothing changed), and a failed
+    restore takes back only its own hold of the library sync. Confirming
+    the sync after a restore lifts only the hold you looked at: if another
+    restore began since, nothing is lifted and its own dry run is asked
+    for. An import no longer gives a user more than the export had them
+    see when a library their own Remove list leaves out isn't found here:
+    that user's assignment is left out and reported. Removing a deleted
+    library's references keeps what leaves it out (All except roles and
+    users' Remove lists), so a library created again under the same id
+    stays left out of them, also after Grant again; with only those left
+    there is nothing to remove. No data change: 1.0.0's data file, hold
+    file and snapshots are read as they are.
+  1.0.0
+  - The first release, for Jellyfin 10.11.5: roles of settings locks and
+    library grants, enforced on the server for every client; the web
+    client's locked entries hidden; the Dashboard's data and server calls
+    kept from non-admins whose role blocks them; configuration reads, the
+    restart, the public user list and the library leaks hardened for every
+    non-admin; the library sync with its ledger, previews and audit log;
+    Import current setup; lockout and recovery (Degraded mode, the
+    emergency stop, Release all locks); export, import and restore.

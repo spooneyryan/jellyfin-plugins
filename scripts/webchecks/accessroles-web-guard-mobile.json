@@ -1,0 +1,21 @@
+{
+  "description": "The web guard on a 375 px phone: viewer with the probe's Guest role on a 375x812 touch screen (html.layout-mobile). The drawer (opened with its header button; the edge swipe opens the same drawer) has no Settings link; the header's user button leads to the Settings menu with Sign out and the note; a typed locked URL ends on Home. Reads only.",
+  "timeout": 30000,
+  "steps": [
+    { "name": "a phone", "emulate": { "width": 375, "height": 812, "deviceScaleFactor": 2, "mobile": true, "touch": true } },
+    { "name": "the mobile layout", "initScript": "localStorage.setItem('layout', 'mobile')" },
+    { "name": "sign in as viewer", "login": "viewer" },
+    { "name": "the guard has viewer's /Me (every section locked) in the mobile layout", "waitFor": "!!window.__jfkit && !!window.__jfkit.jfar && __jfkit.jfar.instance.accessRoles.rules().source === 'me' && document.documentElement.classList.contains('jfar-lock-allsettings') && document.documentElement.classList.contains('layout-mobile')" },
+    { "name": "open the drawer", "script": "const b = document.querySelector('.mainDrawerButton'); if (b) b.click(); await new Promise((r) => setTimeout(r, 1200)); return !!b;", "save": "drawer" },
+    { "name": "the drawer has no Settings link", "assert": "(() => { const s = document.querySelector('.mainDrawer .btnSettings') || document.querySelector('a.navMenuOption[data-itemid=\"settings\"]'); return __vars.drawer === true && (!s || getComputedStyle(s).display === 'none'); })()" },
+    { "screenshot": "accessroles-web-guard-mobile-drawer.png" },
+    { "name": "close the drawer", "key": "Escape" },
+    { "sleep": 600 },
+    { "name": "the header's user button leads to the Settings menu", "script": "const u = document.querySelector('.headerUserButton'); if (u) u.click(); await new Promise((r) => setTimeout(r, 2500)); return location.hash;", "save": "user" },
+    { "name": "Sign out and the note", "waitFor": "location.hash.startsWith('#/mypreferencesmenu') && !!document.querySelector('#myPreferencesMenuPage:not(.hide) .btnLogout') && !!document.querySelector('#myPreferencesMenuPage:not(.hide) [data-jfar-note]')" },
+    { "screenshot": "accessroles-web-guard-mobile-settings.png" },
+    { "name": "a typed locked URL", "script": "location.hash = '#/userprofile'; await new Promise((r) => setTimeout(r, 3000)); return location.hash;", "save": "typed" },
+    { "name": "it ended on Home", "assert": "__vars.typed.startsWith('#/home')" },
+    { "name": "no uncaught exceptions (the stale CustomRatings tag excepted)", "noExceptions": true, "ignore": "/CustomRatings/script" }
+  ]
+}

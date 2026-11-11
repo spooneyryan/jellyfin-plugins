@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>User Ratings</title>
+</head>
+<body>
+    <div id="UserRatingsConfigPage" data-role="page" class="page type-interior pluginConfigurationPage" data-require="emby-input,emby-button">
+        <!-- Inside the page element, which is all jellyfin-web keeps of this file. The tabs (Settings |
+             Moderation | Data | Diagnostics), as Bookmarks' settings page has them: tab buttons under
+             the warning banners, which stay above them on every tab; the tab isn't kept in the address, because a
+             dashboard page's hash belongs to jellyfin-web's router. Development builds 0.3.x: Diagnostics first;
+             then Data's counts of detached ratings and the Ambiguous banner, and Detach now for the ratings
+             kept on items that are gone; then the Moderation tab and the Settings tab (every setting), both
+             the AdminScript module (GET UserRatings/AdminScript), imported once, when the page is first shown;
+             then the rest of Data. -->
+        <style>
+            #UserRatingsConfigPage {
+                overflow-wrap: break-word;
+            }
+
+            #UserRatingsConfigPage .userRatingsBanner {
+                margin: 0 0 1.2em;
+                padding: .8em 1em;
+                border-left: .3em solid #f0ad4e;
+                border-radius: .2em;
+                background: rgba(240, 173, 78, .16);
+                line-height: 1.4;
+            }
+
+            #UserRatingsConfigPage .userRatingsTabs {
+                display: flex;
+                flex-wrap: wrap;
+                gap: .3em;
+                margin: 0 0 1.5em;
+                border-bottom: 1px solid rgba(128, 128, 128, .35);
+            }
+
+            #UserRatingsConfigPage .userRatingsTab {
+                margin: 0;
+                padding: .6em 1.2em;
+                border-bottom: .2em solid transparent;
+                border-radius: 0;
+                background: transparent;
+                opacity: .75;
+            }
+
+            #UserRatingsConfigPage .userRatingsTab[aria-selected="true"] {
+                border-bottom-color: currentColor;
+                opacity: 1;
+                font-weight: 600;
+            }
+
+            /* A table wider than the screen scrolls sideways inside its box, never the page. */
+            #UserRatingsConfigPage .userRatingsTableScroll {
+                margin-left: -1em;
+                overflow-x: auto;
+            }
+
+            #UserRatingsConfigPage .userRatingsTable {
+                border-spacing: 1em .4em;
+                text-align: left;
+            }
+
+            #UserRatingsConfigPage .userRatingsTable th {
+                font-weight: 600;
+                vertical-align: top;
+            }
+
+            @media (forced-colors: active) {
+                #UserRatingsConfigPage .userRatingsBanner {
+                    border: 1px solid CanvasText;
+                    border-left-width: .3em;
+                }
+
+                #UserRatingsConfigPage .userRatingsTab[aria-selected="true"] {
+                    border-bottom-color: Highlight;
+                }
+            }
+        </style>
+        <div data-role="content">
+            <!-- focuscontainer-y: in the TV layout jellyfin-web's D-pad takes the nearest control in the direction
+                 pressed, and the dashboard's drawer is often nearer than the next control of a tab under its heading and
+                 intro; Up and Down now stay among the banners, the tabs and the tab shown (Left still reaches the drawer). -->
+            <div class="content-primary focuscontainer-y">
+                <!-- Warnings from Diagnostics, above the tabs, read each time the page is shown: the ratings
+                     database's state (read-only, restored from a snapshot, started empty); Jellyfin Enhanced's reviews
+                     still on come with the import, the Restore button with the Data tab. -->
+                <div id="UserRatingsBanners"></div>
+
+                <div id="UserRatingsTabs" class="userRatingsTabs" role="tablist" aria-label="User Ratings">
+                    <button is="emby-button" type="button" role="tab" id="UserRatingsTabSettings" class="userRatingsTab" data-tab="Settings" aria-controls="UserRatingsSettings" aria-selected="true" tabindex="0">Settings</button>
+                    <button is="emby-button" type="button" role="tab" id="UserRatingsTabModeration" class="userRatingsTab" data-tab="Moderation" aria-controls="UserRatingsModeration" aria-selected="false" tabindex="-1">Moderation</button>
+                    <button is="emby-button" type="button" role="tab" id="UserRatingsTabData" class="userRatingsTab" data-tab="Data" aria-controls="UserRatingsData" aria-selected="false" tabindex="-1">Data</button>
+                    <button is="emby-button" type="button" role="tab" id="UserRatingsTabDiagnostics" class="userRatingsTab" data-tab="Diagnostics" aria-controls="UserRatingsDiagnostics" aria-selected="false" tabindex="-1">Diagnostics</button>
+                </div>
+
+                <div id="UserRatingsSettings" class="userRatingsTabPanel" role="tabpanel" aria-labelledby="UserRatingsTabSettings">
+                    <div class="verticalSection">
+                        <h2 class="sectionTitle">Settings</h2>
+                        <!-- Every setting with its help and default, checked as it is changed and again by
+                             the server, saved with the settings' version after the server says what the change means: the
+                             AdminScript module's. -->
+                        <div id="UserRatingsSettingsRoot">
+                            <p id="UserRatingsSettingsLoading">Loading the settings…</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="UserRatingsModeration" class="userRatingsTabPanel hide" role="tabpanel" aria-labelledby="UserRatingsTabModeration">
+                    <div class="verticalSection">
+                        <h2 class="sectionTitle">Moderation</h2>
+                        <!-- Every member's ratings and reviews, filtered and searched, with "Remove text
+                             only" and "Remove rating and review", and the moderation log below: the AdminScript module's. -->
+                        <div id="UserRatingsModerationRoot">
+                            <p id="UserRatingsModerationLoading">Loading the ratings…</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="UserRatingsData" class="userRatingsTabPanel hide" role="tabpanel" aria-labelledby="UserRatingsTabData">
+                    <div class="verticalSection">
+                        <h2 class="sectionTitle">Data</h2>
+                        <!-- The database's integrity, Export, Import (a dry run, then Import
+                             with its plan), the snapshots with Restore, and the unknown users with Remap by name and the
+                             deleted-user policy: the AdminScript module's. The Jellyfin Enhanced import came later. -->
+                        <div id="UserRatingsDataRoot">
+                            <p id="UserRatingsDataLoading">Loading the data tools…</p>
+                        </div>
+                    </div>
+                    <!-- How many ratings are detached, by reason, and the ratings kept on items that are
+                         gone while their library folder is unavailable; opening this tab ends the Ambiguous banner (POST
+                         UserRatings/Admin/Detached/Seen). Those kept ratings never detach by themselves, so
+                         each has Detach now, and the list has Detach all listed (POST UserRatings/Admin/Held/Detach), each
+                         after a confirmation. Then the detached ratings themselves, each with the titles they could go
+                         back to (Relink) and Purge: the AdminScript module's, under the counts. -->
+                    <div class="verticalSection">
+                        <h3 id="UserRatingsDetachedTitle">Detached &amp; ambiguous</h3>
+                        <div class="fieldDescription">A rating is detached when its item leaves the library, and goes back to it by itself when the item returns, or to the same title found elsewhere. When several copies match, the member already rated the copy, or another title (or the same file without its metadata) is at its place, it stays detached as ambiguous rather than guessed; below, Relink gives it to the copy you choose.</div>
+                        <div id="UserRatingsDetached"></div>
+                        <div id="UserRatingsDetachedListRoot"></div>
+                    </div>
+                </div>
+
+                <div id="UserRatingsDiagnostics" class="userRatingsTabPanel hide" role="tabpanel" aria-labelledby="UserRatingsTabDiagnostics">
+                    <div class="verticalSection">
+                        <h2 class="sectionTitle">Diagnostics</h2>
+                        <p id="UserRatingsDiagnosticsLoading">Loading the diagnostics…</p>
+                        <div id="UserRatingsDiagnosticsSummary"></div>
+                    </div>
+                    <div class="verticalSection">
+                        <h3>Web client problems reported by browsers</h3>
+                        <div class="fieldDescription">Parts of the web client User Ratings relies on that a browser couldn't find since the server started, so the User Ratings feature that uses them was off there. A Jellyfin update is the usual cause; a User Ratings update brings the fix.</div>
+                        <div id="UserRatingsClientHealth"></div>
+                    </div>
+                    <p>
+                        <button is="emby-button" type="button" id="UserRatingsRefresh" class="raised button-cancel emby-button"><span>Refresh</span></button>
+                    </p>
+                </div>
+            </div>
+        </div>
+        <script type="text/javascript">
+            (function () {
+                var page = document.querySelector('#UserRatingsConfigPage');
+                var tabs = ['Settings', 'Moderation', 'Data', 'Diagnostics'];
+                var selectedTab = 'Settings';
+                var reasons = [['Removed', 'Removed from the library'], ['Missing', 'Missing from the library'], ['Unmatched', 'Not matched'], ['Ambiguous', 'Ambiguous: several copies match, the member rated the copy, or another title is at their place']];
+                var held = {
+                    LibraryFolderUnavailable: 'its library folder is missing, empty or can\'t be read',
+                    StillOnDisk: 'its file is still on disk',
+                    NoLibraryFolders: 'no library folder could be read'
+                };
+                var massDetach = 'every rated item of its library folder went at once';
+
+                function find(id) {
+                    return page.querySelector('#' + id);
+                }
+
+                // Every value from the server is written with textContent.
+                function element(tag, text, className) {
+                    var node = document.createElement(tag);
+                    if (text !== undefined && text !== null) {
+                        node.textContent = String(text);
+                    }
+
+                    if (className) {
+                        node.className = className;
+                    }
+
+                    return node;
+                }
+
+                function clear(node) {
+                    while (node.firstChild) {
+                        node.removeChild(node.firstChild);
+                    }
+                }
+
+                function dateText(value) {
+                    var date = new Date(value);
+                    return value && !isNaN(date.getTime()) ? date.toLocaleString() : '';
+                }
+
+                // Rows of [label, value], in a box that scrolls sideways on a narrow screen.
+                function table(rows) {
+                    var box = element('div', null, 'userRatingsTableScroll');
+                    var node = element('table', null, 'userRatingsTable');
+                    rows.forEach(function (row) {
+                        var tr = element('tr');
+                        tr.appendChild(element('th', row[0]));
+                        tr.appendChild(element('td', row[1] === undefined || row[1] === null ? '' : row[1]));
+                        node.appendChild(tr);
+                    });
+                    box.appendChild(node);
+                    return box;
+                }
+
+                // jellyfin-web's confirmation (window.confirm without it): true for OK.
+                function confirmed(text, title) {
+                    return new Promise(function (resolve) {
+                        if (window.Dashboard && typeof Dashboard.confirm === 'function') {
+                            Dashboard.confirm(text, title, function (ok) {
+                                resolve(!!ok);
+                            });
+                        } else {
+                            resolve(window.confirm(text));
+                        }
+                    });
+                }
+
+                function banner(text) {
+                    var node = element('p', text, 'userRatingsBanner');
+                    node.setAttribute('role', 'alert');
+                    return node;
+                }
+
+                // ---------------------------------------------------------------- tabs (Settings | Moderation | Data | Diagnostics)
+
+                function selectTab(name, focus) {
+                    selectedTab = name;
+                    tabs.forEach(function (tab) {
+                        var button = find('UserRatingsTab' + tab);
+                        var panel = find(button.getAttribute('aria-controls'));
+                        var selected = tab === name;
+                        button.setAttribute('aria-selected', selected ? 'true' : 'false');
+                        button.setAttribute('tabindex', selected ? '0' : '-1');
+                        if (selected) {
+                            panel.classList.remove('hide');
+                            if (focus) {
+                                button.focus();
+                            }
+                        } else {
+                            panel.classList.add('hide');
+                        }
+                    });
+
+                    if (name === 'Diagnostics') {
+                        loadDiagnostics();
+                    } else if (name === 'Settings' || name === 'Moderation') {
+                        loadAdminTab(name);
+                    } else if (name === 'Data') {
+                        loadAdminTab('Data');
+                        loadAdminTab('Detached');
+                        // Opening Data → Detached & ambiguous is how the admin sees the Ambiguous ratings: the
+                        // banner ends until a later pass leaves another rating ambiguous.
+                        loadDiagnostics().then(function (d) {
+                            var ambiguous = (d && d.Lifecycle && d.Lifecycle.Ambiguous) || {};
+                            if (ambiguous.Banner === true && selectedTab === 'Data') {
+                                return ApiClient.ajax({ type: 'POST', url: ApiClient.getUrl('UserRatings/Admin/Detached/Seen') }).then(loadDiagnostics, function () {
+                                    // The banner stays; the next visit tries again.
+                                });
+                            }
+
+                            return null;
+                        });
+                    }
+                }
+
+                tabs.forEach(function (tab, index) {
+                    var button = find('UserRatingsTab' + tab);
+                    button.addEventListener('click', function () {
+                        selectTab(tab, false);
+                    });
+                    // The arrow keys move between the tabs, Home and End to the ends (WAI-ARIA tabs).
+                    button.addEventListener('keydown', function (e) {
+                        var next = e.key === 'ArrowRight' ? (index + 1) % tabs.length
+                            : e.key === 'ArrowLeft' ? (index + tabs.length - 1) % tabs.length
+                            : e.key === 'Home' ? 0
+                            : e.key === 'End' ? tabs.length - 1
+                            : -1;
+                        if (next >= 0) {
+                            e.preventDefault();
+                            selectTab(tabs[next], true);
+                        }
+                    });
+                });
+
+                // ---------------------------------------------------------------- settings, moderation, data
+
+                // The Settings, Moderation and Data tabs are the AdminScript module: imported once, the first
+                // time one of them is opened (Settings is, when the page is shown), and mounted into its panel (the Data
+                // tab twice: its tools, and its detached list under the counts); opened again, a tab reads its data
+                // again. A module that can't be loaded says so in the panel, and the next opening tries the import again.
+                var adminModule = null;
+                var adminTabs = {
+                    Settings: { root: 'UserRatingsSettingsRoot', mounted: null, loading: false },
+                    Moderation: { root: 'UserRatingsModerationRoot', mounted: null, loading: false },
+                    Data: { root: 'UserRatingsDataRoot', mounted: null, loading: false },
+                    Detached: { root: 'UserRatingsDetachedListRoot', mounted: null, loading: false, label: 'detached list' }
+                };
+
+                // An import, a restore, a relink or a purge on the Data tab changes what Diagnostics says (the counts, the
+                // banners above the tabs): it is read again.
+                page.addEventListener('jfur-data-changed', function () {
+                    loadDiagnostics();
+                });
+
+                function importAdminModule() {
+                    if (!adminModule) {
+                        try {
+                            adminModule = Promise.resolve(import(ApiClient.getUrl('UserRatings/AdminScript')));
+                        } catch (e) {
+                            adminModule = Promise.reject(e);
+                        }
+
+                        adminModule.then(null, function () {
+                            adminModule = null;
+                        });
+                    }
+
+                    return adminModule;
+                }
+
+                function loadAdminTab(name) {
+                    var tab = adminTabs[name];
+                    if (tab.mounted) {
+                        tab.mounted.refresh();
+                        return;
+                    }
+
+                    if (tab.loading) {
+                        return;
+                    }
+
+                    tab.loading = true;
+                    var root = find(tab.root);
+                    importAdminModule().then(function (module) {
+                        tab.loading = false;
+                        var mounted = module.mount(root, { page: page, tab: name });
+                        tab.mounted = mounted && typeof mounted.refresh === 'function' ? mounted : { refresh: function () {} };
+                    }).then(null, function () {
+                        tab.loading = false;
+                        clear(root);
+                        root.appendChild(element('p', 'The ' + (tab.label || name + ' tab') + ' couldn\'t be loaded. The server log has the details.'));
+                    });
+                }
+
+                // ---------------------------------------------------------------- diagnostics
+
+                function renderDiagnostics(d) {
+                    var summary = find('UserRatingsDiagnosticsSummary');
+                    var health = find('UserRatingsClientHealth');
+                    var banners = find('UserRatingsBanners');
+                    clear(summary);
+                    clear(health);
+                    clear(banners);
+                    find('UserRatingsDiagnosticsLoading').hidden = true;
+
+                    var abi = d.Abi || {};
+                    if (abi.Active === false) {
+                        banners.appendChild(banner('This build of User Ratings is for Jellyfin ' + abi.Target + ' and is inactive on Jellyfin ' + abi.Server + '.'));
+                    }
+
+                    // The ratings database: when it is read-only (a newer schema, a failed upgrade,
+                    // damage), was restored from a snapshot or was started empty, the kit's sentence on it is a warning here.
+                    var store = d.Store || {};
+                    var records = d.Records || {};
+                    if (store.Message && store.Status !== 'Ok' && store.Status !== 'Migrated') {
+                        banners.appendChild(banner(store.Message));
+                    }
+
+                    // Something to deal with while the database works (the kit's Notice): a recovery that didn't finish
+                    // left its files in a quarantine folder while a database put back by hand is used as it is.
+                    if (store.Notice) {
+                        banners.appendChild(banner(store.Notice));
+                    }
+
+                    // Ratings left detached because several copies match: until the admin opens the Data
+                    // tab, where they are counted.
+                    var lifecycle = d.Lifecycle || {};
+                    var ambiguous = lifecycle.Ambiguous || {};
+                    if (ambiguous.Banner === true && ambiguous.Message) {
+                        banners.appendChild(banner(ambiguous.Message));
+                    }
+
+                    // Jellyfin Enhanced's user reviews still on beside User Ratings': the kit's banner, until
+                    // its switch-over checklist (Data → Import from Jellyfin Enhanced) turns them off; Settings → Jellyfin
+                    // Enhanced banner hides it.
+                    var je = d.JellyfinEnhanced || {};
+                    var overlap = je.Overlap || {};
+                    if (overlap.Banner) {
+                        banners.appendChild(banner(overlap.Banner));
+                    }
+
+                    renderDetached(lifecycle);
+
+                    var newest = store.NewestSnapshot;
+                    var anchors = d.WebAnchors || {};
+                    summary.appendChild(table([
+                        ['Version', d.PluginVersion],
+                        ['Kit', d.KitVersion],
+                        ['Jellyfin', 'Built for ' + abi.Target + ', running on ' + abi.Server + (abi.Active ? '' : ' (inactive)')],
+                        ['Ratings database', (store.File || store.Error || 'unknown') + (store.Status
+                            ? ' (' + (store.Version !== null && store.Version !== undefined ? 'schema ' + store.Version + ', ' : '') + store.Status + (store.ReadOnly ? ', read-only' : '') + ')'
+                            : '')],
+                        ['Snapshots', (store.DailySnapshots || 0) + ' daily, ' + (store.PreOpSnapshots || 0) + ' from before an operation'
+                            + (newest ? '; newest ' + dateText(newest.Utc) : '')],
+                        ['Ratings', records.Error || ((records.Attached || 0) + ' on items, ' + (records.Detached || 0) + ' detached, '
+                            + (records.Reviews || 0) + ' with a review, from ' + (records.Users || 0) + (records.Users === 1 ? ' member' : ' members'))],
+                        // The 0.3.21 sanity check: JE season and episode reviews 0.3.21 kept detached under JE's whole
+                        // TMDb key never attach; 0 is what a server that never ran 0.3.21 holds.
+                        ['Jellyfin Enhanced keys from 0.3.21', records.Error || ((records.DetachedJeWithKeySuffix || 0) + ' detached season or episode reviews still under the key 0.3.21 kept (0 expected)')],
+                        ['Jellyfin Enhanced', !je.Installed ? 'Not installed' : (je.Version || 'Installed') + (overlap.On
+                            ? ': its user reviews are on and visible beside those of User Ratings (Data → Import from Jellyfin Enhanced has the switch-over checklist)'
+                            : ': its user reviews are off')],
+                        ['Recording web client problems', anchors.Reporting ? 'Yes' : 'No'],
+                        ['Web client parts relied on', (anchors.Declared || []).length]
+                    ]));
+
+                    var entries = d.ClientHealth || [];
+                    if (entries.length === 0) {
+                        health.appendChild(element('p', 'None reported.'));
+                        return;
+                    }
+
+                    health.appendChild(table(entries.map(function (entry) {
+                        return [entry.Anchor + ' (' + entry.View + ')', entry.Client + ' ' + entry.ClientVersion + ', ' + entry.Layout + ', ' + entry.Count + ' times, last ' + dateText(entry.LastUtc)];
+                    })));
+                }
+
+                // Data → Detached & ambiguous: the detached ratings by reason, and the ratings kept attached although
+                // their item is gone, because their library folder is unavailable (a drive unmounted, an empty mount point)
+                // or their file is still on disk. Ids only: the server keeps the titles, not this page.
+                function renderDetached(lifecycle) {
+                    var box = find('UserRatingsDetached');
+                    clear(box);
+                    if (lifecycle.Error || !lifecycle.Detached) {
+                        box.appendChild(element('p', lifecycle.ReadOnly ? 'The ratings database is read-only, so nothing is detached or relinked now.' : (lifecycle.Error || 'Not available.')));
+                        return;
+                    }
+
+                    var counts = lifecycle.Detached;
+                    var total = reasons.reduce(function (sum, r) {
+                        return sum + (counts[r[0]] || 0);
+                    }, 0);
+                    box.appendChild(table(reasons.map(function (r) {
+                        return [r[1], counts[r[0]] || 0];
+                    }).concat([['Detached in all', total]])));
+
+                    var kept = lifecycle.Held || [];
+                    box.appendChild(element('h4', 'Kept on items that are gone'));
+
+                    // The list is built by the verify sweeps and kept in memory: until one has looked since
+                    // the server started, "None" would not be known.
+                    if (!lifecycle.HeldCheckedUtc) {
+                        box.appendChild(element('p', 'Not checked since the server started: the verify sweep that runs after the start fills this list.'));
+                        if (kept.length === 0) {
+                            return;
+                        }
+                    } else if (kept.length === 0) {
+                        box.appendChild(element('p', 'None (checked ' + dateText(lifecycle.HeldCheckedUtc) + '). Ratings stay on an item that is gone while its library folder is missing, empty or can\'t be read, or when every rated item of a folder goes at once, so an unmounted drive never detaches them.'));
+                        return;
+                    } else {
+                        box.appendChild(element('p', 'They stay on their item until it is back, for as long as it takes (checked ' + dateText(lifecycle.HeldCheckedUtc) + '). If an item is gone for good, Detach now detaches its ratings as missing; nothing the members wrote is lost, and they go back to the item by themselves if it returns.'));
+                    }
+
+                    var scroll = element('div', null, 'userRatingsTableScroll');
+                    var node = element('table', null, 'userRatingsTable');
+                    kept.forEach(function (h) {
+                        var ratings = h.RatingIds || [];
+                        var tr = element('tr');
+                        tr.appendChild(element('th', 'Item ' + h.ItemId));
+                        tr.appendChild(element('td', (held[h.Reason] || h.Reason) + (h.MassDetach ? ' (' + massDetach + ')' : '') + '; since ' + dateText(h.SinceUtc) + '; '
+                            + ratings.length + (ratings.length === 1 ? ' rating: ' : ' ratings: ') + ratings.join(', ')));
+                        var cell = element('td');
+                        cell.appendChild(detachButton('Detach now', [h.ItemId], ratings.length));
+                        tr.appendChild(cell);
+                        node.appendChild(tr);
+                    });
+                    scroll.appendChild(node);
+                    box.appendChild(scroll);
+                    if (kept.length > 1) {
+                        box.appendChild(detachButton('Detach all listed', kept.map(function (h) {
+                            return h.ItemId;
+                        }), kept.reduce(function (sum, h) {
+                            return sum + (h.RatingIds || []).length;
+                        }, 0)));
+                    }
+
+                    var status = element('p', null, 'fieldDescription');
+                    status.id = 'UserRatingsHeldStatus';
+                    box.appendChild(status);
+                }
+
+                // The route takes at most this many item ids (UserRatingsHeldDetachRequest.MaxItemIds); a longer list goes
+                // in parts of this size, one after another (so "Detach all listed" works above 1000 kept items).
+                var detachPart = 1000;
+
+                // Posts the item ids in parts, one after another, and adds up the answers. A part refused stops the rest:
+                // the promise ends with what the parts before it did, and the refusal.
+                function postDetach(itemIds) {
+                    var done = { Items: 0, Ratings: 0, NotHeld: 0, Parts: 0 };
+                    var parts = [];
+                    for (var i = 0; i < itemIds.length; i += detachPart) {
+                        parts.push(itemIds.slice(i, i + detachPart));
+                    }
+
+                    return parts.reduce(function (previous, part) {
+                        return previous.then(function () {
+                            return ApiClient.ajax({
+                                type: 'POST',
+                                url: ApiClient.getUrl('UserRatings/Admin/Held/Detach'),
+                                data: JSON.stringify({ ItemIds: part }),
+                                contentType: 'application/json',
+                                dataType: 'json'
+                            }).then(function (answer) {
+                                var a = answer || {};
+                                done.Items += a.Items || 0;
+                                done.Ratings += a.Ratings || 0;
+                                done.NotHeld += a.NotHeld || 0;
+                                done.Parts++;
+                            });
+                        });
+                    }, Promise.resolve()).then(function () {
+                        return { done: done, error: null };
+                    }, function (error) {
+                        return { done: done, error: error || {} };
+                    });
+                }
+
+                // Detach now: after a confirmation, the kept ratings of the items detach as missing; the
+                // server logs it with the admin, and Diagnostics is read again. An answer that refuses says why; when some
+                // parts of a long list were detached before one was refused, both are said.
+                function detachButton(label, itemIds, ratingCount) {
+                    var button = element('button', label, 'raised button-cancel emby-button');
+                    button.type = 'button';
+                    button.addEventListener('click', function () {
+                        var text = ratingCount + (ratingCount === 1 ? ' rating' : ' ratings') + ' kept on ' + itemIds.length + (itemIds.length === 1 ? ' item that is gone' : ' items that are gone')
+                            + ' will be detached as missing. Do this only if the item is gone for good; a rating whose item returns goes back to it by itself.';
+                        confirmed(text, label).then(function (ok) {
+                            if (!ok) {
+                                return null;
+                            }
+
+                            button.disabled = true;
+                            return postDetach(itemIds).then(function (outcome) {
+                                var done = outcome.done;
+                                if (outcome.error && done.Parts === 0) {
+                                    button.disabled = false;
+                                    return problemText(outcome.error).then(function (why) {
+                                        var status = find('UserRatingsHeldStatus') || find('UserRatingsDetached');
+                                        status.appendChild(banner('Nothing was detached: ' + why));
+                                    });
+                                }
+
+                                var said = done.Ratings + (done.Ratings === 1 ? ' rating' : ' ratings') + ' detached'
+                                    + (done.NotHeld ? '; ' + done.NotHeld + (done.NotHeld === 1 ? ' item was' : ' items were') + ' no longer kept (back in the library, or already detached)' : '') + '.';
+                                return (outcome.error ? problemText(outcome.error) : Promise.resolve(null)).then(function (why) {
+                                    return loadDiagnostics().then(function () {
+                                        var status = find('UserRatingsHeldStatus') || find('UserRatingsDetached');
+                                        if (why === null) {
+                                            status.appendChild(element('p', said));
+                                        } else {
+                                            status.appendChild(banner(said + ' The rest was not detached: ' + why));
+                                        }
+                                    });
+                                });
+                            });
+                        });
+                    });
+                    return button;
+                }
+
+                // The ProblemDetails' detail of a refused request, as text.
+                function problemText(error) {
+                    var fallback = 'the server refused it. The server log has the details.';
+                    if (error && typeof error.json === 'function') {
+                        return error.json().then(function (problem) {
+                            return (problem && problem.detail) || fallback;
+                        }, function () {
+                            return fallback;
+                        });
+                    }
+
+                    return Promise.resolve(fallback);
+                }
+
+                function loadDiagnostics() {
+                    Dashboard.showLoadingMsg();
+                    return ApiClient.getJSON(ApiClient.getUrl('UserRatings/Admin/Diagnostics')).then(function (d) {
+                        renderDiagnostics(d);
+                        Dashboard.hideLoadingMsg();
+                        return d;
+                    }, function () {
+                        Dashboard.hideLoadingMsg();
+                        var loading = find('UserRatingsDiagnosticsLoading');
+                        loading.hidden = false;
+                        loading.textContent = 'The diagnostics couldn\'t be loaded. The server log has the details.';
+                        return null;
+                    });
+                }
+
+                find('UserRatingsRefresh').addEventListener('click', loadDiagnostics);
+                page.addEventListener('pageshow', function () {
+                    selectTab('Settings', false);
+                    // The banners above the tabs come from Diagnostics, so it is read on every visit, not only on its tab.
+                    loadDiagnostics();
+                });
+            })();
+        </script>
+    </div>
+</body>
+</html>

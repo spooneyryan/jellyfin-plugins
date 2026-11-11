@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Framework, nullable, warnings-as-errors, analyzers and InternalsVisibleTo come from the root Directory.Build.props. -->
+  <!-- The shared kit (kit/src) compiles into this assembly. -->
+  <Import Project="$(KitRoot)build\Kit.props" />
+
+  <PropertyGroup>
+    <RootNamespace>Jellyfin.Plugin.TagCloud</RootNamespace>
+    <!-- Keep equal to build.yaml's version (checked by tests/Repo.Tests). -->
+    <Version>1.0.1.0</Version>
+    <AssemblyVersion>1.0.1.0</AssemblyVersion>
+    <FileVersion>1.0.1.0</FileVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <!-- The server provides these at runtime; never ship copies of them with the plugin. Jellyfin.Controller brings the
+       server's EF Core model (Jellyfin.Database.Implementations), which the people index reads. -->
+  <ItemGroup>
+    <PackageReference Include="Jellyfin.Controller">
+      <ExcludeAssets>runtime</ExcludeAssets>
+    </PackageReference>
+    <PackageReference Include="Jellyfin.Model">
+      <ExcludeAssets>runtime</ExcludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <!-- The web client (Web/js/*.js, Web/css/*.css) is embedded by the kit's Kit.props and built into one script by the
+       kit's EmbeddedScript. -->
+  <ItemGroup>
+    <None Remove="Configuration\configPage.html" />
+    <EmbeddedResource Include="Configuration\configPage.html" />
+  </ItemGroup>
+
+</Project>

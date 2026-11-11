@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Tests of the kit. Compiles kit/src directly through Kit.props, as a plugin does, plus
+    kit/testsupport through TestSupport.props, so it tests both.
+  -->
+  <Import Project="$(KitRoot)build\TestSupport.props" />
+  <Import Project="$(KitRoot)build\Kit.props" />
+
+  <PropertyGroup>
+    <RootNamespace>Jellyfin.Plugin.Kit.Tests</RootNamespace>
+    <!-- kit/src/Sqlite and its tests, with the full Microsoft.Data.Sqlite from TestSupport.props. -->
+    <KitUseSqlite>true</KitUseSqlite>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- The versions Jellyfin 10.11.5 ships: KitStartupLog writes through Serilog's static logger, and the
+         schema-prefix walker is compared with the schemas Swashbuckle really generates. -->
+    <PackageReference Include="Serilog" />
+    <PackageReference Include="Swashbuckle.AspNetCore.SwaggerGen" />
+  </ItemGroup>
+
+</Project>

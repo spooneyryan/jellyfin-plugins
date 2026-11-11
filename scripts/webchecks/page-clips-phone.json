@@ -1,0 +1,34 @@
+{
+  "name": "The My Clips page on a phone, as admin on a 390x844 touch screen in the mobile layout: the My Clips page over the probe's clips (bookmarks-clips-page-probe.mjs) fits (no sideways scroll, every row inside the screen, the poster box beside the title), the toolbar's controls, the deleted bookmarks' box and the header's My Bookmarks link are at least 40 px tall, and the summary line shows. Run by bookmarks-clips-page-probe.mjs.",
+  "failOnException": false,
+  "timeout": 30000,
+  "steps": [
+    { "name": "a phone: 390x844, touch", "emulate": {"width":390,"height":844,"deviceScaleFactor":1,"mobile":true,"touch":true} },
+    { "name": "sign in as admin", "login": "admin" },
+    { "name": "the Bookmarks script ran", "waitFor": "!!window.__jfkit && !!window.__jfkit.jfbm && !!window.ApiClient && !!ApiClient.getCurrentUserId()" },
+    { "name": "the page sees a narrow touch screen", "assert": "innerWidth === 390 && matchMedia('(max-width: 40em)').matches && matchMedia('(pointer: coarse)').matches" },
+    { "name": "mobile layout for this browser", "eval": "(localStorage.setItem('layout', 'mobile'), true)" },
+    { "name": "reload (mobile)", "reload": true },
+    { "name": "mobile layout applied at 390 px", "waitFor": "document.documentElement.classList.contains('layout-mobile') && innerWidth === 390 && !!window.__jfkit && !!window.__jfkit.jfbm && !!ApiClient.getCurrentUserId()" },
+    { "name": "My Clips with the probe's clips", "goto": "/web/index.html#/jfbm-clips?q=clips-page-probe" },
+    {
+      "name": "mobile: the page fits in 390 px, every row inside it, the toolbar's controls and the header link at least 40 px tall",
+      "waitFor": "(() => { const r = document.querySelector('#fallbackPage > [data-jfbm-page=\"clips\"]'); const k = (id) => String(id || '').replace(/-/g, '').toLowerCase(); const row = (id) => r && id ? r.querySelector('.jfbm-clips-row[data-jfbm-clip=\"' + k(id) + '\"]') : null; if (!((() => { const r = document.querySelector('#fallbackPage > [data-jfbm-page=\"clips\"]'); const k = (id) => String(id || '').replace(/-/g, '').toLowerCase(); const row = (id) => r && id ? r.querySelector('.jfbm-clips-row[data-jfbm-clip=\"' + k(id) + '\"]') : null; if (!r || r.getAttribute('data-jfbm-state') !== 'on') return false; const c = r.querySelector('.jfbm-clips-content'); return !!c && !c.hasAttribute('aria-busy') && (!!c.querySelector('.jfbm-clips-row') || !!c.querySelector('.jfbm-notice')); })())) return false; const box = (el) => el.getBoundingClientRect(); const rows = [...r.querySelectorAll('.jfbm-clips-row')]; const t = r.querySelector('.jfbm-clips-toolbar'); return { scrollWidth: document.documentElement.scrollWidth, rows: rows.length, rowsInside: rows.every(x => box(x).left >= 0 && box(x).right <= 390.5), thumbsBeside: rows.every(x => { const th = box(x.querySelector('.jfbm-clip-thumb')); const ti = box(x.querySelector('bdi')); return ti.left >= th.right - 1; }), controls: [...t.querySelectorAll('input[type=\"search\"], select')].map(c => [Math.round(box(c).width), Math.round(box(c).height)]), deleted: Math.round(box(r.querySelector('.jfbm-clips-deleted-label')).height), header: Math.round(box(r.querySelector('.jfbm-clips-bookmarks-link')).height), summary: r.querySelector('.jfbm-clips-summary').getClientRects().length > 0 }; })()",
+      "timeout": 20000,
+      "save": "fits",
+      "full": true
+    },
+    {
+      "name": "as expected (one column, 40 px touch targets)",
+      "assert": "__vars.fits.scrollWidth <= 390 && __vars.fits.rows >= 3 && __vars.fits.rowsInside && __vars.fits.thumbsBeside && __vars.fits.controls.length === 5 && __vars.fits.controls.every(c => c[1] >= 40 && c[0] <= 390) && __vars.fits.deleted >= 40 && __vars.fits.header >= 40 && __vars.fits.summary"
+    },
+    { "name": "mobile: the summary line's parts each whole, the matches on one line of their own (they wrapped mid-line after the totals)", "eval": "(() => { const m = document.querySelector('#fallbackPage [data-jfbm-page=clips] .jfbm-clips-summary .jfbm-clips-matches'); if (!m) return null; return { text: m.textContent, rects: m.getClientRects().length, height: Math.round(m.getBoundingClientRect().height), fontSize: parseFloat(getComputedStyle(m).fontSize) }; })()", "save": "summaryParts" },
+    { "name": "as expected: one box, one line high", "assert": "!!__vars.summaryParts && /clips? match/.test(__vars.summaryParts.text) && __vars.summaryParts.rects === 1 && __vars.summaryParts.height < 2 * __vars.summaryParts.fontSize" },
+    { "sleep": 300 },
+    { "screenshot": "page-clips-phone.png" },
+    { "name": "scroll to the rows", "script": "document.querySelector('#fallbackPage [data-jfbm-page=\"clips\"] .jfbm-clips-row').scrollIntoView({ block: 'start' }); return true;" },
+    { "sleep": 300 },
+    { "screenshot": "page-clips-phone-rows.png" },
+    { "name": "no uncaught exception of ours", "noExceptions": true, "ignore": "/CustomRatings/script|^Error: player cannot be null" }
+  ]
+}

@@ -1,0 +1,113 @@
+{
+  "name": "Smart Search's saved queries in the TV layout (localStorage 'layout' = 'tv'), as viewer at 1366x900: the Saved tab reached from the keyboard (focus on its tab, Enter), the list without Copy link, no field taking the focus, every control at least 32 px high and nothing wider than the screen; Rename by Enter opens the dialog with the focus inside on its name, the D-pad (ArrowDown) moves through the dialog, Escape closes it and the focus returns to Rename. Screenshots smartsearch-saved-tv*.png. Run after smartsearch-saved-desktop.json (its queries).",
+  "failOnException": false,
+  "timeout": 30000,
+  "steps": [
+    {
+      "name": "a desktop screen",
+      "emulate": "desktop"
+    },
+    {
+      "name": "page helpers (viewer)",
+      "initScript": "\nwindow.__ss = {\n  root: () => [...document.querySelectorAll('[data-jfss-page=\"search\"][data-jfss-mounted] .jfss-search')].find(x => x.getClientRects().length > 0) || null,\n  q: (s) => { const r = window.__ss.root(); return r ? r.querySelector(s) : null; },\n  all: (s) => { const r = window.__ss.root(); return r ? [...r.querySelectorAll(s)] : []; },\n  set: (s, v) => { const e = window.__ss.q(s); e.value = v; e.dispatchEvent(new Event('input', { bubbles: true })); e.dispatchEvent(new Event('change', { bubbles: true })); return true; },\n  ready: () => !!window.__ss.q('.jfss-scope') && !!window.__ss.q('.jfss-search-button'),\n  done: () => { const c = window.__ss.q('.jfss-count'); const n = window.__ss.q('.jfss-notices'); if (c && c.textContent && !/Searching/.test(c.textContent)) return c.textContent; if (n && n.textContent) return n.textContent; return false; },\n  ids: () => window.__ss.all('.jfss-card, .jfss-row').map(x => x.getAttribute('data-id')),\n  norm: (ids) => ids.map(i => String(i).replace(/-/g, '').toLowerCase()).sort().join(),\n  noHScroll: () => document.documentElement.scrollWidth <= innerWidth && window.__ss.root().scrollWidth <= window.__ss.root().clientWidth + 1,\n  box: (e) => { const r = e.getBoundingClientRect(); return [Math.round(r.width), Math.round(r.height)]; },\n  api: async (method, path, body) => { const r = await fetch(ApiClient.getUrl(path), { method, headers: { 'X-Emby-Token': ApiClient.accessToken(), 'Content-Type': 'application/json' }, body: body === undefined ? undefined : JSON.stringify(body) }); const t = await r.text(); return { status: r.status, body: t ? JSON.parse(t) : null }; },\n  cleanup: async (prefix) => { const list = (await window.__ss.api('GET', 'SmartSearch/Queries?scope=Mine&limit=500')).body.Items; let n = 0; for (const q of list) { if (q.Name.indexOf(prefix) === 0) { await window.__ss.api('DELETE', 'SmartSearch/Queries/' + q.Id); n++; } } return n; },\n  dialog: () => { const d = [...document.querySelectorAll('[role=\"dialog\"]')].filter(x => x.getClientRects().length > 0); return d[d.length - 1] || null; },\n  dbutton: (text) => { const d = window.__ss.dialog(); return d ? [...d.querySelectorAll('button')].find(b => b.textContent === text) || null : null; },\n  rows: () => window.__ss.all('.jfss-saved-row'),\n  names: () => window.__ss.rows().map(r => r.querySelector('.jfss-saved-open').textContent),\n  row: (name) => window.__ss.rows().find(r => r.querySelector('.jfss-saved-open').textContent === name) || null,\n  action: (name, cls) => { const r = window.__ss.row(name); return r ? r.querySelector(cls) : null; },\n  toast: () => [...document.querySelectorAll('.jfss-toast')].map(t => t.textContent).join(' | '),\n  runs: (id) => performance.getEntriesByType('resource').filter(e => e.name.indexOf('SmartSearch/Queries/' + id + '/Search') >= 0).length,\n  searches: () => performance.getEntriesByType('resource').filter(e => /SmartSearch\\/Search$/.test(e.name)).length\n};\n"
+    },
+    {
+      "name": "sign in as viewer",
+      "login": "viewer"
+    },
+    {
+      "name": "the Smart Search script ran (viewer)",
+      "waitFor": "!!window.__jfkit && !!window.__jfkit.jfss && !!window.ApiClient && !!ApiClient.getCurrentUserId()",
+      "timeout": 20000
+    },
+    {
+      "name": "a query of viewer's",
+      "script": "await __ss.cleanup('WC TV'); const r = await __ss.api('POST', 'SmartSearch/Queries', { Name: 'WC TV', Description: '', Shared: false, Query: { Version: 1, Scope: { ItemKinds: ['Movie'], LibraryIds: [], IncludeMissing: false }, Where: { Match: 'All', Children: [{ Field: 'Title', Op: 'Contains', Value: 'test' }] }, Sort: [{ Key: 'SortName', Order: 'Ascending' }] } }); return r.status;",
+      "save": "made"
+    },
+    {
+      "name": "TV layout for this browser",
+      "eval": "(localStorage.setItem('layout', 'tv'), true)"
+    },
+    {
+      "name": "reload (TV)",
+      "reload": true
+    },
+    {
+      "name": "TV layout applied",
+      "waitFor": "document.documentElement.classList.contains('layout-tv') && !!window.__jfkit && !!window.__jfkit.jfss && __jfkit.jfss.instance.layout.isTv()",
+      "timeout": 20000
+    },
+    {
+      "goto": "/web/index.html#/jfss-search"
+    },
+    {
+      "name": "the page (TV)",
+      "waitFor": "!!window.__ss && __ss.ready()",
+      "timeout": 20000
+    },
+    {
+      "name": "focus the Saved queries tab",
+      "script": "__ss.q('[data-jfss-tab=\"saved\"]').focus(); return document.activeElement === __ss.q('[data-jfss-tab=\"saved\"]');"
+    },
+    {
+      "key": "Enter"
+    },
+    {
+      "name": "the list (TV)",
+      "waitFor": "__ss.names().includes('WC TV')",
+      "timeout": 15000
+    },
+    {
+      "name": "the TV list",
+      "eval": "({ copy: __ss.all('.jfss-copy-link').length, focusField: document.activeElement === __ss.q('.jfss-find'), small: __ss.all('.jfss-saved-panel button, .jfss-saved-panel input, .jfss-saved-panel a, [role=\"tab\"]').filter(e => e.getClientRects().length > 0 && e.getBoundingClientRect().height < 32).map(e => e.className), noHScroll: __ss.noHScroll() })",
+      "save": "page",
+      "full": true
+    },
+    {
+      "name": "no Copy link, no field focused, nothing too small or too wide",
+      "assert": "__vars.made === 201 && __vars.page.copy === 0 && !__vars.page.focusField && __vars.page.small.length === 0 && __vars.page.noHScroll"
+    },
+    {
+      "screenshot": "smartsearch-saved-tv.png"
+    },
+    {
+      "name": "focus Rename WC TV",
+      "script": "__ss.action('WC TV', '.jfss-rename').focus(); return document.activeElement === __ss.action('WC TV', '.jfss-rename');"
+    },
+    {
+      "key": "Enter"
+    },
+    {
+      "name": "the dialog, the focus on its name",
+      "waitFor": "!!__ss.dialog() && document.activeElement === __ss.dialog().querySelector('.jfss-name-input')",
+      "timeout": 15000
+    },
+    {
+      "key": "ArrowDown"
+    },
+    {
+      "name": "the D-pad moved the focus inside the dialog",
+      "waitFor": "!!__ss.dialog() && __ss.dialog().contains(document.activeElement) && document.activeElement !== __ss.dialog().querySelector('.jfss-name-input')"
+    },
+    {
+      "screenshot": "smartsearch-saved-tv-dialog.png"
+    },
+    {
+      "key": "Escape"
+    },
+    {
+      "name": "closed, the focus back on Rename",
+      "waitFor": "!__ss.dialog() && document.activeElement === __ss.action('WC TV', '.jfss-rename')"
+    },
+    {
+      "name": "remove it",
+      "script": "return await __ss.cleanup('WC TV');"
+    },
+    {
+      "name": "no uncaught exception (the stale CustomRatings tag is known noise)",
+      "noExceptions": true,
+      "ignore": "CustomRatings"
+    }
+  ]
+}

@@ -1,0 +1,158 @@
+{
+  "name": "User Ratings 1.0.2.0, the chip under touch: in the default sandbox as viewer in the mobile layout at 390x844 with touch: the chip on Long Test Movie as the server's summary calls for it, its word \"Members\" hidden under 600 px with the group glyph and the value kept, inside the screen; on Test Series a tap on the Rate button (Input.dispatchTouchEvent) focuses the slider in view. The member's row is deleted at the end.",
+  "failOnException": false,
+  "timeout": 30000,
+  "steps": [
+    {
+      "name": "the details probe in every document (it watches the section the served script mounts)",
+      "initScript": {
+        "file": "probes/userratings-details-probe.js"
+      }
+    },
+    {
+      "name": "the phone's screen and touch, before signing in",
+      "emulate": {
+        "width": 390,
+        "height": 844,
+        "mobile": true,
+        "touch": true
+      }
+    },
+    {
+      "name": "sign in as viewer",
+      "login": "viewer"
+    },
+    {
+      "name": "mobile layout",
+      "eval": "(localStorage.setItem('layout', 'mobile'), true)"
+    },
+    {
+      "name": "reload",
+      "reload": true
+    },
+    {
+      "name": "the layout applied, User Ratings 1.0.2.0 started",
+      "waitFor": "document.documentElement.classList.contains('layout-mobile') && !!window.ApiClient && !!ApiClient.getCurrentUserId() && !!(window.__jfkit && window.__jfkit.jfur)",
+      "timeout": 40000
+    },
+    {
+      "name": "the served script is 1.0.2.0",
+      "assert": "window.__jfkit.jfur.version === '1.0.2.0'",
+      "message": "User Ratings 1.0.2.0 is not the script the page loaded"
+    },
+    {
+      "name": "Long Test Movie",
+      "eval": "(await ApiClient.getItems(ApiClient.getCurrentUserId(), { IncludeItemTypes: 'Movie', Recursive: true, SearchTerm: \"Long Test Movie\", Limit: 1 })).Items[0].Id",
+      "save": "movieId"
+    },
+    {
+      "name": "clean: Long Test Movie without a rating of this member",
+      "script": "const r = await __jfurDetails.server('DELETE', 'UserRatings/Items/' + __vars.movieId + '/Mine'); return r.status;",
+      "save": "cleaned"
+    },
+    {
+      "name": "Test Series",
+      "eval": "(await ApiClient.getItems(ApiClient.getCurrentUserId(), { IncludeItemTypes: 'Series', Recursive: true, SearchTerm: \"Test Series\", Limit: 1 })).Items[0].Id",
+      "save": "seriesId"
+    },
+    {
+      "name": "Test Album A",
+      "eval": "(await ApiClient.getItems(ApiClient.getCurrentUserId(), { IncludeItemTypes: 'MusicAlbum', Recursive: true, SearchTerm: \"Test Album A\", Limit: 1 })).Items[0].Id",
+      "save": "albumId"
+    },
+    {
+      "name": "touch: a rating of the member's on Long Test Movie through the API (3 stars)",
+      "script": "const r = await __jfurDetails.server('PUT', 'UserRatings/Items/' + __vars.movieId + '/Mine/Rating', { Stars: 3 }); return r.status;",
+      "save": "touchPut"
+    },
+    {
+      "name": "Long Test Movie: its details page",
+      "script": "location.hash = '#/details?id=' + __vars.movieId; return true;"
+    },
+    {
+      "name": "Long Test Movie: drawn",
+      "waitFor": "(() => { const p = document.querySelector('#itemDetailPage:not(.hide)'); return !!p && location.hash.indexOf(__vars.movieId) > 0 && !!p.querySelector('.mainDetailButtons .btnPlay:not(.hide)'); })()",
+      "timeout": 30000
+    },
+    {
+      "name": "Long Test Movie: the section mounted for it",
+      "waitFor": "(() => { const s = __jfurDetails.section(); return !!s && s.getAttribute('data-jfur-item') === __vars.movieId && !!s.querySelector('.jfur-summary[data-jfur-summary]'); })()",
+      "timeout": 15000
+    },
+    {
+      "sleep": 400
+    },
+    {
+      "name": "touch: Long Test Movie: the chip the server's summary calls for",
+      "eval": "__jfurDetails.expectedChip(__vars.movieId)",
+      "save": "touchChip",
+      "full": true
+    },
+    {
+      "name": "touch: Long Test Movie: the chip and the Rate button",
+      "eval": "__jfurDetails.extras()",
+      "save": "xTouch",
+      "full": true
+    },
+    {
+      "name": "touch at 390 px: the chip as the summary calls for it, its word hidden under 600 px (the icon and the value stay), inside the screen",
+      "assert": "__vars.touchPut === 200 && __vars.touchChip !== null && ((x, e) => e === null ? x.chip === null && x.chips === 0 : !!x.chip && x.chips === 1 && x.chip.item === __vars.movieId && x.chip.displayed && x.row.chipLast && x.chip.value === e.value && x.chip.label === e.label && x.chip.title === e.label && x.chip.iconWidth > 0)(__vars.xTouch, __vars.touchChip) && !__vars.xTouch.chip.wordDisplayed && __vars.xTouch.chip.x >= 0 && __vars.xTouch.chip.right <= __vars.xTouch.chip.viewport + 1"
+    },
+    {
+      "name": "Test Series: its details page",
+      "script": "location.hash = '#/details?id=' + __vars.seriesId; return true;"
+    },
+    {
+      "name": "Test Series: drawn",
+      "waitFor": "(() => { const p = document.querySelector('#itemDetailPage:not(.hide)'); return !!p && location.hash.indexOf(__vars.seriesId) > 0 && !!p.querySelector('.mainDetailButtons .btnPlay:not(.hide)'); })()",
+      "timeout": 30000
+    },
+    {
+      "name": "Test Series: the section mounted for it",
+      "waitFor": "(() => { const s = __jfurDetails.section(); return !!s && s.getAttribute('data-jfur-item') === __vars.seriesId && !!s.querySelector('.jfur-summary[data-jfur-summary]'); })()",
+      "timeout": 15000
+    },
+    {
+      "sleep": 400
+    },
+    {
+      "name": "touch: Test Series: the chip and the Rate button",
+      "eval": "__jfurDetails.extras()",
+      "save": "xTouchSeries",
+      "full": true
+    },
+    {
+      "name": "touch: the Rate button before More",
+      "assert": "(x => !!x.rate && x.rates === 1 && x.rate.displayed && x.rate.title === 'Rate' && x.rate.label === 'Rate' && /btnMoreCommands/.test(x.rate.next) && x.jumps === 0)(__vars.xTouchSeries)"
+    },
+    {
+      "name": "touch: Rate in the middle of the screen",
+      "script": "document.querySelector('#itemDetailPage:not(.hide) .jfur-rate').scrollIntoView({ block: 'center' }); await new Promise(r => setTimeout(r, 500)); return true;"
+    },
+    {
+      "cdp": "Input.dispatchTouchEvent",
+      "params": "({ type: 'touchStart', touchPoints: [{ x: Math.round(__jfurDetails.box('#itemDetailPage:not(.hide) .jfur-rate').cx), y: Math.round(__jfurDetails.box('#itemDetailPage:not(.hide) .jfur-rate').cy) }] })"
+    },
+    {
+      "cdp": "Input.dispatchTouchEvent",
+      "params": "({ type: 'touchEnd', touchPoints: [] })"
+    },
+    {
+      "sleep": 900
+    },
+    {
+      "name": "touch: a tap on Rate focuses the slider, in view",
+      "assert": "__jfurDetails.onSlider() && (b => b.y >= 0 && b.y + b.h <= window.innerHeight)(__jfurDetails.box(__jfurDetails.slider()))"
+    },
+    {
+      "name": "clean: Long Test Movie at the end without a rating of this member",
+      "script": "const r = await __jfurDetails.server('DELETE', 'UserRatings/Items/' + __vars.movieId + '/Mine'); return r.status;",
+      "save": "cleaned"
+    },
+    {
+      "name": "no uncaught exception",
+      "noExceptions": true,
+      "ignore": "/CustomRatings/script|^Error: player cannot be null"
+    }
+  ]
+}

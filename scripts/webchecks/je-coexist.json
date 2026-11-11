@@ -1,0 +1,82 @@
+{
+  "name": "Bookmarks next to Jellyfin Enhanced's own bookmarks, in the je sandbox with the fixture (Jellyfin Enhanced's bookmarks on, in Plugin Pages and Custom Tabs): as admin, the drawer has our 'My Bookmarks' (Library tools, #/jfbm-bookmarks) and JE's 'Bookmarks' (Plugin Pages) once each, and no two drawer links share a label or a route; JE's own Bookmarks page opens in Plugin Pages' host and what it offers is recorded (its headings and buttons, a screenshot) for the switch-off step that notes it first; in the player our three OSD buttons and JE's bookmark button are there side by side with their own tooltips. Since 1.1.1 the click on JE's drawer link waits for the drawer to settle (JE adds its own entry above the libraries a moment after the drawer is built, which moves JE's link down onto where Sign Out was), and when the address doesn't change it clicks once more, then opens the link's href, recorded in 'how JE's page was opened'.",
+  "failOnException": false,
+  "timeout": 30000,
+  "steps": [
+    { "name": "sign in as admin", "login": "admin" },
+    { "name": "the Bookmarks script ran and JE loaded", "waitFor": "!!window.__jfkit && !!window.__jfkit.jfbm && !!window.ApiClient && !!ApiClient.getCurrentUserId() && !!window.JellyfinEnhanced", "timeout": 60000 },
+    { "name": "open the drawer", "click": ".skinHeader .mainDrawerButton" },
+    { "name": "drawer open with our link and JE's Plugin Pages link", "waitFor": "(() => { const ours = document.querySelector('.mainDrawer .jfkit-nav a[data-jfbm-nav=\"bookmarks\"]'); const je = document.querySelector('.mainDrawer .pluginMenuOptions a[data-itemid=\"Jellyfin.Plugin.JellyfinEnhanced.BookmarksPage\"]'); return !!ours && !!je && ours.getClientRects().length > 0 && je.getClientRects().length > 0; })()", "timeout": 20000 },
+    {
+      "name": "the drawer settled: JE's own entry (Enhanced Panel) in it, or 5 s gone by; JE's Bookmarks link in the same place for 600 ms and under its own centre",
+      "waitFor": "(async () => { const el = document.querySelector('.mainDrawer .pluginMenuOptions a[data-itemid=\"Jellyfin.Plugin.JellyfinEnhanced.BookmarksPage\"]'); if (!el || el.getClientRects().length === 0) return false; globalThis.__jeDrawerSince = globalThis.__jeDrawerSince || Date.now(); if (!document.getElementById('jellyfinEnhancedSettingsLink') && Date.now() - globalThis.__jeDrawerSince < 5000) return false; el.scrollIntoView({ block: 'center', inline: 'center' }); const box = () => { const r = el.getBoundingClientRect(); return [r.left, r.top, r.width, r.height].map(Math.round).join(','); }; const first = box(); for (let i = 0; i < 6; i++) { await new Promise((resolve) => setTimeout(resolve, 100)); if (!el.isConnected || box() !== first) return false; } const r = el.getBoundingClientRect(); const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2); return !!hit && el.contains(hit) && first; })()",
+      "timeout": 20000
+    },
+    {
+      "name": "every link of the drawer",
+      "eval": "Array.from(document.querySelectorAll('.mainDrawer a[href]')).filter(a => a.getClientRects().length > 0).map(a => ({ text: (a.querySelector('.navMenuOptionText') || a).textContent.trim(), href: a.getAttribute('href'), itemId: a.getAttribute('data-itemid'), ours: a.hasAttribute('data-jfbm-nav') }))",
+      "save": "links",
+      "full": true
+    },
+    {
+      "name": "our 'My Bookmarks' and JE's 'Bookmarks' once each, on different routes; no two drawer links share a label or a route",
+      "assert": "(() => { const l = __vars.links; const texts = l.map(x => x.text).filter(Boolean); const hrefs = l.map(x => x.href).filter(h => h && h !== '#'); const ours = l.filter(x => x.text === 'My Bookmarks'); const je = l.filter(x => x.itemId === 'Jellyfin.Plugin.JellyfinEnhanced.BookmarksPage'); return ours.length === 1 && ours[0].ours && ours[0].href === '#/jfbm-bookmarks' && je.length === 1 && je[0].text === 'Bookmarks' && je[0].href !== ours[0].href && new Set(texts).size === texts.length && new Set(hrefs).size === hrefs.length; })()"
+    },
+    { "screenshot": "je-coexist-drawer.png" },
+    {
+      "name": "JE's Bookmarks link still settled, just before the click",
+      "waitFor": "(async () => { const el = document.querySelector('.mainDrawer .pluginMenuOptions a[data-itemid=\"Jellyfin.Plugin.JellyfinEnhanced.BookmarksPage\"]'); if (!el || el.getClientRects().length === 0) return false; globalThis.__jeDrawerSince = globalThis.__jeDrawerSince || Date.now(); if (!document.getElementById('jellyfinEnhancedSettingsLink') && Date.now() - globalThis.__jeDrawerSince < 5000) return false; el.scrollIntoView({ block: 'center', inline: 'center' }); const box = () => { const r = el.getBoundingClientRect(); return [r.left, r.top, r.width, r.height].map(Math.round).join(','); }; const first = box(); for (let i = 0; i < 6; i++) { await new Promise((resolve) => setTimeout(resolve, 100)); if (!el.isConnected || box() !== first) return false; } const r = el.getBoundingClientRect(); const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2); return !!hit && el.contains(hit) && first; })()",
+      "timeout": 20000
+    },
+    { "name": "the address before the click", "eval": "location.hash", "save": "hashBeforeClick" },
+    { "name": "open JE's Bookmarks page from Plugin Pages' section", "click": ".mainDrawer .pluginMenuOptions a[data-itemid=\"Jellyfin.Plugin.JellyfinEnhanced.BookmarksPage\"]" },
+    { "name": "the address changed after the click", "waitFor": "location.hash !== __vars.hashBeforeClick", "timeout": 5000, "optional": true },
+    {
+      "name": "the address didn't change: JE's Bookmarks link settled again",
+      "if": "location.hash === __vars.hashBeforeClick",
+      "waitFor": "(async () => { const el = document.querySelector('.mainDrawer .pluginMenuOptions a[data-itemid=\"Jellyfin.Plugin.JellyfinEnhanced.BookmarksPage\"]'); if (!el || el.getClientRects().length === 0) return false; el.scrollIntoView({ block: 'center', inline: 'center' }); const box = () => { const r = el.getBoundingClientRect(); return [r.left, r.top, r.width, r.height].map(Math.round).join(','); }; const first = box(); for (let i = 0; i < 6; i++) { await new Promise((resolve) => setTimeout(resolve, 100)); if (!el.isConnected || box() !== first) return false; } const r = el.getBoundingClientRect(); const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2); return !!hit && el.contains(hit) && first; })()",
+      "timeout": 10000,
+      "optional": true
+    },
+    { "name": "the address didn't change: a second click", "if": "location.hash === __vars.hashBeforeClick", "eval": "true", "save": "secondClick" },
+    { "name": "open JE's Bookmarks page from Plugin Pages' section, once more", "if": "location.hash === __vars.hashBeforeClick", "click": ".mainDrawer .pluginMenuOptions a[data-itemid=\"Jellyfin.Plugin.JellyfinEnhanced.BookmarksPage\"]", "optional": true },
+    { "name": "the address changed after the second click", "if": "!!__vars.secondClick", "waitFor": "location.hash !== __vars.hashBeforeClick", "timeout": 5000, "optional": true },
+    {
+      "name": "fallback (recorded): both clicks left the address as it was, so the link's href is opened",
+      "if": "location.hash === __vars.hashBeforeClick",
+      "eval": "(() => { const a = document.querySelector('.mainDrawer .pluginMenuOptions a[data-itemid=\"Jellyfin.Plugin.JellyfinEnhanced.BookmarksPage\"]'); if (!a) throw new Error('no JE drawer link to open'); const href = a.getAttribute('href'); location.href = a.href; return href; })()",
+      "save": "fallbackHref"
+    },
+    { "name": "JE's page in Plugin Pages' host, not ours", "waitFor": "/userpluginsettings/i.test(location.hash) && /JellyfinEnhanced/i.test(decodeURIComponent(location.hash)) && !document.querySelector('#fallbackPage [data-jfbm-page]')", "timeout": 20000 },
+    {
+      "name": "how JE's page was opened",
+      "eval": "({ clicks: __vars.secondClick ? 2 : 1, fallback: !!__vars.fallbackHref, fallbackHref: __vars.fallbackHref || null, hashBeforeClick: __vars.hashBeforeClick, hash: location.hash })",
+      "save": "opened",
+      "full": true
+    },
+    { "sleep": 4000 },
+    {
+      "name": "what JE's Bookmarks page offers (recorded: headings, buttons, inputs)",
+      "eval": "(() => { const page = Array.from(document.querySelectorAll('.page:not(.hide)')).pop() || document.body; const vis = (e) => e.getClientRects().length > 0; return { title: document.title, headings: Array.from(page.querySelectorAll('h1, h2, h3, h4')).filter(vis).map(e => e.textContent.trim()).filter(Boolean).slice(0, 30), buttons: Array.from(page.querySelectorAll('button, [role=button], a.emby-button')).filter(vis).map(e => (e.getAttribute('title') || e.getAttribute('aria-label') || e.textContent || '').trim().replace(/\\s+/g, ' ')).filter(Boolean).slice(0, 60), inputs: Array.from(page.querySelectorAll('input, select')).filter(vis).map(e => e.getAttribute('placeholder') || e.getAttribute('aria-label') || e.type).slice(0, 20), text: page.textContent.replace(/\\s+/g, ' ').trim().slice(0, 1500) }; })()",
+      "save": "jePage",
+      "full": true
+    },
+    { "screenshot": "je-coexist-je-bookmarks-page.png" },
+    { "name": "find Long Test Movie", "eval": "(await ApiClient.getItems(ApiClient.getCurrentUserId(), { IncludeItemTypes: 'Movie', Recursive: true, SearchTerm: 'Long Test Movie', Limit: 1 })).Items[0].Id", "save": "movieId" },
+    { "name": "open its details page", "goto": "/web/index.html#/details?id=${movieId}" },
+    { "name": "details page with a Play button", "waitFor": "!!document.querySelector('#itemDetailPage:not(.hide) .mainDetailButtons .btnPlay:not(.hide)')", "timeout": 20000 },
+    { "name": "start playback", "click": "#itemDetailPage:not(.hide) .mainDetailButtons .btnPlay:not(.hide)" },
+    { "name": "video page, video playing", "waitFor": "location.hash.indexOf('#/video') === 0 && (v => !!v && !v.paused && v.currentTime > 1)(document.querySelector('.videoPlayerContainer video'))", "timeout": 60000 },
+    { "name": "our three buttons and JE's bookmark button in the OSD", "waitFor": "document.querySelectorAll('.videoOsdBottom .btnBookmarkAdd, .videoOsdBottom .btnBookmarkRange, .videoOsdBottom .btnBookmarkList').length === 3 && !!document.getElementById('jeBookmarkBtn')", "timeout": 30000 },
+    {
+      "name": "their tooltips",
+      "eval": "({ ours: Array.from(document.querySelectorAll('.videoOsdBottom .btnBookmarkAdd, .videoOsdBottom .btnBookmarkRange, .videoOsdBottom .btnBookmarkList')).map(b => b.getAttribute('title')), je: (b => b && (b.getAttribute('title') || b.getAttribute('aria-label') || b.textContent.trim()))(document.getElementById('jeBookmarkBtn')) })",
+      "save": "osd",
+      "full": true
+    },
+    { "name": "side by side, ours named by our shortcut, JE's its own", "assert": "__vars.osd.ours[0] === 'Bookmark this moment (Shift+B)' && __vars.osd.ours.indexOf(__vars.osd.je) < 0" },
+    { "sleep": 500 },
+    { "screenshot": "je-coexist-osd.png" },
+    { "name": "no uncaught exceptions (the stale CustomRatings tag, jellyfin-web's player teardown and its Home tab slider excepted)", "noExceptions": true, "ignore": "/CustomRatings/script|^Error: player cannot be null|^TypeError: t\\.value\\.pause is not a function" }
+  ]
+}

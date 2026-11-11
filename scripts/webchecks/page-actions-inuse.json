@@ -1,0 +1,41 @@
+{
+  "name": "The My Bookmarks page's bulk delete with a clip file in use, as admin on Long Test Movie, on the My Bookmarks page filtered to it, while bookmarks-page-probe.mjs holds the clip file of its 'page-probe inuse held' bookmark open the way a download holds it: that bookmark and a point of the same video seeded here are ticked and deleted with the clips (the box ticked by hand: it is unticked by default since My Clips lists kept clips); the server deletes the point and answers InUse for the held one after its three attempts, and the dialog stays with '1 bookmark deleted. One could not be deleted: a clip file is in use (being played or downloaded). Try again shortly.', the held bookmark still ticked in the group drawn again (the same video: it used to lose its tick with the group), the bar up, the server still holding it with its clip file. Then Cancel. Seeds and deletes its own point; the probe releases the file and deletes the held bookmark afterwards.",
+  "failOnException": false,
+  "timeout": 30000,
+  "steps": [
+    { "name": "sign in as admin", "login": "admin" },
+    { "name": "the Bookmarks script ran", "waitFor": "!!window.__jfkit && !!window.__jfkit.jfbm && !!window.ApiClient && !!ApiClient.getCurrentUserId()" },
+    { "name": "find Long Test Movie", "eval": "(await ApiClient.getItems(ApiClient.getCurrentUserId(), { IncludeItemTypes: 'Movie', Recursive: true, SearchTerm: 'Long Test Movie', Limit: 1 })).Items[0].Id", "save": "movieId" },
+    {
+      "name": "the probe's held bookmark (a Fast clip, its file held open by the probe) on the movie, and a point of the same video seeded here",
+      "script": "const r = await ApiClient.getJSON(ApiClient.getUrl('Bookmarks/Query', { searchTerm: 'page-probe inuse held', itemId: __vars.movieId, limit: 5 })); const held = r.Items.find(b => b.Name === 'page-probe inuse held' && b.Clip && b.Clip.Status === 'Completed' && b.Clip.FileName); if (!held) throw new Error('no held bookmark with a completed clip: the probe seeds it first'); const T = 10000000; const point = await ApiClient.ajax({ type: 'POST', url: ApiClient.getUrl('Bookmarks'), data: JSON.stringify({ ItemId: __vars.movieId, StartTicks: 80 * T, Name: 'page-probe inuse point' }), contentType: 'application/json', dataType: 'json' }); return { held: held.Id, point: point.Id, file: held.Clip.FileName };",
+      "save": "seed",
+      "full": true
+    },
+    { "name": "the page filtered to the movie", "goto": "/web/index.html#/jfbm-bookmarks?item=${movieId}" },
+    { "name": "both rows there, the held one with its clip ready", "waitFor": "(() => { const r = document.querySelector('#fallbackPage > [data-jfbm-page=\"bookmarks\"][data-jfbm-state=\"on\"]'); if (!r) return false; const c = r.querySelector('.jfbm-page-content'); if (!c || c.hasAttribute('aria-busy')) return false; const row = (id) => c.querySelector('.jfbm-row[data-id=\"' + id + '\"]'); return !!row(__vars.seed.held) && !!row(__vars.seed.point) && !!row(__vars.seed.held).querySelector('.jfbm-clip-ready'); })()", "timeout": 20000 },
+    { "name": "tick both", "script": "const r = document.querySelector('#fallbackPage [data-jfbm-page=\"bookmarks\"]'); for (const id of [__vars.seed.held, __vars.seed.point]) r.querySelector('.jfbm-row[data-id=\"' + id + '\"] .jfbm-row-select-box').click(); return r.querySelector('.jfbm-bulk-count').textContent;", "save": "selected" },
+    { "name": "2 selected", "assert": "__vars.selected === '2 bookmarks selected'" },
+    { "name": "Delete…", "click": "#fallbackPage [data-jfbm-page=\"bookmarks\"] .jfbm-bulk-bar .jfbm-bulk-delete", "js": true },
+    { "name": "'Delete 2 bookmarks?' with 'Also delete their clips (1 clip file)', unticked (since My Clips)", "waitFor": "(() => { const p = document.querySelector('.jfbm-backdrop .jfbm-panel'); if (!p || p.querySelector('h3').textContent !== 'Delete 2 bookmarks?') return false; const box = p.querySelector('.jfbm-delete-clip input'); return !!box && !box.checked && box.nextElementSibling.textContent === 'Also delete their clips (1 clip file)'; })()", "timeout": 10000 },
+    { "name": "tick it", "click": ".jfbm-backdrop .jfbm-delete-clip input", "js": true },
+    { "name": "ticked", "waitFor": "document.querySelector('.jfbm-backdrop .jfbm-delete-clip input').checked" },
+    { "name": "the clock", "eval": "performance.now()", "save": "t0" },
+    { "name": "Delete", "script": "[...document.querySelectorAll('.jfbm-backdrop .jfbm-actions button')].find(b => b.textContent === 'Delete').click(); return true;" },
+    {
+      "name": "the point deleted, the held one kept as InUse: the dialog stays with the sentence and the held one alone to delete; its row ticked in the group drawn again, the bar '1 bookmark selected'; the server still has it with its clip file",
+      "waitFor": "(async () => { const p = document.querySelector('.jfbm-backdrop .jfbm-panel'); const error = p && p.querySelector('.jfbm-error'); if (!p || !error || !error.textContent) return false; const r = document.querySelector('#fallbackPage > [data-jfbm-page=\"bookmarks\"]'); const c = r.querySelector('.jfbm-page-content'); const row = (id) => c.querySelector('.jfbm-row[data-id=\"' + id + '\"]'); if (c.hasAttribute('aria-busy') || row(__vars.seed.point) || !row(__vars.seed.held)) return false; const status = async (q, query) => (await fetch(ApiClient.getUrl(q, query), { headers: { Authorization: 'MediaBrowser Token=\"' + ApiClient.accessToken() + '\"' } })).status; return { error: error.textContent, description: p.querySelector('.jfbm-bulk-description').textContent, ms: Math.round(performance.now() - __vars.t0), checked: row(__vars.seed.held).querySelector('.jfbm-row-select-box').checked, count: r.querySelector('.jfbm-bulk-count').textContent, bar: r.querySelector('.jfbm-bulk-bar').classList.contains('hide'), held: await status('Bookmarks/' + __vars.seed.held), heldFile: await status('Bookmarks/' + __vars.seed.held + '/Clip/File', { download: 'false' }), point: await status('Bookmarks/' + __vars.seed.point), deleteDisabled: [...p.querySelectorAll('.jfbm-actions button')].find(b => b.textContent === 'Delete').disabled }; })()",
+      "timeout": 15000,
+      "save": "inUse",
+      "full": true
+    },
+    { "name": "as expected (the three attempts 200 ms apart: at least 0.38 s)", "assert": "__vars.inUse.error === '1 bookmark deleted. One could not be deleted: a clip file is in use (being played or downloaded). Try again shortly.' && __vars.inUse.description === '\"page-probe inuse held\" will be deleted.' && __vars.inUse.ms >= 380 && __vars.inUse.checked && __vars.inUse.count === '1 bookmark selected' && !__vars.inUse.bar && __vars.inUse.held === 200 && __vars.inUse.heldFile === 200 && __vars.inUse.point === 404 && !__vars.inUse.deleteDisabled" },
+    { "sleep": 200 },
+    { "screenshot": "page-actions-inuse.png" },
+    { "name": "Cancel", "script": "[...document.querySelectorAll('.jfbm-backdrop .jfbm-actions button')].find(b => b.textContent === 'Cancel').click(); return true;" },
+    { "name": "closed, the held one still ticked", "waitFor": "!document.querySelector('.jfbm-backdrop') && document.querySelector('#fallbackPage [data-jfbm-page=\"bookmarks\"] .jfbm-row[data-id=\"' + __vars.seed.held + '\"] .jfbm-row-select-box').checked", "timeout": 5000 },
+    { "name": "no uncaught exception of ours", "noExceptions": true, "ignore": "/CustomRatings/script|^Error: player cannot be null" },
+    { "name": "the held bookmark is left to the probe (its file is still held); nothing else of this check remains", "eval": "(await ApiClient.getJSON(ApiClient.getUrl('Bookmarks/Query', { searchTerm: 'page-probe inuse', limit: 10 }))).Items.map(b => b.Name)", "save": "left", "full": true },
+    { "name": "as expected", "assert": "JSON.stringify(__vars.left) === JSON.stringify(['page-probe inuse held'])" }
+  ]
+}

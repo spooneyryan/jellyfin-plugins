@@ -1,0 +1,116 @@
+[
+  {
+    "guid": "7cbc1019-49a5-4b97-8aa2-279de946ef88",
+    "name": "Access Roles",
+    "description": "Defines roles of locks and library grants and assigns them to users, so non-admin users can be kept out of their own settings pages per section, out of the admin data and server calls they could still reach, and out of libraries their roles don't grant. Roles, assignments, the effective rules, a preview of every change and the audit log, through the admin API, and the library sync, which writes managed users' library access, also into an admin's own policy save and at a managed user's sign-in; new users get the default roles, and the current setup can be imported unchanged; the settings locks are enforced on the server (refused or merged), and the web client hides the locked settings entry points and pages; the Dashboard's data and server calls are kept from non-admins whose role blocks them, configuration reads, the restart and the public user list are hardened server-wide, and items of libraries a user may not open are kept out of every API answer that leaked them.",
+    "overview": "Roles that keep non-admin users out of settings, the Dashboard's data and libraries they may not open",
+    "owner": "NoRepine",
+    "category": "General",
+    "imageUrl": "https://raw.githubusercontent.com/spooneyryan/jellyfin-plugins/main/plugins/AccessRoles/image.png",
+    "versions": [
+      {
+        "version": "1.0.3.0",
+        "changelog": "- First public release.\n- Roles for your Jellyfin users: lock parts of their own settings, keep them away from the Dashboard's data and from other users, and choose which libraries they can open.\n- The server enforces the roles for every client, not just the web client, and every change is previewed before it is saved.",
+        "targetAbi": "10.11.5.0",
+        "sourceUrl": "https://github.com/spooneyryan/jellyfin-plugins/releases/download/accessroles%2Fv1.0.3/accessroles_1.0.3.0.zip",
+        "checksum": "dcbc255dfa7634622a2a55752e4028a8",
+        "timestamp": "2026-11-11T07:10:34Z"
+      }
+    ]
+  },
+  {
+    "guid": "d0ee1b2a-7f71-4654-8ff2-163a81441b03",
+    "name": "Bookmarks",
+    "description": "Lets each user bookmark moments in movies and episodes, optionally with an end time and a name, and extract the bookmarked range into a clip file with ffmpeg. Adds bookmark buttons and Shift+B to the web player, a bookmarks list to item pages, a My Bookmarks page listing every bookmark and a My Clips page listing every clip, and imports Jellyfin Enhanced's bookmarks; no other plugin is needed for the web UI.",
+    "overview": "Named per-user bookmarks, My Bookmarks and My Clips pages, and ffmpeg clip extraction",
+    "owner": "NoRepine",
+    "category": "General",
+    "imageUrl": "https://raw.githubusercontent.com/spooneyryan/jellyfin-plugins/main/plugins/Bookmarks/image.png",
+    "versions": [
+      {
+        "version": "1.2.2.0",
+        "changelog": "- First public release.\n- Each user can bookmark moments in movies and episodes while watching, name them, and find them again on the My Bookmarks page.\n- A bookmark with an end time can be cut into a clip file with ffmpeg; the My Clips page lists, previews and downloads your clips.\n- Bookmarks made in Jellyfin Enhanced can be imported.",
+        "targetAbi": "10.11.5.0",
+        "sourceUrl": "https://github.com/spooneyryan/jellyfin-plugins/releases/download/bookmarks%2Fv1.2.2/bookmarks_1.2.2.0.zip",
+        "checksum": "258dfbbc704fa05dab68b98bdca55e19",
+        "timestamp": "2026-11-11T07:10:34Z"
+      }
+    ]
+  },
+  {
+    "guid": "fd47a1d3-dd8c-4e34-aeea-4f2edd973800",
+    "name": "Library Maintenance",
+    "description": "An admin-only Dashboard page that lists the movies your libraries hold more than once, matched on the title, or on the title and the year. Versions Jellyfin already groups count once, and its local alternates are never reported. From an item's menu, administrators can also preview moving a movie, an episode or a music video to another folder: a preview only. Nothing is deleted, merged, moved or written to your libraries.",
+    "overview": "Find duplicate movies across your libraries, and preview moving media",
+    "owner": "NoRepine",
+    "category": "General",
+    "imageUrl": "https://raw.githubusercontent.com/spooneyryan/jellyfin-plugins/main/plugins/LibraryMaintenance/image.png",
+    "versions": [
+      {
+        "version": "1.0.4.0",
+        "changelog": "- First public release.\n- An admin-only page that lists the movies your libraries hold more than once, with the space the extra copies take.\n- A preview of moving a movie, an episode or a music video to another folder. The plugin is read-only: it moves, deletes and changes nothing in your libraries.",
+        "targetAbi": "10.11.5.0",
+        "sourceUrl": "https://github.com/spooneyryan/jellyfin-plugins/releases/download/librarymaintenance%2Fv1.0.4/librarymaintenance_1.0.4.0.zip",
+        "checksum": "bb3de523cde0fcdef1f9ec75be1d76af",
+        "timestamp": "2026-11-11T07:10:34Z"
+      }
+    ]
+  },
+  {
+    "guid": "d92488d5-409f-4ad0-af1d-3615db9d0513",
+    "name": "Smart Search",
+    "description": "Adds an Advanced Search page under Library tools in the menu: find movies, shows and episodes by title, year, library, type, genre and many more fields, combine rules with All and Any groups, and save searches, private or shared. Every search runs as the signed-in user, over the libraries they can open. Administrators and users who manage collections can turn a saved search into an auto-collection, a Jellyfin collection the plugin keeps equal to the search's results. Administrators set the limits a search runs under and export, import and restore the saved searches and auto-collections.",
+    "overview": "An Advanced Search page with rules over title, year, library and more, saved queries, and auto-collections",
+    "owner": "NoRepine",
+    "category": "General",
+    "imageUrl": "https://raw.githubusercontent.com/spooneyryan/jellyfin-plugins/main/plugins/SmartSearch/image.png",
+    "versions": [
+      {
+        "version": "1.1.2.0",
+        "changelog": "- First public release.\n- An Advanced Search page: find movies, shows, episodes, music videos and collections by rules over title, year, library, genres, ratings, watch state and more, and save searches, private or shared.\n- Auto-collections: Jellyfin collections that the plugin keeps equal to a saved search's results.\n- Every search only shows what the signed-in user may see.",
+        "targetAbi": "10.11.5.0",
+        "sourceUrl": "https://github.com/spooneyryan/jellyfin-plugins/releases/download/smartsearch%2Fv1.1.2/smartsearch_1.1.2.0.zip",
+        "checksum": "bf67a8457b9093d0dde8db290e2346a8",
+        "timestamp": "2026-11-11T07:10:34Z"
+      }
+    ]
+  },
+  {
+    "guid": "e36415cf-46f1-4de6-bd61-d1fe7175c7a9",
+    "name": "Tag Cloud",
+    "description": "Adds a Tag Cloud page under Library tools in the menu: the tags, genres, actors, directors, writers or studios of your movies and shows, each word sized by how many titles carry it. Pick libraries and how many words, click a word to list its titles, hold it for a cloud of them, right-click it to narrow the cloud, change the look in Settings, save clouds (private or shared) and show any of them full screen. Counts only ever cover what the viewer may see; no other plugin is needed for the web UI.",
+    "overview": "A Tag Cloud page: your library's tags, genres, people and studios as a word cloud",
+    "owner": "NoRepine",
+    "category": "General",
+    "imageUrl": "https://raw.githubusercontent.com/spooneyryan/jellyfin-plugins/main/plugins/TagCloud/image.png",
+    "versions": [
+      {
+        "version": "1.0.1.0",
+        "changelog": "- First public release.\n- A Tag Cloud page that shows the tags, genres, actors, directors, writers or studios of your movies and shows as a word cloud; click a word to see its titles.\n- Saved clouds, private or shared, and a full-screen view. Counts only cover what the viewer may see.",
+        "targetAbi": "10.11.5.0",
+        "sourceUrl": "https://github.com/spooneyryan/jellyfin-plugins/releases/download/tagcloud%2Fv1.0.1/tagcloud_1.0.1.0.zip",
+        "checksum": "4a49a4b63f80f4ab7e9e498cf221be3d",
+        "timestamp": "2026-11-11T07:10:34Z"
+      }
+    ]
+  },
+  {
+    "guid": "f53c7c34-8cba-4846-b43b-956816b2f6ae",
+    "name": "User Ratings",
+    "description": "Lets members rate any movie, show, season, episode, album, book or video from half a star to five stars and write a review, on the item's details page; everyone on the server sees every member's ratings and reviews on the items they can open, with the member average. Admins can limit who may rate, moderate reviews and import Jellyfin Enhanced's reviews. Ratings follow their items through library scans and moves and are kept while a drive is away; the settings page has every setting, the moderation, and the Data tab: export, import, snapshots and restore, the detached ratings, and the export back to Jellyfin Enhanced.",
+    "overview": "Five-star ratings with half stars and reviews, shared by every member of the server",
+    "owner": "NoRepine",
+    "category": "General",
+    "imageUrl": "https://raw.githubusercontent.com/spooneyryan/jellyfin-plugins/main/plugins/UserRatings/image.png",
+    "versions": [
+      {
+        "version": "1.0.2.0",
+        "changelog": "- First public release.\n- Members rate movies, shows, episodes and more from half a star to five stars and write reviews, shared with every member of the server.\n- Admins choose who may rate, moderate reviews, and export, import and restore the ratings. Jellyfin Enhanced's reviews can be imported and exported back.",
+        "targetAbi": "10.11.5.0",
+        "sourceUrl": "https://github.com/spooneyryan/jellyfin-plugins/releases/download/userratings%2Fv1.0.2/userratings_1.0.2.0.zip",
+        "checksum": "e2977e69a609664458b0da1b267dac36",
+        "timestamp": "2026-11-11T07:10:34Z"
+      }
+    ]
+  }
+]

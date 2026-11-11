@@ -1,0 +1,38 @@
+---
+name: "Tag Cloud"
+guid: "e36415cf-46f1-4de6-bd61-d1fe7175c7a9"
+version: "1.0.1.0"
+targetAbi: "10.11.5.0"
+framework: "net9.0"
+overview: "A Tag Cloud page: your library's tags, genres, people and studios as a word cloud"
+description: >
+  Adds a Tag Cloud page under Library tools in the menu: the tags, genres,
+  actors, directors, writers or studios of your movies and shows, each word
+  sized by how many titles carry it. Pick libraries and how many words, click
+  a word to list its titles, hold it for a cloud of them, right-click it to
+  narrow the cloud, change the look in Settings, save clouds (private or
+  shared) and show any of them full screen. Counts only ever cover what the
+  viewer may see; no other plugin is needed for the web UI.
+category: "General"
+owner: "NoRepine"
+artifacts:
+- "Jellyfin.Plugin.TagCloud.dll"
+changelog: |
+  1.0.1
+  - First public release.
+  - A Tag Cloud page that shows the tags, genres, actors, directors, writers or studios of your movies and shows as a word cloud; click a word to see its titles.
+  - Saved clouds, private or shared, and a full-screen view. Counts only cover what the viewer may see.
+
+  1.0.0
+  - First release. The Tag Cloud page under Library tools: the tags,
+    genres, actors, directors, writers or studios of your movies, shows or
+    both, over any of your libraries, 25 to 1,000 words. Click a word for
+    its titles, hold it for a cloud of them, right-click it to narrow the
+    cloud.
+  - The settings panel: layout, shape, size mixing, spacing, letter case,
+    font, sizes, scale, palettes, colour rule and backdrops, kept per
+    device.
+  - Saved clouds, private or shared, and a read-only full-screen view of
+    any of them.
+  - Counts only ever cover what the viewer may see.
+  - Not in this release: export and import of the saved clouds.

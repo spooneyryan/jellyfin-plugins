@@ -1,0 +1,236 @@
+{
+  "comment": "The jellyfin-web 10.11.5 anchors Access Roles' web guard uses (by the kit's anchor rules), the one place their selectors are written. Kit.props embeds this file as Web.anchors.json: the kit's EmbeddedScript puts it into the ClientScript (kit.anchors, reached through Web/js/10-selectors.js), the head fragment's CSS is built from it on the server (Web/AccessRolesHead), the server accepts only these names and views in ClientHealth reports, and scripts/Test-WebAnchors.ps1 looks for them in the installed jellyfin-web. css is the primary selector, then the fallbacks. Notes cite the 10.11.5 chunk (bundle: <chunk>) and what a 10.11.5 sandbox showed.",
+  "anchors": [
+    {
+      "name": "drawerSettings",
+      "css": [".mainDrawer .btnSettings", "a.navMenuOption[data-itemid=\"settings\"]"],
+      "required": false,
+      "views": ["drawer"],
+      "note": "The legacy drawer's Settings link (main.jellyfin.bundle.js libraryMenu). Hidden by CSS under jfar-lock-allsettings and jfar-pending. Missing: the link stays, and the route guard still keeps the locked pages away."
+    },
+    {
+      "name": "userMenu",
+      "css": ["#app-user-menu"],
+      "required": false,
+      "views": ["usermenu"],
+      "note": "The experimental layout's MUI user menu (main.jellyfin.bundle.js, id app-user-menu, keepMounted). Missing: no aria-disabled marks or focus fix; the CSS rules match nothing."
+    },
+    {
+      "name": "userMenuButton",
+      "css": ["[aria-controls=\"app-user-menu\"]"],
+      "required": false,
+      "views": ["usermenu"],
+      "note": "The avatar button that opens the MUI user menu (main.jellyfin.bundle.js AppUserMenu). A pointer or key press on it runs the focus fix. Missing: the fix runs only when the menu's items are marked."
+    },
+    {
+      "name": "userMenuItem",
+      "css": ["#app-user-menu [role=\"menuitem\"]", ".MuiMenu-list [role=\"menuitem\"]"],
+      "required": false,
+      "views": ["usermenu"],
+      "note": "The MUI user menu's items (MenuItem, role menuitem). Hidden ones get aria-disabled so MenuList's arrow keys skip them, and the focus goes to the first visible one. Missing: no keyboard fix."
+    },
+    {
+      "name": "userMenuProfile",
+      "css": ["#app-user-menu a[href^=\"#/userprofile\"]", ".MuiMenu-list a[href^=\"#/userprofile\"]"],
+      "required": false,
+      "views": ["usermenu"],
+      "note": "The MUI user menu's Profile item, the first one (main.jellyfin.bundle.js to:/userprofile?userId=). Hidden by CSS under jfar-lock-profile. Missing: it stays; the guard redirects the page."
+    },
+    {
+      "name": "userMenuSettings",
+      "css": ["#app-user-menu a[href=\"#/mypreferencesmenu\"]", ".MuiMenu-list a[href=\"#/mypreferencesmenu\"]"],
+      "required": false,
+      "views": ["usermenu"],
+      "note": "The MUI user menu's Settings item (main.jellyfin.bundle.js to:/mypreferencesmenu). Hidden by CSS under jfar-lock-allsettings. Missing: it stays; the Settings page shows only Sign out and the note."
+    },
+    {
+      "name": "userMenuQuickConnect",
+      "css": ["#app-user-menu a[href=\"#/quickconnect\"]", ".MuiMenu-list a[href=\"#/quickconnect\"]"],
+      "required": false,
+      "views": ["usermenu"],
+      "note": "The MUI user menu's Quick Connect item (main.jellyfin.bundle.js). Hidden by CSS under jfar-lock-quickconnect. Missing: it stays; the guard redirects the page."
+    },
+    {
+      "name": "userMenuDivider",
+      "css": ["#app-user-menu ul > hr:first-of-type"],
+      "required": false,
+      "views": ["usermenu"],
+      "note": "The MUI user menu's first divider (main.jellyfin.bundle.js Divider), left alone at the top when Profile, Settings and Jellyfin Enhanced's entry are hidden. CSS only. Missing: a divider line shows at the top."
+    },
+    {
+      "name": "userMenuDividerNoJe",
+      "css": ["#app-user-menu ul:not(:has(> #jellyfinEnhancedUserMenuLink)) > hr:first-of-type"],
+      "required": false,
+      "views": ["usermenu"],
+      "note": "The same divider when Jellyfin Enhanced's cloned entry isn't in the menu (needs :has(), Chrome 105+; a variant not run on a sandbox). CSS only. Missing: a divider line shows at the top."
+    },
+    {
+      "name": "jeEntries",
+      "css": ["#jellyfinEnhancedUserMenuLink", "#jellyfinEnhancedSettingsLink", "#jellyfinEnhancedUserPrefsLink", "#enhancedSettingsBtn"],
+      "required": false,
+      "views": ["usermenu"],
+      "note": "Jellyfin Enhanced's entries to its settings panel (JE's script; its menu clone has href=\"#\", so ids). Hidden by CSS under jfar-lock-enhancedpanel; JE's saves are refused on the server. Missing: JE isn't installed or renamed them."
+    },
+    {
+      "name": "settingsPage",
+      "css": ["#myPreferencesMenuPage"],
+      "required": true,
+      "views": ["settings"],
+      "note": "The Settings menu page (bundle: user-settings chunk, id myPreferencesMenuPage). The note goes into it. Missing: no note; the links' CSS rules match nothing and the guard still redirects."
+    },
+    {
+      "name": "settingsSignOut",
+      "css": ["#myPreferencesMenuPage .btnLogout"],
+      "required": true,
+      "views": ["settings"],
+      "note": "Sign out on the Settings page (bundle: user-settings chunk, btnLogout listItem-border), the only Sign out of the TV layout. The note goes right before it. Missing: the note goes at the end of the page."
+    },
+    {
+      "name": "settingsProfileLink",
+      "css": ["#myPreferencesMenuPage .lnkUserProfile", "#myPreferencesMenuPage a[href^=\"#/userprofile\"]"],
+      "required": false,
+      "views": ["settings"],
+      "note": "The Settings page's Profile link (bundle: user-settings chunk, lnkUserProfile). Hidden by CSS under jfar-lock-profile. Missing: it stays; the guard redirects the page."
+    },
+    {
+      "name": "settingsDisplayLink",
+      "css": ["#myPreferencesMenuPage .lnkDisplayPreferences", "#myPreferencesMenuPage a[href^=\"#/mypreferencesdisplay\"]"],
+      "required": false,
+      "views": ["settings"],
+      "note": "The Settings page's Display link (bundle: user-settings chunk, lnkDisplayPreferences). Hidden by CSS under jfar-lock-displaydevice only (the page stays for the layout and language). Missing: it stays; the guard redirects the page."
+    },
+    {
+      "name": "settingsHomeLink",
+      "css": ["#myPreferencesMenuPage .lnkHomePreferences", "#myPreferencesMenuPage a[href^=\"#/mypreferenceshome\"]"],
+      "required": false,
+      "views": ["settings"],
+      "note": "The Settings page's Home screen link (bundle: user-settings chunk, lnkHomePreferences). Hidden by CSS under jfar-lock-home. Missing: it stays; the guard redirects the page."
+    },
+    {
+      "name": "settingsPlaybackLink",
+      "css": ["#myPreferencesMenuPage .lnkPlaybackPreferences", "#myPreferencesMenuPage a[href^=\"#/mypreferencesplayback\"]"],
+      "required": false,
+      "views": ["settings"],
+      "note": "The Settings page's Playback link (bundle: user-settings chunk, lnkPlaybackPreferences). Hidden by CSS under jfar-lock-playback. Missing: it stays; the guard redirects the page."
+    },
+    {
+      "name": "settingsSubtitlesLink",
+      "css": ["#myPreferencesMenuPage .lnkSubtitlePreferences", "#myPreferencesMenuPage a[href^=\"#/mypreferencessubtitles\"]"],
+      "required": false,
+      "views": ["settings"],
+      "note": "The Settings page's Subtitles link (bundle: user-settings chunk, lnkSubtitlePreferences). Hidden by CSS under jfar-lock-subtitles. Missing: it stays; the guard redirects the page."
+    },
+    {
+      "name": "settingsControlsLink",
+      "css": ["#myPreferencesMenuPage .lnkControlsPreferences", "#myPreferencesMenuPage a[href^=\"#/mypreferencescontrols\"]"],
+      "required": false,
+      "views": ["settings"],
+      "note": "The Settings page's Controls link (bundle: user-settings chunk, lnkControlsPreferences). Hidden by CSS under jfar-lock-controls. Missing: it stays; the guard redirects the page."
+    },
+    {
+      "name": "settingsQuickConnectLink",
+      "css": ["#myPreferencesMenuPage .lnkQuickConnectPreferences", "#myPreferencesMenuPage a[href^=\"#/quickconnect\"]"],
+      "required": false,
+      "views": ["settings"],
+      "note": "The Settings page's Quick Connect link (bundle: user-settings chunk, lnkQuickConnectPreferences). Hidden by CSS under jfar-lock-quickconnect. Missing: it stays; the guard redirects the page."
+    },
+    {
+      "name": "preferencePage",
+      "css": [".page.userPreferencesPage:not(#userPluginPreferencesPage)"],
+      "required": false,
+      "views": ["preferences"],
+      "note": "The settings pages' roots (bundle: user-* chunks; Plugin Pages' host #userPluginPreferencesPage carries the class too and hosts My Bookmarks and My Clips, so it is left out). Hidden by CSS under jfar-blocking while a locked page is redirected. Missing: a locked page may show for a frame."
+    },
+    {
+      "name": "profilePage",
+      "css": ["#userProfilePage"],
+      "required": false,
+      "views": ["preferences"],
+      "note": "The Profile page (bundle: user-userprofile chunk). A late legacy view of a locked section is told by its page id. Missing: only the hash decides."
+    },
+    {
+      "name": "quickConnectPage",
+      "css": ["#quickConnectPreferencesPage"],
+      "required": false,
+      "views": ["preferences"],
+      "note": "The Quick Connect page (bundle: quickConnect chunk). Told by its page id as profilePage is. Missing: only the hash decides."
+    },
+    {
+      "name": "displayPage",
+      "css": ["#displayPreferencesPage"],
+      "required": false,
+      "views": ["preferences", "display"],
+      "note": "The Display page in both layouts (bundle: user-display-index-html and user-display-index-tsx chunks). Its Display (account) fields are disabled while visible. Missing: the fields stay enabled; the server keeps their values."
+    },
+    {
+      "name": "homeScreenPage",
+      "css": ["#homeScreenPreferencesPage"],
+      "required": false,
+      "views": ["preferences"],
+      "note": "The Home screen page, whose id the Subtitles page reuses (bundle: user-home-index-html and user-subtitles-index-html chunks), so the hash decides between them. Missing: only the hash decides."
+    },
+    {
+      "name": "playbackPage",
+      "css": ["#languagePreferencesPage"],
+      "required": false,
+      "views": ["preferences"],
+      "note": "The Playback page (bundle: user-playback-index-html chunk). Told by its page id as profilePage is. Missing: only the hash decides."
+    },
+    {
+      "name": "controlsPage",
+      "css": ["#controlsPreferencesPage"],
+      "required": false,
+      "views": ["preferences"],
+      "note": "The Controls page (bundle: user-controls-index-html chunk). Told by its page id as profilePage is. Missing: only the hash decides."
+    },
+    {
+      "name": "displayMissingEpisodes",
+      "css": [".chkDisplayMissingEpisodes", "input[name=\"displayMissingEpisodes\"]"],
+      "required": false,
+      "views": ["display"],
+      "note": "Display (account): missing episodes, legacy then experimental (bundle: user-display-index-html, user-display-index-tsx). Disabled under jfar-lock-displayaccount. Missing: it stays enabled; the server keeps the value."
+    },
+    {
+      "name": "episodeImagesInNextUp",
+      "css": ["#chkUseEpisodeImagesInNextUp", "input[name=\"episodeImagesInNextUp\"]"],
+      "required": false,
+      "views": ["display"],
+      "note": "Display (account): episode images in Next Up, legacy then experimental (same chunks). Disabled under jfar-lock-displayaccount. Missing: it stays enabled; the server keeps the value."
+    },
+    {
+      "name": "dashboardTheme",
+      "css": ["#selectDashboardTheme", "input[name=\"dashboardTheme\"]"],
+      "required": false,
+      "views": ["display"],
+      "note": "Display (account): the dashboard theme, rendered for administrators only, to whom no lock applies (same chunks). Disabled if ever shown under the lock. Missing: the usual case."
+    },
+    {
+      "name": "homePage",
+      "css": [".homePage"],
+      "required": false,
+      "views": ["home"],
+      "note": "Home's view (bundle: home chunk). Its viewshow replaces the no-libraries text. Missing: the stock text stays."
+    },
+    {
+      "name": "homeNoLibraries",
+      "css": [".homePage:not(.hide) .sections > .centerMessage p"],
+      "required": false,
+      "views": ["home"],
+      "note": "Home's no-libraries message, AskAdminToCreateLibrary, rebuilt on every show and only when no library and no playlist is visible (bundle: 56213 chunk). Replaced for a managed user with no library. Missing: the stock text."
+    },
+    {
+      "name": "userEditorContent",
+      "css": ["#editUserPage:not(.hide) .content-primary", "#userLibraryAccessPage:not(.hide) .content-primary", "#userParentalControlPage:not(.hide) .content-primary", "#userPasswordPage:not(.hide) .content-primary", ".type-interior:not(.hide) .content-primary"],
+      "required": false,
+      "views": ["userpages"],
+      "note": "The stock Dashboard user editor's content, profile, access, parental control and password tabs (bundle: users-profile, users-access, users-parentalcontrol, users-password chunks). The admin banner goes first in it. Missing: no banner."
+    },
+    {
+      "name": "newUserContent",
+      "css": ["#newUserPage:not(.hide) .content-primary", ".type-interior:not(.hide) .content-primary"],
+      "required": false,
+      "views": ["newuser"],
+      "note": "The stock Add user page's content (bundle: users-add chunk, id newUserPage). The default roles' banner goes first in it. Missing: no banner; the default roles still apply."
+    }
+  ]
+}

@@ -1,0 +1,194 @@
+{
+  "description": "The import's confirm and a stale import preview on Access Roles' dashboard page in the TV layout, as admin, importing nothing: run by accessroles-admin-page-probe.mjs only while the import is offered (no assignment stored), after it created its users pageprobe-kid and pageprobe-teen. The Users tab is remembered from an earlier visit, but the page opens on Overview because the import is offered. The import's preview (a dry run, the users who see every library ticked in), then OK on Apply the import opens the kit's confirm with the focus inside it on Cancel; the D-pad (Right) reaches the confirm button Apply and (Left) goes back; OK on Cancel dismisses it, and so does Back (Escape) the second time, each time with the focus back on Apply the import. Then another administrator changes pageprobe-kid's library access through the stock policy API (one library instead of every one), and OK on the confirm's Apply sends the import with its preview's PreviewToken (ifPreview): 409 Changed naming the kid, the sentence on the page, Apply off until a new preview and the focus on Preview the import. The kid's access is put back; nothing was imported.",
+  "timeout": 30000,
+  "steps": [
+    {
+      "name": "the TV layout, and the Users tab remembered from an earlier visit",
+      "initScript": "localStorage.setItem('layout', 'tv'); localStorage.setItem('jfar:adminTab', JSON.stringify('Users'))"
+    },
+    {
+      "name": "sign in as admin",
+      "login": "admin"
+    },
+    {
+      "name": "the web client is ready",
+      "waitFor": "!!window.ApiClient && !!ApiClient.getCurrentUserId()"
+    },
+    {
+      "name": "open Access Roles' page",
+      "goto": "/web/index.html#/configurationpage?name=AccessRoles"
+    },
+    {
+      "name": "the module mounted: the tabs, the status loaded, the loading note hidden",
+      "waitFor": "(() => { const p = document.querySelector('#AccessRolesConfigPage:not(.hide)'); return !!p && p.querySelectorAll('[role=\"tab\"]').length === 8 && p.querySelectorAll('#AccessRolesStatus table').length === 5 && p.querySelector('#AccessRolesScriptNote').hidden === true; })()",
+      "timeout": 30000
+    },
+    {
+      "name": "the check's helpers",
+      "script": "window.__arPage = {\n  page: () => document.querySelector('#AccessRolesConfigPage:not(.hide)'),\n  panels: () => [...document.querySelectorAll('.jfar-backdrop .jfar-panel')],\n  top: () => __arPage.panels().pop() || null,\n  title: () => { const t = __arPage.top(); return t ? t.querySelector('.jfar-panel-header h3').textContent : null; },\n  buttons: (root) => [...(root || document).querySelectorAll('button')],\n  button: (root, text) => __arPage.buttons(root).find(b => b.textContent === text) || null,\n  press: (root, text) => { const b = __arPage.button(root, text); if (!b) throw new Error('no button ' + text); if (b.disabled) throw new Error(text + ' is disabled'); b.click(); return true; },\n  user: (name) => [...__arPage.page().querySelectorAll('.jfar-page-user')].find(r => r.querySelector('.jfar-page-user-name').textContent === name) || null,\n  role: (name) => [...__arPage.page().querySelectorAll('.jfar-page-role')].find(r => r.querySelector('.jfar-page-role-name').textContent === name) || null,\n  check: (root, text) => { const l = [...root.querySelectorAll('label')].find(l => l.textContent.startsWith(text)); return l ? l.querySelector('input') : null; },\n  shown: (el) => !!el && el.getClientRects().length > 0 && !el.closest('[hidden]'),\n  seen: [],\n  toasts: () => __arPage.seen.concat([...document.querySelectorAll('.jfar-toast')].map(t => t.textContent))\n};\n// Every toast's text as it comes (a toast goes after 4 s, maybe before a wait sees it).\nnew MutationObserver(() => { document.querySelectorAll('.jfar-toast').forEach(t => { if (!__arPage.seen.includes(t.textContent)) __arPage.seen.push(t.textContent); }); }).observe(document.body, { childList: true, subtree: true });\nreturn true;"
+    },
+    {
+      "name": "TV layout applied",
+      "assert": "document.documentElement.classList.contains('layout-tv')"
+    },
+    {
+      "name": "the import is offered, so the page opens on Overview, not the remembered Users tab",
+      "waitFor": "__arPage.shown(document.querySelector('#AccessRolesImport')) && document.querySelector('#AccessRolesTabOverview').getAttribute('aria-selected') === 'true' && __arPage.shown(document.querySelector('#AccessRolesPanelOverview'))",
+      "timeout": 20000
+    },
+    {
+      "name": "the users who see every library ticked in (the preview has someone to import)",
+      "script": "const box = document.querySelector('#AccessRolesImportEveryLibrary'); if (!box.checked) box.click(); return box.checked;",
+      "save": "everyLibrary"
+    },
+    {
+      "name": "Preview the import (a dry run)",
+      "click": "#AccessRolesImportPreview"
+    },
+    {
+      "name": "the preview, Apply enabled",
+      "waitFor": "document.querySelector('#AccessRolesImportApply').disabled === false",
+      "timeout": 30000
+    },
+    {
+      "name": "the focus on Apply the import (the D-pad put it there)",
+      "script": "document.querySelector('#AccessRolesImportApply').focus(); return document.activeElement.id;",
+      "save": "focused"
+    },
+    {
+      "name": "OK",
+      "key": "Enter"
+    },
+    {
+      "name": "the kit's confirm, the focus inside it on Cancel",
+      "waitFor": "__arPage.title() === 'Import current setup' && __arPage.top().contains(document.activeElement) && document.activeElement.textContent === 'Cancel'",
+      "timeout": 5000
+    },
+    {
+      "name": "Right on the D-pad",
+      "key": "ArrowRight"
+    },
+    {
+      "name": "the D-pad reached the confirm button",
+      "waitFor": "__arPage.top() && __arPage.top().contains(document.activeElement) && document.activeElement.textContent === 'Apply'",
+      "timeout": 3000
+    },
+    {
+      "sleep": 200
+    },
+    {
+      "screenshot": "accessroles-admin-page-tv-confirm.png"
+    },
+    {
+      "name": "Left on the D-pad",
+      "key": "ArrowLeft"
+    },
+    {
+      "name": "back on Cancel",
+      "waitFor": "__arPage.top() && __arPage.top().contains(document.activeElement) && document.activeElement.textContent === 'Cancel'",
+      "timeout": 3000
+    },
+    {
+      "name": "OK on Cancel",
+      "key": "Enter"
+    },
+    {
+      "name": "dismissed",
+      "waitFor": "__arPage.panels().length === 0",
+      "timeout": 5000
+    },
+    {
+      "name": "the focus back on Apply the import, the opener, and Apply enabled",
+      "waitFor": "document.activeElement === document.querySelector('#AccessRolesImportApply') && document.querySelector('#AccessRolesImportApply').disabled === false",
+      "timeout": 5000
+    },
+    {
+      "name": "OK again (on Apply, where the focus came back)",
+      "key": "Enter"
+    },
+    {
+      "name": "the confirm again",
+      "waitFor": "__arPage.title() === 'Import current setup' && __arPage.top().contains(document.activeElement)",
+      "timeout": 5000
+    },
+    {
+      "name": "Back (Escape)",
+      "key": "Escape"
+    },
+    {
+      "name": "dismissed by Back",
+      "waitFor": "__arPage.panels().length === 0",
+      "timeout": 5000
+    },
+    {
+      "name": "the focus back on Apply the import after Back too",
+      "waitFor": "document.activeElement === document.querySelector('#AccessRolesImportApply') && document.querySelector('#AccessRolesImportApply').disabled === false",
+      "timeout": 5000
+    },
+    {
+      "name": "another administrator changes pageprobe-kid's library access after the preview (one library instead of every one, through the stock policy API), so the import would propose another role for them",
+      "script": "const users = await ApiClient.getUsers(); const kid = users.find(u => u.Name === 'pageprobe-kid'); const libraries = await ApiClient.getJSON(ApiClient.getUrl('AccessRoles/Admin/Libraries')); const one = libraries.find(l => l.Enabled && l.CollectionType !== 'boxsets'); window.__arPageKid = { id: kid.Id, policy: JSON.parse(JSON.stringify(kid.Policy)) }; await ApiClient.updateUserPolicy(kid.Id, Object.assign({}, kid.Policy, { EnableAllFolders: false, EnabledFolders: [one.Id] })); const now = await ApiClient.getUser(kid.Id); return { before: kid.Policy.EnableAllFolders, all: now.Policy.EnableAllFolders, folders: now.Policy.EnabledFolders.length };",
+      "save": "kidRaced"
+    },
+    {
+      "name": "the kid sees one library now (they saw every one)",
+      "assert": "__vars.kidRaced.before === true && __vars.kidRaced.all === false && __vars.kidRaced.folders === 1"
+    },
+    {
+      "name": "OK on Apply the import a third time",
+      "key": "Enter"
+    },
+    {
+      "name": "the confirm, the focus on Cancel",
+      "waitFor": "__arPage.title() === 'Import current setup' && __arPage.top().contains(document.activeElement) && document.activeElement.textContent === 'Cancel'",
+      "timeout": 5000
+    },
+    {
+      "name": "Right on the D-pad to the confirm button",
+      "key": "ArrowRight"
+    },
+    {
+      "name": "on Apply",
+      "waitFor": "__arPage.top() && __arPage.top().contains(document.activeElement) && document.activeElement.textContent === 'Apply'",
+      "timeout": 3000
+    },
+    {
+      "name": "OK on Apply (the confirm button): the import is sent with its preview's PreviewToken",
+      "key": "Enter"
+    },
+    {
+      "name": "refused (409 Changed: what the import does isn't what its preview showed, for the kid): the confirm closed, the sentence shown, Apply off until a new preview, the focus on Preview the import",
+      "waitFor": "__arPage.panels().length === 0 && /Preview it again\\./.test(document.querySelector('#AccessRolesImportResult').textContent) && /pageprobe-kid/.test(document.querySelector('#AccessRolesImportResult').textContent) && document.querySelector('#AccessRolesImportApply').disabled === true && document.activeElement === document.querySelector('#AccessRolesImportPreview')",
+      "timeout": 10000
+    },
+    {
+      "sleep": 200
+    },
+    {
+      "screenshot": "accessroles-admin-page-tv-import-changed.png"
+    },
+    {
+      "name": "the kid's library access put back as it was",
+      "script": "await ApiClient.updateUserPolicy(window.__arPageKid.id, window.__arPageKid.policy); const now = await ApiClient.getUser(window.__arPageKid.id); return { all: now.Policy.EnableAllFolders, folders: now.Policy.EnabledFolders.length };",
+      "save": "kidBack"
+    },
+    {
+      "name": "every library again",
+      "assert": "__vars.kidBack.all === true"
+    },
+    {
+      "name": "nothing was imported",
+      "eval": "(async () => (await ApiClient.getJSON(ApiClient.getUrl('AccessRoles/Admin/Diagnostics'))).Records.Assignments)()",
+      "save": "assignments"
+    },
+    {
+      "name": "still no assignment",
+      "assert": "__vars.assignments === 0"
+    },
+    {
+      "name": "no uncaught exceptions (the stale CustomRatings tag excepted)",
+      "noExceptions": true,
+      "ignore": "/CustomRatings/script"
+    }
+  ]
+}

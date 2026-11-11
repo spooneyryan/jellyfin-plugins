@@ -1,0 +1,24 @@
+{
+  "description": "The imported Jellyfin Enhanced bookmarks on our page, in the je sandbox, after bookmarks-je-import-probe.mjs applied the synthetic 81-style import and switched Jellyfin Enhanced's Bookmarks off: the admin's My Bookmarks page lists the imported bookmarks (the count line as the API counts them, 64 of them from Jellyfin Enhanced), names as JE's labels (a label with markup shown as text), the TMDb-matched one on its film, and a bookmark of a film that isn't in the library greyed with 'Not in library' and no play.",
+  "steps": [
+    { "name": "sign in as admin", "login": "admin" },
+    { "name": "the Bookmarks script ran", "waitFor": "!!window.__jfkit && !!window.__jfkit.jfbm && !!window.ApiClient && !!ApiClient.getCurrentUserId()" },
+    { "name": "what the API counts: the admin's bookmarks, their titles, the ones from Jellyfin Enhanced", "script": "const all = await ApiClient.getJSON(ApiClient.getUrl('Bookmarks/Query', { limit: 200 })); const groups = await ApiClient.getJSON(ApiClient.getUrl('Bookmarks/Groups', { limit: 1 })); return { all: all.TotalRecordCount, titles: groups.TotalRecordCount, je: all.Items.filter(b => b.Origin === 'JellyfinEnhanced').length, detached: all.Items.filter(b => b.Origin === 'JellyfinEnhanced' && b.Detached).length };", "save": "counts", "full": true },
+    { "name": "64 of the admin's bookmarks came from Jellyfin Enhanced, 3 of them not in the library", "assert": "__vars.counts.je === 64 && __vars.counts.detached === 3 && __vars.counts.all >= 64" },
+    { "name": "open My Bookmarks, flat", "goto": "/web/index.html#/jfbm-bookmarks?view=flat" },
+    { "name": "the page and its count line as the API counts", "waitFor": "(() => { const r = document.querySelector('#fallbackPage [data-jfbm-page=\"bookmarks\"][data-jfbm-state=\"on\"]'); const c = r && r.querySelector('.jfbm-page-count'); return !!c && c.textContent === __vars.counts.all + ' bookmarks on ' + __vars.counts.titles + ' titles' && r.querySelectorAll('.jfbm-row').length > 0; })()", "timeout": 30000 },
+    { "sleep": 300 },
+    { "screenshot": "je-import-page-flat.png" },
+    { "name": "search JE's label 'Tagged': the two TMDb-matched bookmarks, on Tagged Movie (2012)", "goto": "/web/index.html#/jfbm-bookmarks?view=flat&q=Tagged" },
+    { "name": "two rows", "waitFor": "(() => { const r = document.querySelector('#fallbackPage [data-jfbm-page=\"bookmarks\"][data-jfbm-state=\"on\"]'); return !!r && r.querySelectorAll('.jfbm-row').length === 2 && /^2 bookmarks/.test(r.querySelector('.jfbm-page-count').textContent); })()", "timeout": 20000 },
+    { "name": "their titles and video", "eval": "(() => Array.from(document.querySelector('#fallbackPage [data-jfbm-page=\"bookmarks\"][data-jfbm-state=\"on\"]').querySelectorAll('.jfbm-row')).map(row => ({ title: row.querySelector('.jfbm-row-title').textContent, item: (row.querySelector('.jfbm-row-item') || {}).textContent || null, detached: row.classList.contains('jfbm-row-detached') })))()", "save": "tagged", "full": true },
+    { "name": "JE's labels as names, on the TMDb film, attached", "assert": "JSON.stringify(__vars.tagged.map(r => r.title).sort()) === JSON.stringify(['Tagged again', 'Tagged by TMDb']) && __vars.tagged.every(r => !r.detached && /Tagged Movie/.test(r.item || ''))" },
+    { "name": "search 'Gone film': a bookmark of a film that isn't in the library", "goto": "/web/index.html#/jfbm-bookmarks?view=flat&q=Gone%20film" },
+    { "name": "one greyed row with Not in library, no play", "waitFor": "(() => { const r = document.querySelector('#fallbackPage [data-jfbm-page=\"bookmarks\"][data-jfbm-state=\"on\"]'); const rows = r ? r.querySelectorAll('.jfbm-row') : []; return rows.length === 1 && rows[0].classList.contains('jfbm-row-detached') && Array.from(rows[0].querySelectorAll('.jfbm-badge')).some(b => b.textContent === 'Not in library') && rows[0].querySelector('.jfbm-time-button').disabled === true; })()", "timeout": 20000 },
+    { "sleep": 300 },
+    { "screenshot": "je-import-page-detached.png" },
+    { "name": "search 'Tears': JE's label with markup is text", "goto": "/web/index.html#/jfbm-bookmarks?view=flat&q=Tears" },
+    { "name": "one row, its title the label as text", "waitFor": "(() => { const r = document.querySelector('#fallbackPage [data-jfbm-page=\"bookmarks\"][data-jfbm-state=\"on\"]'); const rows = r ? r.querySelectorAll('.jfbm-row') : []; return rows.length === 1 && rows[0].querySelector('.jfbm-row-title').textContent === '<b>Tears</b> in rain' && rows[0].querySelectorAll('.jfbm-row-title b').length === 0; })()", "timeout": 20000 },
+    { "name": "no uncaught exceptions (the stale CustomRatings tag, and jellyfin-web's Home tab pausing its slider while JE's Custom Tabs sync runs, excepted)", "noExceptions": true, "ignore": "/CustomRatings/script|^TypeError: t\\.value\\.pause is not a function" }
+  ]
+}

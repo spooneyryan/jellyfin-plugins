@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Library Maintenance</title>
+</head>
+<body>
+    <div id="LibraryMaintenanceConfigPage" data-role="page" class="page type-interior pluginConfigurationPage" data-title="Library Maintenance" data-controller="__plugin/LibraryMaintenanceJs">
+        <!-- Inside the page element, which is all jellyfin-web keeps of this file. The page is the kit's AdminScript
+             pattern: the data-controller module (the LibraryMaintenanceJs page) imports
+             /LibraryMaintenance/AdminScript, which builds the tabs Duplicates | Settings | Diagnostics into
+             #LibraryMaintenanceRoot. This file holds no data and no script (translateHtml). -->
+        <div data-role="content">
+            <div class="content-primary">
+                <h2 class="sectionTitle">Library Maintenance</h2>
+                <p id="LibraryMaintenanceScriptNote">Loading the page…</p>
+                <div id="LibraryMaintenanceRoot"></div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

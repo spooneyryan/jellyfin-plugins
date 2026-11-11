@@ -1,0 +1,293 @@
+{
+  "name": "User Ratings 1.0.2.0, the Settings tab in the TV layout: in the default sandbox as admin in jellyfin-web 10.11.5's TV layout: the Settings tab has no select; the D-pad moves the focus between its controls; OK flips a switch and flips it back; OK on Save opens the dry run's dialog with the focus on Cancel; Down past the last control and Up past the first keep the focus inside it (no wrap, no way out); Back (keyCode 461) closes it with the focus back on Save, the page where it was and nothing saved; OK on Save, Down and OK on the dialog's Save save it, the focus back on Save. Every setting as it began at the end.",
+  "failOnException": false,
+  "timeout": 30000,
+  "steps": [
+    {
+      "name": "the details probe in every document (its request log and server())",
+      "initScript": {
+        "file": "probes/userratings-details-probe.js"
+      }
+    },
+    {
+      "name": "sign in as admin",
+      "login": "admin"
+    },
+    {
+      "name": "tv layout",
+      "eval": "(localStorage.setItem('layout', 'tv'), true)"
+    },
+    {
+      "name": "reload",
+      "reload": true
+    },
+    {
+      "name": "admin: User Ratings 1.0.2.0 started",
+      "waitFor": "!!window.ApiClient && !!ApiClient.getCurrentUserId() && !!(window.__jfkit && window.__jfkit.jfur)",
+      "timeout": 40000
+    },
+    {
+      "name": "the served script is 1.0.2.0",
+      "assert": "window.__jfkit.jfur.version === '1.0.2.0'",
+      "message": "User Ratings 1.0.2.0 is not the script the page loaded"
+    },
+    {
+      "name": "the settings before the run",
+      "script": "const r = await __jfurDetails.server('GET', 'UserRatings/Admin/Settings'); if (r.status !== 200) { throw new Error('settings ' + r.status); } return r.json;",
+      "save": "before",
+      "full": true
+    },
+    {
+      "name": "the settings this run changes are at their defaults",
+      "assert": "(() => { const s = __vars.before.Settings; return s.EnableRatings === true && s.EnableReviews === true && s.WhoCanRate === 'AllUsers' && s.RaterUserIds.length === 0 && s.RateableItemTypes.indexOf('Movie') >= 0 && s.RateableItemTypes.indexOf('Trailer') < 0 && s.EnableTopRatedPage === true && s.MirrorToUserData === false && s.ReviewsPageSize < 50 && s.MaxReviewLength < 20000 && s.MinRatingsForAverage < 10 && s.SnapshotsToKeep < 365 && s.DetachedRetentionDays < 36500 && s.ModerationLogDays < 3650; })()",
+      "message": "start with the defaults for EnableRatings, EnableReviews, WhoCanRate (AllUsers, nobody chosen), RateableItemTypes (Movie in, Trailer out), EnableTopRatedPage and MirrorToUserData, and every number under its largest"
+    },
+    {
+      "name": "viewer's and viewer2's ids",
+      "eval": "(() => { const u = __vars.before.Users; const v = u.find(x => x.Name === 'viewer'), w = u.find(x => x.Name === 'viewer2'); return v && w ? { viewer: v.Id, viewer2: w.Id } : null; })()",
+      "save": "ids",
+      "full": true
+    },
+    {
+      "name": "viewer's id",
+      "eval": "__vars.ids.viewer",
+      "save": "viewerId"
+    },
+    {
+      "name": "Long Test Movie",
+      "eval": "(await ApiClient.getItems(ApiClient.getCurrentUserId(), { IncludeItemTypes: 'Movie', Recursive: true, SearchTerm: \"Long Test Movie\", Limit: 1 })).Items[0].Id",
+      "save": "movieId"
+    },
+    {
+      "name": "clean: before the run: every rating on Long Test Movie removed through the moderation API",
+      "script": "const page = await __jfurDetails.server('GET', 'UserRatings/Admin/Reviews?itemId=' + __vars.movieId + '&limit=200'); if (page.status !== 200) { throw new Error('list ' + page.status); } const removed = []; for (const row of page.json.Items) { const p = 'UserRatings/Admin/Reviews/' + row.RatingId + '?textOnly=false'; const dry = await __jfurDetails.server('DELETE', p); const done = await __jfurDetails.server('DELETE', p + '&dryRun=false&ifPreview=' + dry.json.PreviewToken); removed.push(done.status); } return removed;"
+    },
+    {
+      "name": "the TV layout applied",
+      "assert": "document.documentElement.classList.contains('layout-tv')"
+    },
+    {
+      "name": "mark",
+      "script": "window.__mark = __jfurDetails.requests.length; return true;"
+    },
+    {
+      "name": "open User Ratings' settings page",
+      "goto": "/web/index.html#/configurationpage?name=UserRatings"
+    },
+    {
+      "name": "the page, its tabs, and the Settings tab mounted with every setting",
+      "waitFor": "!!document.querySelector('#UserRatingsConfigPage:not(.hide) #UserRatingsTabs') && document.querySelectorAll('#UserRatingsSettingsRoot .jfur-set-row').length === 32 && !!document.querySelector('#UserRatingsSettingsRoot .jfur-set-save:not(.hide)')",
+      "timeout": 30000
+    },
+    {
+      "name": "its requests so far",
+      "eval": "__jfurDetails.requests.slice(window.__mark).map(r => r.method + ' ' + r.path)",
+      "save": "firstRequests",
+      "full": true
+    },
+    {
+      "name": "GETs only, the settings read",
+      "assert": "__vars.firstRequests.every(r => r.indexOf('GET ') === 0) && __vars.firstRequests.indexOf('GET /UserRatings/Admin/Settings') >= 0"
+    },
+    {
+      "name": "tv: no select in the tab (the TV picker is jellyfin-web's own)",
+      "assert": "document.querySelectorAll('#UserRatingsSettingsRoot select').length === 0"
+    },
+    {
+      "name": "tv: the Ratings switch focused",
+      "script": "const b = document.querySelector('#UserRatingsSettingsRoot [data-jfur-field=\"EnableRatings\"] [role=switch]'); b.focus(); return document.activeElement === b;"
+    },
+    {
+      "name": "tv: Down ×2",
+      "key": "ArrowDown"
+    },
+    {
+      "key": "ArrowDown"
+    },
+    {
+      "name": "tv: the focus moved to another control of the tab",
+      "assert": "document.querySelector('#UserRatingsSettingsRoot').contains(document.activeElement) && document.activeElement !== document.querySelector('#UserRatingsSettingsRoot [data-jfur-field=\"EnableRatings\"] [role=switch]')"
+    },
+    {
+      "name": "tv: the histogram's switch focused",
+      "script": "const b = document.querySelector('#UserRatingsSettingsRoot [data-jfur-field=\"ShowHistogram\"] [role=switch]'); b.focus(); return b.getAttribute('aria-checked');",
+      "save": "histogramBefore"
+    },
+    {
+      "name": "tv: OK",
+      "key": "Enter"
+    },
+    {
+      "name": "tv: OK flipped it",
+      "waitFor": "document.querySelector('#UserRatingsSettingsRoot [data-jfur-field=\"ShowHistogram\"] [role=switch]').getAttribute('aria-checked') !== __vars.histogramBefore",
+      "timeout": 5000
+    },
+    {
+      "name": "tv: OK again",
+      "key": "Enter"
+    },
+    {
+      "name": "tv: back as it was",
+      "waitFor": "document.querySelector('#UserRatingsSettingsRoot [data-jfur-field=\"ShowHistogram\"] [role=switch]').getAttribute('aria-checked') === __vars.histogramBefore",
+      "timeout": 5000
+    },
+    {
+      "name": "tv: the Reviews switch focused",
+      "script": "const b = document.querySelector('#UserRatingsSettingsRoot [data-jfur-field=\"EnableReviews\"] [role=switch]'); b.focus(); return document.activeElement === b;"
+    },
+    {
+      "name": "tv: OK turns reviews off",
+      "key": "Enter"
+    },
+    {
+      "name": "tv: Save focused",
+      "script": "const b = document.querySelector('#UserRatingsSettingsRoot .jfur-set-save'); b.focus(); return document.activeElement === b;"
+    },
+    {
+      "name": "tv: the hash before",
+      "eval": "location.hash",
+      "save": "hash"
+    },
+    {
+      "name": "tv: OK on Save",
+      "key": "Enter"
+    },
+    {
+      "name": "tv: the dialog, the focus on Cancel",
+      "waitFor": "!!document.querySelector('.jfur-panel[role=\"dialog\"][aria-modal=\"true\"]') && document.activeElement === document.querySelector('.jfur-panel[role=\"dialog\"][aria-modal=\"true\"]').querySelector('.jfur-set-cancel')",
+      "timeout": 15000
+    },
+    {
+      "name": "tv: Down ×4 (past the last control)",
+      "key": "ArrowDown"
+    },
+    {
+      "key": "ArrowDown"
+    },
+    {
+      "key": "ArrowDown"
+    },
+    {
+      "key": "ArrowDown"
+    },
+    {
+      "name": "tv: the focus still in the dialog, on its Save (no wrap)",
+      "assert": "!!document.querySelector('.jfur-panel[role=\"dialog\"][aria-modal=\"true\"]') && document.querySelector('.jfur-panel[role=\"dialog\"][aria-modal=\"true\"]').contains(document.activeElement) && document.activeElement === document.querySelector('.jfur-panel[role=\"dialog\"][aria-modal=\"true\"]').querySelector('.jfur-set-confirm')"
+    },
+    {
+      "name": "tv: Up ×5 (past the first control)",
+      "key": "ArrowUp"
+    },
+    {
+      "key": "ArrowUp"
+    },
+    {
+      "key": "ArrowUp"
+    },
+    {
+      "key": "ArrowUp"
+    },
+    {
+      "key": "ArrowUp"
+    },
+    {
+      "name": "tv: the focus still in the dialog (no way out by the D-pad)",
+      "assert": "!!document.querySelector('.jfur-panel[role=\"dialog\"][aria-modal=\"true\"]') && document.querySelector('.jfur-panel[role=\"dialog\"][aria-modal=\"true\"]').contains(document.activeElement)"
+    },
+    {
+      "name": "tv: Back (461, webOS)",
+      "cdp": "Input.dispatchKeyEvent",
+      "params": {
+        "type": "rawKeyDown",
+        "windowsVirtualKeyCode": 461,
+        "nativeVirtualKeyCode": 461,
+        "key": "Unidentified",
+        "code": ""
+      }
+    },
+    {
+      "cdp": "Input.dispatchKeyEvent",
+      "params": {
+        "type": "keyUp",
+        "windowsVirtualKeyCode": 461,
+        "nativeVirtualKeyCode": 461,
+        "key": "Unidentified",
+        "code": ""
+      }
+    },
+    {
+      "name": "tv: the dialog closed, the focus back on Save, still on the settings page",
+      "waitFor": "!document.querySelector('.jfur-panel[role=\"dialog\"][aria-modal=\"true\"]') && document.activeElement === document.querySelector('#UserRatingsSettingsRoot .jfur-set-save') && location.hash === __vars.hash",
+      "timeout": 5000
+    },
+    {
+      "name": "tv cancel: the settings as the server holds them now",
+      "script": "const r = await __jfurDetails.server('GET', 'UserRatings/Admin/Settings'); if (r.status !== 200) { throw new Error('settings ' + r.status); } return r.json;",
+      "save": "tvCancel",
+      "full": true
+    },
+    {
+      "name": "tv: nothing saved",
+      "assert": "__vars.tvCancel.Settings.EnableReviews === true && __vars.tvCancel.Version === __vars.before.Version"
+    },
+    {
+      "name": "tv: OK on Save again",
+      "key": "Enter"
+    },
+    {
+      "name": "tv: the dialog again",
+      "waitFor": "!!document.querySelector('.jfur-panel[role=\"dialog\"][aria-modal=\"true\"]') && document.activeElement === document.querySelector('.jfur-panel[role=\"dialog\"][aria-modal=\"true\"]').querySelector('.jfur-set-cancel')",
+      "timeout": 15000
+    },
+    {
+      "name": "tv: Down to its Save",
+      "key": "ArrowDown"
+    },
+    {
+      "name": "tv: on its Save",
+      "assert": "document.activeElement === document.querySelector('.jfur-panel[role=\"dialog\"][aria-modal=\"true\"]').querySelector('.jfur-set-confirm')"
+    },
+    {
+      "name": "tv: screenshot of the dialog",
+      "screenshot": "userratings-settings-tv-dialog.png"
+    },
+    {
+      "name": "tv: OK",
+      "key": "Enter"
+    },
+    {
+      "name": "tv: saved: the dialog closed, the toast, the focus on Save, never the page's body",
+      "waitFor": "!document.querySelector('.jfur-panel[role=\"dialog\"][aria-modal=\"true\"]') && Array.from(document.querySelectorAll('.jfur-toast')).some(t => t.textContent === 'Settings saved.') && !!document.activeElement && document.activeElement !== document.body && document.activeElement.isConnected && document.activeElement === document.querySelector('#UserRatingsSettingsRoot .jfur-set-save')",
+      "timeout": 15000
+    },
+    {
+      "name": "tv saved: the settings as the server holds them now",
+      "script": "const r = await __jfurDetails.server('GET', 'UserRatings/Admin/Settings'); if (r.status !== 200) { throw new Error('settings ' + r.status); } return r.json;",
+      "save": "tvSaved",
+      "full": true
+    },
+    {
+      "name": "tv: reviews off on the server",
+      "assert": "__vars.tvSaved.Settings.EnableReviews === false"
+    },
+    {
+      "name": "tv: screenshot",
+      "screenshot": "userratings-settings-tv.png"
+    },
+    {
+      "name": "no uncaught exception",
+      "noExceptions": true,
+      "ignore": "/CustomRatings/script|^Error: player cannot be null"
+    },
+    {
+      "name": "clean: every setting as it was before the run (what differs sent back through the Settings API)",
+      "script": "const canon = (v) => Array.isArray(v) ? JSON.stringify(v.map(x => String(x).replace(/-/g, '').toLowerCase()).sort()) : JSON.stringify(v); const now = await __jfurDetails.server('GET', 'UserRatings/Admin/Settings'); const change = {}; for (const k of Object.keys(__vars.before.Settings)) { if (canon(now.json.Settings[k]) !== canon(__vars.before.Settings[k])) { change[k] = __vars.before.Settings[k]; } } if (Object.keys(change).length > 0) { const r = await __jfurDetails.server('POST', 'UserRatings/Admin/Settings?version=' + now.json.Version + '&dryRun=false', change); if (r.status !== 200) { throw new Error('restore ' + r.status + ' ' + JSON.stringify(r.json)); } } const after = await __jfurDetails.server('GET', 'UserRatings/Admin/Settings'); return { changed: Object.keys(change), same: Object.keys(__vars.before.Settings).every(k => canon(after.json.Settings[k]) === canon(__vars.before.Settings[k])) };",
+      "save": "restored",
+      "full": true
+    },
+    {
+      "name": "clean: every setting as it began",
+      "assert": "__vars.restored.same === true"
+    }
+  ]
+}

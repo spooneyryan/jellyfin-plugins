@@ -1,0 +1,155 @@
+# Build and test on every push and pull request; on a pushed release tag (<plugin>/v<x.y.z>, such as bookmarks/v1.2.2),
+# also package that plugin and publish its zip as the tag's GitHub release. The release procedure is in scripts/README.md.
+name: CI
+
+on:
+  push:
+    branches: [main]
+    tags: ['*/v[0-9]*.[0-9]*.[0-9]*']
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  # The SDK releases are built with: Package-Release.ps1 warns when a local build uses another one, as its DLLs can
+  # differ, and the release job refuses a zip whose MD5 isn't the one manifest.json has.
+  RELEASE_SDK: '10.0.302'
+  DOTNET_NOLOGO: 'true'
+  DOTNET_CLI_TELEMETRY_OPTOUT: 'true'
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 'true'
+
+jobs:
+  test:
+    runs-on: windows-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # the release-tag tests read the tags
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          # 9.0 builds Jellyfin.Api below (its global.json asks for a 9.0 SDK); RELEASE_SDK builds the plugins.
+          dotnet-version: |
+            9.0.x
+            ${{ env.RELEASE_SDK }}
+
+      - name: Pin the plugins' build to RELEASE_SDK
+        shell: pwsh
+        # A global.json next to the checkout, not in it, so the working tree stays clean.
+        run: |
+          $file = Join-Path (Split-Path -Parent $env:GITHUB_WORKSPACE) 'global.json'
+          Set-Content -LiteralPath $file -Value "{ `"sdk`": { `"version`": `"$env:RELEASE_SDK`", `"rollForward`": `"disable`" } }"
+          dotnet --version
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Build Jellyfin.Api 10.11.5 for the Access Roles action-manifest test
+        shell: pwsh
+        run: |
+          $source = Join-Path $env:RUNNER_TEMP 'jellyfin'
+          git clone --quiet --depth 1 --branch v10.11.5 https://github.com/jellyfin/jellyfin.git $source
+          if ($LASTEXITCODE -ne 0) { throw 'git clone failed' }
+          # From the clone's folder, so its own global.json picks the 9.0 SDK.
+          Push-Location $source
+          dotnet build Jellyfin.Api/Jellyfin.Api.csproj -c Release --nologo -v quiet -p:TreatWarningsAsErrors=false
+          $built = $LASTEXITCODE
+          Pop-Location
+          if ($built -ne 0) { throw 'The Jellyfin.Api build failed' }
+          $dll = Join-Path $source 'Jellyfin.Api/bin/Release/net9.0/Jellyfin.Api.dll'
+          if (-not (Test-Path -LiteralPath $dll)) { throw "No $dll" }
+          "JELLYFIN_API_DLL=$dll" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: Build
+        run: dotnet build jellyfin-plugins.slnx -c Release --nologo
+
+      - name: Test
+        run: dotnet test jellyfin-plugins.slnx -c Release --no-build --nologo
+
+      - name: Node tests (kit and scripts)
+        shell: pwsh
+        run: |
+          $files = @(Get-ChildItem kit/web/tests, scripts/tests -Filter '*.test.mjs' -File | ForEach-Object { $_.FullName })
+          node --test --test-timeout=120000 @files
+          if ($LASTEXITCODE -ne 0) { throw 'node tests failed' }
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: test
+    runs-on: windows-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.RELEASE_SDK }}
+
+      - name: Pin the build to RELEASE_SDK
+        shell: pwsh
+        run: |
+          $file = Join-Path (Split-Path -Parent $env:GITHUB_WORKSPACE) 'global.json'
+          Set-Content -LiteralPath $file -Value "{ `"sdk`": { `"version`": `"$env:RELEASE_SDK`", `"rollForward`": `"disable`" } }"
+          dotnet --version
+
+      - name: Package the tag's plugin and check it against manifest.json
+        shell: powershell
+        run: ./scripts/Package-Release.ps1 -Tag "$env:GITHUB_REF_NAME" -Verify
+
+      - name: Publish the GitHub release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $release = @(Get-Content artifacts/release/release.json -Raw | ConvertFrom-Json)[0]
+          $zip = "artifacts/release/$($release.zip)"
+          # A rerun (after a failed check below) replaces the asset of the release the first run made.
+          gh release view "$env:GITHUB_REF_NAME" --json name 2>$null | Out-Null
+          if ($LASTEXITCODE -eq 0) {
+            gh release upload "$env:GITHUB_REF_NAME" $zip --clobber
+            if ($LASTEXITCODE -ne 0) { throw 'gh release upload failed' }
+          }
+          else {
+            gh release create "$env:GITHUB_REF_NAME" $zip --verify-tag --title "$($release.name) $($release.version -replace '\.0$', '')" --notes-file "$zip.notes.md"
+            if ($LASTEXITCODE -ne 0) { throw 'gh release create failed' }
+          }
+
+      - name: Download the catalog's sourceUrl as Jellyfin does, and check its MD5
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # release.json's md5 and sourceUrl are manifest.json's: the packaging step's -Verify required both.
+          $release = @(Get-Content artifacts/release/release.json -Raw | ConvertFrom-Json)[0]
+          $file = Join-Path $env:RUNNER_TEMP $release.zip
+          $md5 = $null
+          for ($try = 1; $try -le 5; $try++) {
+            try {
+              $response = Invoke-WebRequest -Uri $release.sourceUrl -OutFile $file -PassThru -MaximumRedirection 10
+              if ($response.StatusCode -ne 200) { throw "HTTP $($response.StatusCode)" }
+              $md5 = (Get-FileHash -LiteralPath $file -Algorithm MD5).Hash.ToLowerInvariant()
+              break
+            }
+            catch {
+              Write-Host "Try ${try}: $($release.sourceUrl): $($_.Exception.Message)"
+              Start-Sleep -Seconds (10 * $try)
+            }
+          }
+          if (-not $md5) { throw "Jellyfin could not download $($release.sourceUrl)." }
+          if ($md5 -ne $release.md5) { throw "$($release.sourceUrl) has MD5 $md5, but manifest.json says $($release.md5)." }
+          "Downloaded $($release.sourceUrl): HTTP 200, MD5 $md5, as manifest.json says."
+          # GitHub's own spelling of the URL may differ (%2F or /) and still serve the same file: only a warning.
+          $assets = gh release view "$env:GITHUB_REF_NAME" --json assets | ConvertFrom-Json
+          $url = @($assets.assets | Where-Object { $_.name -eq $release.zip })[0].url
+          if ($url -ne $release.sourceUrl) { "::warning::The asset's browser_download_url is $url; manifest.json's sourceUrl $($release.sourceUrl) serves the same file." }

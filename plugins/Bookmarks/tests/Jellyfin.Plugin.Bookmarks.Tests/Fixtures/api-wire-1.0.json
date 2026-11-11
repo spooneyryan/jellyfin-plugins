@@ -1,0 +1,179 @@
+{
+  "comment": "The REST API's JSON just before 1.1 renamed ClipDto, ClipStatus, ClipMode, CreateBookmarkRequest, UpdateBookmarkRequest and CreateClipRequest. That is Bookmarks 1.0.0's JSON (tag bookmarks/v1.0.0) plus the two capabilities 1.1 added before the snapshot, IsAdmin and StoreReadOnly; Bookmarks 1.0.0 sent only ClipsEnabled, CanCreateClips, MaxClipDurationSeconds and DefaultClipMode there. Written by Api/WireFormatTests from the types as they were then. pascalCase is what Jellyfin answers by default, camelCase its answer for profile=CamelCase; the request samples are the 1.0 bodies of the test as the types bind them and write them back.",
+  "pascalCase": {
+    "bookmark": {
+      "Id": "5f0c6a4e2b1d4c8e9a7f3e2d1c0b9a88",
+      "ItemId": "a1b2c3d4e5f64789abcdef0123456789",
+      "ItemName": "Heat (1995)",
+      "ItemType": "Movie",
+      "MediaSourceId": "a1b2c3d4e5f64789abcdef0123456789",
+      "AudioStreamIndex": 2,
+      "StartTicks": 1200000000,
+      "EndTicks": 1260000000,
+      "Note": "Bank job \"take 2\"\nAmélie, café scène ✂ 日本語",
+      "CreatedAt": "2026-09-29T10:15:30.123Z",
+      "UpdatedAt": "2026-09-29T11:00:00.0000000Z",
+      "Clip": {
+        "Status": "Running",
+        "Mode": "Accurate",
+        "StartTicks": 1200000000,
+        "EndTicks": 1260000000,
+        "IsOutdated": true,
+        "Progress": 45.7,
+        "FileName": "Heat (1995) - Bank job [00.01.50-00.01.56].mkv",
+        "FileSize": 325642,
+        "RequestedAt": "2026-09-29T11:00:05.2504321Z"
+      }
+    },
+    "bookmarkFailedClip": {
+      "Id": "7c1e2d3f4a5b4c6d8e7f9a0b1c2d3e4f",
+      "ItemId": "a1b2c3d4e5f64789abcdef0123456789",
+      "ItemName": "Heat (1995)",
+      "ItemType": "Movie",
+      "StartTicks": 600000000,
+      "EndTicks": 660000000,
+      "CreatedAt": "2026-09-28T20:00:00.0000000Z",
+      "UpdatedAt": "2026-09-28T20:00:00.0000000Z",
+      "Clip": {
+        "Status": "Failed",
+        "Mode": "Fast",
+        "StartTicks": 600000000,
+        "EndTicks": 660000000,
+        "IsOutdated": false,
+        "RequestedAt": "2026-09-28T20:01:00.0000000Z",
+        "CompletedAt": "2026-09-28T20:01:02.5Z",
+        "Error": "ffmpeg failed: No space left on device"
+      }
+    },
+    "bookmarkMinimal": {
+      "Id": "11111111222243338444555555555555",
+      "ItemId": "a1b2c3d4e5f64789abcdef0123456789",
+      "ItemName": "Heat (1995)",
+      "StartTicks": 0,
+      "CreatedAt": "2026-01-02T03:04:05.0000000Z",
+      "UpdatedAt": "2026-01-02T03:04:05.0000000Z"
+    },
+    "capabilities": {
+      "ClipsEnabled": true,
+      "CanCreateClips": true,
+      "MaxClipDurationSeconds": 300,
+      "DefaultClipMode": "Fast",
+      "IsAdmin": true,
+      "StoreReadOnly": false
+    },
+    "clipMode": [
+      "Accurate",
+      "Fast"
+    ],
+    "clipRequest": {
+      "Mode": "Fast"
+    },
+    "clipStatus": [
+      "Queued",
+      "Running",
+      "Completed",
+      "Failed",
+      "Cancelled"
+    ],
+    "createRequest": {
+      "ItemId": "a1b2c3d4e5f64789abcdef0123456789",
+      "StartTicks": 1200000000,
+      "EndTicks": 1260000000,
+      "Note": "Bank job \"take 2\"\nAmélie, café scène ✂ 日本語",
+      "MediaSourceId": "a1b2c3d4e5f64789abcdef0123456789",
+      "AudioStreamIndex": 2
+    },
+    "updateRequest": {
+      "StartTicks": 1210000000,
+      "Note": "moved"
+    }
+  },
+  "camelCase": {
+    "bookmark": {
+      "id": "5f0c6a4e2b1d4c8e9a7f3e2d1c0b9a88",
+      "itemId": "a1b2c3d4e5f64789abcdef0123456789",
+      "itemName": "Heat (1995)",
+      "itemType": "Movie",
+      "mediaSourceId": "a1b2c3d4e5f64789abcdef0123456789",
+      "audioStreamIndex": 2,
+      "startTicks": 1200000000,
+      "endTicks": 1260000000,
+      "note": "Bank job \"take 2\"\nAmélie, café scène ✂ 日本語",
+      "createdAt": "2026-09-29T10:15:30.123Z",
+      "updatedAt": "2026-09-29T11:00:00.0000000Z",
+      "clip": {
+        "status": "Running",
+        "mode": "Accurate",
+        "startTicks": 1200000000,
+        "endTicks": 1260000000,
+        "isOutdated": true,
+        "progress": 45.7,
+        "fileName": "Heat (1995) - Bank job [00.01.50-00.01.56].mkv",
+        "fileSize": 325642,
+        "requestedAt": "2026-09-29T11:00:05.2504321Z"
+      }
+    },
+    "bookmarkFailedClip": {
+      "id": "7c1e2d3f4a5b4c6d8e7f9a0b1c2d3e4f",
+      "itemId": "a1b2c3d4e5f64789abcdef0123456789",
+      "itemName": "Heat (1995)",
+      "itemType": "Movie",
+      "startTicks": 600000000,
+      "endTicks": 660000000,
+      "createdAt": "2026-09-28T20:00:00.0000000Z",
+      "updatedAt": "2026-09-28T20:00:00.0000000Z",
+      "clip": {
+        "status": "Failed",
+        "mode": "Fast",
+        "startTicks": 600000000,
+        "endTicks": 660000000,
+        "isOutdated": false,
+        "requestedAt": "2026-09-28T20:01:00.0000000Z",
+        "completedAt": "2026-09-28T20:01:02.5Z",
+        "error": "ffmpeg failed: No space left on device"
+      }
+    },
+    "bookmarkMinimal": {
+      "id": "11111111222243338444555555555555",
+      "itemId": "a1b2c3d4e5f64789abcdef0123456789",
+      "itemName": "Heat (1995)",
+      "startTicks": 0,
+      "createdAt": "2026-01-02T03:04:05.0000000Z",
+      "updatedAt": "2026-01-02T03:04:05.0000000Z"
+    },
+    "capabilities": {
+      "clipsEnabled": true,
+      "canCreateClips": true,
+      "maxClipDurationSeconds": 300,
+      "defaultClipMode": "Fast",
+      "isAdmin": true,
+      "storeReadOnly": false
+    },
+    "clipMode": [
+      "Accurate",
+      "Fast"
+    ],
+    "clipRequest": {
+      "mode": "Fast"
+    },
+    "clipStatus": [
+      "Queued",
+      "Running",
+      "Completed",
+      "Failed",
+      "Cancelled"
+    ],
+    "createRequest": {
+      "itemId": "a1b2c3d4e5f64789abcdef0123456789",
+      "startTicks": 1200000000,
+      "endTicks": 1260000000,
+      "note": "Bank job \"take 2\"\nAmélie, café scène ✂ 日本語",
+      "mediaSourceId": "a1b2c3d4e5f64789abcdef0123456789",
+      "audioStreamIndex": 2
+    },
+    "updateRequest": {
+      "startTicks": 1210000000,
+      "note": "moved"
+    }
+  }
+}

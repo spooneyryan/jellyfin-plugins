@@ -1,0 +1,489 @@
+{
+  "name": "User Ratings 1.0.2.0 next to Jellyfin Enhanced 12.14, in the je sandbox as admin: the details page's section on Tagged Movie beside Jellyfin Enhanced's review section, no style rule of JE's on it, our ids unique; the slider's keys reach it past JE's capture listener and save; in the TV layout the D-pad reaches the slider on Long Test Movie, and on Tagged Movie past JE 12.14's closed Reviews (out of the TV focus order since Bookmarks 1.2.0's kit) it reaches the slider too, and without the section (the probe answering the item's read 404) it leaves the buttons row, none of the Downs prevented by us. The admin's rows are deleted at the end; no setting is changed.",
+  "failOnException": false,
+  "timeout": 30000,
+  "steps": [
+    {
+      "name": "the details probe in every document (it watches the section the served script mounts)",
+      "initScript": {
+        "file": "probes/userratings-details-probe.js"
+      }
+    },
+    {
+      "name": "sign in as admin",
+      "login": "admin"
+    },
+    {
+      "name": "desktop layout",
+      "eval": "(localStorage.removeItem('layout'), true)"
+    },
+    {
+      "name": "reload",
+      "reload": true
+    },
+    {
+      "name": "the layout applied, User Ratings 1.0.2.0 started",
+      "waitFor": "document.documentElement.classList.contains('layout-desktop') && !!window.ApiClient && !!ApiClient.getCurrentUserId() && !!(window.__jfkit && window.__jfkit.jfur)",
+      "timeout": 40000
+    },
+    {
+      "name": "the served script is 1.0.2.0",
+      "assert": "window.__jfkit.jfur.version === '1.0.2.0'",
+      "message": "User Ratings 1.0.2.0 is not the script the page loaded"
+    },
+    {
+      "name": "Long Test Movie",
+      "eval": "(await ApiClient.getItems(ApiClient.getCurrentUserId(), { IncludeItemTypes: 'Movie', Recursive: true, SearchTerm: \"Long Test Movie\", Limit: 1 })).Items[0].Id",
+      "save": "movieId"
+    },
+    {
+      "name": "clean: Long Test Movie without a rating of this member",
+      "script": "const r = await __jfurDetails.server('DELETE', 'UserRatings/Items/' + __vars.movieId + '/Mine'); return r.status;",
+      "save": "cleaned"
+    },
+    {
+      "name": "Tagged Movie",
+      "eval": "(await ApiClient.getItems(ApiClient.getCurrentUserId(), { IncludeItemTypes: 'Movie', Recursive: true, SearchTerm: \"Tagged Movie\", Limit: 1 })).Items[0].Id",
+      "save": "taggedId"
+    },
+    {
+      "name": "clean: Tagged Movie without a rating of this member",
+      "script": "const r = await __jfurDetails.server('DELETE', 'UserRatings/Items/' + __vars.taggedId + '/Mine'); return r.status;",
+      "save": "cleaned"
+    },
+    {
+      "name": "Jellyfin Enhanced's version",
+      "eval": "(async () => { const ps = await ApiClient.getJSON(ApiClient.getUrl('Plugins')); const p = ps.find(x => x.Name === 'Jellyfin Enhanced'); return p ? { Version: p.Version, Status: p.Status } : null; })()",
+      "save": "jeVersion",
+      "full": true
+    },
+    {
+      "name": "Jellyfin Enhanced is there",
+      "assert": "!!__vars.jeVersion && !!window.JellyfinEnhanced"
+    },
+    {
+      "name": "Tagged Movie (TMDb id 900001: JE draws its review section): its details page",
+      "script": "location.hash = '#/details?id=' + __vars.taggedId; return true;"
+    },
+    {
+      "name": "Tagged Movie (TMDb id 900001: JE draws its review section): drawn",
+      "waitFor": "(() => { const p = document.querySelector('#itemDetailPage:not(.hide)'); return !!p && location.hash.indexOf(__vars.taggedId) > 0 && !!p.querySelector('.mainDetailButtons .btnPlay:not(.hide)'); })()",
+      "timeout": 30000
+    },
+    {
+      "name": "Tagged Movie (TMDb id 900001: JE draws its review section): the section mounted for it",
+      "waitFor": "(() => { const s = __jfurDetails.section(); return !!s && s.getAttribute('data-jfur-item') === __vars.taggedId && !!s.querySelector('.jfur-summary[data-jfur-summary]'); })()",
+      "timeout": 15000
+    },
+    {
+      "sleep": 400
+    },
+    {
+      "sleep": 5000
+    },
+    {
+      "name": "JE's review parts and the column's order",
+      "eval": "__jfurDetails.jeReviews()",
+      "save": "jeParts",
+      "full": true
+    },
+    {
+      "name": "our section and JE's review section both in the page",
+      "assert": "__vars.jeParts.tmdbSection === 1 && !!__jfurDetails.section()"
+    },
+    {
+      "name": "collisions on Tagged Movie",
+      "eval": "__jfurDetails.collisions()",
+      "save": "collisions",
+      "full": true
+    },
+    {
+      "name": "no style rule of JE's (or anyone's but jellyfin-web's) on the section or its chip, our ids unique, no jfur- class elsewhere but the item's chip and its Rate button (Auto shows it beside JE's Reviews)",
+      "assert": "__vars.collisions.foreign.length === 0 && __vars.collisions.duplicateIds.length === 0 && __vars.collisions.foreignJfur.length === 0 && __vars.collisions.rate === true"
+    },
+    {
+      "name": "JE keys: mark",
+      "script": "window.__mark = __jfurDetails.requests.length; window.__keys = __jfurDetails.log.length; return true;"
+    },
+    {
+      "name": "the slider focused",
+      "script": "__jfurDetails.slider().focus(); return __jfurDetails.onSlider();"
+    },
+    {
+      "name": "JE: Right",
+      "key": "ArrowRight"
+    },
+    {
+      "name": "JE: End",
+      "key": "End"
+    },
+    {
+      "name": "JE: Enter",
+      "key": "Enter"
+    },
+    {
+      "sleep": 600
+    },
+    {
+      "name": "the server: Tagged Movie after the keys",
+      "eval": "__jfurDetails.mine(__vars.taggedId)",
+      "save": "jeKeysServer",
+      "full": true
+    },
+    {
+      "name": "the slider's keys reach it past JE's capture listener: End and Enter saved 5",
+      "assert": "__vars.jeKeysServer.stars === 5 && (__jfurDetails.log.slice(window.__keys).filter(e => e.kind === 'key-bubble' && e.key === \"End\").pop() || { prevented: null }).prevented === true"
+    },
+    {
+      "name": "JE TV: TV layout",
+      "eval": "(localStorage.setItem('layout', 'tv'), true)"
+    },
+    {
+      "name": "JE TV: reload",
+      "reload": true
+    },
+    {
+      "name": "JE TV: layout-tv, JE's key listener up",
+      "waitFor": "document.documentElement.classList.contains('layout-tv') && !!window.ApiClient && !!ApiClient.getCurrentUserId() && !!(window.__jfkit && window.__jfkit.jfur) && !!window.JellyfinEnhanced && !!window.JellyfinEnhanced.keyListener",
+      "timeout": 40000
+    },
+    {
+      "name": "JE TV: Long Test Movie (no TMDb id): its details page",
+      "script": "location.hash = '#/details?id=' + __vars.movieId; return true;"
+    },
+    {
+      "name": "JE TV: Long Test Movie (no TMDb id): drawn",
+      "waitFor": "(() => { const p = document.querySelector('#itemDetailPage:not(.hide)'); return !!p && location.hash.indexOf(__vars.movieId) > 0 && !!p.querySelector('.mainDetailButtons .btnPlay:not(.hide)'); })()",
+      "timeout": 30000
+    },
+    {
+      "name": "JE TV: Long Test Movie (no TMDb id): the section mounted for it",
+      "waitFor": "(() => { const s = __jfurDetails.section(); return !!s && s.getAttribute('data-jfur-item') === __vars.movieId && !!s.querySelector('.jfur-summary[data-jfur-summary]'); })()",
+      "timeout": 15000
+    },
+    {
+      "sleep": 400
+    },
+    {
+      "sleep": 3000
+    },
+    {
+      "name": "JE TV Long Test Movie: focus the Play button",
+      "script": "__jfurDetails.log.length = 0; document.querySelector('#itemDetailPage:not(.hide) .mainDetailButtons .btnPlay').focus(); return __jfurDetails.active();"
+    },
+    {
+      "name": "JE TV Long Test Movie: ArrowDown 1",
+      "key": "ArrowDown",
+      "if": "!__jfurDetails.onSlider()"
+    },
+    {
+      "sleep": 250,
+      "if": "!__jfurDetails.onSlider()"
+    },
+    {
+      "name": "JE TV Long Test Movie: ArrowDown 2",
+      "key": "ArrowDown",
+      "if": "!__jfurDetails.onSlider()"
+    },
+    {
+      "sleep": 250,
+      "if": "!__jfurDetails.onSlider()"
+    },
+    {
+      "name": "JE TV Long Test Movie: ArrowDown 3",
+      "key": "ArrowDown",
+      "if": "!__jfurDetails.onSlider()"
+    },
+    {
+      "sleep": 250,
+      "if": "!__jfurDetails.onSlider()"
+    },
+    {
+      "name": "JE TV Long Test Movie: ArrowDown 4",
+      "key": "ArrowDown",
+      "if": "!__jfurDetails.onSlider()"
+    },
+    {
+      "sleep": 250,
+      "if": "!__jfurDetails.onSlider()"
+    },
+    {
+      "name": "JE TV Long Test Movie: ArrowDown 5",
+      "key": "ArrowDown",
+      "if": "!__jfurDetails.onSlider()"
+    },
+    {
+      "sleep": 250,
+      "if": "!__jfurDetails.onSlider()"
+    },
+    {
+      "name": "JE TV Long Test Movie: ArrowDown 6",
+      "key": "ArrowDown",
+      "if": "!__jfurDetails.onSlider()"
+    },
+    {
+      "sleep": 250,
+      "if": "!__jfurDetails.onSlider()"
+    },
+    {
+      "name": "JE TV Long Test Movie: where the D-pad went",
+      "eval": "({ onSlider: __jfurDetails.onSlider(), active: __jfurDetails.active(), presses: __jfurDetails.log.filter(e => e.kind === 'key-capture' && e.key === 'ArrowDown').length, prevented: __jfurDetails.log.filter(e => e.kind === 'key-bubble' && e.key === 'ArrowDown').map(e => e.prevented), path: __jfurDetails.log.filter(e => e.kind === 'focus').map(f => f.target) })",
+      "save": "jeTvLong",
+      "full": true
+    },
+    {
+      "name": "JE TV: on Long Test Movie the D-pad reaches the slider",
+      "assert": "__vars.jeTvLong.onSlider === true"
+    },
+    {
+      "name": "JE TV: Tagged Movie: its details page",
+      "script": "location.hash = '#/details?id=' + __vars.taggedId; return true;"
+    },
+    {
+      "name": "JE TV: Tagged Movie: drawn",
+      "waitFor": "(() => { const p = document.querySelector('#itemDetailPage:not(.hide)'); return !!p && location.hash.indexOf(__vars.taggedId) > 0 && !!p.querySelector('.mainDetailButtons .btnPlay:not(.hide)'); })()",
+      "timeout": 30000
+    },
+    {
+      "name": "JE TV: Tagged Movie: the section mounted for it",
+      "waitFor": "(() => { const s = __jfurDetails.section(); return !!s && s.getAttribute('data-jfur-item') === __vars.taggedId && !!s.querySelector('.jfur-summary[data-jfur-summary]'); })()",
+      "timeout": 15000
+    },
+    {
+      "sleep": 400
+    },
+    {
+      "sleep": 5000
+    },
+    {
+      "name": "JE TV Tagged Movie with the section: focus the Play button",
+      "script": "__jfurDetails.log.length = 0; document.querySelector('#itemDetailPage:not(.hide) .mainDetailButtons .btnPlay').focus(); return __jfurDetails.active();"
+    },
+    {
+      "name": "JE TV Tagged Movie with the section: ArrowDown 1",
+      "key": "ArrowDown",
+      "if": "!__jfurDetails.onSlider()"
+    },
+    {
+      "sleep": 250,
+      "if": "!__jfurDetails.onSlider()"
+    },
+    {
+      "name": "JE TV Tagged Movie with the section: ArrowDown 2",
+      "key": "ArrowDown",
+      "if": "!__jfurDetails.onSlider()"
+    },
+    {
+      "sleep": 250,
+      "if": "!__jfurDetails.onSlider()"
+    },
+    {
+      "name": "JE TV Tagged Movie with the section: ArrowDown 3",
+      "key": "ArrowDown",
+      "if": "!__jfurDetails.onSlider()"
+    },
+    {
+      "sleep": 250,
+      "if": "!__jfurDetails.onSlider()"
+    },
+    {
+      "name": "JE TV Tagged Movie with the section: ArrowDown 4",
+      "key": "ArrowDown",
+      "if": "!__jfurDetails.onSlider()"
+    },
+    {
+      "sleep": 250,
+      "if": "!__jfurDetails.onSlider()"
+    },
+    {
+      "name": "JE TV Tagged Movie with the section: ArrowDown 5",
+      "key": "ArrowDown",
+      "if": "!__jfurDetails.onSlider()"
+    },
+    {
+      "sleep": 250,
+      "if": "!__jfurDetails.onSlider()"
+    },
+    {
+      "name": "JE TV Tagged Movie with the section: ArrowDown 6",
+      "key": "ArrowDown",
+      "if": "!__jfurDetails.onSlider()"
+    },
+    {
+      "sleep": 250,
+      "if": "!__jfurDetails.onSlider()"
+    },
+    {
+      "name": "JE TV Tagged Movie with the section: ArrowDown 7",
+      "key": "ArrowDown",
+      "if": "!__jfurDetails.onSlider()"
+    },
+    {
+      "sleep": 250,
+      "if": "!__jfurDetails.onSlider()"
+    },
+    {
+      "name": "JE TV Tagged Movie with the section: ArrowDown 8",
+      "key": "ArrowDown",
+      "if": "!__jfurDetails.onSlider()"
+    },
+    {
+      "sleep": 250,
+      "if": "!__jfurDetails.onSlider()"
+    },
+    {
+      "name": "JE TV Tagged Movie with the section: where the D-pad went",
+      "eval": "({ onSlider: __jfurDetails.onSlider(), active: __jfurDetails.active(), presses: __jfurDetails.log.filter(e => e.kind === 'key-capture' && e.key === 'ArrowDown').length, prevented: __jfurDetails.log.filter(e => e.kind === 'key-bubble' && e.key === 'ArrowDown').map(e => e.prevented), path: __jfurDetails.log.filter(e => e.kind === 'focus').map(f => f.target) })",
+      "save": "jeTvTagged",
+      "full": true
+    },
+    {
+      "name": "JE TV: with the section, recorded (JE 12.14's closed Reviews held the D-pad in the buttons row until the kit's TV fix)",
+      "eval": "__vars.jeTvTagged",
+      "full": true
+    },
+    {
+      "name": "JE TV: past JE's closed Reviews the D-pad reaches the slider, none of the Downs prevented by us, nothing of ours on the way",
+      "assert": "__vars.jeTvTagged.onSlider === true && __vars.jeTvTagged.prevented.every(p => p === false) && !__vars.jeTvTagged.path.slice(0, -1).some(p => /jfur-/.test(p))"
+    },
+    {
+      "name": "JE TV: the section kept out (the probe answers the item's read 404, as for an item that isn't rateable)",
+      "eval": "__jfurDetails.inject({ method: 'GET', path: '/UserRatings/Items/[0-9a-f]+$', mode: 'stub', status: 404, times: 20, body: { title: 'Not Found', status: 404, detail: \"This item wasn't found, or it can't be rated.\" } })"
+    },
+    {
+      "name": "JE TV: to Long Test Movie and back to Tagged Movie",
+      "script": "location.hash = '#/details?id=' + __vars.movieId; return true;"
+    },
+    {
+      "waitFor": "(() => { const p = document.querySelector('#itemDetailPage:not(.hide)'); return !!p && location.hash.indexOf(__vars.movieId) > 0 && !!p.querySelector('.mainDetailButtons .btnPlay:not(.hide)'); })()",
+      "timeout": 30000
+    },
+    {
+      "sleep": 1500
+    },
+    {
+      "name": "JE TV: Tagged Movie again",
+      "script": "location.hash = '#/details?id=' + __vars.taggedId; return true;"
+    },
+    {
+      "waitFor": "(() => { const p = document.querySelector('#itemDetailPage:not(.hide)'); return !!p && location.hash.indexOf(__vars.taggedId) > 0 && !!p.querySelector('.mainDetailButtons .btnPlay:not(.hide)'); })()",
+      "timeout": 30000
+    },
+    {
+      "sleep": 5000
+    },
+    {
+      "name": "JE TV: no section now",
+      "assert": "!__jfurDetails.section()"
+    },
+    {
+      "name": "JE TV Tagged Movie without the section: focus the Play button",
+      "script": "__jfurDetails.log.length = 0; document.querySelector('#itemDetailPage:not(.hide) .mainDetailButtons .btnPlay').focus(); return __jfurDetails.active();"
+    },
+    {
+      "name": "JE TV Tagged Movie without the section: ArrowDown 1",
+      "key": "ArrowDown",
+      "if": "!__jfurDetails.onSlider()"
+    },
+    {
+      "sleep": 250,
+      "if": "!__jfurDetails.onSlider()"
+    },
+    {
+      "name": "JE TV Tagged Movie without the section: ArrowDown 2",
+      "key": "ArrowDown",
+      "if": "!__jfurDetails.onSlider()"
+    },
+    {
+      "sleep": 250,
+      "if": "!__jfurDetails.onSlider()"
+    },
+    {
+      "name": "JE TV Tagged Movie without the section: ArrowDown 3",
+      "key": "ArrowDown",
+      "if": "!__jfurDetails.onSlider()"
+    },
+    {
+      "sleep": 250,
+      "if": "!__jfurDetails.onSlider()"
+    },
+    {
+      "name": "JE TV Tagged Movie without the section: ArrowDown 4",
+      "key": "ArrowDown",
+      "if": "!__jfurDetails.onSlider()"
+    },
+    {
+      "sleep": 250,
+      "if": "!__jfurDetails.onSlider()"
+    },
+    {
+      "name": "JE TV Tagged Movie without the section: ArrowDown 5",
+      "key": "ArrowDown",
+      "if": "!__jfurDetails.onSlider()"
+    },
+    {
+      "sleep": 250,
+      "if": "!__jfurDetails.onSlider()"
+    },
+    {
+      "name": "JE TV Tagged Movie without the section: ArrowDown 6",
+      "key": "ArrowDown",
+      "if": "!__jfurDetails.onSlider()"
+    },
+    {
+      "sleep": 250,
+      "if": "!__jfurDetails.onSlider()"
+    },
+    {
+      "name": "JE TV Tagged Movie without the section: ArrowDown 7",
+      "key": "ArrowDown",
+      "if": "!__jfurDetails.onSlider()"
+    },
+    {
+      "sleep": 250,
+      "if": "!__jfurDetails.onSlider()"
+    },
+    {
+      "name": "JE TV Tagged Movie without the section: ArrowDown 8",
+      "key": "ArrowDown",
+      "if": "!__jfurDetails.onSlider()"
+    },
+    {
+      "sleep": 250,
+      "if": "!__jfurDetails.onSlider()"
+    },
+    {
+      "name": "JE TV Tagged Movie without the section: where the D-pad went",
+      "eval": "({ onSlider: __jfurDetails.onSlider(), active: __jfurDetails.active(), presses: __jfurDetails.log.filter(e => e.kind === 'key-capture' && e.key === 'ArrowDown').length, prevented: __jfurDetails.log.filter(e => e.kind === 'key-bubble' && e.key === 'ArrowDown').map(e => e.prevented), path: __jfurDetails.log.filter(e => e.kind === 'focus').map(f => f.target) })",
+      "save": "jeTvBare",
+      "full": true
+    },
+    {
+      "name": "JE TV: without the section the D-pad leaves the buttons row too, none of the Downs prevented, nothing of ours on its way",
+      "assert": "__vars.jeTvBare.path.length > 0 && !__vars.jeTvBare.onSlider && __vars.jeTvBare.prevented.every(p => p === false) && !__vars.jeTvBare.path.some(p => /jfur-/.test(p))"
+    },
+    {
+      "name": "the probe's stub off",
+      "script": "__jfurDetails.rules.forEach(r => { r.times = 0; }); return true;"
+    },
+    {
+      "name": "clean: Tagged Movie at the end without a rating of this member",
+      "script": "const r = await __jfurDetails.server('DELETE', 'UserRatings/Items/' + __vars.taggedId + '/Mine'); return r.status;",
+      "save": "cleaned"
+    },
+    {
+      "name": "clean: Long Test Movie at the end without a rating of this member",
+      "script": "const r = await __jfurDetails.server('DELETE', 'UserRatings/Items/' + __vars.movieId + '/Mine'); return r.status;",
+      "save": "cleaned"
+    },
+    {
+      "name": "the default layout again",
+      "eval": "(localStorage.removeItem('layout'), true)"
+    },
+    {
+      "name": "no uncaught exception of ours",
+      "noExceptions": true,
+      "ignore": "/CustomRatings/script|^Error: player cannot be null|JellyfinEnhanced|/JellyfinEnhanced/"
+    }
+  ]
+}

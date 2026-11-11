@@ -1,0 +1,113 @@
+{
+  "name": "Smart Search's Auto-collections tab in the TV layout (localStorage 'layout' = 'tv'), as admin at 1366x900: an auto-collection WC AC TV made through the API; the tab reached from the keyboard (focus on its tab, Enter), no field taking the focus, every control at least 32 px high and nothing wider than the screen; Edit by Enter opens the editor with the focus on its name, the D-pad (ArrowDown) moves inside it, Escape closes it and the focus returns to Edit. Screenshots smartsearch-collections-tv*.png.",
+  "failOnException": false,
+  "timeout": 30000,
+  "steps": [
+    {
+      "name": "a desktop screen",
+      "emulate": "desktop"
+    },
+    {
+      "name": "page helpers (admin)",
+      "initScript": "\nwindow.__ss = {\n  root: () => [...document.querySelectorAll('[data-jfss-page=\"search\"][data-jfss-mounted] .jfss-search')].find(x => x.getClientRects().length > 0) || null,\n  q: (s) => { const r = window.__ss.root(); return r ? r.querySelector(s) : null; },\n  all: (s) => { const r = window.__ss.root(); return r ? [...r.querySelectorAll(s)] : []; },\n  noHScroll: () => document.documentElement.scrollWidth <= innerWidth && window.__ss.root().scrollWidth <= window.__ss.root().clientWidth + 1,\n  box: (e) => { const r = e.getBoundingClientRect(); return [Math.round(r.width), Math.round(r.height)]; },\n  api: async (method, path, body) => { const r = await fetch(ApiClient.getUrl(path), { method, headers: { 'X-Emby-Token': ApiClient.accessToken(), 'Content-Type': 'application/json' }, body: body === undefined ? undefined : JSON.stringify(body) }); const t = await r.text(); return { status: r.status, body: t ? JSON.parse(t) : null }; },\n  cleanup: async (prefix) => { let n = 0; const acs = (await window.__ss.api('GET', 'SmartSearch/AutoCollections')).body || []; for (const a of acs) { if (a.Name.indexOf(prefix) === 0) { await window.__ss.api('DELETE', 'SmartSearch/AutoCollections/' + a.Id + '?deleteCollection=true'); n++; } } const list = (await window.__ss.api('GET', 'SmartSearch/Queries?scope=Mine&limit=500')).body.Items; for (const q of list) { if (q.Name.indexOf(prefix) === 0) { await window.__ss.api('DELETE', 'SmartSearch/Queries/' + q.Id + '?detachAutoCollections=true'); n++; } } return n; },\n  movies: async (name) => { const libs = (await window.__ss.api('GET', 'SmartSearch/Libraries')).body; const movies = libs.find(l => l.Name === 'Movies').Id; return (await window.__ss.api('POST', 'SmartSearch/Queries', { Name: name, Description: '', Shared: false, Query: { Version: 1, Scope: { ItemKinds: ['Movie'], LibraryIds: [movies], IncludeMissing: false }, Where: { Match: 'All', Children: [] }, Sort: [{ Key: 'SortName', Order: 'Ascending' }] } })).body; },\n  dialog: () => { const d = [...document.querySelectorAll('[role=\"dialog\"]')].filter(x => x.getClientRects().length > 0); return d[d.length - 1] || null; },\n  dq: (s) => { const d = window.__ss.dialog(); return d ? d.querySelector(s) : null; },\n  dset: (s, v) => { const e = window.__ss.dq(s); e.value = v; e.dispatchEvent(new Event('input', { bubbles: true })); e.dispatchEvent(new Event('change', { bubbles: true })); return true; },\n  dbutton: (text) => { const d = window.__ss.dialog(); return d ? [...d.querySelectorAll('button')].find(b => b.textContent === text) || null : null; },\n  rows: () => window.__ss.all('.jfss-ac-row'),\n  names: () => window.__ss.rows().map(r => r.querySelector('.jfss-ac-open').textContent),\n  row: (name) => window.__ss.rows().find(r => r.querySelector('.jfss-ac-open').textContent === name) || null,\n  status: (name) => { const r = window.__ss.row(name); return r ? r.querySelector('.jfss-ac-status').textContent : null; },\n  action: (name, cls) => { const r = window.__ss.row(name); return r ? r.querySelector(cls) : null; },\n  savedRow: (name) => window.__ss.all('.jfss-saved-row').find(r => r.querySelector('.jfss-saved-open').textContent === name) || null,\n  toast: () => [...document.querySelectorAll('.jfss-toast')].map(t => t.textContent.replace(/[\\u2066-\\u2069]/g, '')).join(' | '),\n  ready: () => !!window.__ss.q('.jfss-collections-panel') && !!window.__ss.q('.jfss-ac-count') && /auto-collection/.test(window.__ss.q('.jfss-ac-count').textContent + (window.__ss.q('.jfss-ac-notices') || {}).textContent)\n};\n"
+    },
+    {
+      "name": "sign in as admin",
+      "login": "admin"
+    },
+    {
+      "name": "the Smart Search script ran (admin)",
+      "waitFor": "!!window.__jfkit && !!window.__jfkit.jfss && !!window.ApiClient && !!ApiClient.getCurrentUserId()",
+      "timeout": 20000
+    },
+    {
+      "name": "an auto-collection of admin's",
+      "script": "await __ss.cleanup('WC AC TV'); const q = await __ss.movies('WC AC TV'); const preview = (await __ss.api('POST', 'SmartSearch/AutoCollections/Preview', { Definition: { Name: 'WC AC TV', Source: { SavedQueryId: q.Id } } })).body; const r = await __ss.api('POST', 'SmartSearch/AutoCollections', { Definition: { Name: 'WC AC TV', Source: { SavedQueryId: q.Id } }, AcceptedPreviewHash: preview.PreviewHash }); return r.status;",
+      "save": "made"
+    },
+    {
+      "name": "TV layout for this browser",
+      "eval": "(localStorage.setItem('layout', 'tv'), true)"
+    },
+    {
+      "name": "reload (TV)",
+      "reload": true
+    },
+    {
+      "name": "TV layout applied",
+      "waitFor": "document.documentElement.classList.contains('layout-tv') && !!window.__jfkit && !!window.__jfkit.jfss && __jfkit.jfss.instance.layout.isTv()",
+      "timeout": 20000
+    },
+    {
+      "goto": "/web/index.html#/jfss-search"
+    },
+    {
+      "name": "the page (TV)",
+      "waitFor": "!!window.__ss && !!__ss.q('[data-jfss-tab=\"collections\"]')",
+      "timeout": 20000
+    },
+    {
+      "name": "focus the Auto-collections tab",
+      "script": "__ss.q('[data-jfss-tab=\"collections\"]').focus(); return document.activeElement === __ss.q('[data-jfss-tab=\"collections\"]');"
+    },
+    {
+      "key": "Enter"
+    },
+    {
+      "name": "the list (TV)",
+      "waitFor": "__ss.ready() && !!__ss.row('WC AC TV') && __ss.status('WC AC TV') === 'Up to date'",
+      "timeout": 60000
+    },
+    {
+      "name": "the TV list",
+      "eval": "({ focusField: ['INPUT', 'SELECT', 'TEXTAREA'].includes(document.activeElement.tagName), small: __ss.all('.jfss-collections-panel button, .jfss-collections-panel a, [role=\"tab\"]').filter(e => e.getClientRects().length > 0 && e.getBoundingClientRect().height < 32).map(e => e.className), noHScroll: __ss.noHScroll() })",
+      "save": "page",
+      "full": true
+    },
+    {
+      "name": "no field focused, nothing too small or too wide",
+      "assert": "(__vars.made === 201 || __vars.made === 202) && !__vars.page.focusField && __vars.page.small.length === 0 && __vars.page.noHScroll"
+    },
+    {
+      "screenshot": "smartsearch-collections-tv.png"
+    },
+    {
+      "name": "focus Edit WC AC TV",
+      "script": "__ss.action('WC AC TV', '.jfss-ac-edit').focus(); return document.activeElement === __ss.action('WC AC TV', '.jfss-ac-edit');"
+    },
+    {
+      "key": "Enter"
+    },
+    {
+      "name": "the editor, the focus on its name",
+      "waitFor": "!!__ss.dq('.jfss-ac-name') && document.activeElement === __ss.dq('.jfss-ac-name')",
+      "timeout": 15000
+    },
+    {
+      "key": "ArrowDown"
+    },
+    {
+      "name": "the D-pad moved the focus inside the editor",
+      "waitFor": "!!__ss.dialog() && __ss.dialog().contains(document.activeElement) && document.activeElement !== __ss.dq('.jfss-ac-name')"
+    },
+    {
+      "screenshot": "smartsearch-collections-tv-editor.png"
+    },
+    {
+      "key": "Escape"
+    },
+    {
+      "name": "closed, the focus back on Edit",
+      "waitFor": "!__ss.dialog() && document.activeElement === __ss.action('WC AC TV', '.jfss-ac-edit')"
+    },
+    {
+      "name": "remove it",
+      "script": "return await __ss.cleanup('WC AC TV');"
+    },
+    {
+      "name": "no uncaught exception (the stale CustomRatings tag is known noise)",
+      "noExceptions": true,
+      "ignore": "CustomRatings"
+    }
+  ]
+}

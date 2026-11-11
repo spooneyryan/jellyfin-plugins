@@ -1,0 +1,93 @@
+{
+  "name": "The My Bookmarks page in Plugin Pages' host, as admin in the Auto host mode (PageHostMode=Auto at startup, with Plugin Pages installed): GET /PluginPages/User lists Jellyfin.Plugin.Bookmarks.BookmarksPage with its shell URL, the kit chose the Plugin Pages host, the link sits in Plugin Pages' drawer section and not in 'Library tools', the page renders in that host under its own title, a toolbar change keeps the state in the Plugin Pages link (pageUrl plus view=flat), Back and Forward render the grouped and the flat state again from that link (one kit render each), a hard reload of it shows the same state, and after signing out and in again without a reload the page's link is back (Plugin Pages' or, its section gone, ours in Library tools) and opens the page. Needs a sandbox started in Auto mode (Set-SandboxPluginConfig PageHostMode=Auto, then a restart).",
+  "failOnException": false,
+  "timeout": 30000,
+  "steps": [
+    { "name": "open the login page", "goto": "/web/index.html#/login" },
+    { "name": "index.html carries Plugin Pages' tag (its startup task registers the File Transformation a few seconds after the server starts, so a check right after a restart waits for it; the kit chooses the host once per page load)", "waitFor": "fetch(new URL('index.html', location.href), { cache: 'no-store' }).then(r => r.text()).then(t => /<script plugin=\"PluginPages\"/.test(t))", "timeout": 90000 },
+    { "name": "reload, so the page has the tag", "reload": true },
+    { "name": "sign in as admin", "login": "admin" },
+    { "name": "the Bookmarks script ran", "waitFor": "!!window.__jfkit && !!window.__jfkit.jfbm && !!window.ApiClient && !!ApiClient.getCurrentUserId()" },
+    { "name": "index.html: the head fragment in Auto mode, the page on, Plugin Pages' tag", "eval": "fetch(new URL('index.html', location.href), { cache: 'no-store' }).then(r => r.text()).then(t => { const s = t.match(/<script type=\"application\\/json\" data-jfbm-head data-jfbm-pages>([^<]*)<\\/script>/); return { state: s ? JSON.parse(s[1]) : null, pluginPagesTag: /<script plugin=\"PluginPages\"/.test(t) }; })", "save": "head", "full": true },
+    { "name": "Auto, bookmarks known and on, Plugin Pages' tag there", "assert": "!!__vars.head.state && __vars.head.state.mode === 'Auto' && __vars.head.state.pages.includes('bookmarks') && !__vars.head.state.off.includes('bookmarks') && __vars.head.pluginPagesTag" },
+    { "name": "GET /PluginPages/User", "eval": "ApiClient.getJSON(ApiClient.getUrl('PluginPages/User'))", "save": "pluginPagesUser", "full": true },
+    { "name": "lists the page's Id and shell URL (registered at startup through Plugin Pages' DI manager)", "assert": "__vars.pluginPagesUser.Items.some(i => i.Id === 'Jellyfin.Plugin.Bookmarks.BookmarksPage' && i.Url === '/Bookmarks/Pages/bookmarks' && i.DisplayText === 'My Bookmarks')" },
+    { "name": "the kit chose the Plugin Pages host", "waitFor": "__jfkit.jfbm.instance.pages.state().hostsKnown && __jfkit.jfbm.instance.pages.state().hosts.bookmarks === 'PluginPages' && __jfkit.jfbm.instance.pages.href('bookmarks')", "save": "href" },
+    { "name": "its link", "assert": "__vars.href === '#/userpluginsettings.html?pageUrl=%2FBookmarks%2FPages%2Fbookmarks'" },
+    { "name": "open the drawer", "click": ".skinHeader .mainDrawerButton" },
+    { "name": "the link in Plugin Pages' section", "waitFor": "(() => { const a = document.querySelector('.mainDrawer .pluginMenuOptions a[data-itemid=\"Jellyfin.Plugin.Bookmarks.BookmarksPage\"]'); if (!a) return false; const r = a.getBoundingClientRect(); return r.width > 0 && r.height > 0; })()", "timeout": 15000 },
+    { "sleep": 1500 },
+    { "name": "no 'Library tools' link of ours for it while Plugin Pages shows it", "assert": "!document.querySelector('.mainDrawer .jfkit-nav a[data-jfbm-nav=\"bookmarks\"]')" },
+    { "screenshot": "page-bookmarks-pp-drawer.png" },
+    { "name": "click it", "click": ".mainDrawer .pluginMenuOptions a[data-itemid=\"Jellyfin.Plugin.Bookmarks.BookmarksPage\"]" },
+    {
+      "name": "the page renders in Plugin Pages' host under its title",
+      "waitFor": "(() => { const r = [...document.querySelectorAll('.userPreferencesPage:not(.hide) [data-jfbm-page=\"bookmarks\"][data-jfbm-mounted][data-jfbm-state=\"on\"]')].find(x => x.getClientRects().length > 0); if (!r) return false; const c = r.querySelector('.jfbm-page-content'); if (!c || c.hasAttribute('aria-busy')) return false; return { host: r.getAttribute('data-jfbm-host'), title: (document.querySelector('.skinHeader .pageTitle') || { textContent: '' }).textContent.trim(), hash: location.hash, toolbar: !!r.querySelector('.jfbm-page-toolbar'), count: r.querySelector('.jfbm-page-count').textContent }; })()",
+      "timeout": 20000,
+      "save": "page",
+      "full": true
+    },
+    { "name": "as expected (Plugin Pages' own link leaves pageUrl unencoded; ours encode it)", "assert": "__vars.page.host === 'PluginPages' && __vars.page.title === 'My Bookmarks' && decodeURIComponent(__vars.page.hash) === '#/userpluginsettings.html?pageUrl=/Bookmarks/Pages/bookmarks' && __vars.page.toolbar && /bookmark/.test(__vars.page.count)" },
+    { "name": "Flat", "click": ".userPreferencesPage:not(.hide) [data-jfbm-page=\"bookmarks\"] [data-jfbm-view=\"flat\"]" },
+    { "name": "the state in the Plugin Pages link", "waitFor": "location.hash === '#/userpluginsettings.html?pageUrl=%2FBookmarks%2FPages%2Fbookmarks&view=flat' && !document.querySelector('.userPreferencesPage:not(.hide) [data-jfbm-page=\"bookmarks\"] .jfbm-page-content').hasAttribute('aria-busy')", "timeout": 15000 },
+    { "sleep": 300 },
+    { "screenshot": "page-bookmarks-pp-flat.png" },
+    { "name": "renders before Back", "eval": "__jfkit.jfbm.instance.pages.state().renders.bookmarks", "save": "rendersBeforeBack" },
+    { "name": "Back", "script": "history.back(); return true;" },
+    {
+      "name": "the grouped view again, rendered by the kit from Plugin Pages' own link (one render: the router still holds that location, so no page event comes)",
+      "waitFor": "(() => { const r = [...document.querySelectorAll('.userPreferencesPage:not(.hide) [data-jfbm-page=\"bookmarks\"][data-jfbm-mounted][data-jfbm-state=\"on\"]')].find(x => x.getClientRects().length > 0); if (!r || decodeURIComponent(location.hash) !== '#/userpluginsettings.html?pageUrl=/Bookmarks/Pages/bookmarks') return false; const c = r.querySelector('.jfbm-page-content'); if (!c || c.hasAttribute('aria-busy') || !c.querySelector('.jfbm-group') || !r.querySelector('[data-jfbm-view=\"grouped\"][aria-pressed=\"true\"]')) return false; return { view: 'grouped', host: r.getAttribute('data-jfbm-host'), reason: r.getAttribute('data-jfbm-reason'), renders: __jfkit.jfbm.instance.pages.state().renders.bookmarks, views: document.querySelectorAll('.userPreferencesPage').length }; })()",
+      "timeout": 20000,
+      "save": "back",
+      "full": true
+    },
+    { "name": "as expected: the kit's own render, in the same view", "assert": "__vars.back.view === 'grouped' && __vars.back.host === 'PluginPages' && __vars.back.renders === __vars.rendersBeforeBack + 1 && __vars.back.reason === 'navigation' && __vars.back.views === 1" },
+    { "name": "Forward", "script": "history.forward(); return true;" },
+    {
+      "name": "the flat view again, from the link the page wrote (one more render: the view manager loads a view for that URL, which it never had, and its page events render it)",
+      "waitFor": "(() => { const r = [...document.querySelectorAll('.userPreferencesPage:not(.hide) [data-jfbm-page=\"bookmarks\"][data-jfbm-mounted][data-jfbm-state=\"on\"]')].find(x => x.getClientRects().length > 0); if (!r || location.hash !== '#/userpluginsettings.html?pageUrl=%2FBookmarks%2FPages%2Fbookmarks&view=flat') return false; const c = r.querySelector('.jfbm-page-content'); if (!c || c.hasAttribute('aria-busy') || !c.querySelector('.jfbm-row .jfbm-row-item') || !r.querySelector('[data-jfbm-view=\"flat\"][aria-pressed=\"true\"]')) return false; return { view: 'flat', host: r.getAttribute('data-jfbm-host'), reason: r.getAttribute('data-jfbm-reason'), renders: __jfkit.jfbm.instance.pages.state().renders.bookmarks, views: document.querySelectorAll('.userPreferencesPage').length }; })()",
+      "timeout": 20000,
+      "save": "forward",
+      "full": true
+    },
+    { "name": "as expected: one render, the new view's mount; the view manager keeps the old view", "assert": "__vars.forward.view === 'flat' && __vars.forward.host === 'PluginPages' && __vars.forward.renders === __vars.rendersBeforeBack + 2 && __vars.forward.reason === 'mount' && __vars.forward.views === 2" },
+    { "name": "a moment for a render the kit might add", "sleep": 400 },
+    { "name": "still one render for Forward (the kit left it to the view manager)", "assert": "__jfkit.jfbm.instance.pages.state().renders.bookmarks === __vars.rendersBeforeBack + 2" },
+    { "name": "hard reload", "reload": true },
+    {
+      "name": "after the reload: the flat view, in Plugin Pages' host",
+      "waitFor": "(() => { const r = [...document.querySelectorAll('.userPreferencesPage:not(.hide) [data-jfbm-page=\"bookmarks\"][data-jfbm-mounted][data-jfbm-state=\"on\"]')].find(x => x.getClientRects().length > 0); if (!r || location.hash !== '#/userpluginsettings.html?pageUrl=%2FBookmarks%2FPages%2Fbookmarks&view=flat') return false; const c = r.querySelector('.jfbm-page-content'); if (!c || c.hasAttribute('aria-busy')) return false; return r.querySelector('[data-jfbm-view][aria-pressed=\"true\"]').getAttribute('data-jfbm-view'); })()",
+      "timeout": 20000,
+      "save": "reloaded"
+    },
+    { "name": "flat", "assert": "__vars.reloaded === 'flat'" },
+    { "name": "open the drawer", "click": ".skinHeader .mainDrawerButton" },
+    { "name": "Sign out visible in the drawer", "waitFor": "(() => { const a = document.querySelector('.mainDrawer .btnLogout'); if (!a) return false; const r = a.getBoundingClientRect(); return r.width > 0 && r.height > 0 && getComputedStyle(a).visibility !== 'hidden'; })()", "timeout": 15000 },
+    { "sleep": 1000 },
+    { "name": "sign out from the drawer", "click": ".mainDrawer .btnLogout", "js": true },
+    { "name": "on the login page", "waitFor": "location.hash.startsWith('#/login') && !!document.querySelector('#txtManualName')", "timeout": 20000 },
+    { "name": "sign in again, in the same page load", "login": "admin", "stay": true },
+    { "sleep": 1500 },
+    { "name": "open the drawer", "click": ".skinHeader .mainDrawerButton" },
+    { "name": "drawer open", "waitFor": "(() => { const a = document.querySelector('.mainDrawer .userMenuOptions'); if (!a) return false; const r = a.getBoundingClientRect(); return r.width > 0 && r.height > 0 && getComputedStyle(a).visibility !== 'hidden'; })()", "timeout": 15000 },
+    { "sleep": 1500 },
+    {
+      "name": "the page's link is back without a reload: Plugin Pages' (its section added again) or ours in Library tools, to the page in the host the kit chose (Plugin Pages 2.4.7 doesn't add its section again, so the kit's drawer-based decision adds ours, with the Plugin Pages link)",
+      "eval": "(() => ({ pluginPages: !!document.querySelector('.mainDrawer .pluginMenuOptions a[data-itemid=\"Jellyfin.Plugin.Bookmarks.BookmarksPage\"]'), ours: (a => a ? a.getAttribute('href') : null)(document.querySelector('.mainDrawer .jfkit-nav a[data-jfbm-nav=\"bookmarks\"]')), host: __jfkit.jfbm.instance.pages.state().hosts.bookmarks, href: __jfkit.jfbm.instance.pages.href('bookmarks') }))()",
+      "save": "relogin",
+      "full": true
+    },
+    { "name": "one of them, never both; ours is the page's link in its host", "assert": "(__vars.relogin.pluginPages || __vars.relogin.ours === __vars.relogin.href) && !(__vars.relogin.pluginPages && __vars.relogin.ours)" },
+    { "screenshot": "page-bookmarks-pp-relogin.png" },
+    { "name": "click it", "script": "const a = document.querySelector('.mainDrawer .pluginMenuOptions a[data-itemid=\"Jellyfin.Plugin.Bookmarks.BookmarksPage\"]') || document.querySelector('.mainDrawer .jfkit-nav a[data-jfbm-nav=\"bookmarks\"]'); a.click(); return a.getAttribute('href');" },
+    {
+      "name": "the page renders in the host the link names, under its title",
+      "waitFor": "(() => { const r = [...document.querySelectorAll('[data-jfbm-page=\"bookmarks\"][data-jfbm-mounted][data-jfbm-state=\"on\"]')].find(x => x.getClientRects().length > 0); if (!r) return false; const c = r.querySelector('.jfbm-page-content'); if (!c || c.hasAttribute('aria-busy') || !c.querySelector('.jfbm-group')) return false; return { host: r.getAttribute('data-jfbm-host'), hash: location.hash, title: (document.querySelector('.skinHeader .pageTitle') || { textContent: '' }).textContent.trim() }; })()",
+      "timeout": 20000,
+      "save": "afterRelogin",
+      "full": true
+    },
+    { "name": "as expected: the host the kit chose, under the page's title", "assert": "__vars.afterRelogin.title === 'My Bookmarks' && (__vars.relogin.host === 'PluginPages' ? (__vars.afterRelogin.host === 'PluginPages' && /pageUrl=/.test(__vars.afterRelogin.hash)) : (__vars.afterRelogin.host === 'Fallback' && __vars.afterRelogin.hash === '#/jfbm-bookmarks'))" },
+    { "name": "no uncaught exception of ours", "noExceptions": true, "ignore": "/CustomRatings/script|^Error: player cannot be null" }
+  ]
+}

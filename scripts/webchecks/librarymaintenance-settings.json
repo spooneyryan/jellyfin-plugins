@@ -1,0 +1,881 @@
+{
+  "description": "The settings' round trip on Library Maintenance's Settings tab as admin. The tab shows the saved settings; Export (the page's own download, caught before it reaches the disk) gives the file; a field outside the index's scope (the wait) is saved at once; a scope change (a library chosen) opens the preview dialog, and Cancel saves nothing; a scope change with an excluded folder shows the counts the index then has, and is saved; Diagnostics shows the new index's numbers; the exported file imported through the page's file input shows its dialog and puts back the settings and their version exactly; the same file again has nothing to import. A server message with markup stays text. Find duplicate movies off hides the Duplicates tab (its API 404) and on brings it back. A phone (375 and 320 px) and the dialog there have no sideways scrolling; on the TV, Down from the tab reaches the switch, OK turns it, and the dialog's focus starts on Cancel and returns to Save. The settings are back as they were at the end; a run that stops early can leave them changed (the first steps then refuse to start: put them back by hand). Since Library Maintenance 1.1.0.5, the web client's and Move's four switches: their labels and the note not to use Disable, Move media off (no planning, its routes 403) and on again, and the web client's script off (no tag in index.html) and on again.",
+  "timeout": 30000,
+  "steps": [
+    {
+      "name": "helpers, in every page this tab loads (a reload drops them)",
+      "initScript": "window.__lms = {\n  P: '#LibraryMaintenanceConfigPage:not(.hide) ',\n  page: () => document.querySelector('#LibraryMaintenanceConfigPage:not(.hide)'),\n  q: (s) => (__lms.page() || document).querySelector(s),\n  qa: (s) => [...(__lms.page() || document).querySelectorAll(s)],\n  text: (e) => { const el = typeof e === 'string' ? __lms.q(e) : e; return el ? (el.textContent || '').trim() : ''; },\n  auth: () => ({ Authorization: 'MediaBrowser Token=\"' + ApiClient.accessToken() + '\"', Accept: 'application/json' }),\n  api: async (method, path, query, body) => { const headers = __lms.auth(); const init = { method: method, headers: headers }; if (body !== undefined) { headers['Content-Type'] = 'application/json'; init.body = typeof body === 'string' ? body : JSON.stringify(body); } const r = await fetch(ApiClient.getUrl(path, query || {}), init); const t = await r.text(); let json = null; try { json = t ? JSON.parse(t) : null; } catch (e) { json = null; } return { status: r.status, body: json, error: r.status >= 400 ? t.slice(0, 300) : undefined }; },\n  settings: async () => (await __lms.api('GET', 'LibraryMaintenance/Admin/Settings')).body,\n  index: async () => await __lms.api('GET', 'LibraryMaintenance/Duplicates/Index'),\n  canonical: (s) => JSON.stringify(Object.keys(s || {}).sort().reduce((o, k) => { o[k] = k === 'IncludedLibraryIds' ? (s[k] || []).map((id) => String(id).replace(/-/g, '').toLowerCase()).sort() : s[k]; return o; }, {})),\n  key: (id) => String(id || '').replace(/-/g, '').toLowerCase(),\n  loaded: () => { const f = __lms.q('#LibraryMaintenanceSettingsForm'); return !!f && !f.hasAttribute('hidden') && !__lms.busy(); },\n  busy: () => { const s = __lms.q('#LibraryMaintenanceSettingsSave'); return !s || s.getAttribute('aria-disabled') === 'true'; },\n  message: () => __lms.text('#LibraryMaintenanceSettingsMessage'),\n  transfer: () => __lms.text('#LibraryMaintenanceSettingsTransfer'),\n  review: () => document.querySelector('#LibraryMaintenanceSettingsReview'),\n  reviewText: (s) => { const r = __lms.review(); const e = r && r.querySelector(s); return e ? (e.textContent || '').trim() : null; },\n  reviewRows: (s) => { const r = __lms.review(); return r ? [...r.querySelectorAll(s + ' tr')].map((tr) => [...tr.children].map((c) => (c.textContent || '').trim())) : []; },\n  button: (root, label) => root ? [...root.querySelectorAll('button')].find((b) => (b.textContent || '').trim() === label) || null : null,\n  mark: (e, name) => { document.querySelectorAll('[data-lms=' + name + ']').forEach((o) => o.removeAttribute('data-lms')); if (!e) { return false; } e.setAttribute('data-lms', name); return true; },\n  pressed: (id) => __lms.qa('#' + id + ' button[aria-pressed=true]').map((b) => b.getAttribute('data-value')),\n  dirty: () => { const d = __lms.q('#LibraryMaintenanceSettingsDiscard'); return !!d && d.getAttribute('aria-disabled') === 'false'; },\n  diagnostics: () => __lms.qa('#LibraryMaintenanceDiagnosticsIndex tr').reduce((o, tr) => { const c = [...tr.children].map((x) => (x.textContent || '').trim()); o[c[0]] = c[1]; return o; }, {}),\n  fit: (root) => { const w = document.documentElement.clientWidth; const right = (e) => Math.round(e.getBoundingClientRect().right); const shown = [...(root || document).querySelectorAll('*')].filter((e) => e.getBoundingClientRect().width > 0 && !e.closest('[hidden]')); return { scrollWidth: document.documentElement.scrollWidth, clientWidth: w, right: shown.length ? Math.max(...shown.map(right)) : 0, left: shown.length ? Math.min(...shown.map((e) => Math.round(e.getBoundingClientRect().left))) : 0 }; },\n  where: () => { const a = document.activeElement; const panel = a && a.closest ? a.closest('[role=tabpanel]') : null; return { id: (a && a.id) || null, tag: a ? a.tagName : null, text: a ? (a.textContent || '').trim().slice(0, 40) : null, body: !a || a === document.body, inApp: !!(a && a.closest && a.closest('.jflm-page-app')), inReview: !!(a && a.closest && a.closest('#LibraryMaintenanceSettingsReview')), panel: panel ? panel.id.replace('LibraryMaintenancePanel', '') : null, checked: a && a.getAttribute ? a.getAttribute('aria-checked') : null, pressed: a && a.getAttribute ? a.getAttribute('aria-pressed') : null }; },\n  focusOn: (selector) => { const e = __lms.q(selector); if (!e) { return false; } e.focus(); return document.activeElement === e; },\n  rebuilt: async (after) => { const i = await __lms.index(); return i.status === 200 && i.body.Version > after && !i.body.Rebuilding ? { version: i.body.Version, movies: i.body.Movies, excluded: i.body.Excluded } : null; },\n  restore: async (before) => { const now = await __lms.settings(); if (__lms.canonical(now.Settings) === __lms.canonical(before.settings)) { return { restored: false, version: now.Version }; } const r = await __lms.api('POST', 'LibraryMaintenance/Admin/Settings', { version: now.Version, dryRun: false }, before.settings); return { restored: true, status: r.status, error: r.error, version: r.body && r.body.Version }; }\n};"
+    },
+    {
+      "name": "sign in as admin",
+      "login": "admin"
+    },
+    {
+      "name": "the web client is ready",
+      "waitFor": "!!window.ApiClient && !!ApiClient.getCurrentUserId()"
+    },
+    {
+      "name": "the desktop layout for this browser",
+      "eval": "(localStorage.setItem('layout', 'desktop'), true)"
+    },
+    {
+      "name": "the saved settings, their version and the index before (built once if the server has none yet)",
+      "eval": "(async () => { const s = await __lms.settings(); let i = await __lms.index(); if (i.status === 200 && !i.body.Version) { await __lms.api('POST', 'LibraryMaintenance/Duplicates/Index/Rebuild'); for (let n = 0; n < 300 && (!i.body.Version || i.body.Rebuilding); n++) { await new Promise((r) => setTimeout(r, 100)); i = await __lms.index(); } } return { version: s.Version, settings: s.Settings, canonical: __lms.canonical(s.Settings), libraries: (s.Libraries || []).map((l) => ({ id: l.Id, name: l.Name, kind: l.Kind, enabled: l.Enabled })), index: i.status === 200 ? { version: i.body.Version, movies: i.body.Movies, excluded: i.body.Excluded, rebuilding: i.body.Rebuilding } : { status: i.status } }; })()",
+      "save": "before",
+      "full": true
+    },
+    {
+      "name": "a version, finding duplicates on, an index, and movie libraries",
+      "assert": "/^[0-9a-f]{16}$/.test(__vars.before.version) && __vars.before.settings.DuplicatesEnabled === true && __vars.before.index.version >= 1 && !__vars.before.index.rebuilding && __vars.before.libraries.length >= 2"
+    },
+    {
+      "name": "a library to choose, a movie folder in it to exclude, and their movies (the API's own counts)",
+      "eval": "(async () => { const libs = __vars.before.libraries.filter((l) => l.enabled !== false && l.kind !== 'mixed'); const lib = libs.find((l) => l.name === 'Movies 2') || libs[0]; const movies = (await __lms.api('GET', 'Items', { ParentId: lib.id, IncludeItemTypes: 'Movie', Recursive: true, Fields: 'Path', Limit: 500 })).body; const paths = movies.Items.map((m) => m.Path || ''); const folderOf = (p) => p.replace(/[\\\\/][^\\\\/]+$/, ''); const inFolder = paths.find((p) => /\\(\\d{4}\\)$/.test(folderOf(p))); const folder = inFolder ? folderOf(inFolder) : null; const under = folder ? paths.filter((p) => p.toUpperCase().indexOf(folder.toUpperCase() + (folder.indexOf('\\\\') >= 0 ? '\\\\' : '/')) === 0).length : 0; const wait = __vars.before.settings.RequestWaitSeconds; return { id: lib.id, key: __lms.key(lib.id), name: lib.name, movies: movies.TotalRecordCount, folder: folder, under: under, wait: wait === 30 ? 29 : wait + 1, others: (__vars.before.settings.ExcludedPathPrefixes || []).length, chosen: (__vars.before.settings.IncludedLibraryIds || []).length }; })()",
+      "save": "pick",
+      "full": true
+    },
+    {
+      "name": "a library with movies, one of them in a folder of its own; none chosen and no folder excluded so far (so the counts below are exact)",
+      "assert": "__vars.pick.movies >= 2 && !!__vars.pick.folder && __vars.pick.under >= 1 && __vars.pick.under < __vars.pick.movies && __vars.pick.others === 0 && __vars.pick.chosen === 0"
+    },
+    {
+      "name": "the folder to type",
+      "eval": "__vars.pick.folder",
+      "save": "folderText"
+    },
+    {
+      "name": "the wait to type",
+      "eval": "String(__vars.pick.wait)",
+      "save": "waitText"
+    },
+    {
+      "name": "the page",
+      "goto": "/web/index.html#/configurationpage?name=LibraryMaintenance"
+    },
+    {
+      "name": "the page's tabs",
+      "waitFor": "!!__lms.q('#LibraryMaintenanceTabSettings') && !__lms.q('#LibraryMaintenanceTabDuplicates').hasAttribute('hidden')",
+      "timeout": 20000
+    },
+    {
+      "name": "open Settings",
+      "click": "#LibraryMaintenanceConfigPage:not(.hide) #LibraryMaintenanceTabSettings"
+    },
+    {
+      "name": "the form loaded",
+      "waitFor": "__lms.loaded() && !__lms.q('#LibraryMaintenancePanelSettings').hasAttribute('hidden')",
+      "timeout": 15000
+    },
+    {
+      "name": "what the form shows",
+      "eval": "(() => ({ enabled: __lms.q('#LibraryMaintenanceSettingsDuplicatesEnabled').getAttribute('aria-checked'), role: __lms.q('#LibraryMaintenanceSettingsDuplicatesEnabled').getAttribute('role'), mode: __lms.q('#LibraryMaintenanceSettingsMode').value, unknownYear: __lms.q('#LibraryMaintenanceSettingsUnknownYear').value, wait: __lms.q('#LibraryMaintenanceSettingsWait').value, libraries: __lms.qa('#LibraryMaintenanceSettingsLibrariesToggles button').map((b) => b.textContent.trim()), pressed: __lms.pressed('LibraryMaintenanceSettingsLibrariesToggles'), languages: __lms.pressed('LibraryMaintenanceSettingsLanguagesToggles'), phrases: __lms.q('#LibraryMaintenanceSettingsPhrases').value.split('\\n').filter(Boolean), folders: __lms.q('#LibraryMaintenanceSettingsFolders').value, note: __lms.text('#LibraryMaintenanceSettingsLibrariesNote'), dirty: __lms.dirty() }))()",
+      "save": "shown",
+      "full": true
+    },
+    {
+      "name": "the saved settings, as saved",
+      "assert": "(() => { const s = __vars.before.settings; const v = __vars.shown; return v.role === 'switch' && v.enabled === 'true' && v.mode === s.DefaultMatchMode && v.unknownYear === s.UnknownYearPolicy && v.wait === String(s.RequestWaitSeconds) && v.pressed.length === 0 && v.libraries.length === __vars.before.libraries.length && v.languages.join() === (s.ArticleLanguages || []).join() && v.phrases.join('|') === (s.EditionPhrases || []).join('|') && v.folders === '' && /^None chosen/.test(v.note) && !v.dirty; })()"
+    },
+    {
+      "name": "Import opens the hidden file input (a stand-in click, so no file chooser opens)",
+      "script": "const opened = []; const original = HTMLInputElement.prototype.click; HTMLInputElement.prototype.click = function () { opened.push({ id: this.id, type: this.type, hidden: this.hidden }); }; try { __lms.q('#LibraryMaintenanceSettingsImport').click(); } finally { HTMLInputElement.prototype.click = original; } return opened;",
+      "save": "opened",
+      "full": true
+    },
+    {
+      "name": "the file input, once",
+      "assert": "__vars.opened.length === 1 && __vars.opened[0].id === 'LibraryMaintenanceSettingsImportFile' && __vars.opened[0].type === 'file' && __vars.opened[0].hidden"
+    },
+    {
+      "name": "the page's download caught (nothing is written to the disk)",
+      "script": "window.__lmsDownloads = []; window.__lmsClick = HTMLAnchorElement.prototype.click; HTMLAnchorElement.prototype.click = function () { if (this.hasAttribute('download')) { window.__lmsDownloads.push({ href: this.href, name: this.getAttribute('download') }); return; } return window.__lmsClick.call(this); }; return true;"
+    },
+    {
+      "name": "Export",
+      "click": "#LibraryMaintenanceConfigPage:not(.hide) #LibraryMaintenanceSettingsExport"
+    },
+    {
+      "name": "the download and its message",
+      "waitFor": "window.__lmsDownloads.length === 1 && /^Exported as /.test(__lms.transfer())",
+      "timeout": 10000
+    },
+    {
+      "name": "the exported file",
+      "script": "HTMLAnchorElement.prototype.click = window.__lmsClick; const d = window.__lmsDownloads[0]; const text = await (await fetch(d.href)).text(); const file = JSON.parse(text); return { name: d.name, blob: d.href.indexOf('blob:') === 0, message: __lms.transfer(), format: file.Format, plugin: file.Plugin, pluginId: file.PluginId, pluginVersion: file.PluginVersion, serverId: !!file.ServerId, data: file.Data, users: file.Users, canonical: __lms.canonical(file.Settings && { DuplicatesEnabled: file.Settings.DuplicatesEnabled, DefaultMatchMode: file.Settings.DefaultMatchMode, UnknownYearPolicy: file.Settings.UnknownYearPolicy, IncludedLibraryIds: file.Settings.IncludedLibraryIds, ExcludedPathPrefixes: file.Settings.ExcludedPathPrefixes, StripEditionSuffixes: file.Settings.StripEditionSuffixes, EditionPhrases: file.Settings.EditionPhrases, ArticleLanguages: file.Settings.ArticleLanguages, WarmIndexAfterScan: file.Settings.WarmIndexAfterScan, RequestWaitSeconds: file.Settings.RequestWaitSeconds, EnableWebUi: file.Settings.EnableWebUi, MoveEnabled: file.Settings.MoveEnabled, ShowInItemMenu: file.Settings.ShowInItemMenu, ReportWebAnchorProblems: file.Settings.ReportWebAnchorProblems }), bytes: text.length };",
+      "save": "exported",
+      "full": true
+    },
+    {
+      "name": "the file: the kit's envelope with the saved settings, named by the time, its message about the folders' paths",
+      "assert": "(async () => { const e = __vars.exported; const installed = (await ApiClient.getInstalledPlugins()).find((p) => String(p.Id).replace(/-/g, '').toLowerCase() === 'fd47a1d3dd8c4e34aeea4f2edd973800'); return e.blob &&/^librarymaintenance-export-\\d{8}-\\d{6}\\.json$/.test(e.name) && e.message.indexOf('Exported as ' + e.name + '.') === 0 && /excluded folders' paths/.test(e.message) && e.format === 'jellyfin-plugin-export/1' && e.plugin === 'Library Maintenance' && e.pluginId === 'fd47a1d3-dd8c-4e34-aeea-4f2edd973800' && !!installed && e.pluginVersion === installed.Version && e.serverId && e.canonical === __vars.before.canonical; })()"
+    },
+    {
+      "name": "the file's text",
+      "script": "const d = window.__lmsDownloads[0]; return await (await fetch(d.href)).text();",
+      "save": "exportText"
+    },
+    {
+      "name": "textContent: a folder with markup",
+      "type": "<b>test</b><img src=x onerror=\"window.__lmsXss=1\">",
+      "selector": "#LibraryMaintenanceConfigPage:not(.hide) #LibraryMaintenanceSettingsFolders",
+      "clear": true
+    },
+    {
+      "name": "Save",
+      "click": "#LibraryMaintenanceConfigPage:not(.hide) #LibraryMaintenanceSettingsSave"
+    },
+    {
+      "name": "the server's message",
+      "waitFor": "/isn't a full folder path/.test(__lms.message())",
+      "timeout": 10000
+    },
+    {
+      "name": "the message as text: the markup shown, no element made of it, no dialog",
+      "eval": "(() => { const m = __lms.q('#LibraryMaintenanceSettingsMessage'); return { text: __lms.message(), elements: m.querySelectorAll('b, img').length, xss: !!window.__lmsXss, alert: !!m.querySelector('[role=alert]'), review: !!__lms.review() }; })()",
+      "save": "markup",
+      "full": true
+    },
+    {
+      "name": "shown as typed, as an alert, nothing run",
+      "assert": "__vars.markup.text.indexOf('<b>test</b><img src=x') >= 0 && __vars.markup.elements === 0 && !__vars.markup.xss && __vars.markup.alert && !__vars.markup.review"
+    },
+    {
+      "name": "Discard changes",
+      "click": "#LibraryMaintenanceConfigPage:not(.hide) #LibraryMaintenanceSettingsDiscard"
+    },
+    {
+      "name": "the saved folders back, nothing to discard",
+      "waitFor": "__lms.q('#LibraryMaintenanceSettingsFolders').value === '' && !__lms.dirty() && __lms.message() === ''"
+    },
+    {
+      "name": "nothing saved by the refused save",
+      "assert": "(async () => (await __lms.settings()).Version === __vars.before.version)()"
+    },
+    {
+      "name": "a field outside the scope: the wait",
+      "type": "${waitText}",
+      "selector": "#LibraryMaintenanceConfigPage:not(.hide) #LibraryMaintenanceSettingsWait",
+      "clear": true
+    },
+    {
+      "name": "a change to discard",
+      "assert": "__lms.dirty()"
+    },
+    {
+      "name": "Save (the wait)",
+      "click": "#LibraryMaintenanceConfigPage:not(.hide) #LibraryMaintenanceSettingsSave"
+    },
+    {
+      "name": "saved at once",
+      "waitFor": "/^Saved: /.test(__lms.message()) && __lms.loaded()",
+      "timeout": 10000
+    },
+    {
+      "name": "what was saved, and whether a dialog opened",
+      "eval": "(async () => { const s = await __lms.settings(); const i = await __lms.index(); return { message: __lms.message(), review: !!__lms.review(), wait: s.Settings.RequestWaitSeconds, version: s.Version, rest: __lms.canonical(Object.assign({}, s.Settings, { RequestWaitSeconds: __vars.before.settings.RequestWaitSeconds })), field: __lms.q('#LibraryMaintenanceSettingsWait').value, dirty: __lms.dirty(), index: i.body.Version, rebuilding: i.body.Rebuilding }; })()",
+      "save": "waitSaved",
+      "full": true
+    },
+    {
+      "name": "no dialog; only the wait changed; a new version; the index not rebuilt",
+      "assert": "(() => { const w = __vars.waitSaved; return !w.review && w.message === 'Saved: Wait for a build.' && w.wait === __vars.pick.wait && w.field === String(__vars.pick.wait) && w.version !== __vars.before.version && w.rest === __vars.before.canonical && !w.dirty && w.index === __vars.before.index.version && !w.rebuilding; })()"
+    },
+    {
+      "name": "the library to choose",
+      "assert": "__lms.mark(__lms.q('#LibraryMaintenanceSettingsLibrariesToggles button[data-value=\"' + __vars.pick.key + '\"]'), 'lib')"
+    },
+    {
+      "name": "choose it (a scope change)",
+      "click": "#LibraryMaintenanceConfigPage:not(.hide) [data-lms=lib]"
+    },
+    {
+      "name": "chosen",
+      "assert": "__lms.pressed('LibraryMaintenanceSettingsLibrariesToggles').join() === __vars.pick.key && /^The index reads the libraries chosen/.test(__lms.text('#LibraryMaintenanceSettingsLibrariesNote'))"
+    },
+    {
+      "name": "Save (the library)",
+      "click": "#LibraryMaintenanceConfigPage:not(.hide) #LibraryMaintenanceSettingsSave"
+    },
+    {
+      "name": "the dialog",
+      "waitFor": "!!__lms.review() && !!__lms.reviewText('#LibraryMaintenanceSettingsChanges')",
+      "timeout": 15000
+    },
+    {
+      "name": "what the dialog shows, and where the focus is",
+      "eval": "(() => { const r = __lms.review(); return { title: (r.querySelector('h2, h3, [id$=Title], .jflm-dialog-title') || {}).textContent, changes: __lms.reviewRows('#LibraryMaintenanceSettingsChanges'), movies: __lms.reviewText('#LibraryMaintenanceSettingsPreviewMovies'), libraries: __lms.reviewRows('#LibraryMaintenanceSettingsPreviewLibraries'), folders: __lms.reviewRows('#LibraryMaintenanceSettingsPreviewFolders'), confirm: __lms.text(r.querySelector('#LibraryMaintenanceSettingsConfirm')), buttons: [...r.querySelectorAll('button')].map((b) => b.textContent.trim()), focus: __lms.where(), modal: r.getAttribute('aria-modal') || (r.closest('[aria-modal]') || { getAttribute: () => null }).getAttribute('aria-modal'), version: null }; })()",
+      "save": "cancelled",
+      "full": true
+    },
+    {
+      "name": "the library's change and its counts; Cancel first and focused; Save and rebuild",
+      "assert": "(() => { const c = __vars.cancelled; const after = __vars.pick.movies; const row = c.libraries.find((r) => r[0] === __vars.pick.name); return c.changes.length === 1 && c.changes[0][0] === 'Libraries' && c.movies === 'It holds ' + __vars.before.index.movies.toLocaleString() + ' movies now; with these settings it would hold ' + after.toLocaleString() + ' movies.' && !!row && row[1] === 'Stays: ' + after.toLocaleString() + ' → ' + after.toLocaleString() + ' movies' && c.confirm === 'Save and rebuild the index' && c.buttons.indexOf('Cancel') >= 0 && c.buttons.indexOf('Cancel') < c.buttons.indexOf('Save and rebuild the index') && c.focus.inReview && c.focus.text === 'Cancel'; })()"
+    },
+    {
+      "screenshot": "librarymaintenance-settings-preview.png"
+    },
+    {
+      "name": "Cancel",
+      "assert": "__lms.mark(__lms.button(__lms.review(), 'Cancel'), 'cancel')"
+    },
+    {
+      "click": "[data-lms=cancel]"
+    },
+    {
+      "name": "the dialog closed",
+      "waitFor": "!__lms.review()",
+      "timeout": 3000
+    },
+    {
+      "name": "after Cancel",
+      "eval": "(async () => ({ focus: __lms.where(), dirty: __lms.dirty(), pressed: __lms.pressed('LibraryMaintenanceSettingsLibrariesToggles'), version: (await __lms.settings()).Version, saved: __vars.waitSaved.version }))()",
+      "save": "afterCancel",
+      "full": true
+    },
+    {
+      "name": "nothing saved; the choice kept in the form; the focus back on Save",
+      "assert": "__vars.afterCancel.version === __vars.afterCancel.saved && __vars.afterCancel.dirty && __vars.afterCancel.pressed.join() === __vars.pick.key && __vars.afterCancel.focus.id === 'LibraryMaintenanceSettingsSave'"
+    },
+    {
+      "name": "an excluded folder too",
+      "type": "${folderText}",
+      "selector": "#LibraryMaintenanceConfigPage:not(.hide) #LibraryMaintenanceSettingsFolders",
+      "clear": true
+    },
+    {
+      "name": "Save (the library and the folder)",
+      "click": "#LibraryMaintenanceConfigPage:not(.hide) #LibraryMaintenanceSettingsSave"
+    },
+    {
+      "name": "the dialog again",
+      "waitFor": "!!__lms.review() && !!__lms.reviewText('#LibraryMaintenanceSettingsPreviewFolders')",
+      "timeout": 15000
+    },
+    {
+      "name": "what it shows",
+      "eval": "(() => ({ changes: __lms.reviewRows('#LibraryMaintenanceSettingsChanges').map((r) => r[0]), movies: __lms.reviewText('#LibraryMaintenanceSettingsPreviewMovies'), excluded: __lms.reviewText('#LibraryMaintenanceSettingsPreviewExcluded'), folders: __lms.reviewRows('#LibraryMaintenanceSettingsPreviewFolders'), libraries: __lms.reviewRows('#LibraryMaintenanceSettingsPreviewLibraries'), confirm: __lms.text(__lms.review().querySelector('#LibraryMaintenanceSettingsConfirm')) }))()",
+      "save": "preview",
+      "full": true
+    },
+    {
+      "name": "the counts the index will have: the library's movies less the folder's, the folder found",
+      "assert": "(() => { const p = __vars.preview; const k = __vars.pick; const n = (x) => x.toLocaleString(); const plural = (x) => n(x) + (x === 1 ? ' movie' : ' movies'); const after = k.movies - k.under; return p.changes.join() === 'Libraries,Excluded folders' && p.movies === 'It holds ' + n(__vars.before.index.movies) + ' movies now; with these settings it would hold ' + plural(after) + '.' && p.excluded === 'The excluded folders would leave out ' + plural(k.under) + ' (0 now).' && p.folders.length === 1 && p.folders[0][0] === 'Excluded' && p.folders[0][1] === k.folder + ' (found on the server)' && p.confirm === 'Save and rebuild the index'; })()"
+    },
+    {
+      "name": "Save and rebuild the index",
+      "click": "#LibraryMaintenanceSettingsConfirm"
+    },
+    {
+      "name": "saved",
+      "waitFor": "!__lms.review() && /^Saved: /.test(__lms.message()) && __lms.loaded()",
+      "timeout": 15000
+    },
+    {
+      "name": "the message and the saved settings",
+      "eval": "(async () => { const s = await __lms.settings(); return { message: __lms.message(), libraries: (s.Settings.IncludedLibraryIds || []).map(__lms.key), folders: s.Settings.ExcludedPathPrefixes, version: s.Version, pressed: __lms.pressed('LibraryMaintenanceSettingsLibrariesToggles'), field: __lms.q('#LibraryMaintenanceSettingsFolders').value, dirty: __lms.dirty() }; })()",
+      "save": "scopeSaved",
+      "full": true
+    },
+    {
+      "name": "the library and the folder saved, the form showing them, the index being built",
+      "assert": "(() => { const s = __vars.scopeSaved; return s.message === 'Saved: Libraries, Excluded folders. The index is being built again; the Duplicates tab shows it when it is ready.' && s.libraries.join() === __vars.pick.key && s.folders.length === 1 && s.folders[0] === __vars.pick.folder && s.pressed.join() === __vars.pick.key && s.field === __vars.pick.folder && !s.dirty; })()"
+    },
+    {
+      "name": "the index built again with the new scope",
+      "waitFor": "__lms.rebuilt(__vars.before.index.version)",
+      "timeout": 30000
+    },
+    {
+      "name": "the index's numbers",
+      "eval": "__lms.rebuilt(__vars.before.index.version)",
+      "save": "scoped",
+      "full": true
+    },
+    {
+      "name": "as the preview said",
+      "assert": "__vars.scoped.movies === __vars.pick.movies - __vars.pick.under && __vars.scoped.excluded === __vars.pick.under"
+    },
+    {
+      "name": "open Diagnostics",
+      "click": "#LibraryMaintenanceConfigPage:not(.hide) #LibraryMaintenanceTabDiagnostics"
+    },
+    {
+      "name": "its Refresh",
+      "assert": "__lms.mark(__lms.button(__lms.q('#LibraryMaintenancePanelDiagnostics'), 'Refresh'), 'refresh')"
+    },
+    {
+      "click": "[data-lms=refresh]"
+    },
+    {
+      "name": "Diagnostics' index numbers for the new index",
+      "waitFor": "(__lms.diagnostics()['Left out by the excluded folders'] || '') === __vars.pick.under.toLocaleString()",
+      "timeout": 10000
+    },
+    {
+      "name": "Diagnostics' rows",
+      "eval": "__lms.diagnostics()",
+      "save": "diagnostics",
+      "full": true
+    },
+    {
+      "name": "the movies in one library, the entries, the states, the skipped",
+      "assert": "(() => { const d = __vars.diagnostics; return d['Movies'] === (__vars.pick.movies - __vars.pick.under).toLocaleString() + ' in 1 library' && 'Entries' in d && 'Entries with more than one version' in d && 'Skipped: no name' in d && Object.keys(d).length >= 12; })()"
+    },
+    {
+      "screenshot": "librarymaintenance-settings-diagnostics.png"
+    },
+    {
+      "name": "back to Settings",
+      "click": "#LibraryMaintenanceConfigPage:not(.hide) #LibraryMaintenanceTabSettings"
+    },
+    {
+      "name": "the form",
+      "waitFor": "__lms.loaded() && !__lms.q('#LibraryMaintenancePanelSettings').hasAttribute('hidden')"
+    },
+    {
+      "name": "import the exported file through the page's file input",
+      "script": "const input = __lms.q('#LibraryMaintenanceSettingsImportFile'); const dt = new DataTransfer(); dt.items.add(new File([__vars.exportText], 'librarymaintenance-export.json', { type: 'application/json' })); input.files = dt.files; input.dispatchEvent(new Event('change', { bubbles: true })); return input.files.length;"
+    },
+    {
+      "name": "the import's dialog",
+      "waitFor": "!!__lms.review() && !!__lms.reviewText('#LibraryMaintenanceSettingsChanges')",
+      "timeout": 15000
+    },
+    {
+      "name": "what the import's dialog shows",
+      "eval": "(() => { const r = __lms.review(); return { source: __lms.reviewText('#LibraryMaintenanceSettingsSource'), changes: __lms.reviewRows('#LibraryMaintenanceSettingsChanges').map((x) => x[0]), movies: __lms.reviewText('#LibraryMaintenanceSettingsPreviewMovies'), warnings: __lms.reviewText('#LibraryMaintenanceSettingsWarnings'), confirm: __lms.text(r.querySelector('#LibraryMaintenanceSettingsConfirm')), focus: __lms.where(), text: (r.textContent || '').slice(0, 400) }; })()",
+      "save": "importing",
+      "full": true
+    },
+    {
+      "name": "from this server and this version; the three changes back; the counts; no warning; Cancel focused",
+      "assert": "(async () => { const i = __vars.importing; const installed = (await ApiClient.getInstalledPlugins()).find((p) => String(p.Id).replace(/-/g, '').toLowerCase() === 'fd47a1d3dd8c4e34aeea4f2edd973800'); return !!installed && (i.source || '').indexOf('The file holds the settings of Library Maintenance ' + installed.Version + ', exported ') === 0 && / on this server\\.$/.test(i.source) && i.changes.slice().sort().join() === ['Excluded folders', 'Libraries', 'Wait for a build'].join() && i.movies === 'It holds ' + (__vars.pick.movies - __vars.pick.under).toLocaleString() + ' movies now; with these settings it would hold ' + __vars.before.index.movies.toLocaleString() + ' movies.' && i.warnings === null && i.confirm === 'Import and rebuild the index' && i.focus.text === 'Cancel' && i.focus.inReview; })()"
+    },
+    {
+      "screenshot": "librarymaintenance-settings-import.png"
+    },
+    {
+      "name": "Import and rebuild the index",
+      "click": "#LibraryMaintenanceSettingsConfirm"
+    },
+    {
+      "name": "imported",
+      "waitFor": "!__lms.review() && /^Imported: /.test(__lms.transfer()) && __lms.loaded()",
+      "timeout": 15000
+    },
+    {
+      "name": "the round trip: the settings and their version after the import",
+      "eval": "(async () => { const s = await __lms.settings(); return { message: __lms.transfer(), version: s.Version, canonical: __lms.canonical(s.Settings), wait: __lms.q('#LibraryMaintenanceSettingsWait').value, pressed: __lms.pressed('LibraryMaintenanceSettingsLibrariesToggles'), folders: __lms.q('#LibraryMaintenanceSettingsFolders').value, focus: __lms.where() }; })()",
+      "save": "roundTrip",
+      "full": true
+    },
+    {
+      "name": "exactly the exported settings and version again, and the form shows them",
+      "assert": "(() => { const r = __vars.roundTrip; return r.canonical === __vars.before.canonical && r.version === __vars.before.version && /^Imported: .+\\. The index is being built again; the Duplicates tab shows it when it is ready\\.$/.test(r.message) && r.wait === String(__vars.before.settings.RequestWaitSeconds) && r.pressed.length === 0 && r.folders === ''; })()"
+    },
+    {
+      "name": "the index built again with every library",
+      "waitFor": "(async () => { const r = await __lms.rebuilt(__vars.scoped.version); return !!r && r.movies === __vars.before.index.movies; })()",
+      "timeout": 30000
+    },
+    {
+      "name": "the same file again",
+      "script": "const input = __lms.q('#LibraryMaintenanceSettingsImportFile'); const dt = new DataTransfer(); dt.items.add(new File([__vars.exportText], 'librarymaintenance-export.json', { type: 'application/json' })); input.files = dt.files; input.dispatchEvent(new Event('change', { bubbles: true })); return input.files.length;"
+    },
+    {
+      "name": "nothing to import, and no dialog",
+      "waitFor": "__lms.transfer() === 'The file\\'s settings are the ones saved here: there is nothing to import.' && !__lms.review() && __lms.loaded()",
+      "timeout": 10000
+    },
+    {
+      "name": "a file that isn't JSON",
+      "script": "const input = __lms.q('#LibraryMaintenanceSettingsImportFile'); const dt = new DataTransfer(); dt.items.add(new File(['<html>not an export</html>'], 'notes.json', { type: 'application/json' })); input.files = dt.files; input.dispatchEvent(new Event('change', { bubbles: true })); return true;"
+    },
+    {
+      "name": "refused in the page, no dialog",
+      "waitFor": "__lms.transfer() === 'The file isn\\'t JSON: choose a file exported from Library Maintenance.' && !__lms.review() && __lms.loaded()",
+      "timeout": 10000
+    },
+    {
+      "name": "another plugin's export",
+      "script": "const other = JSON.parse(__vars.exportText); other.Plugin = 'Bookmarks'; other.PluginId = 'd0ee1b2a-0000-0000-0000-000000000000'; const input = __lms.q('#LibraryMaintenanceSettingsImportFile'); const dt = new DataTransfer(); dt.items.add(new File([JSON.stringify(other)], 'bookmarks-export.json', { type: 'application/json' })); input.files = dt.files; input.dispatchEvent(new Event('change', { bubbles: true })); return true;"
+    },
+    {
+      "name": "the server's refusal, no dialog",
+      "waitFor": "/^This export is from Bookmarks \\(d0ee1b2a-0000-0000-0000-000000000000\\), not Library Maintenance\\./.test(__lms.transfer()) && !__lms.review() && __lms.loaded()",
+      "timeout": 10000
+    },
+    {
+      "name": "still the exported settings",
+      "assert": "(async () => (await __lms.settings()).Version === __vars.before.version)()"
+    },
+    {
+      "name": "Find duplicate movies: off",
+      "click": "#LibraryMaintenanceConfigPage:not(.hide) #LibraryMaintenanceSettingsDuplicatesEnabled"
+    },
+    {
+      "name": "Save (off)",
+      "click": "#LibraryMaintenanceConfigPage:not(.hide) #LibraryMaintenanceSettingsSave"
+    },
+    {
+      "name": "saved without a dialog",
+      "waitFor": "/^Saved: /.test(__lms.message()) && __lms.loaded() && !__lms.review()",
+      "timeout": 10000
+    },
+    {
+      "name": "off: the tab, the API, the message",
+      "eval": "(async () => ({ message: __lms.message(), tab: __lms.q('#LibraryMaintenanceTabDuplicates').hasAttribute('hidden'), panel: __lms.q('#LibraryMaintenancePanelDuplicates').hasAttribute('hidden'), selected: __lms.qa('[role=tab][aria-selected=true]').map((t) => t.getAttribute('data-tab')), index: (await __lms.index()).status, groups: (await __lms.api('GET', 'LibraryMaintenance/Duplicates/Groups')).status, settings: (await __lms.settings()).Settings.DuplicatesEnabled }))()",
+      "save": "off",
+      "full": true
+    },
+    {
+      "name": "the Duplicates tab hidden and its API 404; Settings still open",
+      "assert": "(() => { const o = __vars.off; return o.message === 'Saved: Find duplicate movies. The Duplicates tab is hidden until finding duplicate movies is on again.' && o.tab && o.panel && o.selected.join() === 'Settings' && o.index === 404 && o.groups === 404 && o.settings === false; })()"
+    },
+    {
+      "name": "Find duplicate movies: on",
+      "click": "#LibraryMaintenanceConfigPage:not(.hide) #LibraryMaintenanceSettingsDuplicatesEnabled"
+    },
+    {
+      "name": "Save (on)",
+      "click": "#LibraryMaintenanceConfigPage:not(.hide) #LibraryMaintenanceSettingsSave"
+    },
+    {
+      "name": "saved, the tab back",
+      "waitFor": "/^Saved: Find duplicate movies\\. The index is being built again/.test(__lms.message()) && __lms.loaded() && !__lms.q('#LibraryMaintenanceTabDuplicates').hasAttribute('hidden')",
+      "timeout": 10000
+    },
+    {
+      "name": "the index again, and the exported settings again",
+      "waitFor": "(async () => { const i = await __lms.index(); const s = await __lms.settings(); return i.status === 200 && !i.body.Rebuilding && i.body.Movies === __vars.before.index.movies && s.Version === __vars.before.version; })()",
+      "timeout": 30000
+    },
+    {
+      "name": "the web client's and Move's switches: labels, states, hints, and the note about Disable",
+      "eval": "(() => ({ ids: ['WebUi', 'Move', 'ItemMenu', 'AnchorReports'].map((n) => { const b = __lms.q('#LibraryMaintenanceSettings' + n); const l = __lms.q('label[for=LibraryMaintenanceSettings' + n + ']'); return { role: b && b.getAttribute('role'), on: b && b.getAttribute('aria-checked'), label: l ? l.textContent.trim() : null, hint: __lms.text('#LibraryMaintenanceSettings' + n + 'Hint') }; }), note: __lms.text('#LibraryMaintenanceSettingsWebNote') }))()",
+      "save": "webSwitches",
+      "full": true
+    },
+    {
+      "name": "four switches, on as saved, with their hints, and the note says not to use Disable",
+      "assert": "(() => { const w = __vars.webSwitches; const s = __vars.before.settings; return JSON.stringify(w.ids.map((i) => i.label)) === JSON.stringify(['Add Library Maintenance to the web client', 'Move media', 'Move in the item menu', 'Report missing web client elements']) && w.ids.every((i) => i.role === 'switch' && i.hint.length > 20) && JSON.stringify(w.ids.map((i) => i.on)) === JSON.stringify([s.EnableWebUi, s.MoveEnabled, s.ShowInItemMenu, s.ReportWebAnchorProblems].map((v) => String(v !== false))) && /not Disable on Jellyfin's Plugins page: on Jellyfin 10\\.11\\.5 a disabled plugin is deleted at the next start\\./.test(w.note) && /^This version only previews a move: nothing is moved\\./.test(w.ids[1].hint); })()"
+    },
+    {
+      "name": "Move media: off",
+      "click": "#LibraryMaintenanceConfigPage:not(.hide) #LibraryMaintenanceSettingsMove"
+    },
+    {
+      "name": "Save (Move off)",
+      "click": "#LibraryMaintenanceConfigPage:not(.hide) #LibraryMaintenanceSettingsSave"
+    },
+    {
+      "name": "saved without a dialog (Move off)",
+      "waitFor": "__lms.message() === 'Saved: Move media.' && __lms.loaded() && !__lms.review()",
+      "timeout": 10000
+    },
+    {
+      "name": "Move off: the capabilities and a Move route",
+      "eval": "(async () => { const c = (await __lms.api('GET', 'LibraryMaintenance/Capabilities')).body; const e = await __lms.api('GET', 'LibraryMaintenance/Move/Eligibility', { ids: '00000000000000000000000000000099' }); return { moveEnabled: c.MoveEnabled, canPlan: c.CanPlanMove, canMove: c.CanMove, eligibility: e.status, saved: (await __lms.settings()).Settings.MoveEnabled, switchOn: __lms.q('#LibraryMaintenanceSettingsMove').getAttribute('aria-checked') }; })()",
+      "save": "moveOff",
+      "full": true
+    },
+    {
+      "name": "Move is off: no planning, its routes 403, the switch shows Off",
+      "assert": "(() => { const o = __vars.moveOff; return o.moveEnabled === false && o.canPlan === false && o.canMove === false && o.eligibility === 403 && o.saved === false && o.switchOn === 'false'; })()"
+    },
+    {
+      "name": "Move media: on",
+      "click": "#LibraryMaintenanceConfigPage:not(.hide) #LibraryMaintenanceSettingsMove"
+    },
+    {
+      "name": "Save (Move on)",
+      "click": "#LibraryMaintenanceConfigPage:not(.hide) #LibraryMaintenanceSettingsSave"
+    },
+    {
+      "name": "saved without a dialog (Move on)",
+      "waitFor": "__lms.message() === 'Saved: Move media.' && __lms.loaded() && !__lms.review()",
+      "timeout": 10000
+    },
+    {
+      "name": "Move on again: planning, never moving (this build only previews)",
+      "eval": "(async () => { const c = (await __lms.api('GET', 'LibraryMaintenance/Capabilities')).body; const e = await __lms.api('GET', 'LibraryMaintenance/Move/Eligibility', { ids: '00000000000000000000000000000099' }); return { moveEnabled: c.MoveEnabled, canPlan: c.CanPlanMove, canMove: c.CanMove, eligibility: e.status }; })()",
+      "save": "moveOn",
+      "full": true
+    },
+    {
+      "name": "Move on: CanPlanMove, never CanMove, the route answers",
+      "assert": "(() => { const o = __vars.moveOn; return o.moveEnabled === true && o.canPlan === true && o.canMove === false && o.eligibility === 200; })()"
+    },
+    {
+      "name": "the web client's index.html has Library Maintenance's script",
+      "eval": "(async () => /LibraryMaintenance\\/ClientScript/.test(await (await fetch(ApiClient.getUrl('web/index.html'), { cache: 'no-store' })).text()))()",
+      "save": "tagBefore"
+    },
+    {
+      "name": "Add Library Maintenance to the web client: off",
+      "click": "#LibraryMaintenanceConfigPage:not(.hide) #LibraryMaintenanceSettingsWebUi"
+    },
+    {
+      "name": "Save (web client off)",
+      "click": "#LibraryMaintenanceConfigPage:not(.hide) #LibraryMaintenanceSettingsSave"
+    },
+    {
+      "name": "saved without a dialog (web client off)",
+      "waitFor": "__lms.message() === 'Saved: Add Library Maintenance to the web client.' && __lms.loaded() && !__lms.review()",
+      "timeout": 10000
+    },
+    {
+      "name": "index.html without the script, the Dashboard page still working",
+      "eval": "(async () => ({ tag: /LibraryMaintenance\\/ClientScript/.test(await (await fetch(ApiClient.getUrl('web/index.html'), { cache: 'no-store' })).text()), saved: (await __lms.settings()).Settings.EnableWebUi, admin: (await __lms.api('GET', 'LibraryMaintenance/Admin/Diagnostics')).status }))()",
+      "save": "webOff",
+      "full": true
+    },
+    {
+      "name": "off: no script tag in index.html; the API answers",
+      "assert": "__vars.tagBefore === true && __vars.webOff.tag === false && __vars.webOff.saved === false && __vars.webOff.admin === 200"
+    },
+    {
+      "name": "Add Library Maintenance to the web client: on",
+      "click": "#LibraryMaintenanceConfigPage:not(.hide) #LibraryMaintenanceSettingsWebUi"
+    },
+    {
+      "name": "Save (web client on)",
+      "click": "#LibraryMaintenanceConfigPage:not(.hide) #LibraryMaintenanceSettingsSave"
+    },
+    {
+      "name": "saved without a dialog (web client on)",
+      "waitFor": "__lms.message() === 'Saved: Add Library Maintenance to the web client.' && __lms.loaded() && !__lms.review()",
+      "timeout": 10000
+    },
+    {
+      "name": "the script back in index.html, and the exported settings again",
+      "waitFor": "(async () => { const s = await __lms.settings(); return /LibraryMaintenance\\/ClientScript/.test(await (await fetch(ApiClient.getUrl('web/index.html'), { cache: 'no-store' })).text()) && s.Version === __vars.before.version; })()",
+      "timeout": 10000
+    },
+    {
+      "name": "a phone (375 px)",
+      "emulate": { "width": 375, "height": 812, "mobile": true, "touch": true }
+    },
+    {
+      "name": "the page on a phone",
+      "goto": "/web/index.html#/configurationpage?name=LibraryMaintenance"
+    },
+    {
+      "name": "its tabs",
+      "waitFor": "!!__lms.q('#LibraryMaintenanceTabSettings')",
+      "timeout": 20000
+    },
+    {
+      "name": "open Settings (phone)",
+      "click": "#LibraryMaintenanceConfigPage:not(.hide) #LibraryMaintenanceTabSettings"
+    },
+    {
+      "name": "the form (phone)",
+      "waitFor": "__lms.loaded() && !__lms.q('#LibraryMaintenancePanelSettings').hasAttribute('hidden')",
+      "timeout": 15000
+    },
+    {
+      "name": "the form's width at 375 px",
+      "eval": "__lms.fit(__lms.q('#LibraryMaintenancePanelSettings'))",
+      "save": "phone",
+      "full": true
+    },
+    {
+      "name": "no sideways scrolling; the form inside 375 px",
+      "assert": "__vars.phone.scrollWidth <= __vars.phone.clientWidth + 1 && __vars.phone.right <= __vars.phone.clientWidth + 1 && __vars.phone.left >= 0"
+    },
+    {
+      "screenshot": "librarymaintenance-settings-phone.png"
+    },
+    {
+      "name": "the library (phone)",
+      "assert": "__lms.mark(__lms.q('#LibraryMaintenanceSettingsLibrariesToggles button[data-value=\"' + __vars.pick.key + '\"]'), 'lib')"
+    },
+    {
+      "click": "#LibraryMaintenanceConfigPage:not(.hide) [data-lms=lib]"
+    },
+    {
+      "name": "Save (phone)",
+      "click": "#LibraryMaintenanceConfigPage:not(.hide) #LibraryMaintenanceSettingsSave"
+    },
+    {
+      "name": "the dialog (phone)",
+      "waitFor": "!!__lms.review() && !!__lms.reviewText('#LibraryMaintenanceSettingsPreviewMovies')",
+      "timeout": 15000
+    },
+    {
+      "name": "the dialog's width at 375 px",
+      "eval": "__lms.fit(__lms.review())",
+      "save": "phoneDialog",
+      "full": true
+    },
+    {
+      "name": "the dialog inside 375 px",
+      "assert": "__vars.phoneDialog.scrollWidth <= __vars.phoneDialog.clientWidth + 1 && __vars.phoneDialog.right <= __vars.phoneDialog.clientWidth + 1 && __vars.phoneDialog.left >= 0"
+    },
+    {
+      "screenshot": "librarymaintenance-settings-phone-dialog.png"
+    },
+    {
+      "name": "a narrow phone (320 px)",
+      "emulate": { "width": 320, "height": 640 }
+    },
+    {
+      "sleep": 500
+    },
+    {
+      "name": "the dialog's width at 320 px",
+      "eval": "__lms.fit(__lms.review())",
+      "save": "narrowDialog",
+      "full": true
+    },
+    {
+      "name": "the dialog inside 320 px",
+      "assert": "__vars.narrowDialog.scrollWidth <= __vars.narrowDialog.clientWidth + 1 && __vars.narrowDialog.right <= __vars.narrowDialog.clientWidth + 1 && __vars.narrowDialog.left >= 0"
+    },
+    {
+      "screenshot": "librarymaintenance-settings-narrow-dialog.png"
+    },
+    {
+      "name": "Cancel (320 px)",
+      "assert": "__lms.mark(__lms.button(__lms.review(), 'Cancel'), 'cancel')"
+    },
+    {
+      "click": "[data-lms=cancel]"
+    },
+    {
+      "name": "closed (320 px)",
+      "waitFor": "!__lms.review()"
+    },
+    {
+      "name": "the form's width at 320 px",
+      "eval": "__lms.fit(__lms.q('#LibraryMaintenancePanelSettings'))",
+      "save": "narrow",
+      "full": true
+    },
+    {
+      "name": "no sideways scrolling; the form inside 320 px",
+      "assert": "__vars.narrow.scrollWidth <= __vars.narrow.clientWidth + 1 && __vars.narrow.right <= __vars.narrow.clientWidth + 1 && __vars.narrow.left >= 0"
+    },
+    {
+      "screenshot": "librarymaintenance-settings-narrow.png"
+    },
+    {
+      "name": "Discard changes (320 px)",
+      "click": "#LibraryMaintenanceConfigPage:not(.hide) #LibraryMaintenanceSettingsDiscard"
+    },
+    {
+      "name": "nothing to discard; nothing saved",
+      "waitFor": "(async () => !__lms.dirty() && (await __lms.settings()).Version === __vars.before.version)()"
+    },
+    {
+      "name": "the desktop again",
+      "emulate": "desktop"
+    },
+    {
+      "name": "TV layout for this browser",
+      "eval": "(localStorage.setItem('layout', 'tv'), true)"
+    },
+    {
+      "name": "reload (TV)",
+      "reload": true
+    },
+    {
+      "name": "TV layout applied",
+      "waitFor": "document.documentElement.classList.contains('layout-tv') && !!window.ApiClient && !!ApiClient.getCurrentUserId()"
+    },
+    {
+      "name": "the page (TV)",
+      "goto": "/web/index.html#/configurationpage?name=LibraryMaintenance"
+    },
+    {
+      "name": "the tabs (TV)",
+      "waitFor": "!!__lms.q('#LibraryMaintenanceTabSettings')",
+      "timeout": 20000
+    },
+    {
+      "name": "TV: the Settings tab focused",
+      "assert": "__lms.focusOn('#LibraryMaintenanceTabSettings')"
+    },
+    {
+      "name": "TV: OK opens Settings",
+      "key": "Enter"
+    },
+    {
+      "name": "the form (TV)",
+      "waitFor": "__lms.loaded() && !__lms.q('#LibraryMaintenancePanelSettings').hasAttribute('hidden')",
+      "timeout": 15000
+    },
+    {
+      "name": "TV: Down from the Settings tab",
+      "key": "ArrowDown"
+    },
+    {
+      "sleep": 300
+    },
+    {
+      "name": "where Down went",
+      "eval": "__lms.where()",
+      "save": "tvDown",
+      "full": true
+    },
+    {
+      "name": "on Find duplicate movies' switch",
+      "assert": "__vars.tvDown.id === 'LibraryMaintenanceSettingsDuplicatesEnabled' && __vars.tvDown.inApp && __vars.tvDown.panel === 'Settings' && __vars.tvDown.checked === 'true'"
+    },
+    {
+      "name": "TV: OK on the switch",
+      "key": "Enter"
+    },
+    {
+      "sleep": 200
+    },
+    {
+      "name": "after OK",
+      "eval": "({ where: __lms.where(), dirty: __lms.dirty() })",
+      "save": "tvOk",
+      "full": true
+    },
+    {
+      "name": "turned off, a change to discard, the focus still on it",
+      "assert": "__vars.tvOk.where.id === 'LibraryMaintenanceSettingsDuplicatesEnabled' && __vars.tvOk.where.checked === 'false' && __vars.tvOk.where.text === 'Off' && __vars.tvOk.dirty"
+    },
+    {
+      "name": "TV: OK again",
+      "key": "Enter"
+    },
+    {
+      "sleep": 200
+    },
+    {
+      "name": "on again, nothing to discard",
+      "assert": "__lms.where().checked === 'true' && !__lms.dirty()"
+    },
+    {
+      "name": "TV: Down from the switch",
+      "key": "ArrowDown"
+    },
+    {
+      "sleep": 300
+    },
+    {
+      "name": "on the next field, in the panel",
+      "assert": "(() => { const w = __lms.where(); return w.inApp && w.panel === 'Settings' && w.id === 'LibraryMaintenanceSettingsMode'; })()"
+    },
+    {
+      "name": "TV: the library focused",
+      "assert": "__lms.focusOn('#LibraryMaintenanceSettingsLibrariesToggles button[data-value=\"' + __vars.pick.key + '\"]')"
+    },
+    {
+      "name": "TV: OK chooses it",
+      "key": "Enter"
+    },
+    {
+      "sleep": 200
+    },
+    {
+      "name": "chosen (TV)",
+      "assert": "__lms.where().pressed === 'true' && __lms.dirty()"
+    },
+    {
+      "name": "TV: Save focused",
+      "assert": "__lms.focusOn('#LibraryMaintenanceSettingsSave')"
+    },
+    {
+      "name": "TV: OK on Save",
+      "key": "Enter"
+    },
+    {
+      "name": "the dialog (TV)",
+      "waitFor": "!!__lms.review() && !!__lms.reviewText('#LibraryMaintenanceSettingsChanges')",
+      "timeout": 15000
+    },
+    {
+      "sleep": 300
+    },
+    {
+      "name": "the focus in the dialog (TV)",
+      "eval": "__lms.where()",
+      "save": "tvDialog",
+      "full": true
+    },
+    {
+      "name": "on Cancel",
+      "assert": "__vars.tvDialog.inReview && __vars.tvDialog.text === 'Cancel'"
+    },
+    {
+      "screenshot": "librarymaintenance-settings-tv-dialog.png"
+    },
+    {
+      "name": "TV: Right to the confirm",
+      "key": "ArrowRight"
+    },
+    {
+      "sleep": 300
+    },
+    {
+      "name": "still in the dialog, on Save and rebuild the index",
+      "assert": "(() => { const w = __lms.where(); return w.inReview && w.id === 'LibraryMaintenanceSettingsConfirm'; })()"
+    },
+    {
+      "name": "TV: Left back to Cancel",
+      "key": "ArrowLeft"
+    },
+    {
+      "sleep": 300
+    },
+    {
+      "name": "TV: OK on Cancel",
+      "key": "Enter"
+    },
+    {
+      "name": "closed (TV)",
+      "waitFor": "!__lms.review()",
+      "timeout": 3000
+    },
+    {
+      "sleep": 200
+    },
+    {
+      "name": "the focus back on Save; nothing saved",
+      "assert": "(async () => __lms.where().id === 'LibraryMaintenanceSettingsSave' && (await __lms.settings()).Version === __vars.before.version)()"
+    },
+    {
+      "name": "TV: Discard changes focused",
+      "assert": "__lms.focusOn('#LibraryMaintenanceSettingsDiscard')"
+    },
+    {
+      "name": "TV: OK on Discard changes",
+      "key": "Enter"
+    },
+    {
+      "sleep": 200
+    },
+    {
+      "name": "nothing to discard (TV)",
+      "assert": "!__lms.dirty() && __lms.pressed('LibraryMaintenanceSettingsLibrariesToggles').length === 0"
+    },
+    {
+      "name": "the desktop layout for this browser again",
+      "eval": "(localStorage.setItem('layout', 'desktop'), true)",
+      "finally": true
+    },
+    {
+      "name": "the settings as they were (a no-op when every step passed: the import and the steps after it put them back; after a failure, a finally step, the settings this run found)",
+      "eval": "__vars.before ? __lms.restore(__vars.before) : { restored: false, reason: 'no start state was read' }",
+      "finally": true,
+      "save": "restored",
+      "full": true
+    },
+    {
+      "name": "as they were",
+      "assert": "(async () => !!__vars.before && (await __lms.settings()).Version === __vars.before.version)()",
+      "finally": true
+    },
+    {
+      "name": "no uncaught exception",
+      "noExceptions": true,
+      "ignore": "/CustomRatings/script"
+    }
+  ]
+}

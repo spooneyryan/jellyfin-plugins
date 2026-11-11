@@ -1,0 +1,184 @@
+{
+  "name": "No Move entry in the TV layout; on a phone (375 px, touch) the entry and the dialog work",
+  "timeout": 30000,
+  "steps": [
+    {
+      "name": "the helpers (a log of Library Maintenance's requests, short names)",
+      "initScript": {
+        "file": "probes/librarymaintenance-move-helpers.js"
+      }
+    },
+    {
+      "name": "sign in as admin",
+      "login": "admin"
+    },
+    {
+      "name": "home page, Library Maintenance's script and its capabilities",
+      "waitFor": "!!document.querySelector('.homePage:not(.hide) .card[data-type=Movie]') && !!window.__jfkit && !!window.__jfkit.jflm && __lmm.log('/LibraryMaintenance/Capabilities').length > 0",
+      "timeout": 60000
+    },
+    {
+      "name": "TV layout (Settings, Display, Layout: TV), then a reload",
+      "script": "localStorage.setItem('layout', 'tv'); return true;"
+    },
+    {
+      "reload": true
+    },
+    {
+      "waitFor": "document.documentElement.classList.contains('layout-tv') && !!document.querySelector('.homePage:not(.hide) .card[data-type=Movie]') && !!window.__jfkit && !!window.__jfkit.jflm",
+      "timeout": 60000
+    },
+    {
+      "sleep": 1500
+    },
+    {
+      "name": "TV: a movie card's menu (its command event, as the menu key sends it)",
+      "script": "const c = __lmm.card('Movie'); c.focus(); c.dispatchEvent(new CustomEvent('command', { bubbles: true, cancelable: true, detail: { command: 'menu' } })); return c.getAttribute('data-id');",
+      "save": "tvCard"
+    },
+    {
+      "waitFor": "!!__lmm.sheet() && (__lmm.rows() || []).indexOf('refresh') >= 0"
+    },
+    {
+      "sleep": 800
+    },
+    {
+      "name": "TV: the admin sheet has Refresh metadata and no Move entry",
+      "eval": "({ rows: __lmm.rows(), ours: __lmm.ours() })",
+      "full": true,
+      "save": "tv"
+    },
+    {
+      "assert": "__lmm.ours().length === 0"
+    },
+    {
+      "screenshot": "lm-move-tv-sheet.png"
+    },
+    {
+      "name": "TV: no eligibility request either",
+      "assert": "__lmm.log('/LibraryMaintenance/Move/Eligibility').length === 0"
+    },
+    {
+      "script": "__lmm.close(); return true;"
+    },
+    {
+      "waitFor": "!__lmm.sheet()"
+    },
+    {
+      "sleep": 1500
+    },
+    {
+      "name": "TV: the same menu again, once anything the first asked for is back",
+      "script": "const c = __lmm.card('Movie'); c.focus(); c.dispatchEvent(new CustomEvent('command', { bubbles: true, cancelable: true, detail: { command: 'menu' } })); return c.getAttribute('data-id');"
+    },
+    {
+      "waitFor": "!!__lmm.sheet() && (__lmm.rows() || []).indexOf('refresh') >= 0"
+    },
+    {
+      "sleep": 800
+    },
+    {
+      "name": "TV: still no Move entry",
+      "assert": "__lmm.ours().length === 0"
+    },
+    {
+      "name": "TV: the page never asked for the capabilities or an eligibility",
+      "eval": "({ caps: __lmm.log('/LibraryMaintenance/Capabilities').length, eligibility: __lmm.log('/LibraryMaintenance/Move/Eligibility').length })",
+      "save": "tvAsked"
+    },
+    {
+      "assert": "__vars.tvAsked.caps === 0 && __vars.tvAsked.eligibility === 0"
+    },
+    {
+      "script": "__lmm.close(); return true;"
+    },
+    {
+      "waitFor": "!__lmm.sheet()"
+    },
+    {
+      "name": "back to the automatic layout",
+      "script": "localStorage.removeItem('layout'); return true;",
+      "finally": true
+    },
+    {
+      "name": "a phone: 375 x 812, touch",
+      "emulate": {
+        "width": 375,
+        "height": 812,
+        "deviceScaleFactor": 2,
+        "mobile": true,
+        "touch": true
+      }
+    },
+    {
+      "reload": true
+    },
+    {
+      "waitFor": "!!document.querySelector('.homePage:not(.hide) .card[data-type=Movie]') && !!window.__jfkit && !!window.__jfkit.jflm && !document.documentElement.classList.contains('layout-tv')",
+      "timeout": 60000
+    },
+    {
+      "sleep": 1500
+    },
+    {
+      "name": "phone: a movie card's menu",
+      "script": "__s.m = __lmm.menu(__lmm.card('Movie')); return { card: __s.m, layout: [...document.documentElement.classList].filter(c => c.indexOf('layout') === 0) };",
+      "save": "mobileCard",
+      "full": true
+    },
+    {
+      "waitFor": "!!__lmm.sheet() && __lmm.afterRefresh('jflm-move')"
+    },
+    {
+      "sleep": 500
+    },
+    {
+      "screenshot": "lm-move-phone-sheet.png"
+    },
+    {
+      "name": "phone: a tap on the entry opens the dialog",
+      "click": ".dialogContainer > .actionSheet [data-id=\"jflm-move\"]"
+    },
+    {
+      "name": "the sheet closes itself, then the Move dialog opens and loads",
+      "waitFor": "!__lmm.sheet() && !!__lmm.dialog() && __lmm.loaded()"
+    },
+    {
+      "sleep": 500
+    },
+    {
+      "name": "phone: the dialog fills the screen and nothing in it is wider than the window",
+      "eval": "(() => { const d = __lmm.dialog().closest('.dialog'); const b = d.getBoundingClientRect(); return Object.assign({ box: [Math.round(b.left), Math.round(b.top), Math.round(b.right), Math.round(b.bottom)] }, __lmm.fits()); })()",
+      "save": "phone",
+      "full": true
+    },
+    {
+      "assert": "__vars.phone.wide.length === 0 && __vars.phone.dialogScroll <= __vars.phone.dialogClient + 1 && __vars.phone.box[0] >= 0 && __vars.phone.box[2] <= 376"
+    },
+    {
+      "screenshot": "lm-move-phone-dialog.png"
+    },
+    {
+      "script": "document.querySelector('.dialogContainer .jflm-move-dialog .jflm-move-close').scrollIntoView({ block: 'center', behavior: 'instant' }); return true;"
+    },
+    {
+      "sleep": 200
+    },
+    {
+      "click": ".dialogContainer .jflm-move-dialog .jflm-move-close"
+    },
+    {
+      "waitFor": "!__lmm.dialog()"
+    },
+    {
+      "emulate": "desktop",
+      "finally": true
+    },
+    {
+      "assert": "Array.isArray(__lmm.health()) && __lmm.health().length === 0"
+    },
+    {
+      "noExceptions": true
+    }
+  ]
+}

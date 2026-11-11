@@ -1962,7 +1962,7 @@ Windows with Jellyfin 10.11.5.
 
 Fixing the catalog later (a typo in an overview) is a commit of `manifest.json` to `main`; the zip and its checksum
 stay. Optional hardening, not done yet: pin the workflow's actions (`actions/checkout`, `actions/setup-dotnet`,
-`actions/setup-node`) to commit SHAs instead of `@v4`.
+`actions/setup-node`) to commit SHAs instead of `@v5`.
 
 ### Package-Release.ps1
 

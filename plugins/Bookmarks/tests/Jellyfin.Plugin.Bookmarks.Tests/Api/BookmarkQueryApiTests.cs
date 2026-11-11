@@ -333,11 +333,13 @@ public sealed class BookmarkQueryApiTests : IAsyncLifetime
         Assert.Equal([.. filters, "sortBy"], query.ParameterDescriptions.Select(p => p.Name));
         Assert.All(query.ParameterDescriptions, p => Assert.Equal(BindingSource.Query, p.Source));
         Assert.Equal(typeof(IReadOnlyList<BookmarkItemType>), query.ParameterDescriptions.Single(p => p.Name == "ItemTypes").Type);
-        Assert.Equal(typeof(BookmarkSortBy?), query.ParameterDescriptions.Single(p => p.Name == "sortBy").Type);
+        // An enum's description: its model type, which Jellyfin's Swashbuckle (6.2.3) builds the schema from, a reference
+        // to the enum. Its Type is the enum on ASP.NET Core 10 but string on 9, the runtime Jellyfin 10.11 runs on.
+        Assert.Equal(typeof(BookmarkSortBy?), query.ParameterDescriptions.Single(p => p.Name == "sortBy").ModelMetadata?.ModelType);
 
         var groups = Find("GET", "Bookmarks/Groups");
         Assert.Equal([.. filters, "sortBy"], groups.ParameterDescriptions.Select(p => p.Name));
-        Assert.Equal(typeof(BookmarkGroupSortBy?), groups.ParameterDescriptions.Single(p => p.Name == "sortBy").Type);
+        Assert.Equal(typeof(BookmarkGroupSortBy?), groups.ParameterDescriptions.Single(p => p.Name == "sortBy").ModelMetadata?.ModelType);
 
         Assert.Equal(typeof(BookmarkBulkDeleteRequest), Assert.Single(Find("POST", "Bookmarks/BulkDelete").ParameterDescriptions, p => p.Source == BindingSource.Body).Type);
         Assert.Equal(typeof(BookmarkPreferencesDto), Assert.Single(Find("POST", "Bookmarks/Preferences").ParameterDescriptions, p => p.Source == BindingSource.Body).Type);

@@ -137,8 +137,11 @@ async function admin(method, p, options) {
 function serverProcess() {
     const pid = Number(state.Pid);
     if (!Number.isInteger(pid) || pid <= 0) return null;
+    // Without PSModulePath: one inherited from PowerShell 7 (node started from pwsh) makes Windows PowerShell 5.1 autoload
+    // 7's CimCmdlets, which it can't load.
+    const env = Object.fromEntries(Object.entries(process.env).filter(([name]) => name.toLowerCase() !== 'psmodulepath'));
     const r = spawnSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command',
-        `$p = Get-CimInstance Win32_Process -Filter "ProcessId = ${pid}"; if ($p) { $p.ExecutablePath; $p.CommandLine }`], { encoding: 'utf8' });
+        `$p = Get-CimInstance Win32_Process -Filter "ProcessId = ${pid}"; if ($p) { $p.ExecutablePath; $p.CommandLine }`], { encoding: 'utf8', env });
     const [exe, commandLine] = (r.stdout || '').split(/\r?\n/);
     if (!exe || !/\\jellyfin\.exe$/i.test(exe.trim()) || !commandLine || !commandLine.toLowerCase().includes(dataDir.toLowerCase())) return null;
     return pid;

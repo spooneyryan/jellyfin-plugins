@@ -221,7 +221,10 @@ function listProcessesWithMarker(marker) {
     try {
         const script = `Get-CimInstance Win32_Process -Filter "Name = 'chrome.exe' or Name = 'msedge.exe'" | ` +
             `Select-Object ProcessId, CommandLine | ConvertTo-Json -Compress`;
-        const output = execFileSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', script], { encoding: 'utf8', windowsHide: true });
+        // Without PSModulePath: one inherited from PowerShell 7 (node started from pwsh) makes Windows PowerShell 5.1
+        // autoload 7's CimCmdlets, which it can't load, and the list would come back empty.
+        const env = Object.fromEntries(Object.entries(process.env).filter(([name]) => name.toLowerCase() !== 'psmodulepath'));
+        const output = execFileSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', script], { encoding: 'utf8', windowsHide: true, env });
         if (!output.trim()) return [];
         const rows = [].concat(JSON.parse(output));
         return rows.filter((row) => row.CommandLine && row.CommandLine.toLowerCase().includes(marker.toLowerCase())).map((row) => row.ProcessId);

@@ -8,6 +8,17 @@ Keep this file ASCII: Windows PowerShell 5.1 reads BOM-less scripts in the ANSI 
 
 Set-StrictMode -Version 2.0
 
+# Windows PowerShell 5.1 started from PowerShell 7 (a pwsh prompt, a GitHub Actions pwsh step, a test run started from
+# either) inherits pwsh's PSModulePath, whose PowerShell 7 module folders come before 5.1's own. 5.1 then autoloads 7's
+# Microsoft.PowerShell.Utility, which it can't load, and Get-FileHash "is not recognized" (7's CimCmdlets, Archive and
+# Security would shadow 5.1's the same way). So in 5.1 those folders are dropped from this process's PSModulePath, which
+# the commands still to be autoloaded and every child process read; 5.1's own folders and any others stay.
+if ($PSVersionTable.PSEdition -eq 'Desktop' -and $env:PSModulePath) {
+    $env:PSModulePath = @($env:PSModulePath -split ';' | Where-Object {
+            $_ -and $_.TrimEnd('\') -notmatch '\\PowerShell\\(\d[^\\]*\\)?Modules$|\\WindowsApps\\Microsoft\.PowerShell[^\\]*\\Modules$'
+        }) -join ';'
+}
+
 $script:RepoRoot = Split-Path -Parent $PSScriptRoot
 $script:ProductionDataDir = 'C:\ProgramData\Jellyfin\Server'
 $script:ProductionPort = 8096

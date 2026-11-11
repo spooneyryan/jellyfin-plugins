@@ -390,7 +390,8 @@ public sealed class ClipsApiTests : IAsyncLifetime
         Assert.All(list.ParameterDescriptions, p => Assert.Equal(BindingSource.Query, p.Source));
         Assert.Equal(typeof(IReadOnlyList<BookmarkClipState>), list.ParameterDescriptions.Single(p => p.Name == "State").Type);
         Assert.Equal(typeof(IReadOnlyList<BookmarkItemType>), list.ParameterDescriptions.Single(p => p.Name == "ItemTypes").Type);
-        Assert.Equal(typeof(BookmarkClipSortBy?), list.ParameterDescriptions.Single(p => p.Name == "sortBy").Type);
+        // The enum's model type, which Swashbuckle builds the schema from (its Type is string on ASP.NET Core 9).
+        Assert.Equal(typeof(BookmarkClipSortBy?), list.ParameterDescriptions.Single(p => p.Name == "sortBy").ModelMetadata?.ModelType);
         Assert.Contains(list.SupportedResponseTypes, r => r.StatusCode == 200 && r.Type == typeof(MediaBrowser.Model.Querying.QueryResult<BookmarkClipItemDto>));
 
         var statusIds = Assert.Single(Find("GET", "Bookmarks/Clips/Status").ParameterDescriptions);

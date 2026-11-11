@@ -18,7 +18,7 @@ internal static class WindowsPowerShell
     public static readonly string Scripts = Path.Combine(PluginIdentityChecks.FindRepositoryRoot(), "scripts");
 
     /// <summary>Runs script text after importing scripts/JellyfinSandbox.psm1, with $ErrorActionPreference = 'Stop'.</summary>
-    public static async Task<PowerShellRun> RunWithModuleAsync(string script, TimeSpan? timeout = null)
+    public static async Task<PowerShellRun> RunWithModuleAsync(string script, TimeSpan? timeout = null, string? psModulePath = null)
     {
         using var work = new TempDirectory();
         var file = Path.Combine(work.Path, "script.ps1");
@@ -26,11 +26,16 @@ internal static class WindowsPowerShell
             + $"Import-Module '{Path.Combine(Scripts, "JellyfinSandbox.psm1").Replace("'", "''", StringComparison.Ordinal)}' -Force\n"
             + script;
         await File.WriteAllTextAsync(file, text, TestContext.Current.CancellationToken);
-        return await RunFileAsync(file, [], timeout);
+        return await RunFileAsync(file, [], timeout, psModulePath: psModulePath);
     }
 
-    /// <summary>Runs a script file with arguments (-File); <paramref name="executable"/> another PowerShell (pwsh.exe) instead.</summary>
-    public static async Task<PowerShellRun> RunFileAsync(string file, string[] arguments, TimeSpan? timeout = null, string? executable = null)
+    /// <summary>
+    /// Runs a script file with arguments (-File); <paramref name="executable"/> another PowerShell (pwsh.exe) instead. The
+    /// child gets no PSModulePath, so it builds its own default: one inherited from PowerShell 7 (a test run started from
+    /// pwsh, as GitHub Actions' default shell does) puts 7's modules before 5.1's, and 5.1 can't load them.
+    /// <paramref name="psModulePath"/> gives it that value instead.
+    /// </summary>
+    public static async Task<PowerShellRun> RunFileAsync(string file, string[] arguments, TimeSpan? timeout = null, string? executable = null, string? psModulePath = null)
     {
         Assert.SkipUnless(OperatingSystem.IsWindows(), "The scripts run on Windows only.");
         var token = TestContext.Current.CancellationToken;
@@ -42,6 +47,14 @@ internal static class WindowsPowerShell
             UseShellExecute = false,
             CreateNoWindow = true,
         };
+        if (psModulePath is null)
+        {
+            start.Environment.Remove("PSModulePath");
+        }
+        else
+        {
+            start.Environment["PSModulePath"] = psModulePath;
+        }
         foreach (var argument in new[] { "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", file })
         {
             start.ArgumentList.Add(argument);

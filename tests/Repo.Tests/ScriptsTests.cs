@@ -56,6 +56,45 @@ public sealed class ScriptsTests
     }
 
     [Fact]
+    public async Task TheModule_InWindowsPowerShellStartedFromPowerShell7_DropsItsModuleFolders_SoGetFileHashLoads()
+    {
+        // pwsh hands a child Windows PowerShell its own PSModulePath: its user and $PSHOME module folders first, 5.1's
+        // last. A stand-in for 7's Microsoft.PowerShell.Utility (its manifest, a DLL .NET Framework can't load) is enough
+        // for 5.1 to try it before its own, as a GitHub Actions pwsh step showed: Get-FileHash "is not recognized".
+        using var fake = new TempDirectory();
+        var user = Directory.CreateDirectory(Path.Combine(fake.Path, "Documents", "PowerShell", "Modules")).FullName;
+        var seven = Path.Combine(fake.Path, "PowerShell", "7", "Modules");
+        var utility = Directory.CreateDirectory(Path.Combine(seven, "Microsoft.PowerShell.Utility")).FullName;
+        await File.WriteAllTextAsync(
+            Path.Combine(utility, "Microsoft.PowerShell.Utility.psd1"),
+            "@{ GUID = '1DA87E53-152B-403E-98DC-74D7B4D63D59'; ModuleVersion = '7.0.0.0'; CompatiblePSEditions = @('Core'); "
+            + "NestedModules = 'Microsoft.PowerShell.Commands.Utility.dll'; CmdletsToExport = @('Get-FileHash'); FunctionsToExport = @(); AliasesToExport = @() }\n",
+            TestContext.Current.CancellationToken);
+        await File.WriteAllBytesAsync(Path.Combine(utility, "Microsoft.PowerShell.Commands.Utility.dll"), new byte[64], TestContext.Current.CancellationToken);
+        var windows = Path.Combine(Environment.SystemDirectory, "WindowsPowerShell", "v1.0", "Modules");
+        var inherited = string.Join(';', user, seven + @"\", windows);
+        var hashed = Path.Combine(fake.Path, "hashed.txt");
+        await File.WriteAllTextAsync(hashed, "abc", TestContext.Current.CancellationToken);
+        var hash = $"(Get-FileHash -LiteralPath '{hashed}' -Algorithm MD5).Hash\n";
+
+        // Without the module the stand-in breaks Get-FileHash, so the check below means something.
+        var script = Path.Combine(fake.Path, "plain.ps1");
+        await File.WriteAllTextAsync(script, hash, TestContext.Current.CancellationToken);
+        var plain = await WindowsPowerShell.RunFileAsync(script, [], psModulePath: inherited);
+        Assert.Contains("'Get-FileHash' is not recognized", plain.Output, StringComparison.Ordinal);
+
+        // With it, 7's folders are gone from the process (and so from its children); 5.1's stay (5.1 adds its Program Files
+        // folder itself).
+        var run = await WindowsPowerShell.RunWithModuleAsync(hash + "$env:PSModulePath\n", psModulePath: inherited);
+        Assert.Equal(0, run.ExitCode);
+        Assert.Equal(2, run.Lines.Length);
+        Assert.Equal("900150983CD24FB0D6963F7D28E17F72", run.Lines[0]);
+        var kept = run.Lines[1].Split(';', StringSplitOptions.RemoveEmptyEntries);
+        Assert.Contains(windows, kept, StringComparer.OrdinalIgnoreCase);
+        Assert.DoesNotContain(kept, folder => folder.StartsWith(fake.Path, StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
     public async Task PathGuard_RefusesEverySpellingOfTheRealServerFolder()
     {
         // Runs Test-ProtectedPath from JellyfinSandbox.psm1 in Windows PowerShell 5.1, the shell the scripts target.

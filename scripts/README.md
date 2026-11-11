@@ -1933,7 +1933,11 @@ Windows with Jellyfin 10.11.5.
    other versions' entries stay.
 3. **Rehearse** (recommended): `./scripts/Test-ReleaseCatalog.ps1 -Port <port> -ServePort <port> -Plugin <Plugin>`
    installs it from a local copy of the catalog into a fresh sandbox (below).
-4. **Commit** `manifest.json` ("Catalog: <Name> x.y.z") on `main`.
+4. **Commit** `manifest.json` ("Catalog: <Name> x.y.z") on `main`. Optionally, before tagging, check that GitHub builds
+   the same zip: push that commit to a branch and run the workflow by hand on it (Actions, CI, "Run workflow", choose
+   the plugin; or `gh workflow run ci.yml --ref <branch> -f plugin=<Plugin>`). That run only packages the plugin as the
+   tag would and checks it against `manifest.json`; it releases nothing, and keeps the zip and its `.sha256` as the
+   run's artifact.
 5. **Tag** that commit: `git tag <plugin>/vx.y.z`.
 6. **Push the tag alone**: `git push origin <plugin>/vx.y.z`. The tag carries the commit to GitHub, but `main` there,
    which is what Jellyfin reads the catalog from, doesn't move yet, so the catalog never lists a version whose zip
@@ -1947,8 +1951,10 @@ Windows with Jellyfin 10.11.5.
 
 **If the run fails:**
 
-- *Before the release exists* (tests, or `-Verify`'s MD5 differs, say from another SDK or compiler): either fix the
-  cause and rerun the job, or publish the zip from step 2 yourself:
+- *Before the release exists* (tests, or `-Verify`'s MD5 differs, say from another SDK or compiler): the failed run
+  keeps its zip and `<zip>.sha256` (the SHA-256 of each file in it) as the run's artifact (`gh run download <run id>`);
+  compare that with `artifacts/release/<zip>.sha256` from step 2 to see which file differs. Either fix the cause and
+  rerun the job, or publish the zip from step 2 yourself:
   `gh release create <plugin>/vx.y.z artifacts/release/<zip> --verify-tag --title "<Name> x.y.z" --notes-file artifacts/release/<zip>.notes.md`.
   Then check what Jellyfin will get: download the `sourceUrl` from `manifest.json`
   (`Invoke-WebRequest <sourceUrl> -OutFile $env:TEMP\check.zip`) and compare
@@ -1979,6 +1985,13 @@ when `-JellyfinDir` (default the installed server's program folder, only read; s
 reference newer than it ships. It refuses uncommitted changes in the plugin's folder, `kit/` and the root build files
 unless `-AllowDirty`, a version that isn't `x.y.z.0`, a changelog without an `x.y.z` section and a missing `image.png`,
 and warns when `dotnet --version` isn't `RELEASE_SDK` in `ci.yml`.
+
+**The same bytes on every machine.** Besides the path map, the build is pinned to the runtime the SDK ships with
+(`DOTNET_ROLL_FORWARD=Disable`, no build servers). The portable PDB records the version of the runtime the compiler ran
+on, and the DLL records the PDB's checksum; by default .NET rolls a program forward to the newest installed patch of its
+runtime, so on a machine (or CI runner) with a newer .NET 10 runtime installed the same SDK would give a different DLL
+and PDB. The script prints the compiler's and that runtime's versions, read back from the PDB, and fails if the runtime
+isn't the SDK's own. It prints the SHA-256 of each entry and of the zip and writes them to `<zip>.sha256`.
 
 **The zip** is flat, as Jellyfin's installer expects: it downloads the zip, checks its MD5 against the catalog's
 `checksum`, extracts it into `plugins/<name>_<version>` and writes `meta.json` from the catalog, keeping what the zip's

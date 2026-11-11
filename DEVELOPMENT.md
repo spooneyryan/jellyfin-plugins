@@ -60,7 +60,8 @@ guide and its `DEVELOPMENT.md` the developer documentation (design, data, API an
   `https://raw.githubusercontent.com/spooneyryan/jellyfin-plugins/main/manifest.json`; each version's zip is the asset of
   the GitHub release of its tag `<plugin>/v<x.y.z>`.
 - `.github/workflows/ci.yml`: build and every test on Windows for pushes and pull requests; a pushed release tag also
-  packages that plugin, checks its zip against `manifest.json` and publishes it as the tag's GitHub release.
+  packages that plugin, checks its zip against `manifest.json` and publishes it as the tag's GitHub release. Run by
+  hand (workflow_dispatch), it only packages a chosen plugin and checks it, keeping the zip as the run's artifact.
 - `.sandbox/`: local sandbox servers, their media and credentials (gitignored).
 
 ## Building

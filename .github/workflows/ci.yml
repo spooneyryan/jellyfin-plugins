@@ -1,5 +1,7 @@
 # Build and test on every push and pull request; on a pushed release tag (<plugin>/v<x.y.z>, such as bookmarks/v1.2.2),
 # also package that plugin and publish its zip as the tag's GitHub release. The release procedure is in scripts/README.md.
+# Run by hand (workflow_dispatch), it only packages the chosen plugin as a tag would and checks it against manifest.json,
+# without the tests and without releasing; the zip and its per-file SHA-256s are kept as the run's artifact.
 name: CI
 
 on:
@@ -7,6 +9,13 @@ on:
     branches: [main]
     tags: ['*/v[0-9]*.[0-9]*.[0-9]*']
   pull_request:
+  workflow_dispatch:
+    inputs:
+      plugin:
+        description: Plugin to package and check against manifest.json (nothing is released)
+        required: true
+        type: choice
+        options: [AccessRoles, Bookmarks, LibraryMaintenance, SmartSearch, TagCloud, UserRatings]
 
 permissions:
   contents: read
@@ -25,6 +34,7 @@ env:
 
 jobs:
   test:
+    if: github.event_name != 'workflow_dispatch'
     runs-on: windows-latest
     timeout-minutes: 60
     steps:
@@ -84,7 +94,8 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'node tests failed' }
 
   release:
-    if: startsWith(github.ref, 'refs/tags/')
+    # A tag, after the tests; or by hand, without them (test is skipped then) and without the publishing steps.
+    if: ${{ !failure() && !cancelled() && (startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch') }}
     needs: test
     runs-on: windows-latest
     timeout-minutes: 30
@@ -107,10 +118,34 @@ jobs:
           dotnet --version
 
       - name: Package the tag's plugin and check it against manifest.json
+        if: startsWith(github.ref, 'refs/tags/')
         shell: powershell
         run: ./scripts/Package-Release.ps1 -Tag "$env:GITHUB_REF_NAME" -Verify
 
+      - name: Package the chosen plugin and check it against manifest.json (no release)
+        if: github.event_name == 'workflow_dispatch'
+        shell: powershell
+        env:
+          PLUGIN: ${{ inputs.plugin }}
+        run: ./scripts/Package-Release.ps1 -Plugin "$env:PLUGIN" -Verify
+
+      # When the zip isn't manifest.json's (or on a run by hand): keep it and the SHA-256 of each file in it, to compare
+      # with a local build's artifacts\release\<zip>.sha256.
+      - name: Keep the built zip and its per-file SHA-256s
+        if: ${{ always() && (failure() || github.event_name == 'workflow_dispatch') }}
+        uses: actions/upload-artifact@v5
+        with:
+          name: release-build-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            artifacts/release/*.zip
+            artifacts/release/*.sha256
+            artifacts/release/*.md5
+            artifacts/release/release.json
+          if-no-files-found: warn
+          retention-days: 30
+
       - name: Publish the GitHub release
+        if: startsWith(github.ref, 'refs/tags/')
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
@@ -129,6 +164,7 @@ jobs:
           }
 
       - name: Download the catalog's sourceUrl as Jellyfin does, and check its MD5
+        if: startsWith(github.ref, 'refs/tags/')
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}

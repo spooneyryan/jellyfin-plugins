@@ -7,7 +7,11 @@ For each plugin (every plugins/<Plugin> with a build.yaml, or the ones -Plugin o
 
 - builds it in Release from scratch (the project's obj\Release and bin\Release are removed first, so no stale
   incremental output is reused; dotnet publish, deterministic, with the checkout's path mapped to /_/ and without git or
-  source-link data, so the build doesn't depend on where the checkout is or on its commit) into <OutDir>\build\<Plugin>;
+  source-link data, so the build doesn't depend on where the checkout is or on its commit) into <OutDir>\build\<Plugin>.
+  The SDK runs on its own runtime (DOTNET_ROLL_FORWARD=Disable, no build servers): the portable PDB records the version
+  of the runtime the compiler ran on, and the DLL records the PDB's checksum, so a compiler rolled forward to a newer
+  runtime patch (as on a CI runner with a newer runtime installed) gives a different DLL and PDB. The script reads that
+  version back from the PDB and fails unless it is the SDK's own;
 - checks the build like Deploy-Plugin.ps1: no DLL other than build.yaml's artifacts, the main DLL's file version is
   build.yaml's version, and, when -JellyfinDir holds a Jellyfin 10.11 (only read), no reference newer than it ships;
 - writes <OutDir>\<plugin in lower case>_<x.y.z.0>.zip, flat: the artifacts' DLLs and PDBs, image.png and meta.json.
@@ -15,7 +19,8 @@ For each plugin (every plugins/<Plugin> with a build.yaml, or the ones -Plugin o
   any machine and in either PowerShell. Jellyfin extracts the zip into plugins\<name>_<version> and keeps meta.json,
   whose assemblies list is the allowlist it loads; meta.json carries no timestamp (Jellyfin takes the catalog's);
 - computes the zip's MD5, which Jellyfin checks before it installs, and writes <zip>.md5 and <zip>.notes.md (the
-  version's section of build.yaml's changelog, the GitHub release's notes).
+  version's section of build.yaml's changelog, the GitHub release's notes); prints the SHA-256 of each entry and of the
+  zip and writes them to <zip>.sha256 (sha256sum format), so two builds can be compared file by file.
 
 Then, by mode:
 
@@ -238,6 +243,25 @@ function Get-ChangelogSection {
     return ($section -join "`n")
 }
 
+function Get-PdbCompilationOption {
+    <# A compilation option Roslyn records in a portable PDB ("runtime-version", "compiler-version"), or $null. #>
+    param([string] $Path, [string] $Name)
+    # Latin-1 keeps one char per byte; the options are NUL-separated UTF-8 name/value pairs.
+    $text = [Text.Encoding]::GetEncoding(28591).GetString([IO.File]::ReadAllBytes($Path))
+    $start = $text.IndexOf("$Name`0", [StringComparison]::Ordinal)
+    if ($start -lt 0) { return $null }
+    $start += $Name.Length + 1
+    $end = $text.IndexOf([char]0, $start)
+    if ($end -lt 0) { return $null }
+    return $text.Substring($start, $end - $start)
+}
+
+function Get-Sha256Hex([byte[]] $Bytes) {
+    $sha = [Security.Cryptography.SHA256]::Create()
+    try { return (($sha.ComputeHash($Bytes) | ForEach-Object { $_.ToString('x2') }) -join '') }
+    finally { $sha.Dispose() }
+}
+
 function Get-Md5 {
     param([string] $Path)
     return (Get-FileHash -LiteralPath $Path -Algorithm MD5).Hash.ToLowerInvariant()
@@ -287,6 +311,19 @@ if (Test-Path -LiteralPath $workflow) {
     }
 }
 
+# The runtime the SDK itself runs on (its dotnet.runtimeconfig.json). The build is pinned to it, below.
+$sdkRuntime = $null
+foreach ($line in @(& dotnet --list-sdks)) {
+    $listed = [regex]::Match([string]$line, '^(\S+) \[(.+)\]$')
+    if ($listed.Success -and $listed.Groups[1].Value -eq $sdk) {
+        $runtimeConfig = Join-Path (Join-Path $listed.Groups[2].Value $sdk) 'dotnet.runtimeconfig.json'
+        if (Test-Path -LiteralPath $runtimeConfig) { $sdkRuntime = [string]((Get-Content -LiteralPath $runtimeConfig -Raw | ConvertFrom-Json).runtimeOptions.framework.version) }
+        break
+    }
+}
+if (-not $sdkRuntime) { throw "Can't tell which .NET runtime SDK $sdk runs on (no dotnet.runtimeconfig.json in its folder)." }
+Write-Host ".NET SDK $sdk, compiling on its runtime $sdkRuntime"
+
 $checkReferences = Test-Path -LiteralPath (Join-Path $JellyfinDir 'jellyfin.dll') -PathType Leaf
 if ($checkReferences) { $serverVersion = Assert-JellyfinTarget -JellyfinDir $JellyfinDir -JellyfinTarget '10.11' }
 else { Write-Warning "No Jellyfin in ${JellyfinDir}: the reference-version check is skipped (the build's package pins still apply)." }
@@ -319,8 +356,15 @@ foreach ($folder in $selected) {
         '-p:ContinuousIntegrationBuild=true', '-p:Deterministic=true', '-p:EnableSourceLink=false',
         '-p:EnableSourceControlManagerQueries=false', '-p:IncludeSourceRevisionInInformationalVersion=false',
         ('-p:PathMap=' + $repo.TrimEnd([char]92) + '\=/_/'))
-    & dotnet publish @publish | ForEach-Object { Write-Host $_ }
-    if ($LASTEXITCODE -ne 0) { throw "The Release build of $folder failed." }
+    # Pinned to the SDK's own runtime, with no build server that an earlier build may have started on another one.
+    $savedRollForward = $env:DOTNET_ROLL_FORWARD
+    $env:DOTNET_ROLL_FORWARD = 'Disable'
+    try {
+        & dotnet publish @publish --disable-build-servers | ForEach-Object { Write-Host $_ }
+        $built = $LASTEXITCODE
+    }
+    finally { $env:DOTNET_ROLL_FORWARD = $savedRollForward }
+    if ($built -ne 0) { throw "The Release build of $folder failed." }
 
     $allowed = $info.Assemblies
     $unexpected = @(Get-ChildItem -LiteralPath $output -Recurse -File -Filter '*.dll' | Where-Object { $allowed -notcontains $_.Name } |
@@ -334,6 +378,15 @@ foreach ($folder in $selected) {
         $entries[$assembly] = [IO.File]::ReadAllBytes($path)
         $pdb = [IO.Path]::ChangeExtension($assembly, '.pdb')
         if (Test-Path -LiteralPath (Join-Path $output $pdb)) { $entries[$pdb] = [IO.File]::ReadAllBytes((Join-Path $output $pdb)) }
+    }
+
+    $mainPdb = Join-Path $output ([IO.Path]::ChangeExtension($allowed[0], '.pdb'))
+    if (-not (Test-Path -LiteralPath $mainPdb)) { throw "The $folder build has no $([IO.Path]::GetFileName($mainPdb))." }
+    $compiledOn = Get-PdbCompilationOption -Path $mainPdb -Name 'runtime-version'
+    $compiler = Get-PdbCompilationOption -Path $mainPdb -Name 'compiler-version'
+    Write-Host "Compiled by Roslyn $compiler on .NET $compiledOn"
+    if (-not $compiledOn -or ($compiledOn -ne $sdkRuntime -and -not $compiledOn.StartsWith("$sdkRuntime-") -and -not $compiledOn.StartsWith("$sdkRuntime+"))) {
+        throw "The compiler ran on .NET $compiledOn, not SDK $sdk's runtime ${sdkRuntime}: the PDB and DLL would differ from another machine's build."
     }
 
     $fileVersion = (Get-Item -LiteralPath (Join-Path $output $allowed[0])).VersionInfo.FileVersion
@@ -373,6 +426,10 @@ foreach ($folder in $selected) {
     [JellyfinPlugins.StoredZip]::Write($zipPath, $names, [byte[][]]@($names | ForEach-Object { , $entries[$_] }))
     $md5 = Get-Md5 $zipPath
     [IO.File]::WriteAllText("$zipPath.md5", "$md5  $zipName`n", $utf8)
+    $hashes = @($names | ForEach-Object { '{0}  {1}' -f (Get-Sha256Hex $entries[$_]), $_ }) + ('{0}  {1}' -f (Get-Sha256Hex ([IO.File]::ReadAllBytes($zipPath))), $zipName)
+    [IO.File]::WriteAllText("$zipPath.sha256", (($hashes -join "`n") + "`n"), $utf8)
+    Write-Host "SHA-256:"
+    $hashes | ForEach-Object { Write-Host "  $_" }
     [IO.File]::WriteAllText("$zipPath.notes.md", "$($info.Name) $short for Jellyfin $([string]$yaml['targetAbi'] -replace '\.0$', '').`n`n$changelog`n", $utf8)
 
     $encodedTag = [Uri]::EscapeDataString($releaseTag)

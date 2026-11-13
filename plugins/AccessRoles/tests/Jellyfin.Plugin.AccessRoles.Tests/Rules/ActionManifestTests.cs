@@ -222,7 +222,7 @@ public sealed class ActionManifestTests
                 .Concat(comparison.Unreviewed.Select(k => "  not in the manifest (new, unreviewed): " + k))
                 .Concat(comparison.Changed.Select(c => "  changed: " + c))
                 .Concat(comparison.Duplicates.Select(k => "  two actions of one name: " + k))));
-        Assert.Equal(390, comparison.Compared);
+        Assert.Equal(JellyfinLine.Is12 ? 385 : 390, comparison.Compared);
     }
 
     [Fact]

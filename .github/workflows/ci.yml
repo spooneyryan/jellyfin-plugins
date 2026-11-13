@@ -124,7 +124,7 @@ jobs:
 
   release:
     # A tag, after the tests; or by hand, without them (test is skipped then) and without the publishing steps.
-    if: ${{ !failure() && !cancelled() && (startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch') }}
+    if: ${{ !failure() && !cancelled() && ((github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')) || github.event_name == 'workflow_dispatch') }}
     needs: test
     runs-on: windows-latest
     timeout-minutes: 30
@@ -147,7 +147,7 @@ jobs:
           dotnet --version
 
       - name: Package the tag's plugin and check it against manifest.json
-        if: startsWith(github.ref, 'refs/tags/')
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
         shell: powershell
         run: ./scripts/Package-Release.ps1 -Tag "$env:GITHUB_REF_NAME" -Verify
 
@@ -175,7 +175,7 @@ jobs:
           retention-days: 30
 
       - name: Publish the GitHub release
-        if: startsWith(github.ref, 'refs/tags/')
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
@@ -194,7 +194,7 @@ jobs:
           }
 
       - name: Download the catalog's sourceUrl as Jellyfin does, and check its MD5
-        if: startsWith(github.ref, 'refs/tags/')
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}

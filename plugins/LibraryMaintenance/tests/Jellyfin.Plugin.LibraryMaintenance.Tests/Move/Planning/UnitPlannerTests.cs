@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using Jellyfin.Plugin.Kit.TestSupport;
 using Jellyfin.Plugin.LibraryMaintenance.Move;
 using Jellyfin.Plugin.LibraryMaintenance.Move.Paths;
 using Jellyfin.Plugin.LibraryMaintenance.Move.Planning;
@@ -82,8 +83,10 @@ public sealed class UnitPlannerTests : IDisposable
         Assert.Equal([UnitItemRole.Primary, UnitItemRole.Version, UnitItemRole.Part, UnitItemRole.Extra, UnitItemRole.Extra], unit.Items.Select(i => i.Role));
         var byRole = unit.Items.ToLookup(i => i.Role);
         Assert.Equal(PlannerWorld.IdOf(Path.Join(target, "Alien (1979) - 1080p.mkv"), typeof(Movie)), byRole[UnitItemRole.Primary].Single().PredictedId);
-        Assert.Equal(PlannerWorld.IdOf(Path.Join(target, "Alien (1979) - 720p.mkv"), typeof(Video)), byRole[UnitItemRole.Version].Single().PredictedId);
-        Assert.Equal(PlannerWorld.IdOf(version, typeof(Video)), byRole[UnitItemRole.Version].Single().OldId);
+        // A version's id hashes its type: Video on 10.11, its primary's (Movie) on 12 (LibraryManager.ResolveAlternateVersion).
+        var versionType = JellyfinLine.Is12 ? typeof(Movie) : typeof(Video);
+        Assert.Equal(PlannerWorld.IdOf(Path.Join(target, "Alien (1979) - 720p.mkv"), versionType), byRole[UnitItemRole.Version].Single().PredictedId);
+        Assert.Equal(PlannerWorld.IdOf(version, versionType), byRole[UnitItemRole.Version].Single().OldId);
         Assert.Equal(PlannerWorld.IdOf(Path.Join(target, "Alien (1979) - 1080p-cd2.mkv"), typeof(Video)), byRole[UnitItemRole.Part].Single().PredictedId);
 
         // Extras keep their own type (typeof(Video) misses a trailer).

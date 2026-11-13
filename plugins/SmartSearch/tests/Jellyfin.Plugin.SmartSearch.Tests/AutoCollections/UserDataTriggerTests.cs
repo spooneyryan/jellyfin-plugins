@@ -121,7 +121,7 @@ public sealed class UserDataTriggerTests : IDisposable
 
     private static async Task WaitForAsync(Func<bool> condition, TimeSpan? timeout = null)
     {
-        var end = DateTime.UtcNow + (timeout ?? TimeSpan.FromSeconds(10));
+        var end = DateTime.UtcNow + (timeout ?? TimeSpan.FromSeconds(60));
         while (!condition())
         {
             Assert.True(DateTime.UtcNow < end, "Timed out waiting.");

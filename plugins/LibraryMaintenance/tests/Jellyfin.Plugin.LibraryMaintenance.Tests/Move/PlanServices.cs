@@ -14,6 +14,7 @@ using MediaBrowser.Controller.Session;
 using MediaBrowser.Model.IO;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
+using Jellyfin.Plugin.Kit.TestSupport;
 
 namespace Jellyfin.Plugin.LibraryMaintenance.Tests.Move;
 
@@ -27,7 +28,7 @@ internal sealed class PlanServices : IDisposable
     {
         World = world;
         SessionManager.SetupGet(s => s.Sessions).Returns(Sessions);
-        Users.SetupGet(u => u.Users).Returns(() => AllUsers);
+        Users.SetupUsers(() => AllUsers);
         Users.Setup(u => u.GetUserById(It.IsAny<Guid>())).Returns((Guid id) => AllUsers.Find(u => u.Id == id));
         UserData.Setup(d => d.GetUserData(It.IsAny<User>(), It.IsAny<BaseItem>()))
             .Returns((User user, BaseItem item) => Data.TryGetValue((user.Id, item.Id), out var data) ? data : new UserItemData { Key = item.Id.ToString("N") });

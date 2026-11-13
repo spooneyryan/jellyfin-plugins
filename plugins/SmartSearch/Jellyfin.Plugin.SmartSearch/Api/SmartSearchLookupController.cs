@@ -97,4 +97,26 @@ public class SmartSearchLookupController : ControllerBase
         [FromQuery] int limit = 20,
         CancellationToken cancellationToken = default)
         => Ok(await _lookups.GetSeriesAsync(User.RequireUser(_userManager), prefix, limit, cancellationToken).ConfigureAwait(false));
+
+    /// <summary>
+    /// Gets the people whose name contains the text who are credited on an item the user can see in their libraries.
+    /// </summary>
+    /// <param name="prefix">The text, at least 2 characters.</param>
+    /// <param name="limit">The most people, 1 to 100.</param>
+    /// <param name="cancellationToken">The request's cancellation token.</param>
+    /// <response code="200">The people, those whose name starts with the text first.</response>
+    /// <response code="400">The text is shorter than 2 characters, or the limit is out of range.</response>
+    /// <response code="403">An API key, a user who no longer exists, or the search page is turned off.</response>
+    /// <response code="503">Every search slot is taken (<c>Busy</c>): suggestions share them with searches.</response>
+    /// <returns>The people.</returns>
+    [HttpGet("People")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status503ServiceUnavailable)]
+    public async Task<ActionResult<IReadOnlyList<SmartSearchPersonDto>>> GetSmartSearchPeople(
+        [FromQuery] string? prefix,
+        [FromQuery] int limit = 20,
+        CancellationToken cancellationToken = default)
+        => Ok(await _lookups.GetPeopleAsync(User.RequireUser(_userManager), prefix, limit, cancellationToken).ConfigureAwait(false));
 }

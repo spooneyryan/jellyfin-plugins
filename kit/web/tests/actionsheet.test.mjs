@@ -506,8 +506,9 @@ test('the bulk menu: the checked cards\' ids, after Refresh metadata; entries op
     assert.equal(closedSelection, 1, 'exitSelection clicked the bar\'s close button');
 });
 
-test('the bulk menu of a non-admin (no groupvideos) gets nothing; the item menu\'s exitSelection does nothing', async () => {
-    const { kit, page } = await setup();
+test('the bulk menu of a non-admin gets nothing; the item menu\'s exitSelection does nothing', async () => {
+    // Jellyfin 12 offers groupvideos only for video items, so the bulk menu is told by selectall and the user's role.
+    const { kit, page } = await setup({ admin: false });
     const seen = [];
     kit.actionSheet.addItem({ id: 'any', text: 'Any', when: (ctx) => { seen.push(ctx); return true; }, onSelect: (ctx) => ctx.exitSelection() });
     const bar = selection(page, ['m1', 'm2'], ['m1']);
@@ -519,6 +520,15 @@ test('the bulk menu of a non-admin (no groupvideos) gets nothing; the item menu\
     assert.deepEqual(rows(viewerSheet.scroller), VIEWER_BULK_MENU);
     assert.equal(seen.length, 0);
     viewerSheet.container.remove();
+});
+
+test('the item menu\'s exitSelection does nothing, and a sheet with selectall after a card\'s menu is not the item menu', async () => {
+    const { kit, page } = await setup();
+    const seen = [];
+    kit.actionSheet.addItem({ id: 'any', text: 'Any', when: (ctx) => { seen.push(ctx); return true; }, onSelect: (ctx) => ctx.exitSelection() });
+    const bar = selection(page, ['m1', 'm2'], ['m1']);
+    let closedSelection = 0;
+    bar.close.addEventListener('click', () => closedSelection++);
 
     // The item menu has no selectall; a sheet with selectall after a card's menu is not the item menu. (The card's
     // command event: in selection mode its click records nothing, below.)

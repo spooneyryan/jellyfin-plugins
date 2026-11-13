@@ -310,7 +310,7 @@ public sealed class AutoCollectionEdgeCaseTests : IDisposable
     {
         var users = new Mock<IUserManager>();
         var all = new[] { _world.Admin, _world.Kid, _manager };
-        users.SetupGet(m => m.Users).Returns(all);
+        users.SetupUsers(all);
         users.Setup(m => m.GetUserById(It.IsAny<Guid>())).Returns((Guid id) => all.FirstOrDefault(u => u.Id.Equals(id)));
         return new AutoCollectionHost(_world, _harness, _folder.Combine("data"), _persistence, users.Object);
     }

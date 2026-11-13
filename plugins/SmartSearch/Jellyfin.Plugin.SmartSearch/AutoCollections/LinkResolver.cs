@@ -62,7 +62,7 @@ internal sealed class LinkResolver
                 continue;
             }
 
-            hash.Append(link.Path).Append('|').Append(link.ItemId?.ToString("N")).Append('|').Append(link.LibraryItemId).Append('\n');
+            hash.Append(KitItemQueries.LinkPath(link)).Append('|').Append(link.ItemId?.ToString("N")).Append('|').Append(KitItemQueries.LinkLibraryItemId(link)).Append('\n');
             var id = link.ItemId is { } cached && existing.Contains(cached) ? cached : Find(link)?.Id;
             if (id is not { } member)
             {
@@ -93,12 +93,13 @@ internal sealed class LinkResolver
             return byId;
         }
 
-        if (!string.IsNullOrEmpty(link.Path) && _library.FindByPath(link.Path, null) is { } byPath)
+        // Jellyfin 12's links carry the id alone: no path or library id to fall back on.
+        if (KitItemQueries.LinkPath(link) is { Length: > 0 } path && _library.FindByPath(path, null) is { } byPath)
         {
             return byPath;
         }
 
-        return !string.IsNullOrEmpty(link.LibraryItemId) && Guid.TryParse(link.LibraryItemId, out var libraryId) && !libraryId.Equals(Guid.Empty)
+        return KitItemQueries.LinkLibraryItemId(link) is { Length: > 0 } libraryItemId && Guid.TryParse(libraryItemId, out var libraryId) && !libraryId.Equals(Guid.Empty)
             ? _access.GetItem<BaseItem>(libraryId, null)
             : null;
     }

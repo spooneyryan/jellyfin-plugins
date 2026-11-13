@@ -17,6 +17,12 @@ internal static class WindowsPowerShell
 {
     public static readonly string Scripts = Path.Combine(PluginIdentityChecks.FindRepositoryRoot(), "scripts");
 
+    /// <summary>
+    /// How long a run may take before it is stopped: only a hang should reach it. One run was stopped at a minute on a
+    /// GitHub runner busy with every test assembly at once (the recovery-line test, 2026-11-11).
+    /// </summary>
+    public static readonly TimeSpan DefaultTimeout = TimeSpan.FromMinutes(5);
+
     /// <summary>Runs script text after importing scripts/JellyfinSandbox.psm1, with $ErrorActionPreference = 'Stop'.</summary>
     public static async Task<PowerShellRun> RunWithModuleAsync(string script, TimeSpan? timeout = null, string? psModulePath = null)
     {
@@ -67,7 +73,7 @@ internal static class WindowsPowerShell
 
         using var process = Process.Start(start)!;
         using var limit = CancellationTokenSource.CreateLinkedTokenSource(token);
-        limit.CancelAfter(timeout ?? TimeSpan.FromSeconds(120));
+        limit.CancelAfter(timeout ?? DefaultTimeout);
         try
         {
             var errors = process.StandardError.ReadToEndAsync(limit.Token);

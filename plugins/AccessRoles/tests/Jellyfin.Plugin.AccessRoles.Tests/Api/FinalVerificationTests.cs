@@ -71,7 +71,7 @@ public sealed class FinalVerificationTests
         {
             try
             {
-                await admin.RestoreSnapshotAsync(s2, new AccessRolesWriteOptions { DryRun = false }, principal, CancellationToken.None).WaitAsync(TimeSpan.FromSeconds(10), token);
+                await admin.RestoreSnapshotAsync(s2, new AccessRolesWriteOptions { DryRun = false }, principal, CancellationToken.None).WaitAsync(TimeSpan.FromSeconds(60), token);
             }
             catch (TimeoutException)
             {

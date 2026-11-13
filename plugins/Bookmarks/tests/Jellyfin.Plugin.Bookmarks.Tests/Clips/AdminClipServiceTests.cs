@@ -23,6 +23,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Xunit;
+using Jellyfin.Plugin.Kit.TestSupport;
 
 namespace Jellyfin.Plugin.Bookmarks.Tests.Clips;
 
@@ -58,7 +59,7 @@ public sealed partial class AdminClipServiceTests : IDisposable
         _library.Setup(m => m.GetVirtualFolders()).Returns([]);
 
         // Bob was deleted on this server: his clips are kept (KeepAsOrphan) under an id no user has.
-        _users.SetupGet(m => m.Users).Returns([_admin, _alice]);
+        _users.SetupUsers([_admin, _alice]);
         _users.Setup(m => m.GetUserById(It.IsAny<Guid>())).Returns((Guid id) => new[] { _admin, _alice }.FirstOrDefault(u => u.Id.Equals(id)));
         _fileSystem.RenameJournalFolder = _fixture.Directory.Combine("data");
     }

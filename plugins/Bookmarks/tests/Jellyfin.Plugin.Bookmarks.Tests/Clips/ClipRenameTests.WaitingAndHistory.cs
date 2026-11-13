@@ -41,16 +41,16 @@ public sealed partial class ClipRenameTests
             }
 
             asked.Set();
-            answer.Wait(TimeSpan.FromSeconds(30), Ct);
+            answer.Wait(TimeSpan.FromSeconds(120), Ct);
             return new IOException("The semaphore timeout period has expired.", unchecked((int)0x80070079));
         };
 
         var pass = Task.Run(() => Files.FinishRenamesAsync(null, Ct), Ct);
-        Assert.True(asked.Wait(TimeSpan.FromSeconds(10), Ct));
+        Assert.True(asked.Wait(TimeSpan.FromSeconds(60), Ct));
 
-        // While the folder is asked, another write goes through.
+        // While the folder is asked (it doesn't answer for 120 s), another write goes through.
         var other = _fixture.Make(_bob.Id, new ClipSpec { Name = "Elsewhere", NoClip = true });
-        await _fixture.Store.AddAsync(other, Ct).WaitAsync(TimeSpan.FromSeconds(5), Ct);
+        await _fixture.Store.AddAsync(other, Ct).WaitAsync(TimeSpan.FromSeconds(60), Ct);
         Assert.NotNull(_fixture.Store.Get(other.Id));
 
         answer.Set();
@@ -103,20 +103,36 @@ public sealed partial class ClipRenameTests
         var pauses = new ConcurrentQueue<TimeSpan>();
         using var stop = CancellationTokenSource.CreateLinkedTokenSource(Ct);
         var step = TimeSpan.FromMilliseconds(15);
-        var retry = Files.RetryWaitingRenamesCoreAsync(step, step * 8, pauses.Enqueue, stop.Token);
+
+        // The loop is held after its 5th pass (in its own callback, on its own thread) while the second rename is added,
+        // so no pass can run half before and half after it: on a busy runner one did, and its pause was counted as the
+        // first after the new rename.
+        using var held = new ManualResetEventSlim();
+        using var resume = new ManualResetEventSlim();
+        void AfterPass(TimeSpan pause)
+        {
+            pauses.Enqueue(pause);
+            if (pauses.Count == 5)
+            {
+                held.Set();
+                resume.Wait(stop.Token);
+            }
+        }
+
+        var retry = Files.RetryWaitingRenamesCoreAsync(step, step * 8, AfterPass, stop.Token);
         try
         {
-            await WaitUntilAsync(() => pauses.Count >= 5);
-            Assert.Equal([1, 2, 4, 8, 8], pauses.Take(5).Select(p => (int)(p / step)));
+            await WaitUntilAsync(() => held.IsSet);
+            Assert.Equal([1, 2, 4, 8, 8], pauses.Select(p => (int)(p / step)));
 
             // A new rename waiting: the next pass comes within a step, and the pause starts over.
-            var seen = pauses.Count;
             var second = await _fixture.AddAsync(_alice.Id, new ClipSpec { Name = "Second", Start = 120, End = 150 }, Ct);
             var moved = Path.Combine(Path.GetDirectoryName(second.Clip!.FilePath!)!, "Heat (1995) - Safe [00.02.00-00.02.30].mp4");
             Files.Journal!.Add(Entry(second, moved, "Safe"));
             File.Move(second.Clip.FilePath!, moved);
-            await WaitUntilAsync(() => pauses.Count >= seen + 2);
-            Assert.Equal([1, 2], pauses.Skip(seen).Take(2).Select(p => (int)(p / step)));
+            resume.Set();
+            await WaitUntilAsync(() => pauses.Count >= 7);
+            Assert.Equal([1, 2], pauses.Skip(5).Take(2).Select(p => (int)(p / step)));
         }
         finally
         {
@@ -339,7 +355,7 @@ public sealed partial class ClipRenameTests
 
     private static async Task WaitUntilAsync(Func<bool> condition)
     {
-        var until = DateTime.UtcNow.AddSeconds(15);
+        var until = DateTime.UtcNow.AddSeconds(60);
         while (!condition())
         {
             Assert.True(DateTime.UtcNow < until, "Timed out waiting.");

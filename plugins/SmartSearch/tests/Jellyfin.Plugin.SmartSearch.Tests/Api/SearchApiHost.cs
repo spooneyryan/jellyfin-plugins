@@ -65,11 +65,12 @@ internal sealed class SearchApiHost : IAsyncDisposable
         World.Admin.SetPermission(PermissionKind.IsAdministrator, true); // the stored flag an owner change reads for its new owner
         Users = [World.Admin, World.Kid, Twin];
         _users.Setup(m => m.GetUserById(It.IsAny<Guid>())).Returns((Guid id) => Users.Find(u => u.Id == id));
-        _users.SetupGet(m => m.Users).Returns(() => Users.ToList());
+        _users.SetupUsers(() => Users.ToList());
 
         Series = new SeriesTypeahead(Values, access);
         Service = new SmartSearchService(Engine.Engine, Engine.Validator, access, World.Core.Library.Object, () => AllowedKinds, () => Enabled);
-        Lookups = new SmartSearchLookups(access, Engine.Registry, Values, Series, () => AllowedKinds, () => Enabled);
+        People = new PersonTypeahead(World.Core.Library.Object, access, Engine.Slots, (person, user) => World.Core.PersonVisible(person, user));
+        Lookups = new SmartSearchLookups(access, Engine.Registry, Values, Series, People, () => AllowedKinds, () => Enabled);
         Fields = new SmartSearchFields(Engine.Registry, () => AllowedKinds, () => Enabled);
 
         Store = new SavedQueryStore(Data.Combine("smartsearch", SavedQueryStore.FileName), Data.Combine("smartsearch", "snapshots"), () => Guard, NullLogger.Instance, Clock);
@@ -127,6 +128,8 @@ internal sealed class SearchApiHost : IAsyncDisposable
     public ValueIndexService Values { get; }
 
     public SeriesTypeahead Series { get; }
+
+    public PersonTypeahead People { get; }
 
     public SmartSearchService Service { get; }
 
@@ -204,7 +207,7 @@ internal sealed class SearchApiHost : IAsyncDisposable
     {
         // The kit's own registrations the controllers' attributes read (KitAbiGate); everything else is this host's.
         var applicationHost = new Mock<IServerApplicationHost>();
-        applicationHost.SetupGet(h => h.ApplicationVersion).Returns(new Version(10, 11, 5));
+        applicationHost.SetupGet(h => h.ApplicationVersion).Returns(JellyfinLine.Server);
         applicationHost.SetupGet(h => h.CoreStartupHasCompleted).Returns(true);
         var registered = new ServiceCollection();
         new PluginServiceRegistrator().RegisterServices(registered, applicationHost.Object);

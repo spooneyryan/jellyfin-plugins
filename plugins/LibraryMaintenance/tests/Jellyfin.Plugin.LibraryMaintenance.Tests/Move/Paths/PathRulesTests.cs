@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Jellyfin.Plugin.Kit.TestSupport;
 using Jellyfin.Plugin.LibraryMaintenance.Move.Paths;
 using Xunit;
 
@@ -282,12 +283,11 @@ public sealed class PathRulesTests
         => Assert.Equal(expected, PathRules.IsIgnoredName(name));
 
     [Fact]
-    public void ExtrasFolderNames_AreJellyfin10115s()
+    public void ExtrasFolderNames_AreTheServersOwn()
     {
-        // v10.11.5:Emby.Naming/Common/NamingOptions.cs:484-570 (DirectoryName extras rules), 697-699.
-        Assert.Equal(
-            ["backdrops", "behind the scenes", "clips", "deleted scenes", "extra", "extras", "featurettes", "interviews", "other", "samples", "scenes", "shorts", "theme-music", "trailers"],
-            PathRules.ExtrasFolderNames.Order(StringComparer.Ordinal));
+        // v10.11.5:Emby.Naming/Common/NamingOptions.cs:484-570 (DirectoryName extras rules), 697-699; v12.4 adds "sample".
+        string[] names = ["backdrops", "behind the scenes", "clips", "deleted scenes", "extra", "extras", "featurettes", "interviews", "other", .. (JellyfinLine.Is12 ? new[] { "sample" } : []), "samples", "scenes", "shorts", "theme-music", "trailers"];
+        Assert.Equal(names, PathRules.ExtrasFolderNames.Order(StringComparer.Ordinal));
     }
 
     [Theory]

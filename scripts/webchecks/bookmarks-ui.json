@@ -29,7 +29,7 @@
     },
     {
       "name": "the section is the first child of the page content",
-      "assert": "document.querySelector('#itemDetailPage:not(.hide) .detailPageContent').firstElementChild.classList.contains('jfbm-section')"
+      "assert": "(document.querySelector('#itemDetailPage:not(.hide) .detailPageContent') || document.querySelector('#itemDetailPage:not(.hide) .detailPageSecondaryContainer')).firstElementChild.classList.contains('jfbm-section')"
     },
     { "screenshot": "bookmarks-ui-details.png" },
 

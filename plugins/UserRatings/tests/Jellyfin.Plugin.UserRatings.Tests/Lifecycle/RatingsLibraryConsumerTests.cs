@@ -29,6 +29,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Xunit;
+using Jellyfin.Plugin.Kit.TestSupport;
 
 namespace Jellyfin.Plugin.UserRatings.Tests.Lifecycle;
 
@@ -531,7 +532,7 @@ public sealed partial class RatingsLibraryConsumerTests : IDisposable
         var onAlice = await RateAsync(old, _alice, 9);
         var monitor = Monitor();
 
-        other.PrimaryVersionId = primary.Id.ToString("N", CultureInfo.InvariantCulture);
+        other.PrimaryVersionId = JellyfinLine.VersionId(primary.Id);
         _library.RaiseUpdated(other, ItemUpdateType.MetadataEdit);
         _library.Remove(old);
         _library.RaiseAdded(AddMovie("Heat", _movies, "949"));
@@ -598,7 +599,7 @@ public sealed partial class RatingsLibraryConsumerTests : IDisposable
         var bobOnOther = await RateAsync(other, _bob, 8, updated: Created.AddHours(2));
         var monitor = Monitor();
 
-        other.PrimaryVersionId = primary.Id.ToString("N", CultureInfo.InvariantCulture);
+        other.PrimaryVersionId = JellyfinLine.VersionId(primary.Id);
         _library.RaiseUpdated(other, ItemUpdateType.MetadataEdit);
         await monitor.FlushAsync(fullPass: true, duringPostScan: true, null, Ct);
 

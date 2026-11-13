@@ -156,7 +156,7 @@ internal static class VersionSets
                 full = Path.GetFullPath(Path.Combine(folder, path));
             }
 
-            return library.FindByPath(full, null)?.Id;
+            return KitItemQueries.FindAnyByPath(library, full, null)?.Id;
         };
     }
 

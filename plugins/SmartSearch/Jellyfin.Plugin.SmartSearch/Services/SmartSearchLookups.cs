@@ -15,9 +15,10 @@ using Jellyfin.Plugin.SmartSearch.Search;
 namespace Jellyfin.Plugin.SmartSearch.Services;
 
 /// <summary>
-/// <c>/Libraries</c>, <c>/Values/{fieldId}</c> and <c>/Series</c>: the user's libraries (the kit's <c>LibraryAccess</c>),
-/// the value index (<see cref="ValueIndexService"/>, per folder and parental profile) and the series picker
-/// (<see cref="SeriesTypeahead"/>, the user's own query). Each answers from what the user can see only.
+/// <c>/Libraries</c>, <c>/Values/{fieldId}</c>, <c>/Series</c> and <c>/People</c>: the user's libraries (the kit's
+/// <c>LibraryAccess</c>), the value index (<see cref="ValueIndexService"/>, per folder and parental profile), the series
+/// picker (<see cref="SeriesTypeahead"/>, the user's own query) and the person picker (<see cref="PersonTypeahead"/>,
+/// checked through the user's items). Each answers from what the user can see only.
 /// </summary>
 internal sealed class SmartSearchLookups : ISmartSearchLookups
 {
@@ -28,6 +29,7 @@ internal sealed class SmartSearchLookups : ISmartSearchLookups
     private readonly IFieldCatalog _catalog;
     private readonly ValueIndexService _values;
     private readonly SeriesTypeahead _series;
+    private readonly PersonTypeahead _people;
     private readonly Func<IReadOnlyList<BaseItemKind>> _allowedKinds;
     private readonly Func<bool> _enabled;
 
@@ -38,10 +40,12 @@ internal sealed class SmartSearchLookups : ISmartSearchLookups
     /// <param name="catalog">The field registry.</param>
     /// <param name="values">The value index.</param>
     /// <param name="series">The series picker.</param>
+    /// <param name="people">The person picker.</param>
     /// <param name="allowedKinds">The kinds a query may name (the setting), read on each request: values count items of these only.</param>
     /// <param name="enabled">The setting <c>EnableSearchPage</c>, read on each request.</param>
-    public SmartSearchLookups(LibraryAccess access, IFieldCatalog catalog, ValueIndexService values, SeriesTypeahead series, Func<IReadOnlyList<BaseItemKind>> allowedKinds, Func<bool> enabled)
+    public SmartSearchLookups(LibraryAccess access, IFieldCatalog catalog, ValueIndexService values, SeriesTypeahead series, PersonTypeahead people, Func<IReadOnlyList<BaseItemKind>> allowedKinds, Func<bool> enabled)
     {
+        ArgumentNullException.ThrowIfNull(people);
         ArgumentNullException.ThrowIfNull(access);
         ArgumentNullException.ThrowIfNull(catalog);
         ArgumentNullException.ThrowIfNull(values);
@@ -54,6 +58,7 @@ internal sealed class SmartSearchLookups : ISmartSearchLookups
         _catalog = catalog;
         _values = values;
         _series = series;
+        _people = people;
     }
 
     /// <inheritdoc />
@@ -105,6 +110,21 @@ internal sealed class SmartSearchLookups : ISmartSearchLookups
         return series
             .Select(s => new SmartSearchSeriesDto { Id = s.Series.Id, Name = s.Series.Name ?? string.Empty, ProductionYear = s.Series.ProductionYear, LibraryId = s.LibraryId })
             .ToList();
+    }
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<SmartSearchPersonDto>> GetPeopleAsync(User user, string? prefix, int limit, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(user);
+        SearchPageGate.Ensure(_enabled());
+        CheckLimit(limit);
+        var text = CheckPrefix(prefix, SmartSearchRequestLimits.MinPersonPrefix);
+
+        // The kinds a People rule applies to that the server lets users search.
+        var fieldKinds = _catalog.Find("People")?.Kinds ?? [];
+        var kinds = _allowedKinds().Where(fieldKinds.Contains).ToList();
+        var people = await _people.FindAsync(user, text, limit, kinds, cancellationToken).ConfigureAwait(false);
+        return people.Select(p => new SmartSearchPersonDto { Id = p.Id, Name = p.Name ?? string.Empty }).ToList();
     }
 
     private static void CheckLimit(int limit)

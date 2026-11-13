@@ -55,7 +55,7 @@ public sealed class JeImportApiTests : IAsyncLifetime
     {
         _admin.Id = JeImportFixture.AdminId;
         _users.Setup(m => m.GetUserById(It.IsAny<Guid>())).Returns((Guid id) => id == _admin.Id ? _admin : null);
-        _users.SetupGet(m => m.Users).Returns([_admin]);
+        _users.SetupUsers([_admin]);
     }
 
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
@@ -216,7 +216,7 @@ public sealed class JeImportApiTests : IAsyncLifetime
     private Task<WebHostHarness> StartAsync()
     {
         var applicationHost = new Mock<IServerApplicationHost>();
-        applicationHost.SetupGet(h => h.ApplicationVersion).Returns(new Version(10, 11, 5));
+        applicationHost.SetupGet(h => h.ApplicationVersion).Returns(JellyfinLine.Server);
         var registered = new ServiceCollection();
         new PluginServiceRegistrator().RegisterServices(registered, applicationHost.Object);
         Type[] own =

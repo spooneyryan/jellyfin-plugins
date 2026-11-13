@@ -108,4 +108,7 @@ internal sealed class RowSpec
 
     /// <summary>Gets or sets the stored sort name (default: the clean name).</summary>
     public string? SortName { get; set; }
+
+    /// <summary>Gets the item's credits (<c>PeopleBaseItemMap</c> rows): each person's name and type (<c>PersonKind</c> name).</summary>
+    public List<(string Name, string Type)> People { get; } = [];
 }

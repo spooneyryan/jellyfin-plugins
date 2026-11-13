@@ -614,6 +614,76 @@ test('Library tools: ShowFallbackNav off adds nothing and removes our links; two
     assert.deepEqual(other.querySelectorAll('a').map((a) => a.getAttribute('data-jfkit-plugin') + ':' + a.getAttribute('data-order')), ['jfkt:10', 'jfzz:15', 'jfkt:20']);
 });
 
+// The app bar's user menu of the experimental (10.11) and modern (12) layouts, as AppUserMenu renders it: MUI items,
+// Settings a react-router link, a divider before the admin links.
+function userMenu(page) {
+    const item = (href, text) => page.element('a', { class: 'MuiButtonBase-root MuiMenuItem-root', role: 'menuitem', tabindex: '-1', href: href }, [
+        page.element('div', { class: 'MuiListItemIcon-root' }, [page.element('svg', { class: 'MuiSvgIcon-root' })]),
+        page.element('div', { class: 'MuiListItemText-root' }, [page.element('span', { class: 'MuiTypography-root' }, [text])])
+    ]);
+    const list = page.element('ul', { class: 'MuiList-root', role: 'menu' }, [
+        item('#/userprofile?userId=u', 'Profile'),
+        item('#/mypreferencesmenu', 'Settings'),
+        page.element('hr', { class: 'MuiDivider-root' }),
+        item('#/dashboard', 'Dashboard')
+    ]);
+    const backdrop = page.element('div', { class: 'MuiBackdrop-root' });
+    const menu = page.element('div', { id: 'app-user-menu', class: 'MuiPopover-root MuiMenu-root' }, [backdrop, page.element('div', { class: 'MuiPaper-root' }, [list])]);
+    page.document.body.append(menu);
+    return { menu, list, backdrop };
+}
+
+test('Library tools in the user menu: after Settings, a divider, copies of its item in order; a click closes the menu', async () => {
+    const s = await started({ head: { off: [] } });
+    const { list, backdrop } = userMenu(s.page);
+    await s.page.advance(400);
+    const shape = list.children.map((n) => n.tagName === 'HR' ? 'hr' + (n.getAttribute('data-jfkit-nav') ? '*' : '') : n.getAttribute('href'));
+    assert.deepEqual(shape, ['#/userprofile?userId=u', '#/mypreferencesmenu', 'hr*', '#/jfkt-beta', '#/jfkt-alpha', 'hr', '#/dashboard']);
+    const alpha = list.querySelector('[data-jfkt-menu="alpha"]');
+    assert.equal(alpha.className, 'MuiButtonBase-root MuiMenuItem-root');
+    assert.equal(alpha.getAttribute('role'), 'menuitem');
+    assert.equal(alpha.getAttribute('data-jfkit-plugin'), 'jfkt');
+    assert.equal(alpha.getAttribute('data-order'), '20');
+    assert.equal(alpha.querySelector('.MuiListItemIcon-root').firstElementChild.className, 'material-icons video_library');
+    assert.equal(alpha.querySelector('.MuiTypography-root').textContent, 'Alpha');
+    let closed = 0;
+    backdrop.addEventListener('click', () => closed++);
+    s.page.dispatch(alpha, 'click');
+    assert.equal(closed, 1);
+    s.kit.nav.refresh();
+    await s.page.advance(400);
+    assert.equal(list.querySelectorAll('[data-jfkit-plugin]').length, 2, 'idempotent');
+    assert.equal(list.querySelectorAll('[data-jfkit-nav]').length, 1);
+});
+
+test('Library tools in the user menu: turned-off pages left out, nothing signed out or with ShowFallbackNav off', async () => {
+    const s = await started({ head: { off: ['beta'] } });
+    const { list } = userMenu(s.page);
+    await s.page.advance(400);
+    assert.deepEqual(list.querySelectorAll('[data-jfkit-plugin]').map((a) => a.getAttribute('data-jfkt-menu')), ['alpha']);
+    const signedOut = await started({ signedOut: true });
+    const other = userMenu(signedOut.page);
+    await signedOut.page.advance(400);
+    assert.equal(other.list.querySelector('[data-jfkit-nav]'), null);
+    const off = await started({ head: { nav: false } });
+    const hidden = userMenu(off.page);
+    await off.page.advance(400);
+    assert.equal(hidden.list.querySelector('[data-jfkit-nav]'), null);
+    assert.equal(hidden.list.querySelector('[data-jfkit-plugin]'), null);
+});
+
+test('kit.layout.isModern: on 10.11 only "experimental"; on 12 unless desktop-legacy, mobile-legacy or tv', async () => {
+    const legacy = await started();
+    assert.equal(legacy.kit.layout.isModern(), false);
+    const s12 = await started({ build: Object.assign({}, BUILD, { jellyfin: '12' }) });
+    assert.equal(s12.kit.layout.isModern(), true, '12: no saved value is the modern layout');
+    s12.page.context.localStorage.setItem('layout', 'desktop-legacy');
+    assert.equal(s12.kit.layout.isModern(), false);
+    s12.page.context.localStorage.setItem('layout', 'desktop');
+    assert.equal(s12.kit.layout.isModern(), true, '12: 10.11\'s desktop now means modern');
+    assert.equal(s12.kit.layout.isExperimental(), true);
+});
+
 // ------------------------------------------------------------------------------------------------ Auto mode
 
 test('Auto: Plugin Pages\' list decides the host after sign-in, and its drawer link decides ours', async () => {

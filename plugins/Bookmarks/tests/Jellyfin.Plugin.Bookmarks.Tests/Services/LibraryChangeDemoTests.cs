@@ -1,3 +1,4 @@
+using Jellyfin.Plugin.Kit.TestSupport;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -170,7 +171,7 @@ public sealed class LibraryChangeDemoTests
     public async Task BookmarksPostScanTask_FlushesTheRegisteredMonitor_AsOneFullPassPerScan_ToTheDemo()
     {
         var host = new Mock<IServerApplicationHost>();
-        host.SetupGet(h => h.ApplicationVersion).Returns(new Version(10, 11, 5));
+        host.SetupGet(h => h.ApplicationVersion).Returns(JellyfinLine.Server);
         host.SetupGet(h => h.CoreStartupHasCompleted).Returns(true);
         using var data = new Kit.TestSupport.TempDirectory();
         var paths = new Mock<MediaBrowser.Common.Configuration.IApplicationPaths>();
@@ -203,10 +204,10 @@ public sealed class LibraryChangeDemoTests
     }
 
     [Fact]
-    public async Task BookmarksPostScanTask_OnJellyfin12_ReturnsAtOnce()
+    public async Task BookmarksPostScanTask_OnTheOtherLine_ReturnsAtOnce()
     {
         var host = new Mock<IServerApplicationHost>();
-        host.SetupGet(h => h.ApplicationVersion).Returns(new Version(12, 1, 0));
+        host.SetupGet(h => h.ApplicationVersion).Returns(Version.Parse(JellyfinLine.OtherLineVersion));
         var services = new ServiceCollection();
         new PluginServiceRegistrator().RegisterServices(services, host.Object);
         using var provider = services.BuildServiceProvider();

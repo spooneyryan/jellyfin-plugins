@@ -329,8 +329,21 @@ internal sealed class EmbeddedScript : IEmbeddedScript
             ["route"] = options.RoutePrefix,
             ["version"] = IndexHtmlMarkers.Version(options.PluginAssembly),
             ["kit"] = KitVersion(),
+            ["jellyfin"] = JellyfinTarget(),
             ["mvid"] = IndexHtmlMarkers.CacheBuster(options.PluginAssembly)
         });
+
+    private static string JellyfinTarget()
+    {
+        try
+        {
+            return KitBuild.JellyfinTarget;
+        }
+        catch (InvalidOperationException)
+        {
+            return "unknown";
+        }
+    }
 
     private static string KitVersion()
     {

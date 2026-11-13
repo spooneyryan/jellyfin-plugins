@@ -41,6 +41,7 @@ public sealed class FieldRegistryTests
         "Genres | Metadata | M S E V H B | List | List of String from /SmartSearch/Values/Genres | - | Row",
         "Tags | Metadata | M S E V H B | List | List of String from /SmartSearch/Values/Tags | - | Row",
         "Studios | Metadata | M S E V | List | List of String from /SmartSearch/Values/Studios | - | Row",
+        "People | Metadata | M S E V | AnyOf AllOf NoneOf NotAllOf | List of Reference from /SmartSearch/People | Role [Actor Director Writer Producer Composer GuestStar] | Set",
         "OfficialRating | Metadata | M S E V H B | Choice Le Ge | Choice of String from /SmartSearch/Values/OfficialRating | - | Row",
         "SeriesStatus | Metadata | S | Choice | Choice of String [Continuing Ended Unreleased] | - | Row",
         "CommunityRating | Ratings | M S E V H B | Number | Number 0–10 | - | Row",
@@ -73,11 +74,12 @@ public sealed class FieldRegistryTests
     }
 
     [Fact]
-    public void TheLaterFields_AreNotInTheRegistryYet()
+    public void TheLaterFields_AreNotInTheRegistryYet_ButPeopleIs()
     {
         Assert.All(
-            ["People", "InCollection", "MemberRating", "MyRating", "VideoRange", "VideoCodec", "AudioCodec", "AudioChannels", "AudioLanguage", "SubtitleLanguage", "HasSubtitles"],
+            ["InCollection", "MemberRating", "MyRating", "VideoRange", "VideoCodec", "AudioCodec", "AudioChannels", "AudioLanguage", "SubtitleLanguage", "HasSubtitles"],
             id => Assert.Null(Registry.Find(id)));
+        Assert.NotNull(Registry.Find("People"));
     }
 
     [Fact]
@@ -128,7 +130,8 @@ public sealed class FieldRegistryTests
             NowUtc = new DateTime(2026, 11, 2, 12, 0, 0, DateTimeKind.Utc),
             TimeZone = TimeZoneInfo.Utc,
             RatingScore = rating => new MediaBrowser.Model.Entities.ParentalRatingScore(rating.Length, null),
-            LibraryMembers = _ => new HashSet<Guid>()
+            LibraryMembers = _ => new HashSet<Guid>(),
+            PeopleMembers = (_, _, _) => _ => false
         };
         var test = Registry.EvaluatorOf(field).Compile(rule, environment);
         foreach (var item in SampleItems())
@@ -172,7 +175,7 @@ public sealed class FieldRegistryTests
                 break;
         }
 
-        foreach (var option in field.Options.Where(o => o.Required))
+        foreach (var option in field.Options.Where(o => o.Required || o.Option == FieldOption.Role))
         {
             rule[option.Option.ToString()] = option.Choices![0];
         }

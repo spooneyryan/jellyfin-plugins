@@ -556,13 +556,15 @@ function ssValueKey(value) {
     return ssPlainValue(value) ? 'id:' + ssId(value.Id) : 'v:' + String(value).toLowerCase();
 }
 
-// Chips with suggestions. The field's kind of value decides the rest: shows (references) come from GET
-// /SmartSearch/Series after 2 letters and only as suggested (they need an id); years are typed whole numbers; other
+// Chips with suggestions. The field's kind of value decides the rest: references (shows, people) come from the field's
+// ValueSource (GET /SmartSearch/Series, /SmartSearch/People) after 2 letters and only as suggested (they need an id);
+// years are typed whole numbers; other
 // values are typed or suggested from GET /SmartSearch/Values for the libraries chosen. single: one value in the field
 // itself (a parental rating's "at most"), suggestions filling it.
 function ssPicker(page, rule, field, opts) {
     const h = kit.h;
     const series = field.ElementKind === 'Reference';
+    const people = series && field.ValueSource === '/SmartSearch/People';
     const integer = field.ElementKind === 'Integer';
     const suggests = !!field.ValueSource && !integer;
     const single = !!opts.single;
@@ -573,7 +575,7 @@ function ssPicker(page, rule, field, opts) {
         class: 'jfss-picker-input',
         maxlength: integer ? null : String(SS_TEXT_MAX),
         inputmode: integer ? 'numeric' : null,
-        'aria-label': single ? SS_TEXT.valueLabel : (series ? SS_TEXT.findShow : SS_TEXT.addValue),
+        'aria-label': single ? SS_TEXT.valueLabel : (series ? (people ? SS_TEXT.findPerson : SS_TEXT.findShow) : SS_TEXT.addValue),
         autocomplete: 'off',
         spellcheck: 'false',
         value: single ? rule.input.value : ''
@@ -645,13 +647,19 @@ function ssPicker(page, rule, field, opts) {
         state.abort = abort;
         const signal = abort ? abort.signal : undefined;
         const lib = page.librarySelect.value;
-        const request = series
+        const request = people
+            ? ssApi.people(text, Math.min(SS_LOOKUP_LIMIT_MAX, SS_SUGGEST_LIMIT + rule.values.length), signal).then(function (list) {
+                return (list || []).map(function (p) {
+                    return { value: { Id: ssId(p.Id), Name: p.Name }, text: ssDisplayText(p.Name) };
+                });
+            })
+            : series
             ? ssApi.series(text, SS_SUGGEST_LIMIT, signal).then(function (list) {
                 return (list || []).map(function (s) {
                     return { value: { Id: ssId(s.Id), Name: s.Name }, text: s.ProductionYear ? ssText('seriesYear', { name: ssDisplayText(s.Name), year: s.ProductionYear }) : ssDisplayText(s.Name) };
                 });
             })
-            : ssApi.values(field.Id, text, lib ? lib.split(',') : [], SS_SUGGEST_LIMIT + rule.values.length, signal).then(function (list) {
+            : ssApi.values(field.Id, text, lib ? lib.split(',') : [], Math.min(SS_LOOKUP_LIMIT_MAX, SS_SUGGEST_LIMIT + rule.values.length), signal).then(function (list) {
                 return (list || []).map(function (v) {
                     return { value: v.Value, text: ssText('suggestionCount', { name: ssDisplayText(v.Value), count: v.Count }) };
                 });
@@ -750,7 +758,8 @@ function ssPicker(page, rule, field, opts) {
     return h('div', { class: 'jfss-picker' + (single ? ' jfss-picker-single' : '') }, [h('div', { class: 'jfss-picker-row' }, row), chips, suggestions]);
 }
 
-// A field's options: "Include original title" (a check box), Provider (a select).
+// A field's options: "Include original title" (a check box), Provider (a select), Role (a select, "In any role" first:
+// the option isn't required, and no Role is any role).
 function ssRuleOptions(page, rule, field) {
     const h = kit.h;
     const out = [];
@@ -774,6 +783,21 @@ function ssRuleOptions(page, rule, field) {
         rule.options.Provider = select.value;
         select.addEventListener('change', function () {
             rule.options.Provider = select.value;
+            ssSyncActions(page);
+        });
+        out.push(select);
+    }
+
+    const role = ssOption(field, 'Role');
+    if (role && Array.isArray(role.Choices)) {
+        const select = ssFocusKey(kit.select({ class: 'jfss-rule-role', 'aria-label': SS_TEXT.roleLabel }, [{ value: '', text: SS_TEXT.anyRole }].concat(role.Choices.map(function (c) {
+            return { value: c, text: SS_ROLE_LABELS[c] || c };
+        }))), rule.id, 'option');
+        select.setAttribute('data-jfss-part', 'option');
+        select.value = role.Choices.indexOf(rule.options.Role) >= 0 ? rule.options.Role : '';
+        rule.options.Role = select.value;
+        select.addEventListener('change', function () {
+            rule.options.Role = select.value;
             ssSyncActions(page);
         });
         out.push(select);

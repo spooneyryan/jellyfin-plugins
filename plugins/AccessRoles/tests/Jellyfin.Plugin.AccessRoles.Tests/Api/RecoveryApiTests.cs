@@ -17,6 +17,7 @@ using Jellyfin.Plugin.AccessRoles.Tests.TestSupport;
 using Jellyfin.Plugin.Kit.Storage;
 using Xunit;
 using static Jellyfin.Plugin.AccessRoles.Tests.TestSupport.AccessFixtures;
+using Jellyfin.Plugin.Kit.TestSupport;
 
 namespace Jellyfin.Plugin.AccessRoles.Tests.Api;
 
@@ -33,7 +34,7 @@ public sealed class RecoveryApiTests
     public async Task EndingDegradedMode_IsADryRun_ThenTheConfirmationWithItsToken_Audited()
     {
         await using var api = await RolesApiTests.StartWithUsersAsync();
-        var kid = api.UserManager.Object.Users.Single(u => u.Username == "kid").Id;
+        var kid = api.UserManager.Object.AllUsers().Single(u => u.Username == "kid").Id;
         WriteMarker(api, kid);
 
         using var user = await api.SendAsync(HttpMethod.Post, ResolvePath + "?dryRun=true", caller: "user");
@@ -297,7 +298,7 @@ public sealed class RecoveryApiTests
     public async Task EndingDegradedMode_WhenTheMarkerCantBeDeleted_IsUnavailable_WithACode()
     {
         await using var api = await RolesApiTests.StartWithUsersAsync();
-        var kid = api.UserManager.Object.Users.Single(u => u.Username == "kid").Id;
+        var kid = api.UserManager.Object.AllUsers().Single(u => u.Username == "kid").Id;
         WriteMarker(api, kid);
         var (_, dry) = await api.JsonAsync(HttpMethod.Post, ResolvePath + "?dryRun=true");
 
@@ -315,7 +316,7 @@ public sealed class RecoveryApiTests
 
     private static string UserPath(User user) => "/AccessRoles/Admin/Users/" + user.Id.ToString("N");
 
-    private static User User(AccessRolesApi api, string name) => api.UserManager.Object.Users.Single(u => u.Username == name);
+    private static User User(AccessRolesApi api, string name) => api.UserManager.Object.AllUsers().Single(u => u.Username == name);
 
     // A flag the mirror turned off: off natively, and its record.
     private static async Task MirroredAsync(AccessRolesApi api, User user)

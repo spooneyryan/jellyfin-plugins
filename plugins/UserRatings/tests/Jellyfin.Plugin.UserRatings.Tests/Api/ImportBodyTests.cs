@@ -1,3 +1,4 @@
+using Jellyfin.Plugin.Kit.TestSupport;
 using System;
 using System.IO;
 using System.Net;
@@ -81,7 +82,7 @@ public sealed class ImportBodyTests : IAsyncDisposable
     private async Task<WebHostHarness> StartAsync()
     {
         var applicationHost = new Mock<IServerApplicationHost>();
-        applicationHost.SetupGet(h => h.ApplicationVersion).Returns(new Version(10, 11, 5));
+        applicationHost.SetupGet(h => h.ApplicationVersion).Returns(JellyfinLine.Server);
         _host = await new WebHostHarness()
             .WithServices(services =>
             {

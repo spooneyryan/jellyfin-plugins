@@ -126,12 +126,14 @@ internal sealed class QueryPlanner
             .ToList();
         var allowedFolders = LibraryAccess.TopParentIds(libraries);
         var membership = new LibraryMembership(_access, _library, user, scopeKinds, scope.IncludeMissing, budget, cancellationToken);
+        var people = new PeopleRoleResolver(_library, user, scopeKinds, allowedFolders, scope.IncludeMissing, budget, cancellationToken);
         var planEnvironment = new EvaluationEnvironment
         {
             NowUtc = environment.NowUtc,
             TimeZone = environment.TimeZone,
             RatingScore = environment.RatingScore,
-            LibraryMembers = membership.Members
+            LibraryMembers = membership.Members,
+            PeopleMembers = people.Members
         };
 
         // The rules, which are mandatory, and the kinds the query can return (mandatory ItemType rules narrow them).
@@ -147,7 +149,7 @@ internal sealed class QueryPlanner
             }
         }
 
-        var planning = new PlanningScope(kinds, allowedFolders, membership, user, scope.IncludeMissing);
+        var planning = new PlanningScope(kinds, allowedFolders, membership, user, scope.IncludeMissing, people);
         var mapper = new PushdownMapper(planning, _facts, _lookups, _library, _registry, planEnvironment, cancellationToken);
         var mappings = new Dictionary<SmartSearchQueryNode, RuleMapping>(ReferenceEqualityComparer.Instance);
         foreach (var (rule, field, _, _, negated) in rules)
@@ -234,6 +236,8 @@ internal sealed class QueryPlanner
     /// <summary>
     /// Creates a query with a user's access: a search's <c>new InternalItemsQuery(user)</c>, the auto-collections'
     /// <c>SetUser</c>, then <c>BlockUnratedItems</c> as <c>/Items</c> sets it, and <c>GroupByPresentationUniqueKey = false</c>.
+    /// Alternate versions are returned as separate items, as on 10.11 (Jellyfin 12 hides them unless asked), so a rule only
+    /// a secondary version meets still finds the set, and the version collapse sees every member.
     /// </summary>
     /// <param name="user">The user, or <c>null</c>.</param>
     /// <param name="purpose">The purpose.</param>
@@ -260,7 +264,7 @@ internal sealed class QueryPlanner
         }
 
         query.GroupByPresentationUniqueKey = false;
-        return query;
+        return KitItemQueries.IncludeEveryVersion(query);
     }
 
     // The rules with their paths; mandatory while every group above is an All that isn't negated.

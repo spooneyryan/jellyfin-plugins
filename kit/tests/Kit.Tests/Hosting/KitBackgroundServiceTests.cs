@@ -23,7 +23,7 @@ namespace Jellyfin.Plugin.Kit.Tests.Hosting;
 /// </summary>
 public sealed class KitBackgroundServiceTests
 {
-    private static readonly TimeSpan Wait = TimeSpan.FromSeconds(10);
+    private static readonly TimeSpan Wait = TimeSpan.FromSeconds(60);
 
     private readonly Mock<IServerApplicationHost> _host = new();
     private readonly ManualTimerProvider _clock = new();

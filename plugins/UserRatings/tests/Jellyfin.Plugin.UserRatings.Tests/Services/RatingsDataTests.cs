@@ -1,3 +1,4 @@
+using Jellyfin.Plugin.Kit.TestSupport;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -47,7 +48,7 @@ public sealed partial class RatingsDataTests : IDisposable
         var journal = new MoveJournalReader(_s.Store.Directory.Combine("moves.jsonl"), _s.Store.Logger);
         var resolver = new IdentityResolver(_s.Library.Object, journal, _s.Store.Clock);
         var host = new Mock<IServerApplicationHost>();
-        host.SetupGet(h => h.ApplicationVersion).Returns(new Version(10, 11, 5));
+        host.SetupGet(h => h.ApplicationVersion).Returns(JellyfinLine.Server);
         RatingsLibraryConsumer? consumer = null;
         _detached = new DetachedRecords(
             _s.Store.Directory.Combine("archive"),

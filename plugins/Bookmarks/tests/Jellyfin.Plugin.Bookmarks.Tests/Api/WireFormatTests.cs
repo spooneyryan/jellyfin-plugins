@@ -1,3 +1,4 @@
+using Jellyfin.Plugin.Kit.TestSupport;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -567,7 +568,7 @@ public sealed class WireFormatTests
             .WithServices(services =>
             {
                 services.AddSingleton(BookmarksKit.Options);
-                services.AddSingleton(new KitAbiStatus(BookmarksKit.Options.PluginName, "10.11", "10.11.5", isActive: true, "Active."));
+                services.AddSingleton(new KitAbiStatus(BookmarksKit.Options.PluginName, JellyfinLine.Target, JellyfinLine.ServerVersion, isActive: true, "Active."));
                 services.AddSingleton(manager);
                 services.AddSingleton(Mock.Of<IBookmarkQuery>());
                 services.AddSingleton(Mock.Of<IBookmarkPreferences>());

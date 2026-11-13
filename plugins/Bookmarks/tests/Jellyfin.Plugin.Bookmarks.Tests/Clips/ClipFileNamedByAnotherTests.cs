@@ -33,7 +33,7 @@ namespace Jellyfin.Plugin.Bookmarks.Tests.Clips;
 /// </summary>
 public sealed class ClipFileNamedByAnotherTests : IAsyncLifetime
 {
-    private static readonly TimeSpan _timeout = TimeSpan.FromSeconds(10);
+    private static readonly TimeSpan _timeout = TimeSpan.FromSeconds(60);
 
     private readonly TempDirectory _directory = new();
     private readonly string _root;

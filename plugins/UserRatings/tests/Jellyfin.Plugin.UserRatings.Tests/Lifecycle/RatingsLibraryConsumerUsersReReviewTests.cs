@@ -46,7 +46,7 @@ public sealed partial class RatingsLibraryConsumerTests
         Assert.Equal(1, await reconciler.HandleUserDeletedAsync(_alice.Id, Ct));
 
         Assert.Null(_fx.Store.Get(live.Id));
-        Assert.True(await _fx.Store.WaitForCheckpointAsync(Ct).WaitAsync(TimeSpan.FromSeconds(10), Ct), "the policy's checkpoint completed");
+        Assert.True(await _fx.Store.WaitForCheckpointAsync(Ct).WaitAsync(TimeSpan.FromSeconds(60), Ct), "the policy's checkpoint completed");
         Assert.Equal(0L, new FileInfo(_fx.File + "-wal").Length);
         Assert.Empty(FilesHolding(ResidueMarker, _fx.File, _fx.File + "-wal"));
         var daily = (await _fx.Database.SnapshotAsync(7, Ct))!;

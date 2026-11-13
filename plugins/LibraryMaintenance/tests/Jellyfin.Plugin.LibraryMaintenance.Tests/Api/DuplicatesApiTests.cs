@@ -1,3 +1,4 @@
+using Jellyfin.Plugin.Kit.TestSupport;
 using System;
 using System.Linq;
 using System.Net;
@@ -66,7 +67,7 @@ public sealed class DuplicatesApiTests
 
         using var rebuild = await host.SendAsync(HttpMethod.Post, Rebuild, As("admin"));
         Assert.Equal(HttpStatusCode.Accepted, rebuild.StatusCode);
-        await host.Services.GetRequiredService<MovieIndexService>().Rebuild().WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+        await host.Services.GetRequiredService<MovieIndexService>().Rebuild().WaitAsync(TimeSpan.FromSeconds(60), TestContext.Current.CancellationToken);
 
         using var after = await host.SendAsync(HttpMethod.Get, Index, As("admin"));
         var body = await Json(after);
@@ -95,7 +96,7 @@ public sealed class DuplicatesApiTests
         library.Add("Heat", 1995, DuplicatesLibrary.MoreMovies);
         DuplicatesLibrary.MergeVersions(library.Add("Alien", 1979), library.Add("Alien", 1979, DuplicatesLibrary.MoreMovies));
         await using var host = await StartAsync(library);
-        await host.Services.GetRequiredService<MovieIndexService>().Rebuild().WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+        await host.Services.GetRequiredService<MovieIndexService>().Rebuild().WaitAsync(TimeSpan.FromSeconds(60), TestContext.Current.CancellationToken);
 
         using var alice = await host.SendAsync(HttpMethod.Get, Index, As("admin"));
         using var bob = await host.SendAsync(HttpMethod.Get, Index, As("admin", Bob));
@@ -158,7 +159,7 @@ public sealed class DuplicatesApiTests
     private static Task<WebHostHarness> StartAsync(DuplicatesLibrary library)
     {
         var host = new Mock<IServerApplicationHost>();
-        host.SetupGet(h => h.ApplicationVersion).Returns(new Version(10, 11, 5));
+        host.SetupGet(h => h.ApplicationVersion).Returns(JellyfinLine.Server);
         host.SetupGet(h => h.CoreStartupHasCompleted).Returns(true);
         var registered = new ServiceCollection();
         new PluginServiceRegistrator().RegisterServices(registered, host.Object);

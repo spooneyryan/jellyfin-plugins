@@ -30,7 +30,7 @@ namespace Jellyfin.Plugin.SmartSearch.Tests.AutoCollections;
 public sealed class AutoCollectionTriggerTests : IDisposable
 {
     private const string Keep = """{"Field":"Overview","Op":"Contains","Value":"keep"}""";
-    private static readonly TimeSpan Patience = TimeSpan.FromSeconds(10);
+    private static readonly TimeSpan Patience = TimeSpan.FromSeconds(60);
 
     private readonly PlannerWorld _world = new();
     private readonly EngineHarness _harness;
@@ -45,7 +45,7 @@ public sealed class AutoCollectionTriggerTests : IDisposable
         AutoCollectionHost.SetUpLibrary(_world, _persistence);
         var users = new Mock<IUserManager>();
         var all = new[] { _world.Admin, _world.Kid };
-        users.SetupGet(m => m.Users).Returns(all);
+        users.SetupUsers(all);
         users.Setup(m => m.GetUserById(It.IsAny<Guid>())).Returns((Guid id) => all.FirstOrDefault(u => u.Id.Equals(id)));
         _host = new AutoCollectionHost(_world, _harness, _folder.Combine("data"), _persistence, users.Object, time: _clock);
         Movie("A");

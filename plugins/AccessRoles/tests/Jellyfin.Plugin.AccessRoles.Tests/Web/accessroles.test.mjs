@@ -472,6 +472,28 @@ test('administrators: a banner on a managed user\'s stock pages and on Add user,
     assert.equal(page.errors.length, 0, page.errors.join('\n'));
 });
 
+test('administrators on Jellyfin 12: the user editor route /dashboard/users/<id>/<tab> gets the banner; other ids and tabs none', { skip }, async () => {
+    const effective = { UserId: OTHER, State: 'Managed', Roles: [{ Id: 'r1', Name: 'Kid' }], Locks: { Profile: { Locked: true } } };
+    const page = await start({
+        admin: true,
+        me: { UserId: USER, Managed: false, Locked: [] },
+        hash: '#/dashboard/users/' + OTHER + '/parentalcontrol',
+        responses: [{ method: 'GET', path: '/AccessRoles/Admin/Users/' + OTHER + '/Effective', body: effective }]
+    });
+    const content = userPage(page, 'usersEditPage');
+    page.dispatch(content.parentNode, 'viewshow');
+    await page.advance(400);
+    assert.equal(content.firstChild.getAttribute('data-jfar-banner'), 'user:' + OTHER);
+    assert.equal(content.firstChild.children[0].textContent, 'Access Roles manages this user (roles: Kid).');
+
+    const other = await start({ admin: true, me: { UserId: USER, Managed: false, Locked: [] }, hash: '#/dashboard/users/' + OTHER + '/devices' });
+    const otherContent = userPage(other, 'usersEditPage');
+    other.dispatch(otherContent.parentNode, 'viewshow');
+    await other.advance(400);
+    assert.equal(otherContent.querySelectorAll('[data-jfar-banner]').length, 0);
+    assert.equal(page.errors.length + other.errors.length, 0, page.errors.concat(other.errors).join('\n'));
+});
+
 test('administrators: an unmanaged user gets no banner, a failed request none either; with enforcement off the banner says so', { skip }, async () => {
     const page = await start({
         admin: true,

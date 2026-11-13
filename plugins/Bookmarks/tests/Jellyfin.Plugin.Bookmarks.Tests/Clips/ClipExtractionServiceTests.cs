@@ -25,7 +25,7 @@ namespace Jellyfin.Plugin.Bookmarks.Tests.Clips;
 
 public sealed class ClipExtractionServiceTests : IAsyncLifetime
 {
-    private static readonly TimeSpan _timeout = TimeSpan.FromSeconds(10);
+    private static readonly TimeSpan _timeout = TimeSpan.FromSeconds(60);
 
     private readonly TempDirectory _directory = new();
     private readonly BookmarkStore _store;

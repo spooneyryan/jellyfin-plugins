@@ -176,10 +176,8 @@ public sealed class SourceLinkTests : IDisposable
         var linked = Path.Join(_w.Movies, "Linked");
         var heat = _w.Movie(Path.Join(linked, "Heat.1995.mkv"), "Heat", 1995, true, "Heat.1995.srt");
         var outside = _w.Folder("Outside", "late");
-        var extraId = new Guid("e0000000-0000-0000-0000-0000000000e1");
-        heat.ExtraIds = [extraId];
         var made = false;
-        _w.Library.Mock.Setup(l => l.GetItemById(extraId)).Returns(() =>
+        void MakeTheJunction()
         {
             if (!made)
             {
@@ -187,9 +185,24 @@ public sealed class SourceLinkTests : IDisposable
                 Directory.Move(linked, Path.Join(outside, "moved"));
                 Junction.Create(linked, Path.Join(outside, "moved"));
             }
+        }
 
+#if JELLYFIN_12
+        // Jellyfin 12 keeps no ExtraIds: the planner asks for the items Heat owns.
+        _w.Library.Mock.Setup(l => l.GetItemList(It.Is<MediaBrowser.Controller.Entities.InternalItemsQuery>(q => q.OwnerIds.Contains(heat.Id)))).Returns(() =>
+        {
+            MakeTheJunction();
+            return [];
+        });
+#else
+        var extraId = new Guid("e0000000-0000-0000-0000-0000000000e1");
+        heat.ExtraIds = [extraId];
+        _w.Library.Mock.Setup(l => l.GetItemById(extraId)).Returns(() =>
+        {
+            MakeTheJunction();
             return null!;
         });
+#endif
         using var s = new PlanServices(_w);
         Assert.True(s.Eligibility.Check(heat.Id, null).Eligible);
         Assert.False(made);

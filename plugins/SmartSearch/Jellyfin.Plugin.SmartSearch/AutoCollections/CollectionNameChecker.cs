@@ -6,6 +6,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Jellyfin.Data.Enums;
+using Jellyfin.Plugin.Kit.Library;
 using MediaBrowser.Controller;
 using MediaBrowser.Controller.Collections;
 using MediaBrowser.Controller.Dto;
@@ -240,7 +241,7 @@ internal sealed class CollectionNameChecker
                 });
                 foreach (var movie in movies.OfType<Movie>())
                 {
-                    if (!string.IsNullOrEmpty(movie.CollectionName) && string.IsNullOrEmpty(movie.PrimaryVersionId))
+                    if (!string.IsNullOrEmpty(movie.CollectionName) && KitItemQueries.PrimaryVersionText(movie) is null)
                     {
                         names.Add(movie.CollectionName);
                     }

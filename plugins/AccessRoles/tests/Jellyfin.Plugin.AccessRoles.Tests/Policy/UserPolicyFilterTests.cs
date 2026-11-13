@@ -1,3 +1,4 @@
+using Jellyfin.Plugin.Kit.TestSupport;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -55,7 +56,7 @@ public sealed class UserPolicyFilterTests : IDisposable
     public UserPolicyFilterTests()
     {
         var host = new Mock<IServerApplicationHost>();
-        host.SetupGet(h => h.ApplicationVersion).Returns(Version.Parse("10.11.5"));
+        host.SetupGet(h => h.ApplicationVersion).Returns(JellyfinLine.Server);
         var configuration = new FakeConfigurationProvider(() => _h.Configuration);
         _service = new LibrarySyncService(host.Object, _h.Sync, _h.Store, _h.Writer, null, configuration, _h.Status, NullLogger.Instance, _h.Clock);
     }

@@ -1,3 +1,4 @@
+using Jellyfin.Plugin.Kit.TestSupport;
 using System;
 using System.Linq;
 using Jellyfin.Plugin.Kit.Diagnostics;
@@ -23,10 +24,11 @@ namespace Jellyfin.Plugin.LibraryMaintenance.Tests;
 public sealed class PluginServiceRegistratorTests
 {
     [Theory]
-    [InlineData("10.11.5")]
-    [InlineData("10.11.11")]
-    public void On1011_RegistersTheKitAndTheServices(string version)
+    [InlineData(false)]
+    [InlineData(true)]
+    public void OnItsLine_RegistersTheKitAndTheServices(bool laterPatch)
     {
+        var version = laterPatch ? JellyfinLine.LaterPatchVersion : JellyfinLine.ServerVersion;
         var services = Register(version);
 
         var status = Assert.IsType<KitAbiStatus>(Assert.Single(services, d => d.ServiceType == typeof(KitAbiStatus)).ImplementationInstance);
@@ -40,10 +42,10 @@ public sealed class PluginServiceRegistratorTests
     }
 
     [Fact]
-    public void On1011_RegistersTheDuplicatesIndex_OnceForBothItsNames()
+    public void OnItsLine_RegistersTheDuplicatesIndex_OnceForBothItsNames()
     {
         // One index per server, behind the controllers' public interface, with its Diagnostics entry.
-        var registered = Register("10.11.5");
+        var registered = Register(JellyfinLine.ServerVersion);
         Assert.Equal(ServiceLifetime.Singleton, Assert.Single(registered, d => d.ServiceType == typeof(MovieIndexBuilder)).Lifetime);
         Assert.Equal(ServiceLifetime.Singleton, Assert.Single(registered, d => d.ServiceType == typeof(MovieIndexService)).Lifetime);
         Assert.Equal(ServiceLifetime.Singleton, Assert.Single(registered, d => d.ServiceType == typeof(IDuplicatesIndex)).Lifetime);
@@ -72,10 +74,10 @@ public sealed class PluginServiceRegistratorTests
     }
 
     [Fact]
-    public void On1011_RegistersTheGroups_OnceForBothNames_WithTheKitsLibraryAccess()
+    public void OnItsLine_RegistersTheGroups_OnceForBothNames_WithTheKitsLibraryAccess()
     {
         // One groups service (its cache is per server), the kit's LibraryAccess, a Diagnostics entry.
-        var registered = Register("10.11.5");
+        var registered = Register(JellyfinLine.ServerVersion);
         Assert.Equal(ServiceLifetime.Singleton, Assert.Single(registered, d => d.ServiceType == typeof(DuplicateGroupsService)).Lifetime);
         Assert.Equal(ServiceLifetime.Singleton, Assert.Single(registered, d => d.ServiceType == typeof(IDuplicateGroups)).Lifetime);
         Assert.Equal(ServiceLifetime.Singleton, Assert.Single(registered, d => d.ServiceType == typeof(LibraryAccess)).Lifetime);
@@ -106,7 +108,7 @@ public sealed class PluginServiceRegistratorTests
     {
         // The kit's library-change monitor, its only hosted service here, with Duplicates' consumer as
         // the kit's KitComponent, and its Diagnostics entry.
-        var registered = Register("10.11.5");
+        var registered = Register(JellyfinLine.ServerVersion);
         Assert.Equal(ServiceLifetime.Singleton, Assert.Single(registered, d => d.ServiceType == typeof(LibraryChangeMonitor)).Lifetime);
         Assert.Equal(ServiceLifetime.Singleton, Assert.Single(registered, d => d.ServiceType == typeof(DuplicatesChangeConsumer)).Lifetime);
         Assert.Equal(
@@ -153,12 +155,12 @@ public sealed class PluginServiceRegistratorTests
     }
 
     [Fact]
-    public void On1011_AddsTheIndexHtmlInjection_AndNoPageHosting()
+    public void OnItsLine_AddsTheIndexHtmlInjection_AndNoPageHosting()
     {
         // 1.0 had no ClientScript and no index.html injection; Move's item-menu entry added them:
         // the kit's index.html middleware is the only startup filter. The Dashboard page is jellyfin-web's own
         // (IHasWebPages), so the kit's page shells and Plugin Pages registration aren't added.
-        var services = Register("10.11.5");
+        var services = Register(JellyfinLine.ServerVersion);
 
         Assert.Equal(typeof(IndexHtmlInjectionStartupFilter), Assert.Single(services, d => d.ServiceType == typeof(IStartupFilter)).ImplementationType);
         Assert.DoesNotContain(services, d => d.ServiceType.FullName == "Jellyfin.Plugin.Kit.Web.Pages.IKitPages");
@@ -166,11 +168,11 @@ public sealed class PluginServiceRegistratorTests
     }
 
     [Theory]
-    [InlineData("12.1.0")]
-    [InlineData("10.10.7")]
-    public void OnAnotherLine_RegistersOnlyTheInactiveStatus(string version)
+    [InlineData(false)]
+    [InlineData(true)]
+    public void OnAnotherLine_RegistersOnlyTheInactiveStatus(bool older)
     {
-        var services = Register(version);
+        var services = Register(older ? "10.10.7" : JellyfinLine.OtherLineVersion);
 
         var status = Assert.IsType<KitAbiStatus>(Assert.Single(services).ImplementationInstance);
         Assert.False(status.IsActive);

@@ -6,6 +6,7 @@ using Jellyfin.Plugin.AccessRoles.Audit;
 using Jellyfin.Plugin.AccessRoles.Services;
 using Jellyfin.Plugin.AccessRoles.Tests.TestSupport;
 using Xunit;
+using Jellyfin.Plugin.Kit.TestSupport;
 
 namespace Jellyfin.Plugin.AccessRoles.Tests.Api;
 
@@ -52,7 +53,7 @@ public sealed class SettingsApiTests
         var (dryStatus, dry) = await api.JsonAsync(HttpMethod.Put, SettingsPath + "?dryRun=true", body: body);
         var savesAfterDry = api.Saves;
         var linesAfterDry = api.Audit.Read(0, 10, null, AuditActions.SettingsChanged, null).TotalRecordCount;
-        var admin = api.UserManager.Object.Users.Single(u => u.Username == "admin").Id;
+        var admin = api.UserManager.Object.AllUsers().Single(u => u.Username == "admin").Id;
         var (status, saved) = await api.JsonAsync(HttpMethod.Put, SettingsPath + "?ifPreview=" + (string?)dry!["PreviewToken"], body: body, userId: admin);
 
         Assert.Equal((200, 200), (dryStatus, status));

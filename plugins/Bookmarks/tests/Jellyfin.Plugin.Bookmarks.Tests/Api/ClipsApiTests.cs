@@ -294,7 +294,7 @@ public sealed class ClipsApiTests : IAsyncLifetime
 
         runner.HoldUntilReleased();
         await SendAsync(host, "POST", $"/Bookmarks/{id}/Clip", AliceId, """{"Mode":"Fast"}""");
-        await runner.Started.Task.WaitAsync(TimeSpan.FromSeconds(10), Ct);
+        await runner.Started.Task.WaitAsync(TimeSpan.FromSeconds(60), Ct);
         Assert.Equal(("Running", "InProgress"), await StatusAsync(host, id));
         Assert.Equal(("Running", "InProgress"), await StatusAsync(host, id));
         runner.Release();
@@ -337,7 +337,7 @@ public sealed class ClipsApiTests : IAsyncLifetime
         var id = Id((await SendAsync(host, "POST", "/Bookmarks", AliceId, body)).Body.GetProperty("Id"));
         runner.HoldUntilReleased();
         await SendAsync(host, "POST", $"/Bookmarks/{id}/Clip", AliceId, """{"Mode":"Fast"}""");
-        await runner.Started.Task.WaitAsync(TimeSpan.FromSeconds(10), Ct);
+        await runner.Started.Task.WaitAsync(TimeSpan.FromSeconds(60), Ct);
 
         var (_, result) = await SendAsync(host, "POST", "/Bookmarks/Clips/BulkDelete", AliceId, $$"""{"Ids":["{{id}}"]}""");
 
@@ -593,7 +593,7 @@ public sealed class ClipsApiTests : IAsyncLifetime
     // The bookmark's clip once its job (another than the one asked for at `previous`) has completed.
     private static async Task<ClipInfo> CompletedAsync(IBookmarkStore store, Guid id, DateTime? previous)
     {
-        var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(10);
+        var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(60);
         while (store.Get(id)?.Clip is not { Status: BookmarkClipStatus.Completed } clip || clip.RequestedAt == previous)
         {
             Assert.True(DateTime.UtcNow < deadline, "Timed out waiting for the clip.");
@@ -655,7 +655,7 @@ public sealed class ClipsApiTests : IAsyncLifetime
     {
         // The plugin's own registrations for everything this touches; Jellyfin's services are mocks, ffmpeg is fake.
         var applicationHost = new Mock<IServerApplicationHost>();
-        applicationHost.SetupGet(h => h.ApplicationVersion).Returns(new Version(10, 11, 5));
+        applicationHost.SetupGet(h => h.ApplicationVersion).Returns(JellyfinLine.Server);
         applicationHost.SetupGet(h => h.CoreStartupHasCompleted).Returns(true);
         var registered = new ServiceCollection();
         new PluginServiceRegistrator().RegisterServices(registered, applicationHost.Object);

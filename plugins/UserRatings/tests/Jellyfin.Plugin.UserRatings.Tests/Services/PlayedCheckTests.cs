@@ -4,6 +4,7 @@ using System.Linq;
 using Jellyfin.Data.Enums;
 using Jellyfin.Database.Implementations.Entities;
 using Jellyfin.Plugin.Kit.Library;
+using Jellyfin.Plugin.Kit.TestSupport;
 using Jellyfin.Plugin.UserRatings.Services;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.Audio;
@@ -80,6 +81,28 @@ public sealed class PlayedCheckTests
 
         _fresh = null;
         Assert.Null(Check().HasPlayed(cached, _viewer));
+    }
+
+    [Fact]
+    public void AnUnplayedMovie_WhoseOtherVersionWasPlayed_IsPlayedOnJellyfin12Only()
+    {
+        var cached = Cached(new Movie { Name = "Heat" });
+        _fresh = FreshCopy(cached, (_viewer, false));
+        _playedChildren = 1;
+
+        Assert.Equal(JellyfinLine.Is12, Check().HasPlayed(cached, _viewer));
+
+        if (JellyfinLine.Is12)
+        {
+            var query = Assert.Single(_counts);
+            Assert.Same(_viewer, query.User);
+            Assert.Equal(new[] { cached.Id }, query.ItemIds);
+            Assert.True(query.IsPlayed);
+        }
+        else
+        {
+            Assert.Empty(_counts);
+        }
     }
 
     [Theory]

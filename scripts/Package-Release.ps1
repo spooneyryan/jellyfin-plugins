@@ -3,7 +3,8 @@
 Packages plugins into the zips Jellyfin installs and keeps the plugin repository's catalog, manifest.json.
 
 .DESCRIPTION
-For each plugin (every plugins/<Plugin> with a build.yaml, or the ones -Plugin or -Tag name):
+For each plugin (every plugins/<Plugin> with a build.yaml, or the ones -Plugin or -Tag name), for one Jellyfin line
+(-JellyfinTarget: 10.11 builds what build.yaml describes, 12 what build.12.yaml describes, on net10.0):
 
 - builds it in Release from scratch (the project's obj\Release and bin\Release are removed first, so no stale
   incremental output is reused; dotnet publish, deterministic, with the checkout's path mapped to /_/ and without git or
@@ -44,6 +45,12 @@ Folder names under plugins/ (any case). Default: every plugin.
 .PARAMETER Tag
 A release tag (bookmarks/v1.2.2): packages that plugin, whose build.yaml must say that version.
 
+.PARAMETER JellyfinTarget
+The line to package: 10.11 or 12. Default: with -Tag, the line whose build file says the tag's version (bookmarks/v2.0.0
+is build.12.yaml's 2.0.0.0); otherwise the line of the Jellyfin in -JellyfinDir, else 10.11. The reference-version check
+runs only against a Jellyfin of that line: a -JellyfinDir of the other line is refused when given, skipped when it is the
+default.
+
 .PARAMETER OutDir
 Where the zips go; artifacts\release by default (ignored by git). Its build\ folder is replaced on each run.
 
@@ -55,6 +62,10 @@ Where the zips go; artifacts\release by default (ignored by git). Its build\ fol
 ./scripts/Package-Release.ps1 -Tag bookmarks/v1.2.2 -Verify
 
 .EXAMPLE
+./scripts/Package-Release.ps1 -Plugin Bookmarks -JellyfinTarget 12 -JellyfinDir C:\jellyfin-12.4
+# artifactseleaseookmarks_2.0.0.0.zip from build.12.yaml, and its entry in manifest.json beside the 10.11 ones
+
+.EXAMPLE
 ./scripts/Package-Release.ps1 -BaseUrl http://127.0.0.1:8115 -OutDir artifacts\release-test
 #>
 [CmdletBinding()]
@@ -64,6 +75,9 @@ param(
     [string] $Tag,
 
     [string] $OutDir,
+
+    [ValidateSet('10.11', '12')]
+    [string] $JellyfinTarget,
 
     [switch] $Verify,
 
@@ -288,6 +302,26 @@ else {
 }
 if ($selected.Count -eq 0) { throw "No plugins/*/build.yaml in $repo." }
 
+# The line: given, else the tag's (the build file that says its version), else the Jellyfin in -JellyfinDir's, else 10.11.
+$jellyfinInDir = Test-Path -LiteralPath (Join-Path $JellyfinDir 'jellyfin.dll') -PathType Leaf
+if (-not $JellyfinTarget) {
+    $JellyfinTarget = '10.11'
+    if ($Tag) {
+        $tagged = ConvertTo-PluginReleaseTag -Plugin $selected[0] -Name $Tag
+        $lines = @(@('10.11', '12') | Where-Object {
+                $lineInfo = $null
+                try { $lineInfo = Get-PluginBuildInfo -Plugin $selected[0] -RepoRoot $repo -JellyfinTarget $_ } catch { $lineInfo = $null }
+                $null -ne $lineInfo -and $lineInfo.Version -eq ($tagged.Text + '.0')
+            })
+        # Neither (or both): 10.11, whose version check below names the mismatch.
+        if ($lines.Count -eq 1) { $JellyfinTarget = $lines[0] }
+    }
+    elseif ($jellyfinInDir) {
+        $JellyfinTarget = Get-JellyfinTargetOf -JellyfinDir $JellyfinDir
+    }
+}
+Write-Host "Packaging for Jellyfin $JellyfinTarget ($(Get-BuildYamlName -JellyfinTarget $JellyfinTarget))"
+
 # The sources must be what is committed: a release is built from a commit.
 $inputs = @('kit', 'Directory.Build.props', 'Directory.Build.targets', 'Directory.Packages.props', 'nuget.config') + @($selected | ForEach-Object { "plugins/$_" })
 $status = Invoke-Git -Repo $repo -Arguments (@('status', '--porcelain', '--') + $inputs)
@@ -324,9 +358,14 @@ foreach ($line in @(& dotnet --list-sdks)) {
 if (-not $sdkRuntime) { throw "Can't tell which .NET runtime SDK $sdk runs on (no dotnet.runtimeconfig.json in its folder)." }
 Write-Host ".NET SDK $sdk, compiling on its runtime $sdkRuntime"
 
-$checkReferences = Test-Path -LiteralPath (Join-Path $JellyfinDir 'jellyfin.dll') -PathType Leaf
-if ($checkReferences) { $serverVersion = Assert-JellyfinTarget -JellyfinDir $JellyfinDir -JellyfinTarget '10.11' }
-else { Write-Warning "No Jellyfin in ${JellyfinDir}: the reference-version check is skipped (the build's package pins still apply)." }
+$checkReferences = $jellyfinInDir
+if ($checkReferences -and -not $PSBoundParameters.ContainsKey('JellyfinDir') -and (Get-JellyfinTargetOf -JellyfinDir $JellyfinDir) -ne $JellyfinTarget) {
+    # The default folder (the real server's) holds the other line: nothing to compare with. A -JellyfinDir given is checked.
+    Write-Warning "$JellyfinDir holds a Jellyfin of another line than $JellyfinTarget`: the reference-version check is skipped (pass -JellyfinDir with a Jellyfin $JellyfinTarget.x)."
+    $checkReferences = $false
+}
+if ($checkReferences) { $serverVersion = Assert-JellyfinTarget -JellyfinDir $JellyfinDir -JellyfinTarget $JellyfinTarget }
+elseif (-not $jellyfinInDir) { Write-Warning "No Jellyfin in ${JellyfinDir}: the reference-version check is skipped (the build's package pins still apply)." }
 
 New-Item -ItemType Directory -Force -Path $OutDir | Out-Null
 $buildRoot = Join-Path $OutDir 'build'
@@ -336,13 +375,14 @@ if (Test-Path -LiteralPath $buildRoot) { Remove-SandboxItem -Path $buildRoot -Ro
 
 $results = New-Object System.Collections.Generic.List[object]
 foreach ($folder in $selected) {
-    $info = Get-PluginBuildInfo -Plugin $folder -RepoRoot $repo
+    $info = Get-PluginBuildInfo -Plugin $folder -RepoRoot $repo -JellyfinTarget $JellyfinTarget
     $yaml = $info.Yaml
-    if ($info.Version -notmatch '^(\d+\.\d+\.\d+)\.0$') { throw "plugins/$folder/build.yaml: version $($info.Version) is not x.y.z.0." }
+    $yamlFile = "plugins/$folder/$($info.YamlName)"
+    if ($info.Version -notmatch '^(\d+\.\d+\.\d+)\.0$') { throw "${yamlFile}: version $($info.Version) is not x.y.z.0." }
     $short = $Matches[1]
     $releaseTag = (Get-PluginReleaseTagPrefix $folder) + $short
-    if ($Tag -and $Tag -ne $releaseTag) { throw "$Tag is not the version plugins/$folder/build.yaml says ($($info.Version), tag $releaseTag)." }
-    $changelog = Get-ChangelogSection -Changelog ([string]$yaml['changelog']) -Version $short -Source "plugins/$folder/build.yaml"
+    if ($Tag -and $Tag -ne $releaseTag) { throw "$Tag is not the version $yamlFile says ($($info.Version), tag $releaseTag)." }
+    $changelog = Get-ChangelogSection -Changelog ([string]$yaml['changelog']) -Version $short -Source $yamlFile
 
     Write-Host "== $($info.Name) $($info.Version)"
     $output = Join-Path $buildRoot $folder
@@ -352,7 +392,7 @@ foreach ($folder in $selected) {
     foreach ($stale in @((Join-Path $projectDir 'obj\Release'), (Join-Path $projectDir 'bin\Release'))) {
         if (Test-Path -LiteralPath $stale) { Remove-SandboxItem -Path $stale -Root $projectDir }
     }
-    $publish = @($info.Project, '-c', 'Release', '-o', $output, '--nologo', '-v', 'quiet', '-p:JellyfinTarget=10.11',
+    $publish = @($info.Project, '-c', 'Release', '-o', $output, '--nologo', '-v', 'quiet', "-p:JellyfinTarget=$JellyfinTarget",
         '-p:ContinuousIntegrationBuild=true', '-p:Deterministic=true', '-p:EnableSourceLink=false',
         '-p:EnableSourceControlManagerQueries=false', '-p:IncludeSourceRevisionInInformationalVersion=false',
         ('-p:PathMap=' + $repo.TrimEnd([char]92) + '\=/_/'))
@@ -369,12 +409,12 @@ foreach ($folder in $selected) {
     $allowed = $info.Assemblies
     $unexpected = @(Get-ChildItem -LiteralPath $output -Recurse -File -Filter '*.dll' | Where-Object { $allowed -notcontains $_.Name } |
         ForEach-Object { $_.FullName.Substring($output.Length + 1) })
-    if ($unexpected.Count -gt 0) { throw "The $folder build has DLLs that are not in build.yaml's artifacts: $($unexpected -join ', ')." }
+    if ($unexpected.Count -gt 0) { throw "The $folder build has DLLs that are not in $($info.YamlName)'s artifacts: $($unexpected -join ', ')." }
 
     $entries = [ordered]@{}
     foreach ($assembly in $allowed) {
         $path = Join-Path $output $assembly
-        if (-not (Test-Path -LiteralPath $path)) { throw "build.yaml lists $assembly, but the build did not produce it." }
+        if (-not (Test-Path -LiteralPath $path)) { throw "$($info.YamlName) lists $assembly, but the build did not produce it." }
         $entries[$assembly] = [IO.File]::ReadAllBytes($path)
         $pdb = [IO.Path]::ChangeExtension($assembly, '.pdb')
         if (Test-Path -LiteralPath (Join-Path $output $pdb)) { $entries[$pdb] = [IO.File]::ReadAllBytes((Join-Path $output $pdb)) }
@@ -390,7 +430,7 @@ foreach ($folder in $selected) {
     }
 
     $fileVersion = (Get-Item -LiteralPath (Join-Path $output $allowed[0])).VersionInfo.FileVersion
-    if ($fileVersion -ne $info.Version) { throw "$($allowed[0]) has file version $fileVersion, but build.yaml says $($info.Version)." }
+    if ($fileVersion -ne $info.Version) { throw "$($allowed[0]) has file version $fileVersion, but $($info.YamlName) says $($info.Version)." }
 
     if ($checkReferences) {
         $references = Assert-AssemblyReferenceVersions -AssemblyPaths @($allowed | ForEach-Object { Join-Path $output $_ }) -JellyfinDir $JellyfinDir -What $folder

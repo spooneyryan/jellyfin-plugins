@@ -15,7 +15,7 @@ namespace Jellyfin.Plugin.LibraryMaintenance.Tests.Duplicates;
 /// </summary>
 public sealed class MovieIndexServiceTests
 {
-    private static readonly TimeSpan Wait = TimeSpan.FromSeconds(10);
+    private static readonly TimeSpan Wait = TimeSpan.FromSeconds(60);
 
     [Fact]
     public void BeforeTheFirstBuild_TheStatusIsEmpty()

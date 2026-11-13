@@ -307,7 +307,7 @@ public sealed class MembershipPlannerTests : IDisposable
     private static Mock<IUserManager> Users(params User[] users)
     {
         var mock = new Mock<IUserManager>();
-        mock.SetupGet(m => m.Users).Returns(users);
+        mock.SetupUsers(users);
         mock.Setup(m => m.GetUserById(It.IsAny<Guid>())).Returns((Guid id) => users.FirstOrDefault(u => u.Id.Equals(id)));
         return mock;
     }

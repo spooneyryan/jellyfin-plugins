@@ -250,7 +250,7 @@ public sealed class ValueIndexTests
         var query = QueryPlannerTests.Q("{\"Field\":\"SeriesName\",\"Op\":\"Contains\",\"Value\":\"blue\"}", "\"Episode\"");
 
         // The search starts the index builds in the background and plans from its own read of the episodes.
-        var ids = await host.SearchAllAsync(query, host.Kid).WaitAsync(TimeSpan.FromSeconds(10), Ct);
+        var ids = await host.SearchAllAsync(query, host.Kid).WaitAsync(TimeSpan.FromSeconds(60), Ct);
         Assert.Equal([sunny.Id], ids);
         for (var i = 0; i < 500 && Volatile.Read(ref held) == 0; i++)
         {

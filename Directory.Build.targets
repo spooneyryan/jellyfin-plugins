@@ -1,6 +1,6 @@
 <Project>
   <Target Name="KitCheckJellyfinTarget" BeforeTargets="_CheckForInvalidConfigurationAndPlatform;Restore;CollectPackageReferences">
-    <Error Condition="'$(JellyfinTarget)' != '10.11'"
-           Text="JellyfinTarget '$(JellyfinTarget)' is not supported yet. Only 10.11 builds exist until the Jellyfin 12 port." />
+    <Error Condition="'$(JellyfinTarget)' != '10.11' and '$(JellyfinTarget)' != '12'"
+           Text="JellyfinTarget '$(JellyfinTarget)' is not supported: use 10.11 (the default) or 12." />
   </Target>
 </Project>

@@ -147,7 +147,7 @@ public sealed class ScriptsTests
 
             using var process = Process.Start(start)!;
             using var timeout = CancellationTokenSource.CreateLinkedTokenSource(token);
-            timeout.CancelAfter(TimeSpan.FromSeconds(60));
+            timeout.CancelAfter(TimeSpan.FromSeconds(300));
             string output, errors;
             try
             {

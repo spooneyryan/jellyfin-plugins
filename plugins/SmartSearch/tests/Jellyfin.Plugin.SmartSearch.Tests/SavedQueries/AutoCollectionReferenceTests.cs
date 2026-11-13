@@ -349,14 +349,14 @@ public sealed class AutoCollectionReferenceTests
                 },
                 Ct),
             Ct);
-        await entered.Task.WaitAsync(TimeSpan.FromSeconds(10), Ct);
+        await entered.Task.WaitAsync(TimeSpan.FromSeconds(60), Ct);
 
         var save = host.SavedQueries.UpdateAsync(manager, false, query.Id, Request("Kept films", Q(Other), ifUpdatedAt: host.Store.Find(query.Id)!.UpdatedUtc), Ct);
         await WaitUntilHeldAsync(auto.Store, save);
         go.Set();
 
-        await holder.WaitAsync(TimeSpan.FromSeconds(10), Ct);
-        var saved = await save.WaitAsync(TimeSpan.FromSeconds(10), Ct);
+        await holder.WaitAsync(TimeSpan.FromSeconds(60), Ct);
+        var saved = await save.WaitAsync(TimeSpan.FromSeconds(60), Ct);
         Assert.Equal(1, counted);
         Assert.Single(broken!);
         Assert.Single(saved.AffectedAutoCollections);

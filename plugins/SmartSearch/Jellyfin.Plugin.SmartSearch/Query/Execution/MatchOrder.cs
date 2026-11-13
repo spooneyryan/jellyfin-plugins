@@ -177,7 +177,7 @@ internal sealed class MatchOrder : IComparer<MatchRow>
 
     // A member of a version set: a secondary (its PrimaryVersionId) or a primary (its linked versions).
     internal static bool IsVersioned(BaseItem item)
-        => item is Video video && (!string.IsNullOrWhiteSpace(video.PrimaryVersionId) || video.LinkedAlternateVersions.Length > 0);
+        => item is Video video && (KitItemQueries.PrimaryVersionText(video) is not null || video.LinkedAlternateVersions.Length > 0);
 
     private static int CompareValues(SortKind kind, object? x, object? y) => kind switch
     {

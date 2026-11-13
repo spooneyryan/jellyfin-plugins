@@ -67,6 +67,9 @@ internal sealed class FakeRow
 
     public List<FakeUserData> UserData { get; } = [];
 
+    /// <summary>Gets the item's credits: the people's names and types, as <c>PeopleBaseItemMap</c> joined to <c>Peoples</c> holds them.</summary>
+    public List<(string Name, string Type)> Credits { get; } = [];
+
     public float? CommunityRating { get; set; }
 
     public DateTime? PremiereDateUtc { get; set; }

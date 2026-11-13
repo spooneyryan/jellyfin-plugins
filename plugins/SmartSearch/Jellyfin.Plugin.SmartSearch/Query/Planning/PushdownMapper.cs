@@ -86,9 +86,7 @@ internal sealed class PushdownMapper
             "Genres" => Values(rule, op, PushProperty.Genres, ItemValueType.Genre, excludable: false),
             "Tags" => Values(rule, op, PushProperty.Tags, ItemValueType.Tags, excludable: true),
             "Studios" => Studios(rule, op),
-            "OfficialRating" => op == SmartSearchQueryOperator.AnyOf
-                ? RuleMapping.Exact(PushdownSet.Of(PushProperty.OfficialRatings, new InSetConstraint<string>(RuleValues.Strings(rule), StringComparer.Ordinal, singleValued: true)))
-                : RuleMapping.Declined("no SQL filter for this operator"),
+            "OfficialRating" => OfficialRating(rule, op),
             "CommunityRating" => CommunityRating(rule, op),
             "Resolution" => Resolution(rule, op),
             "Played" => UserData(rule, field, PushProperty.IsPlayed, UserDataFlag.Played),
@@ -100,6 +98,7 @@ internal sealed class PushdownMapper
             "ProviderId" => Provider(rule, "only the key is pushed; the value is compared in memory (SQL's HasAnyProviderId is case-sensitive)"),
             "Locked" => RuleMapping.Exact(Flag(PushProperty.IsLocked, RuleValues.Bool(rule))),
             "Series" => Series(rule, op),
+            "People" => People(rule, op),
             "SeriesName" => SeriesName(rule),
             _ => RuleMapping.Declined("no SQL filter")
         };
@@ -180,6 +179,24 @@ internal sealed class PushdownMapper
             : RuleMapping.Declined("there is no SQL maximum");
     }
 
+    private RuleMapping OfficialRating(SmartSearchQueryNode rule, SmartSearchQueryOperator op)
+    {
+        if (op != SmartSearchQueryOperator.AnyOf)
+        {
+            return RuleMapping.Declined("no SQL filter for this operator");
+        }
+
+        var set = PushdownSet.Of(PushProperty.OfficialRatings, new InSetConstraint<string>(RuleValues.Strings(rule), StringComparer.Ordinal, singleValued: true));
+#if JELLYFIN_12
+        // Jellyfin 12 matches a series or collection when any item in it has the rating (WhereItemOrDescendantMatches).
+        if (_scope.Kinds.Contains(BaseItemKind.Series) || _scope.Kinds.Contains(BaseItemKind.BoxSet))
+        {
+            return RuleMapping.Superset(set, "a series or collection matches by any item in it, re-checked");
+        }
+#endif
+        return RuleMapping.Exact(set);
+    }
+
     private static RuleMapping Resolution(SmartSearchQueryNode rule, SmartSearchQueryOperator op)
     {
         if (op != SmartSearchQueryOperator.AnyOf)
@@ -203,6 +220,10 @@ internal sealed class PushdownMapper
         var min = buckets.Min(b => b.Min);
         var max = buckets.Any(b => b.Max is null) ? (int?)null : buckets.Max(b => b.Max!.Value);
         var set = PushdownSet.Of(PushProperty.MinWidth, new BoundConstraint<int>(min, lower: true));
+#if JELLYFIN_12
+        // Jellyfin 12 drops an item from MaxWidth when any of its versions is wider, so only the lower bound is pushed.
+        max = null;
+#endif
         if (max is { } top)
         {
             set = set.And(PushdownSet.Of(PushProperty.MaxWidth, new BoundConstraint<int>(top, lower: false)));
@@ -513,6 +534,42 @@ internal sealed class PushdownMapper
         query.DtoOptions = new MediaBrowser.Controller.Dto.DtoOptions(false) { EnableImages = false, EnableUserData = false };
         var visible = _library.GetItemList(query).Where(i => i is Series && !Kit.Library.LibraryAccess.IsOwned(i)).Select(i => i.Id).ToHashSet();
         return distinct.All(visible.Contains) ? distinct : null;
+    }
+
+    private RuleMapping People(SmartSearchQueryNode rule, SmartSearchQueryOperator op)
+    {
+        if (op is not (SmartSearchQueryOperator.AnyOf or SmartSearchQueryOperator.AllOf))
+        {
+            return RuleMapping.Declined("NoneOf and NotAllOf aren't pushed");
+        }
+
+        // PersonIds matches an item credited to any of the people, by the Person items' names (the resolver reads the same
+        // filter). A person the server has no Person for (by id, then by name) is credited on nothing.
+        var role = RuleValues.Role(rule);
+        var people = RuleValues.DistinctReferences(rule).Select(r => _scope.People.Resolve(r.Id, r.Name)).ToList();
+        if (op == SmartSearchQueryOperator.AllOf)
+        {
+            // All of them, one of them unknown: nothing (no ids, so the plan is empty); else credited to the first, a superset.
+            return people.Any(p => p is null)
+                ? RuleMapping.Superset(PersonIds([], role), "a person the server doesn't know is credited on nothing")
+                : RuleMapping.Superset(PersonIds([people[0]!.Id], role), "AllOf pushes its first person");
+        }
+
+        var set = PersonIds(people.OfType<Person>().Select(p => p.Id), role);
+#if JELLYFIN_12
+        return RuleMapping.Exact(set);
+#else
+        return role is null ? RuleMapping.Exact(set) : RuleMapping.Superset(set, "Jellyfin 10.11 ignores the role in item queries; each item's credits are checked");
+#endif
+    }
+
+    // Jellyfin 12 checks the role on the same credit (PersonTypes beside PersonIds); 10.11 ignores it, so it isn't pushed.
+    private static PushdownSet PersonIds(IEnumerable<Guid> ids, string? role)
+    {
+#if !JELLYFIN_12
+        role = null;
+#endif
+        return PushdownSet.Of(PushProperty.PersonIds, new PeopleConstraint(ids, role));
     }
 
     private RuleMapping SeriesName(SmartSearchQueryNode rule)

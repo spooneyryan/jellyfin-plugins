@@ -12,8 +12,8 @@ namespace Jellyfin.Plugin.SmartSearch.Query.Fields;
 /// <summary>
 /// The single source of truth for fields: every field a query
 /// may name, with its descriptor (what the validator, the canonicalizer and <c>GET /SmartSearch/Fields</c> read) and its
-/// in-memory evaluator, and the sort keys. The first set of fields; the later ones (<c>People</c>, <c>InCollection</c>, the
-/// rating facade's and the stream facts' fields) arrive in later versions. The pushdown mappers are the planner's.
+/// in-memory evaluator, and the sort keys. The later fields (<c>InCollection</c>, the rating facade's and the stream facts'
+/// fields) arrive in later versions. The pushdown mappers are the planner's.
 /// </summary>
 /// <remarks>
 /// <see cref="FieldDescriptor.Cost"/> is where the field is evaluated in memory: <c>Series</c> ("Sql/Row" in the design's field table) and
@@ -26,7 +26,13 @@ internal sealed class FieldRegistry : FieldCatalog
     /// The registry's version: changes whenever a field, operator, option or sort key is
     /// added, removed or changed, so the rule builder can drop what it cached.
     /// </summary>
-    public const int Version = 2;
+    public const int Version = 3;
+
+    /// <summary>
+    /// The roles a <c>People</c> rule may name, as core stores a credit's <c>PersonType</c> (<c>PersonKind</c> names). No
+    /// role is any role.
+    /// </summary>
+    public static readonly IReadOnlyList<string> PersonRoles = ["Actor", "Director", "Writer", "Producer", "Composer", "GuestStar"];
 
     private static readonly BaseItemKind[] All = [BaseItemKind.Movie, BaseItemKind.Series, BaseItemKind.Episode, BaseItemKind.MusicVideo, BaseItemKind.Video, BaseItemKind.BoxSet];
     private static readonly BaseItemKind[] Msev = [BaseItemKind.Movie, BaseItemKind.Series, BaseItemKind.Episode, BaseItemKind.MusicVideo];
@@ -172,6 +178,13 @@ internal sealed class FieldRegistry : FieldCatalog
             Id = "Studios", Label = "Studios", Group = "Metadata", Type = FieldValueType.List, Kinds = Msev, Operators = QueryOperators.List,
             ElementKind = FieldElementKind.String, ValueSource = "/SmartSearch/Values/Studios"
         }, new ListEvaluator(row => row.Item.Studios)),
+        (new FieldDescriptor
+        {
+            Id = "People", Label = "People", Group = "Metadata", Type = FieldValueType.List, Kinds = Msev, Operators = QueryOperators.People,
+            Options = [new FieldOptionSpec(FieldOption.Role, false, PersonRoles)],
+            ElementKind = FieldElementKind.Reference, ValueSource = "/SmartSearch/People", Cost = FieldCost.Set,
+            Note = "People credited on the item itself: a show's cast on the show, an episode's guest stars on the episode. Guest star is a role of its own."
+        }, new PeopleEvaluator()),
         (new FieldDescriptor
         {
             Id = "OfficialRating", Label = "Parental rating", Group = "Metadata", Type = FieldValueType.Choice, Kinds = All,

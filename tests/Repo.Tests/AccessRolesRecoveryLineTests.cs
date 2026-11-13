@@ -83,7 +83,7 @@ public sealed class AccessRolesRecoveryLineTests
             TestContext.Current.CancellationToken);
         Assert.DoesNotContain("8096", await File.ReadAllTextAsync(script, TestContext.Current.CancellationToken), StringComparison.Ordinal);
 
-        var run = await WindowsPowerShell.RunFileAsync(script, [], TimeSpan.FromSeconds(60), executable);
+        var run = await WindowsPowerShell.RunFileAsync(script, [], executable: executable);
 
         Assert.True(run.ExitCode == 0, run.Output);
         var posts = server.Requests.Where(r => r.Method == "POST").ToList();

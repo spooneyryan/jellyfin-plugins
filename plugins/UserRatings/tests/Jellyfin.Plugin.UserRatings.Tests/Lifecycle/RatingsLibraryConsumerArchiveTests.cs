@@ -13,6 +13,7 @@ using MediaBrowser.Controller.Entities.Movies;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
+using Jellyfin.Plugin.Kit.TestSupport;
 
 namespace Jellyfin.Plugin.UserRatings.Tests.Lifecycle;
 
@@ -213,7 +214,7 @@ public sealed partial class RatingsLibraryConsumerTests
         var (heat, onHeat) = await ArchivedHeatAsync();
         var primary = AddMovie("Heat (1995) primary", _shows, "949");
         _library.Hide(_alice, primary);
-        heat.PrimaryVersionId = primary.Id.ToString("N", CultureInfo.InvariantCulture);
+        heat.PrimaryVersionId = JellyfinLine.VersionId(primary.Id);
         _library.Add(heat);
         _library.RaiseAdded(heat);
 
@@ -229,7 +230,7 @@ public sealed partial class RatingsLibraryConsumerTests
     {
         var (heat, onHeat) = await ArchivedHeatAsync();
         var primary = AddMovie("Heat (1995) primary", _movies, "949");
-        heat.PrimaryVersionId = primary.Id.ToString("N", CultureInfo.InvariantCulture);
+        heat.PrimaryVersionId = JellyfinLine.VersionId(primary.Id);
         _library.Add(heat);
         _library.RaiseAdded(heat);
 

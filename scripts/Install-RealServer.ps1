@@ -8,10 +8,11 @@ For the person who runs the server, after the sandbox checks. It never starts, s
 server.
 
 What it installs: the plugin's release tag <plugin folder in lower case>/v<major>.<minor>.<patch> (bookmarks/v1.1.1),
--Version's or else the newest by version (compared as numbers: v1.10.0 is newer than v1.9.0), never the working tree it
+-Version's or else the newest by version (compared as numbers: v1.10.0 is newer than v1.9.0) of the server's line (a
+Jellyfin 10.11 server takes the releases its build.yaml describes, a Jellyfin 12 server those of build.12.yaml), never the working tree it
 runs from: between releases main carries unreleased work under the released version number, which would otherwise go onto
 the real server as that release. It refuses when there is no such tag, when two tags name the version, when the tag's
-plugins/<Plugin>/build.yaml doesn't say the tag's version as x.y.z.0, when no branch contains the tag's commit, and when the
+plugins/<Plugin>/build.yaml (build.12.yaml for a Jellyfin 12 server) doesn't say the tag's version as x.y.z.0, when no branch contains the tag's commit, and when the
 temporary worktree's folder (next to the repository: ..\jfp-rel-<plugin>-<x.y.z>) is already taken. It checks the tag out
 there as a detached worktree locked with this run's own reason (git worktree add --lock --reason "Install-RealServer.ps1
 run <id> (PID ..., started ...)"), backs the data folder up, builds the tag in Release (Deploy-Plugin.ps1 -RealServer
@@ -153,6 +154,10 @@ $repo = Get-RepoRoot
 $DataDir = ConvertFrom-DevicePath (Resolve-FullPath (ConvertTo-FileSystemPath -Path $DataDir -SessionState $ExecutionContext.SessionState))
 $BackupRoot = ConvertFrom-DevicePath (Resolve-FullPath (ConvertTo-FileSystemPath -Path $BackupRoot -SessionState $ExecutionContext.SessionState))
 $JellyfinDir = ConvertFrom-DevicePath (Resolve-FullPath (ConvertTo-FileSystemPath -Path $JellyfinDir -SessionState $ExecutionContext.SessionState))
+# The server's line (10.11, or 12 for a Jellyfin 12.x): its release tags, its build file (build.12.yaml) and its build. Without
+# a readable Jellyfin in -JellyfinDir, 10.11; Deploy-Plugin.ps1 then refuses before building and names -JellyfinDir.
+$jellyfinTarget = '10.11'
+try { $jellyfinTarget = Get-JellyfinTargetOf -JellyfinDir $JellyfinDir } catch { $jellyfinTarget = '10.11' }
 
 # --- 0. What is installed: the release tag, or for a rehearsal the working tree, never onto the real server.
 if ($FromWorkingTree) {
@@ -164,7 +169,7 @@ if ($FromWorkingTree) {
 
     if ($Version) { Stop-Refused '-Version picks a release tag, and -FromWorkingTree builds the working tree instead. Use one of them.' }
     $release = $null
-    try { $info = Get-PluginBuildInfo -Plugin $Plugin } catch { Stop-Refused $_.Exception.Message }
+    try { $info = Get-PluginBuildInfo -Plugin $Plugin -JellyfinTarget $jellyfinTarget } catch { Stop-Refused $_.Exception.Message }
 }
 else {
     if ($NoBuild) {
@@ -181,7 +186,7 @@ else {
     }
 
     try {
-        $release = Resolve-PluginRelease -Plugin $Plugin -RepoRoot $repo -Version $Version
+        $release = Resolve-PluginRelease -Plugin $Plugin -RepoRoot $repo -Version $Version -JellyfinTarget $jellyfinTarget
         $worktreeProblem = Get-ReleaseWorktreeProblem -Path $release.WorktreePath -RepoRoot $repo
     }
     catch {
@@ -277,7 +282,7 @@ if ($release) {
     if (-not $release.Newest) { $which = "picked by -Version $($release.Version) from $tagList, the newest being $($release.Tags[0].Name)" }
     $branches = @($release.Branches | Select-Object -First 3) -join ', '
     if (@($release.Branches).Count -gt 3) { $branches += ', ...' }
-    Write-Host "Release: $($release.Tag), commit $($release.Commit) (on $branches), $($info.Name) $($info.Version) by its build.yaml, $which"
+    Write-Host "Release: $($release.Tag), commit $($release.Commit) (on $branches), $($info.Name) $($info.Version) by its $($info.YamlName), $which"
     Write-Host ("Build: Release, from a temporary detached worktree of the tag at $($release.WorktreePath) (locked for this run, removed afterwards), " +
         "into a build folder of this run's own, installed from there and checked by SHA-256, then copied to artifacts\deploy\$($info.Folder)\Release")
     $source = "$($release.Tag) (commit $($release.Commit))"
@@ -286,7 +291,7 @@ if ($release) {
 else {
     $how = 'built in Release'
     if ($NoBuild) { $how = "its last Release build, artifacts\deploy\$($info.Folder)\Release" }
-    Write-Host "Source: the working tree of $repo (-FromWorkingTree, a rehearsal: never the real server), $($info.Name) $($info.Version) by its build.yaml, $how"
+    Write-Host "Source: the working tree of $repo (-FromWorkingTree, a rehearsal: never the real server), $($info.Name) $($info.Version) by its $($info.YamlName), $how"
     $source = "the working tree of $repo (-FromWorkingTree)"
     $operation = "Back up to $backup, then install $($info.Name) $($info.Version) from the working tree"
 }
@@ -491,10 +496,10 @@ try {
     # from a build folder of its own, and checks the installed files by SHA-256.
     try {
         if ($release) {
-            $deployed = @(& (Join-Path $PSScriptRoot 'Deploy-Plugin.ps1') -Plugin $Plugin -DataDir $DataDir -Configuration Release -RealServer -SourceRoot $worktree -ReleaseLock $lockReason -PassThru -JellyfinDir $JellyfinDir)
+            $deployed = @(& (Join-Path $PSScriptRoot 'Deploy-Plugin.ps1') -Plugin $Plugin -DataDir $DataDir -Configuration Release -RealServer -SourceRoot $worktree -ReleaseLock $lockReason -PassThru -JellyfinDir $JellyfinDir -JellyfinTarget $jellyfinTarget)
         }
         else {
-            $deployed = @(& (Join-Path $PSScriptRoot 'Deploy-Plugin.ps1') -Plugin $Plugin -DataDir $DataDir -Configuration Release -NoBuild:$NoBuild -PassThru -JellyfinDir $JellyfinDir)
+            $deployed = @(& (Join-Path $PSScriptRoot 'Deploy-Plugin.ps1') -Plugin $Plugin -DataDir $DataDir -Configuration Release -NoBuild:$NoBuild -PassThru -JellyfinDir $JellyfinDir -JellyfinTarget $jellyfinTarget)
         }
 
         $result = @($deployed | Where-Object { $null -ne $_ -and $_.PSObject.Properties['Files'] -and $_.PSObject.Properties['Target'] })

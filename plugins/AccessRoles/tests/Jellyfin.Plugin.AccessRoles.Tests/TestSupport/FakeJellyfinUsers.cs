@@ -14,6 +14,7 @@ using MediaBrowser.Controller.Library;
 using MediaBrowser.Model.Dto;
 using MediaBrowser.Model.Users;
 using Moq;
+using Jellyfin.Plugin.Kit.TestSupport;
 
 namespace Jellyfin.Plugin.AccessRoles.Tests.TestSupport;
 
@@ -39,7 +40,7 @@ internal sealed class FakeJellyfinUsers : ICommittedUsers
     public FakeJellyfinUsers()
     {
         Manager = new Mock<IUserManager>(MockBehavior.Loose);
-        Manager.SetupGet(m => m.Users).Returns(() => _cache.Values.ToList());
+        Manager.SetupUsers(() => _cache.Values.ToList());
         Manager.Setup(m => m.GetUserById(It.IsAny<Guid>())).Returns((Guid id) =>
         {
             GetCalls++;
@@ -214,6 +215,11 @@ internal sealed class FakeJellyfinUsers : ICommittedUsers
     {
         var user = new User(name, "Jellyfin.Server.Implementations.Users.DefaultAuthenticationProvider", "Jellyfin.Server.Implementations.Users.DefaultPasswordResetProvider");
         user.AddDefaultPermissions();
+#if JELLYFIN_12
+        // Accounts made before 10.11.7 have Live TV management on, and a server upgraded to 12 keeps it: the double's
+        // users are such accounts on both lines (12.4's AddDefaultPermissions turns it off for new ones).
+        user.SetPermission(PermissionKind.EnableLiveTvManagement, true);
+#endif
         user.AddDefaultPreferences();
         user.SetPermission(PermissionKind.IsAdministrator, admin);
         user.SetPermission(PermissionKind.IsDisabled, disabled);

@@ -248,6 +248,14 @@ class FakeNode extends FakeEventTarget {
         this.append(...nodes);
     }
 
+    after(...nodes) {
+        const parent = this.parentNode;
+        if (parent) {
+            const reference = this.nextSibling;
+            nodes.forEach((n) => parent.insertBefore(n, reference));
+        }
+    }
+
     get textContent() {
         return this.childNodes.map((n) => n.textContent).join('');
     }
@@ -294,6 +302,10 @@ class FakeText extends FakeNode {
 
     set textContent(value) {
         this.data = String(value);
+    }
+
+    cloneNode() {
+        return this.ownerDocument.createTextNode(this.data);
     }
 }
 
@@ -352,6 +364,16 @@ class FakeElement extends FakeNode {
         this.checked = false;
         this.isContentEditable = false;
         this._value = null;
+    }
+
+    cloneNode(deep) {
+        const copy = this.ownerDocument.createElement(this.tagName.toLowerCase());
+        this.attributes.forEach((a) => copy.setAttribute(a.name, a.value));
+        if (deep) {
+            this.childNodes.forEach((n) => copy.appendChild(n.cloneNode(true)));
+        }
+
+        return copy;
     }
 
     getAttribute(name) {
@@ -582,7 +604,8 @@ class FakeMutationObserver {
 
 function parseCompound(text) {
     const tests = [];
-    const re = /(\*|[a-zA-Z][\w-]*)|#([\w-]+)|\.([\w-]+)|\[([\w-]+)(?:=(?:"([^"]*)"|'([^']*)'|([^\]]*)))?\]|:not\(([^)]*)\)/g;
+    // [name], [name=value] and [name^=value] (a prefix: the modern layout's router links, href^="#/search").
+    const re = /(\*|[a-zA-Z][\w-]*)|#([\w-]+)|\.([\w-]+)|\[([\w-]+)(?:(\^)?=(?:"([^"]*)"|'([^']*)'|([^\]]*)))?\]|:not\(([^)]*)\)/g;
     let m;
     let consumed = 0;
     while ((m = re.exec(text)) !== null) {
@@ -603,10 +626,12 @@ function parseCompound(text) {
             tests.push((e) => e.classList.contains(c));
         } else if (m[4]) {
             const name = m[4];
-            const value = m[5] !== undefined ? m[5] : (m[6] !== undefined ? m[6] : m[7]);
-            tests.push((e) => e.hasAttribute(name) && (value === undefined || e.getAttribute(name) === value));
-        } else if (m[8] !== undefined) {
-            const inner = parseCompound(m[8].trim());
+            const prefix = m[5] === '^';
+            const value = m[6] !== undefined ? m[6] : (m[7] !== undefined ? m[7] : m[8]);
+            tests.push((e) => e.hasAttribute(name) && (value === undefined
+                || (prefix ? String(e.getAttribute(name)).startsWith(value) : e.getAttribute(name) === value)));
+        } else if (m[9] !== undefined) {
+            const inner = parseCompound(m[9].trim());
             tests.push((e) => !inner(e));
         }
     }

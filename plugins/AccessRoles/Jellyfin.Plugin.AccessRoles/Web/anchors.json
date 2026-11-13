@@ -220,10 +220,10 @@
     },
     {
       "name": "userEditorContent",
-      "css": ["#editUserPage:not(.hide) .content-primary", "#userLibraryAccessPage:not(.hide) .content-primary", "#userParentalControlPage:not(.hide) .content-primary", "#userPasswordPage:not(.hide) .content-primary", ".type-interior:not(.hide) .content-primary"],
+      "css": ["#editUserPage:not(.hide) .content-primary", "#userLibraryAccessPage:not(.hide) .content-primary", "#userParentalControlPage:not(.hide) .content-primary", "#userPasswordPage:not(.hide) .content-primary", "#usersEditPage:not(.hide) .content-primary", ".type-interior:not(.hide) .content-primary"],
       "required": false,
       "views": ["userpages"],
-      "note": "The stock Dashboard user editor's content, profile, access, parental control and password tabs (bundle: users-profile, users-access, users-parentalcontrol, users-password chunks). The admin banner goes first in it. Missing: no banner."
+      "note": "The stock Dashboard user editor's content, profile, access, parental control and password tabs (bundle: users-profile, users-access, users-parentalcontrol, users-password chunks; on 12.4 one React page, #usersEditPage in the users-edit chunk). The admin banner goes first in it. Missing: no banner."
     },
     {
       "name": "newUserContent",

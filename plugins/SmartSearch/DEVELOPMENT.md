@@ -6,16 +6,19 @@ groups, and save searches, private or shared. Every search runs as the signed-in
 A saved search can drive an **auto-collection**, a Jellyfin collection kept equal to its results. This is its technical documentation; the user guide is [README.md](README.md), the release notes the `changelog` in
 [build.yaml](build.yaml).
 
-Version **1.1.2** (release tag `smartsearch/v1.1.2`; earlier releases 1.1.1, `smartsearch/v1.1.1`, 1.1.0,
-`smartsearch/v1.1.0`, and 1.0.0, `smartsearch/v1.0.0`), for Jellyfin **10.11.5** (`net9.0`). Development builds after
-it are 1.1.2.`<n>`.
+Version **1.2.0** for Jellyfin **10.11.5** (`net9.0`, `build.yaml`) and **2.1.0** for Jellyfin **12.4**
+(`-p:JellyfinTarget=12`, `net10.0`, `build.12.yaml`), not yet tagged; the releases before it are 1.1.2
+(`smartsearch/v1.1.2`), 1.1.1 (`smartsearch/v1.1.1`), 1.1.0 (`smartsearch/v1.1.0`) and 1.0.0 (`smartsearch/v1.0.0`),
+and 2.0.0 for Jellyfin 12.
 
 - **In 1.0.0:** the page with its basic and advanced forms, results, links and saved queries; the header button; the
   settings page with export, import and snapshots; the engine and its lookups, as described below.
 - **New in 1.1.0:** the auto-collections: definitions, runs, triggers, the guard, manual edits, the reference guard over
   the saved queries, the Auto-collections tab, the note on a collection's page, export and import, Diagnostics.
 - **New in 1.1.1:** the auto-collections' default poster (`AutoCollectionDefaultImage`), and the plugin's image.
-- **Not in 1.1.0:** the `People` and `Collection` fields and stream facts (audio and subtitle languages, HDR), regular
+- **New in 1.2.0 (2.1.0):** the `People` field (people and a role; any, all, none or not all of them, the new operator
+  `NotAllOf`), its resolver and pushdown, `GET /SmartSearch/People` and the person picker with its role select.
+- **Not in 1.2.0:** the `Collection` field and stream facts (audio and subtitle languages, HDR), regular
   expressions (built, off and not listed), reordering rules, `Explain`, the native search page's link; for
   auto-collections, archiving detached pins and excludes, narrowing a library change to the definitions over that
   library, and aggregated genres.
@@ -51,7 +54,7 @@ the `SmartSearch` provider id).
   newer version is unsupported as a whole (version 1 is the only one so far, so the migrator has nothing to upgrade
   yet). A query is written with its text as it is, and the 64 KB limit holds for the written form too. The model is
   the body of `/Search` and `/Validate`.
-- **The field catalogue:** 33 fields and 15 sort keys, each field with its in-memory semantics: text compared without
+- **The field catalogue:** 34 fields and 15 sort keys, each field with its in-memory semantics: text compared without
   case or accents (as Jellyfin's own `CleanName`), the path ignoring case only, numbers and dates where an empty value
   fails every positive rule and passes every negative one, ratings as the database stores them, a date without a time
   as a whole day of the server's calendar (a time with a zone as an exact instant), `InLast` counting back from now,
@@ -62,10 +65,25 @@ the `SmartSearch` provider id).
   `GET /SmartSearch/Fields` serves the catalogue to the rule builder; the administrator-only field `Path` only to
   administrators. Regular expressions (`Matches`) are built but wait for a query-level cancellation: they are off and
   not listed. The `Runtime` field counts a runtime under half a minute as 1 minute, as the web client shows it.
+  **`People`** (`List` of `{Id, Name}` references from `/People`, option `Role`: `Actor`, `Director`, `Writer`,
+  `Producer`, `Composer`, `GuestStar`, or none for any role; `AnyOf`, `AllOf`, `NoneOf`, `NotAllOf`) holds when the item
+  itself credits any, every, none, or not every one of the people in the role (a show's cast is on the show, a guest
+  star on the episode). The person is the `Person` item of the reference's id, else of its name (`GetPerson`), so a
+  saved rule survives people being rebuilt; one the server has neither of is credited on nothing (the stored id isn't
+  rewritten); a reference id listed twice counts once, under its smallest name, as in the canonical form.
+  `PeopleRoleResolver` reads a person's items with `PersonIds` in the plan's libraries, kinds and access, counted
+  against the candidate budget; core matches the credits by the person's name, exactly. The role: Jellyfin 12 filters
+  `PersonTypes` on the same credit; 10.11 ignores `PersonTypes` in item queries, so there the person's items in any role
+  are read (not counted, but all of an evaluation's together refused `QueryTooBroad` past the budget's maximum) and an
+  item's credits of the role are read only when the evaluator asks about that item (`GetPeople` with `ItemId`, once per
+  item and person).
 - **The planner**: turns a query into the user-aware query Jellyfin runs in SQL
   plus the rules left to check in memory. A filter is pushed to SQL only when it keeps every match (exactly, or a wider
   set that is checked again), never wider access than Jellyfin's own `/Items` for the same user; an `Any` group pushes
-  only what all its branches share, a negated group nothing; a `Library` rule only counts the libraries the user can
+  only what all its branches share, a negated group nothing; a `People` rule pushes `PersonIds` (exact for any of the
+  people in any role, and on Jellyfin 12 in a role too, with `PersonTypes`; a superset re-checked in memory on 10.11 with
+  a role, and for all of them, the first person; none and not all aren't pushed; an unknown person under any of them
+  or all of them empties the plan); a `Library` rule only counts the libraries the user can
   open; a `Series` rule pushes only ids that are series (an episode's ancestors also hold its season, folder and every
   library over that folder); a `SeriesName` rule's names and a `Studios` rule's studios are looked up in the user's own
   scope (the episodes and items they can see), so a name only hidden items carry plans exactly like a name nobody has;
@@ -111,8 +129,19 @@ the `SmartSearch` provider id).
   that don't bind are a 400 `InvalidRequest` in the same shape. The lookups answer from what the user can see:
   `/Libraries` the libraries they can open; `/Values/{fieldId}` (Genres, Tags, Studios, OfficialRating, Container)
   each value with the number of the user's visible items of the allowed kinds that carry it; `/Series` the series whose
-  name contains the text (2 characters at least). Text matches anywhere, ignoring case and accents; those that start
-  with it come first.
+  name contains the text (2 characters at least); `/People` (`Search/PersonTypeahead`) the people whose name contains
+  the text (2 characters at least). Names come from `GetPeopleNames` (at most 1,000), asked for the longest ASCII run of
+  the text (SQLite upper-cases ASCII only), the whole text then matched in memory ignoring case and accents; Jellyfin 12
+  asks, for a user with content restrictions, only for people credited on an item they can reach (`AccessFilter` as
+  core's `PersonsController` builds it: the user's access with owned items, here in their libraries; none without
+  restrictions), the names starting with the text first (a `lower(Name)` range); 10.11 can't scope or order them. Those
+  starting with the text come first, then by name; at most 100 names are looked up (each counts, with or without a
+  `Person`), and the request stops after 10 people in a row that `Person.IsVisible` hides. A person is kept only when
+  `Person.IsVisible` lets the user see it and an item of the People field's allowed kinds in the user's libraries
+  credits them: one `GetItemList` with `PersonIds` and the user's access query (at most 10 items, no total count), an
+  extra not counting; core enforces the access (12.4 in SQL, `ApplyAccessFiltering`; 10.11.5 in SQL, then
+  `IsVisible`). A person credited only on what the user can't see is never suggested. A request takes a search slot
+  (Busy, 503, when none comes free) and stops when the request is aborted.
 - **The value index** (`Search/ValueIndexService`) behind `/Values`, `/Series` and the planner's lookups: per library
   folder and parental profile (limit, unrated kinds, blocked and allowed tags), so users of one profile share it; box
   set libraries are left out. One build per key at a time (a second caller waits for it with its own token), at most 2
@@ -144,7 +173,8 @@ the `SmartSearch` provider id).
   50 children a group) and rules; each rule's field select lists `/Fields` by its groups, a field that doesn't suit
   the chosen kinds marked, not disabled. A field's type and `ElementKind` choose the editor: text, number, date, an
   amount and unit, yes or no, choice buttons, a library list, or chips with suggestions (`/Values/{id}` for the
-  chosen libraries; shows from `/Series` after two letters, kept with their id and name); a change of field keeps the
+  chosen libraries; shows from `/Series` and people from `/People` after two letters, kept with their id and name; a
+  People rule's role select, "In any role" first); a change of field keeps the
   condition when the new field has it. The checks (`ssCheckTree`) mirror the server's messages by JSON path and run
   before a search and a save; the server's own errors land on the same nodes. Every control has a label and a
   `data-jfss-focus` key, so after each change the tree is drawn again and the focus returns to the same control, or the
@@ -446,6 +476,7 @@ the `SmartSearch` provider id).
 | GET | `/SmartSearch/Libraries` | signed-in users (not API keys) | the user's libraries |
 | GET | `/SmartSearch/Values/{fieldId}?prefix&libraryIds&limit` | signed-in users (not API keys) | a field's values with counts; `libraryIds` repeated, `limit` 1–100 (20) |
 | GET | `/SmartSearch/Series?prefix&limit` | signed-in users (not API keys) | series by name; `limit` 1–100 (20) |
+| GET | `/SmartSearch/People?prefix&limit` | signed-in users (not API keys) | people credited on what the user can see, by name → `[{Id, Name}]`; `prefix` 2 characters at least, `limit` 1–100 (20) |
 | GET | `/SmartSearch/Queries?scope&startIndex&limit` | signed-in users (not API keys) | the user's queries and the shared ones (`scope` `Mine`, `Shared` or `All`; `limit` 1–500, 100) → `{Items, TotalRecordCount, StartIndex}` |
 | GET | `/SmartSearch/Queries/{id}` | signed-in users (not API keys) | a query with its definition, `Supported`, `Valid`, `Errors`, `CanEdit` (`AutoCollectionCount` for the owner and administrators only, 0 for others) |
 | POST | `/SmartSearch/Queries` | signed-in users (not API keys) | saves `{Name, Description, Shared, Query}` (72 KB at most) → 201 |

@@ -12,4 +12,5 @@ namespace Jellyfin.Plugin.SmartSearch.Query.Planning;
 /// <param name="Membership">The library membership resolver.</param>
 /// <param name="User">The user whose access and data apply, or <c>null</c>.</param>
 /// <param name="IncludeMissing">Whether missing (virtual) items are in scope.</param>
-internal sealed record PlanningScope(IReadOnlySet<BaseItemKind> Kinds, IReadOnlyList<Guid> AllowedFolders, LibraryMembership Membership, User? User, bool IncludeMissing);
+/// <param name="People">The people role resolver (the <c>People</c> rules' persons and their items).</param>
+internal sealed record PlanningScope(IReadOnlySet<BaseItemKind> Kinds, IReadOnlyList<Guid> AllowedFolders, LibraryMembership Membership, User? User, bool IncludeMissing, PeopleRoleResolver People);

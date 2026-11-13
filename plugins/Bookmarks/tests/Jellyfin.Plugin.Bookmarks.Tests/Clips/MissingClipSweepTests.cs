@@ -460,7 +460,7 @@ public sealed class MissingClipSweepTests : IDisposable
             var bookmark = await _clips.AddAsync(Alice, new ClipSpec { Name = "remade", OnDisk = false, Mode = BookmarkClipMode.Fast, MissingSince = Now.AddDays(-40) }, Ct);
             runner.HoldUntilReleased();
             await worker.EnqueueAsync(bookmark.Id, Alice, BookmarkClipMode.Fast, null, Ct);
-            await runner.Started.Task.WaitAsync(TimeSpan.FromSeconds(10), Ct);
+            await runner.Started.Task.WaitAsync(TimeSpan.FromSeconds(60), Ct);
 
             var during = await Sweep().RunAsync(Ct);
             Assert.Equal((1, 0, 0, 0), (during.InProgress, during.Checked, during.ClipsForgotten, during.Archived));

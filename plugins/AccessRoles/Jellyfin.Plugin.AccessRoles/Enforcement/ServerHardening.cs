@@ -334,7 +334,12 @@ internal sealed class ServerHardening
             case RuleKind.HardenPlaylist:
                 return executed => FilterPlaylist(request, rule, executed);
             case RuleKind.HardenPeople:
+#if JELLYFIN_12
+                // Jellyfin 12's /Persons also takes a parentId to scope the people to.
+                if (request.HideWhenHidden(rule, () => new OkObjectResult(new QueryResult<BaseItemDto>()), "appearsInItemId", "parentId"))
+#else
                 if (request.HideWhenHidden(rule, () => new OkObjectResult(new QueryResult<BaseItemDto>()), "appearsInItemId"))
+#endif
                 {
                     return null;
                 }
@@ -472,8 +477,11 @@ internal sealed class ServerHardening
             Name = u.Name,
             ServerId = u.ServerId,
             PrimaryImageTag = u.PrimaryImageTag,
+#if !JELLYFIN_12
+            // Jellyfin 12 no longer tells (both are obsolete there and default to true).
             HasPassword = u.HasPassword,
             HasConfiguredPassword = u.HasConfiguredPassword,
+#endif
 #pragma warning disable CS0618 // One of the login screen's fields, obsolete since 10.9 but still sent.
             HasConfiguredEasyPassword = u.HasConfiguredEasyPassword,
 #pragma warning restore CS0618
@@ -530,7 +538,13 @@ internal sealed class ServerHardening
         var kept = page.Items.Where(p => p?.Name is { } name && visible.Contains(name)).ToArray();
         if (kept.Length != page.Items.Count)
         {
+#if JELLYFIN_12
+            // Jellyfin 12 pages /Persons: the page keeps its start and its total, less the names taken out.
+            var total = page.TotalRecordCount - (page.Items.Count - kept.Length);
+            executed.Result = Replace(result, new QueryResult<BaseItemDto>(page.StartIndex, Math.Max(total, kept.Length), kept));
+#else
             executed.Result = Replace(result, new QueryResult<BaseItemDto>(kept));
+#endif
             request.Count(rule, BlockCounter.Hidden);
         }
     }
@@ -566,11 +580,14 @@ internal sealed class ServerHardening
                 hid = true;
             }
 
+#if !JELLYFIN_12
+            // Jellyfin 12 sends no full items of the queue.
             if (session.NowPlayingQueueFullItems is { Count: > 0 } full && full.Any(d => d is not null && request.Hidden(d.Id)))
             {
                 session.NowPlayingQueueFullItems = [.. full.Where(d => d is null || !request.Hidden(d.Id))];
                 hid = true;
             }
+#endif
         }
 
         executed.Result = Replace(result, list);

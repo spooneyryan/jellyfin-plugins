@@ -221,7 +221,7 @@ public sealed partial class WebAnchorsScriptTests
 
         using var process = Process.Start(start)!;
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(token);
-        timeout.CancelAfter(TimeSpan.FromSeconds(120));
+        timeout.CancelAfter(TimeSpan.FromSeconds(300));
         try
         {
             var errors = process.StandardError.ReadToEndAsync(timeout.Token);

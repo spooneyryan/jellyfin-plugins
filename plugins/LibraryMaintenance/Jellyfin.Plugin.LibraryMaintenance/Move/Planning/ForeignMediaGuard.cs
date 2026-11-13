@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using Emby.Naming.Common;
+using Jellyfin.Plugin.Kit.Library;
 using MediaBrowser.Controller.Library;
 
 namespace Jellyfin.Plugin.LibraryMaintenance.Move.Planning;
@@ -65,14 +66,14 @@ internal static class ForeignMediaGuard
 
                 if (isDirectory)
                 {
-                    if (IsOther(library.FindByPath(entry.FullName, null), entry.FullName, ownIds, ownPaths))
+                    if (IsOther(KitItemQueries.FindAnyByPath(library, entry.FullName, null), entry.FullName, ownIds, ownPaths))
                     {
                         foreign.Add(entry.FullName);
                     }
 
                     pending.Push(entry.FullName);
                 }
-                else if (SidecarMatcher.IsVideo(entry.Name, naming) && IsOther(library.FindByPath(entry.FullName, false), entry.FullName, ownIds, ownPaths))
+                else if (SidecarMatcher.IsVideo(entry.Name, naming) && IsOther(KitItemQueries.FindAnyByPath(library, entry.FullName, false), entry.FullName, ownIds, ownPaths))
                 {
                     foreign.Add(entry.FullName);
                 }

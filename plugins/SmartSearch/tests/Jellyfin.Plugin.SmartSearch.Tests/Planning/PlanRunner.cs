@@ -183,12 +183,22 @@ internal static class PlanRunner
             return core.Rows.Where(r => r.TopParentId is { } top && theirs.Contains(top) && InScope(r)).Select(r => r.Id).ToHashSet();
         }
 
+        // A People rule's truth: the rows with a credit of the person's name (the Person item of the reference's id, else
+        // of its name), in the role when one is named.
+        Func<Guid, bool> People(Guid id, string? name, string? role)
+        {
+            var person = core.PersonName(id, name);
+            var set = person is null ? new HashSet<Guid>() : core.Rows.Where(r => r.Credits.Any(c => c.Name == person && (role is null || c.Type == role))).Select(r => r.Id).ToHashSet();
+            return set.Contains;
+        }
+
         var test = RuleTree.Compile(query.Where, Registry, new EvaluationEnvironment
         {
             NowUtc = environment.NowUtc,
             TimeZone = environment.TimeZone,
             RatingScore = environment.RatingScore,
-            LibraryMembers = Members
+            LibraryMembers = Members,
+            PeopleMembers = People
         });
         var access = AccessQuery(user);
         return core.Rows

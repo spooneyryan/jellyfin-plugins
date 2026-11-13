@@ -3,8 +3,9 @@
 // (EnableSearchPage) and ShowHeaderButton is on (the entry points' JSON block, SmartSearchKit.EntryPointsFragment), and
 // it copies the native button's hide class through an attribute observer, so it shows exactly when that button does:
 // after a local user signs in, not on the login page, not after signing out. It is added once and checked again on every
-// scan and viewshow, so a header jellyfin-web builds again gets it back. Without the native button (the experimental
-// layout) there is no button; the drawer link remains, and the health check reports the missing anchor once.
+// scan and viewshow, so a header jellyfin-web builds again gets it back. In the modern layout (Jellyfin 12's default)
+// the native button is the app bar's, which React draws: the button goes before it the same way. Without the native
+// button there is no button; the page's own link remains, and the health check reports the missing anchor once.
 
 const SS_HEADER_ATTR = 'data-jfss-header';
 const SS_ENTRY_POINTS_ATTR = 'data-jfss-entrypoints';

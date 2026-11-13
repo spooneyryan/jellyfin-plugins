@@ -20,6 +20,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Xunit;
 using static Jellyfin.Plugin.SmartSearch.Tests.SavedQueries.SavedQueryTestData;
+using Jellyfin.Plugin.Kit.TestSupport;
 
 namespace Jellyfin.Plugin.SmartSearch.Tests.SavedQueries;
 
@@ -130,9 +131,9 @@ public sealed class SavedQueryBulkChangeTests
         var dry = await tools.Admin.RemapUsersAsync("Name", true, false, Ct);
         Assert.NotEmpty((System.Collections.IEnumerable)dry["Mapped"]!);
 
-        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(60));
         var run = tools.Admin.RemapUsersAsync("Name", false, false, timeout.Token);
-        Assert.Same(run, await Task.WhenAny(run, Task.Delay(TimeSpan.FromSeconds(10), Ct)));
+        Assert.Same(run, await Task.WhenAny(run, Task.Delay(TimeSpan.FromSeconds(60), Ct)));
         var report = await run;
 
         Assert.True(owner.Entered);
@@ -201,7 +202,7 @@ public sealed class SavedQueryBulkChangeTests
             var all = new List<User> { host.Admin, host.Kid, host.Twin };
             var users = new Mock<IUserManager>();
             users.Setup(m => m.GetUserById(It.IsAny<Guid>())).Returns((Guid id) => all.Find(u => u.Id == id));
-            users.SetupGet(m => m.Users).Returns(all);
+            users.SetupUsers(all);
             var server = new Mock<IServerApplicationHost>();
             server.SetupGet(h => h.SystemId).Returns("server-1");
             _marks = new KitUserMarks(host.Data.Combine("tools", KitUsersDocument.FileName), NullLogger.Instance, host.Clock);

@@ -1,3 +1,4 @@
+using Jellyfin.Plugin.Kit.TestSupport;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -52,7 +53,7 @@ public sealed class UserEventsTests : IDisposable
 
     public UserEventsTests()
     {
-        _host.SetupGet(h => h.ApplicationVersion).Returns(Version.Parse("10.11.5"));
+        _host.SetupGet(h => h.ApplicationVersion).Returns(JellyfinLine.Server);
         var configuration = new FakeConfigurationProvider(() => _h.Configuration);
         _service = new LibrarySyncService(_host.Object, _h.Sync, _h.Store, _h.Writer, null, configuration, _h.Status, NullLogger.Instance, _h.Clock);
         _admin = new AccessRolesAdminService(_h.Store, _h.Catalog, new JellyfinServerUsers(_h.Server.Manager.Object), _h.Audit, () => throw new NotSupportedException(), () => _h.Sync, NullLogger.Instance, _h.Clock);

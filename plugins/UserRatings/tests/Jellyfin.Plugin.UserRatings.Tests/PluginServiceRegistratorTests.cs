@@ -43,10 +43,11 @@ public sealed class PluginServiceRegistratorTests : IDisposable
     private readonly TempDirectory _data = new();
 
     [Theory]
-    [InlineData("10.11.5")]
-    [InlineData("10.11.11")]
-    public void On1011_RegistersTheKit_TheWebClient_Diagnostics_TheStore_AndTheMaintenance(string version)
+    [InlineData(false)]
+    [InlineData(true)]
+    public void OnItsLine_RegistersTheKit_TheWebClient_Diagnostics_TheStore_AndTheMaintenance(bool laterPatch)
     {
+        var version = laterPatch ? JellyfinLine.LaterPatchVersion : JellyfinLine.ServerVersion;
         var services = Register(version);
 
         Assert.True(Assert.IsType<KitAbiStatus>(Assert.Single(services, d => d.ServiceType == typeof(KitAbiStatus)).ImplementationInstance).IsActive);
@@ -140,13 +141,13 @@ public sealed class PluginServiceRegistratorTests : IDisposable
     }
 
     [Fact]
-    public void On121_RegistersNothingButTheAbiStatus()
+    public void OnTheOtherLine_RegistersNothingButTheAbiStatus()
     {
-        var services = Register("12.1.0");
+        var services = Register(JellyfinLine.OtherLineVersion);
 
         var status = Assert.IsType<KitAbiStatus>(Assert.Single(services).ImplementationInstance);
         Assert.False(status.IsActive);
-        Assert.Equal("User Ratings is built for Jellyfin 10.11, but the server is Jellyfin 12.1.0: the plugin is inactive. Install the User Ratings build for Jellyfin 12.", status.Message);
+        Assert.Equal($"User Ratings is built for Jellyfin {JellyfinLine.Target}, but the server is Jellyfin {JellyfinLine.OtherLineVersion}: the plugin is inactive. Install the User Ratings build for Jellyfin {JellyfinLine.OtherTarget}.", status.Message);
     }
 
     [Fact]
@@ -284,7 +285,7 @@ public sealed class PluginServiceRegistratorTests : IDisposable
         }
 
         var host = new Mock<IServerApplicationHost>();
-        host.SetupGet(h => h.ApplicationVersion).Returns(Version.Parse("10.11.5"));
+        host.SetupGet(h => h.ApplicationVersion).Returns(JellyfinLine.Server);
         host.SetupGet(h => h.CoreStartupHasCompleted).Returns(true);
         new PluginServiceRegistrator().RegisterServices(services, host.Object);
         var paths = new Mock<IApplicationPaths>();

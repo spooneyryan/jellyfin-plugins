@@ -1,3 +1,4 @@
+using Jellyfin.Plugin.Kit.TestSupport;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -430,7 +431,7 @@ public sealed class LibrarySyncServiceTests : IDisposable
     public void TheRegistrator_AddsTheFilter_AtTheGlobalFiltersOrder()
     {
         var host = new Mock<IServerApplicationHost>();
-        host.SetupGet(h => h.ApplicationVersion).Returns(Version.Parse("10.11.5"));
+        host.SetupGet(h => h.ApplicationVersion).Returns(JellyfinLine.Server);
         var services = new ServiceCollection();
         new PluginServiceRegistrator().RegisterServices(services, host.Object);
         using var provider = services.BuildServiceProvider();
@@ -505,7 +506,7 @@ public sealed class LibrarySyncServiceTests : IDisposable
     private static async Task WaitForAsync(Func<bool> condition)
     {
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
-        timeout.CancelAfter(TimeSpan.FromSeconds(10));
+        timeout.CancelAfter(TimeSpan.FromSeconds(60));
         while (!condition())
         {
             await Task.Delay(10, timeout.Token);

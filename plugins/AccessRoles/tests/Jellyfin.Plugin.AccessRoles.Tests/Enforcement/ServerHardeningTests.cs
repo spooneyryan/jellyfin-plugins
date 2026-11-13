@@ -345,9 +345,14 @@ public sealed class ServerHardeningTests : IDisposable
             TunerHosts = [new TunerHostInfo { Url = "http://user:pass@m3u.example/list.m3u", Source = "secret-source", Type = "m3u" }],
             ListingProviders = [new ListingsProviderInfo { Username = "sd-user", Password = "sd-hash", Path = "http://xmltv.example/?key=k", Type = "SchedulesDirect" }]
         };
-        var subtitles = new SubtitleOptions { OpenSubtitlesUsername = "os-user", OpenSubtitlesPasswordHash = "os-hash" };
         var network = new NetworkConfiguration { CertificatePassword = "secret-pfx" };
+#if JELLYFIN_12
+        // Jellyfin 12 has no subtitles configuration (SubtitleOptions was removed).
+        var lives = new object[] { liveTv, network, new ServerConfiguration(), new EncodingOptions(), new MetadataConfiguration() };
+#else
+        var subtitles = new SubtitleOptions { OpenSubtitlesUsername = "os-user", OpenSubtitlesPasswordHash = "os-hash" };
         var lives = new object[] { liveTv, subtitles, network, new ServerConfiguration(), new EncodingOptions(), new MetadataConfiguration() };
+#endif
         var before = lives.Select(Json).ToList();
 
         foreach (var live in lives)
@@ -383,7 +388,9 @@ public sealed class ServerHardeningTests : IDisposable
         {
             new NetworkConfiguration { CertificatePassword = "x", KnownProxies = ["1.2.3.4"], LocalNetworkSubnets = ["10.0.0.0/8"] },
             new LiveTvOptions { TunerHosts = [new TunerHostInfo { Url = "u", Source = "s", Id = "1" }], ListingProviders = [new ListingsProviderInfo { Username = "n", Password = "p", Path = "x", Id = "2" }] },
+#if !JELLYFIN_12
             new SubtitleOptions { OpenSubtitlesUsername = "n", OpenSubtitlesPasswordHash = "h", DownloadLanguages = ["eng"] },
+#endif
             database,
             new ServerConfiguration { ServerName = "box", MetadataPath = "metadata" },
             new EncodingOptions { EncoderAppPath = "ffmpeg" },
@@ -450,10 +457,12 @@ public sealed class ServerHardeningTests : IDisposable
     [Fact]
     public async Task ThePublicUserList_IsTrimmedToTheLoginFields_ForAnonymousCallersAndNonAdmins_OnNewObjects()
     {
+#pragma warning disable CS0618 // Obsolete on Jellyfin 12 (always true there), still sent.
         List<UserDto> Users() =>
         [
             new UserDto { Id = _viewer.Id, Name = "viewer", ServerId = "srv", PrimaryImageTag = "tag", HasPassword = true, HasConfiguredPassword = true, LastLoginDate = DateTime.UnixEpoch, Policy = new() { EnabledFolders = [_hidden.Id] } }
         ];
+#pragma warning restore CS0618
 
         var (_, anonymous) = await _h.RunWithResultAsync(Descriptor("UserController.GetPublicUsers"), FilterHarness.Anonymous(), null, new OkObjectResult(Users()));
         var trimmed = Assert.Single((IEnumerable<UserDto>)Assert.IsAssignableFrom<ObjectResult>(anonymous).Value!);
@@ -655,7 +664,12 @@ public sealed class ServerHardeningTests : IDisposable
         var playing = new BaseItemDto { Id = _hiddenMovie.Id, Name = "Hidden movie" };
         var sessions = new List<SessionInfoDto>
         {
+#if JELLYFIN_12
+            // Jellyfin 12 sends no full items of the queue.
+            new() { Id = "admin's", NowPlayingItem = playing, NowViewingItem = new BaseItemDto { Id = _episode.Id }, NowPlayingQueue = queue },
+#else
             new() { Id = "admin's", NowPlayingItem = playing, NowViewingItem = new BaseItemDto { Id = _episode.Id }, NowPlayingQueue = queue, NowPlayingQueueFullItems = full },
+#endif
             new() { Id = "viewer's", NowPlayingItem = new BaseItemDto { Id = _visible.Id } }
         };
 
@@ -665,7 +679,9 @@ public sealed class ServerHardeningTests : IDisposable
         Assert.Null(list[0].NowPlayingItem);
         Assert.Null(list[0].NowViewingItem);
         Assert.Equal([_visible.Id], list[0].NowPlayingQueue!.Select(q => q.Id));
+#if !JELLYFIN_12
         Assert.Equal([_visible.Id], list[0].NowPlayingQueueFullItems!.Select(d => d.Id));
+#endif
         Assert.Equal(_visible.Id, list[1].NowPlayingItem!.Id);
         Assert.Equal(2, queue.Count);
         Assert.Equal(2, full.Count);

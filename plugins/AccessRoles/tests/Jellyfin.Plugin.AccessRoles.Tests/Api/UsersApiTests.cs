@@ -16,6 +16,7 @@ using Jellyfin.Plugin.AccessRoles.Storage;
 using Jellyfin.Plugin.AccessRoles.Tests.TestSupport;
 using Xunit;
 using static Jellyfin.Plugin.AccessRoles.Tests.TestSupport.AccessFixtures;
+using Jellyfin.Plugin.Kit.TestSupport;
 
 namespace Jellyfin.Plugin.AccessRoles.Tests.Api;
 
@@ -963,5 +964,5 @@ public sealed class UsersApiTests
 
     private static DateTime Token(AccessRolesApi api, User user) => api.Store.Current.Assignments.Single(a => a.UserId.Equals(user.Id)).UpdatedUtc;
 
-    private static User User(AccessRolesApi api, string name) => api.UserManager.Object.Users.Single(u => u.Username == name);
+    private static User User(AccessRolesApi api, string name) => api.UserManager.Object.AllUsers().Single(u => u.Username == name);
 }

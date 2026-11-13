@@ -529,7 +529,7 @@ public sealed class AdminClipsApiTests : IAsyncLifetime
     {
         // The plugin's own registrations for everything this touches; Jellyfin's services are mocks, ffmpeg is fake.
         var applicationHost = new Mock<IServerApplicationHost>();
-        applicationHost.SetupGet(h => h.ApplicationVersion).Returns(new Version(10, 11, 5));
+        applicationHost.SetupGet(h => h.ApplicationVersion).Returns(JellyfinLine.Server);
         applicationHost.SetupGet(h => h.CoreStartupHasCompleted).Returns(true);
         var registered = new ServiceCollection();
         new PluginServiceRegistrator().RegisterServices(registered, applicationHost.Object);
@@ -554,7 +554,7 @@ public sealed class AdminClipsApiTests : IAsyncLifetime
         users.Setup(m => m.GetUserById(AliceId)).Returns(_alice);
         users.Setup(m => m.GetUserById(BobId)).Returns(_bob);
         users.Setup(m => m.GetUserById(CarolId)).Returns(_carol);
-        users.SetupGet(m => m.Users).Returns([_alice, _bob, _carol]);
+        users.SetupUsers([_alice, _bob, _carol]);
         var heat = new MediaBrowser.Controller.Entities.Movies.Movie { Id = HeatId, Name = "Heat", ProductionYear = 1995, RunTimeTicks = 3000 * TestData.OneSecond, Path = @"C:\media\Heat (1995).mkv" };
         var library = new Mock<ILibraryManager>();
         library.Setup(m => m.GetItemById<Video>(It.IsAny<Guid>(), It.IsAny<User?>()))

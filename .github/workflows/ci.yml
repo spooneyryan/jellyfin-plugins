@@ -2,6 +2,8 @@
 # also package that plugin and publish its zip as the tag's GitHub release. The release procedure is in scripts/README.md.
 # Run by hand (workflow_dispatch), it only packages the chosen plugin as a tag would and checks it against manifest.json,
 # without the tests and without releasing; the zip and its per-file SHA-256s are kept as the run's artifact.
+# Every plugin has two lines: Jellyfin 10.11 (build.yaml, net9.0, 1.x) and Jellyfin 12 (build.12.yaml, net10.0, 2.x,
+# built with -p:JellyfinTarget=12). The tests run for both; a tag's line is the build file that says its version.
 name: CI
 
 on:
@@ -16,6 +18,12 @@ on:
         required: true
         type: choice
         options: [AccessRoles, Bookmarks, LibraryMaintenance, SmartSearch, TagCloud, UserRatings]
+      jellyfin_target:
+        description: Jellyfin line to package (10.11 is build.yaml, 12 is build.12.yaml)
+        required: true
+        default: '10.11'
+        type: choice
+        options: ['10.11', '12']
 
 permissions:
   contents: read
@@ -37,6 +45,19 @@ jobs:
     if: github.event_name != 'workflow_dispatch'
     runs-on: windows-latest
     timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - jellyfin_target: '10.11'
+            jellyfin_tag: v10.11.5
+            framework: net9.0
+          - jellyfin_target: '12'
+            jellyfin_tag: v12.4
+            framework: net10.0
+    name: test (Jellyfin ${{ matrix.jellyfin_target }})
+    env:
+      JELLYFIN_TARGET: ${{ matrix.jellyfin_target }}
     steps:
       - uses: actions/checkout@v5
         with:
@@ -44,7 +65,8 @@ jobs:
 
       - uses: actions/setup-dotnet@v5
         with:
-          # 9.0 builds Jellyfin.Api below (its global.json asks for a 9.0 SDK); RELEASE_SDK builds the plugins.
+          # 9.0 builds Jellyfin.Api 10.11.5 below (its global.json asks for a 9.0 SDK); RELEASE_SDK builds the plugins
+          # and Jellyfin.Api 12.4 (its global.json asks for 10.0.0 or a later 10.0 SDK).
           dotnet-version: |
             9.0.x
             ${{ env.RELEASE_SDK }}
@@ -61,32 +83,39 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Build Jellyfin.Api 10.11.5 for the Access Roles action-manifest test
+      - name: Build Jellyfin.Api ${{ matrix.jellyfin_tag }} for the Access Roles action-manifest test
         shell: pwsh
+        env:
+          JELLYFIN_TAG: ${{ matrix.jellyfin_tag }}
+          FRAMEWORK: ${{ matrix.framework }}
         run: |
           $source = Join-Path $env:RUNNER_TEMP 'jellyfin'
-          git clone --quiet --depth 1 --branch v10.11.5 https://github.com/jellyfin/jellyfin.git $source
+          git clone --quiet --depth 1 --branch $env:JELLYFIN_TAG https://github.com/jellyfin/jellyfin.git $source
           if ($LASTEXITCODE -ne 0) { throw 'git clone failed' }
-          # From the clone's folder, so its own global.json picks the 9.0 SDK.
+          # From the clone's folder, so its own global.json picks its SDK.
           Push-Location $source
           dotnet build Jellyfin.Api/Jellyfin.Api.csproj -c Release --nologo -v quiet -p:TreatWarningsAsErrors=false
           $built = $LASTEXITCODE
           Pop-Location
           if ($built -ne 0) { throw 'The Jellyfin.Api build failed' }
-          $dll = Join-Path $source 'Jellyfin.Api/bin/Release/net9.0/Jellyfin.Api.dll'
+          $dll = Join-Path $source "Jellyfin.Api/bin/Release/$env:FRAMEWORK/Jellyfin.Api.dll"
           if (-not (Test-Path -LiteralPath $dll)) { throw "No $dll" }
           "JELLYFIN_API_DLL=$dll" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
       - name: Build
-        run: dotnet build jellyfin-plugins.slnx -c Release --nologo
+        run: dotnet build jellyfin-plugins.slnx -c Release --nologo -p:JellyfinTarget=${{ matrix.jellyfin_target }}
 
       # Windows PowerShell, the shell the scripts target: the tests start powershell.exe, and one started from pwsh
       # inherits pwsh's PSModulePath (the tests and JellyfinSandbox.psm1 also drop 7's module folders themselves).
+      # -m:2: at most two test assemblies at once (each still runs its own tests in parallel). With all of them at once on
+      # the runner's 4 cores, tests that wait on real time timed out (2026-11-11); the tests' waits are generous too.
       - name: Test
         shell: powershell
-        run: dotnet test jellyfin-plugins.slnx -c Release --no-build --nologo
+        run: dotnet test jellyfin-plugins.slnx -c Release --no-build --nologo -m:2 "-p:JellyfinTarget=$env:JELLYFIN_TARGET"
 
+      # Line-independent: once, with the 10.11 job.
       - name: Node tests (kit and scripts)
+        if: matrix.jellyfin_target == '10.11'
         shell: powershell
         run: |
           $files = @(Get-ChildItem kit/web/tests, scripts/tests -Filter '*.test.mjs' -File | ForEach-Object { $_.FullName })
@@ -127,7 +156,8 @@ jobs:
         shell: powershell
         env:
           PLUGIN: ${{ inputs.plugin }}
-        run: ./scripts/Package-Release.ps1 -Plugin "$env:PLUGIN" -Verify
+          JELLYFIN_TARGET: ${{ inputs.jellyfin_target }}
+        run: ./scripts/Package-Release.ps1 -Plugin "$env:PLUGIN" -JellyfinTarget "$env:JELLYFIN_TARGET" -Verify
 
       # When the zip isn't manifest.json's (or on a run by hand): keep it and the SHA-256 of each file in it, to compare
       # with a local build's artifacts\release\<zip>.sha256.

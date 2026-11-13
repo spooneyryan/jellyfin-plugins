@@ -4,6 +4,7 @@ using System.Linq;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
+using Jellyfin.Plugin.Kit.TestSupport;
 using Jellyfin.Plugin.Kit.TestSupport.Api;
 using Jellyfin.Plugin.Kit.TestSupport.PluginIdentity;
 using MediaBrowser.Controller;
@@ -51,12 +52,12 @@ public sealed class KitAdoptionTests
 
     [Theory]
     [MemberData(nameof(Plugins))]
-    public void Registrator_OnJellyfin12_RegistersOnlyTheAbiStatus(string plugin)
+    public void Registrator_OnTheOtherLine_RegistersOnlyTheAbiStatus(string plugin)
     {
         var assembly = LoadAssembly(plugin);
         foreach (var registrator in FindRegistrators(assembly))
         {
-            var services = Register(registrator, "12.1.0");
+            var services = Register(registrator, JellyfinLine.OtherLineVersion);
 
             var descriptor = Assert.Single(services);
             Assert.Equal(AbiStatusType, descriptor.ServiceType.FullName);
@@ -67,14 +68,14 @@ public sealed class KitAdoptionTests
 
     [Theory]
     [MemberData(nameof(Plugins))]
-    public void Registrator_OnJellyfin1011_IsActive(string plugin)
+    public void Registrator_OnItsLine_IsActive(string plugin)
     {
         var registrators = FindRegistrators(LoadAssembly(plugin));
 
         Assert.NotEmpty(registrators);
         foreach (var registrator in registrators)
         {
-            var services = Register(registrator, "10.11.5");
+            var services = Register(registrator, JellyfinLine.ServerVersion);
 
             Assert.True(IsActive(Assert.Single(services, d => d.ServiceType.FullName == AbiStatusType)));
             Assert.True(services.Count > 1);
@@ -83,7 +84,7 @@ public sealed class KitAdoptionTests
 
     [Theory]
     [MemberData(nameof(Plugins))]
-    public void Registrator_OnJellyfin1011_AddsItsWebUiThroughTheKitMiddleware(string plugin)
+    public void Registrator_OnItsLine_AddsItsWebUiThroughTheKitMiddleware(string plugin)
     {
         // The only startup filter is the kit's index.html injection, compiled into the plugin. A plugin with
         // no web client (no Web/js; Library Maintenance 1.0 has only its dashboard page) adds no startup filter.
@@ -91,7 +92,7 @@ public sealed class KitAdoptionTests
         var hasWebClient = assembly.GetManifestResourceNames().Any(n => n.StartsWith("Web.js.", StringComparison.Ordinal));
         foreach (var registrator in FindRegistrators(assembly))
         {
-            var filters = Register(registrator, "10.11.5").Where(d => d.ServiceType == typeof(IStartupFilter)).ToList();
+            var filters = Register(registrator, JellyfinLine.ServerVersion).Where(d => d.ServiceType == typeof(IStartupFilter)).ToList();
             if (!hasWebClient)
             {
                 Assert.Empty(filters);
@@ -106,13 +107,13 @@ public sealed class KitAdoptionTests
 
     [Theory]
     [MemberData(nameof(Plugins))]
-    public void Registrator_OnJellyfin1011_ServesItsScriptThroughTheKit(string plugin)
+    public void Registrator_OnItsLine_ServesItsScriptThroughTheKit(string plugin)
     {
         // The script the tag loads is the kit's EmbeddedScript of kit.js and the plugin's Web/js files.
         var assembly = LoadAssembly(plugin);
         foreach (var registrator in FindRegistrators(assembly))
         {
-            var script = Assert.Single(Register(registrator, "10.11.5"), d => d.ServiceType.FullName == "Jellyfin.Plugin.Kit.Web.IEmbeddedScript");
+            var script = Assert.Single(Register(registrator, JellyfinLine.ServerVersion), d => d.ServiceType.FullName == "Jellyfin.Plugin.Kit.Web.IEmbeddedScript");
 
             Assert.Same(assembly, script.ServiceType.Assembly);
             Assert.Contains("Kit.kit.js", assembly.GetManifestResourceNames());
@@ -131,7 +132,7 @@ public sealed class KitAdoptionTests
             .ToList();
         foreach (var registrator in FindRegistrators(assembly))
         {
-            var services = Register(registrator, "10.11.5");
+            var services = Register(registrator, JellyfinLine.ServerVersion);
             var shells = services.Where(d => d.ServiceType.FullName == "Jellyfin.Plugin.Kit.Web.Pages.IKitPages").ToList();
             var registration = services.Where(d => d.ImplementationType?.FullName == "Jellyfin.Plugin.Kit.Web.Pages.PluginPagesRegistrationService").ToList();
 
@@ -182,7 +183,7 @@ public sealed class KitAdoptionTests
         Assert.NotEmpty(health.Method.GetCustomAttributes<Microsoft.AspNetCore.Mvc.RequestSizeLimitAttribute>());
         foreach (var registrator in FindRegistrators(assembly))
         {
-            var registered = Assert.Single(Register(registrator, "10.11.5"), d => d.ServiceType.FullName == "Jellyfin.Plugin.Kit.Diagnostics.IKitDiagnostics");
+            var registered = Assert.Single(Register(registrator, JellyfinLine.ServerVersion), d => d.ServiceType.FullName == "Jellyfin.Plugin.Kit.Diagnostics.IKitDiagnostics");
             Assert.Same(assembly, registered.ServiceType.Assembly);
         }
     }
@@ -238,7 +239,7 @@ public sealed class KitAdoptionTests
 
     [Theory]
     [MemberData(nameof(Plugins))]
-    public async Task PostScanTasks_AreSealedKitPostScanTasks_WithTheMonitorRegistered_AndInertOnJellyfin12(string plugin)
+    public async Task PostScanTasks_AreSealedKitPostScanTasks_WithTheMonitorRegistered_AndInertOnTheOtherLine(string plugin)
     {
         // Jellyfin creates each post-scan task once, with its root service provider, and runs it inside every
         // scan; the kit's base flushes the monitor as a full pass, and returns at once when the build is inert.
@@ -251,14 +252,14 @@ public sealed class KitAdoptionTests
             var constructor = Assert.Single(task.GetConstructors());
             Assert.Equal([typeof(IServiceProvider)], constructor.GetParameters().Select(p => p.ParameterType));
 
-            var inert = Register(FindRegistrators(assembly).Single(), "12.1.0");
+            var inert = Register(FindRegistrators(assembly).Single(), JellyfinLine.OtherLineVersion);
             await using var provider = inert.BuildServiceProvider();
             await ((ILibraryPostScanTask)constructor.Invoke([provider])).Run(new Progress<double>(), CancellationToken.None);
         }
 
         foreach (var registrator in FindRegistrators(assembly))
         {
-            var services = Register(registrator, "10.11.5");
+            var services = Register(registrator, JellyfinLine.ServerVersion);
             var monitor = services.Count(d => d.ServiceType.FullName == MonitorType);
             var consumers = services.Count(d => IsComponentOf(d.ServiceType, ConsumerType));
 
@@ -276,7 +277,7 @@ public sealed class KitAdoptionTests
 
     [Theory]
     [MemberData(nameof(Plugins))]
-    public async Task MaintenanceTasks_AreOneSealedKitMaintenanceTask_WithTheMaintenanceRegistered_AndInertOnJellyfin12(string plugin)
+    public async Task MaintenanceTasks_AreOneSealedKitMaintenanceTask_WithTheMaintenanceRegistered_AndInertOnTheOtherLine(string plugin)
     {
         // One daily <Plugin>: Maintenance per plugin, a public sealed class on the kit's base, which Jellyfin
         // creates through GetExports with its service provider and which returns at once for an inert build.
@@ -291,7 +292,7 @@ public sealed class KitAdoptionTests
             var constructor = Assert.Single(task.GetConstructors());
             Assert.Equal([typeof(IServiceProvider)], constructor.GetParameters().Select(p => p.ParameterType));
 
-            var inert = Register(FindRegistrators(assembly).Single(), "12.1.0");
+            var inert = Register(FindRegistrators(assembly).Single(), JellyfinLine.OtherLineVersion);
             await using var provider = inert.BuildServiceProvider();
             var instance = (MediaBrowser.Model.Tasks.IScheduledTask)constructor.Invoke([provider]);
             await instance.ExecuteAsync(new Progress<double>(), CancellationToken.None);
@@ -301,7 +302,7 @@ public sealed class KitAdoptionTests
 
         foreach (var registrator in FindRegistrators(assembly))
         {
-            var services = Register(registrator, "10.11.5");
+            var services = Register(registrator, JellyfinLine.ServerVersion);
             var maintenance = services.Count(d => d.ServiceType.FullName == MaintenanceType);
             var steps = services.Count(d => IsComponentOf(d.ServiceType, MaintenanceStepType));
 
@@ -368,7 +369,7 @@ public sealed class KitAdoptionTests
 
     private static Assembly LoadAssembly(string plugin)
     {
-        var yaml = BuildYaml.Load(Path.Combine(RepositoryRoot, "plugins", plugin, "build.yaml"));
+        var yaml = BuildYaml.Load(Path.Combine(RepositoryRoot, "plugins", plugin, JellyfinLine.BuildYamlName));
         var dll = yaml.Artifacts.First(a => a.EndsWith(".dll", StringComparison.OrdinalIgnoreCase));
         return Assembly.Load(new AssemblyName(Path.GetFileNameWithoutExtension(dll)));
     }

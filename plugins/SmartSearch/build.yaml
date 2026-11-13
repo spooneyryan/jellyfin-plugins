@@ -1,7 +1,7 @@
 ---
 name: "Smart Search"
 guid: "d92488d5-409f-4ad0-af1d-3615db9d0513"
-version: "1.1.2.0"
+version: "1.2.0.0"
 targetAbi: "10.11.5.0"
 framework: "net9.0"
 overview: "An Advanced Search page with rules over title, year, library and more, saved queries, and auto-collections"
@@ -20,6 +20,17 @@ owner: "NoRepine"
 artifacts:
 - "Jellyfin.Plugin.SmartSearch.dll"
 changelog: |
+  1.2.0
+  - People in the advanced search: a People rule finds what one or more
+    people are credited on, as actors, directors, writers, producers,
+    composers or guest stars, or in any role. It matches any, all, none
+    or not all of them: "Robert De Niro and Al Pacino as actors", or
+    "directed by Ridley Scott or Tony Scott".
+  - People are picked from suggestions as you type (2 letters or more).
+    Only people credited on something you can see are suggested.
+  - Saved searches and auto-collections can use People rules. A saved
+    rule still finds a person after Jellyfin rebuilds its people, by
+    their name.
   1.1.2
   - First public release.
   - An Advanced Search page: find movies, shows, episodes, music videos and collections by rules over title, year, library, genres, ratings, watch state and more, and save searches, private or shared.

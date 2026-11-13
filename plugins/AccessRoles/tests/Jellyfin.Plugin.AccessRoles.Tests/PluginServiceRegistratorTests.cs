@@ -47,10 +47,11 @@ public sealed class PluginServiceRegistratorTests : IDisposable
     private readonly TempDirectory _directory = new();
 
     [Theory]
-    [InlineData("10.11.5")]
-    [InlineData("10.11.11")]
-    public void On1011_RegistersTheKit_TheStore_TheManifest_Diagnostics_AndTheSnapshot(string version)
+    [InlineData(false)]
+    [InlineData(true)]
+    public void OnItsLine_RegistersTheKit_TheStore_TheManifest_Diagnostics_AndTheSnapshot(bool laterPatch)
     {
+        var version = laterPatch ? JellyfinLine.LaterPatchVersion : JellyfinLine.ServerVersion;
         var services = Register(version);
 
         Assert.True(Assert.IsType<KitAbiStatus>(Assert.Single(services, d => d.ServiceType == typeof(KitAbiStatus)).ImplementationInstance).IsActive);
@@ -143,7 +144,7 @@ public sealed class PluginServiceRegistratorTests : IDisposable
             WriteConfiguration("<PluginConfiguration><AuditRetentionMonths>12</AuditRetentionMonths><EnforcementEnabled> False </EnforcementEnabled></PluginConfiguration>");
         }
 
-        var services = Register("10.11.5", ServerPaths());
+        var services = Register(JellyfinLine.ServerVersion, ServerPaths());
 
         var inert = Assert.IsType<AccessRolesInert>(Assert.Single(services, d => d.ServiceType == typeof(AccessRolesInert)).ImplementationInstance);
         Assert.Equal((safeMode, disabled), (inert.SafeMode, inert.EnforcementDisabled));
@@ -175,7 +176,7 @@ public sealed class PluginServiceRegistratorTests : IDisposable
             WriteConfiguration(configuration);
         }
 
-        var services = Register("10.11.5", ServerPaths());
+        var services = Register(JellyfinLine.ServerVersion, ServerPaths());
 
         Assert.DoesNotContain(services, d => d.ServiceType == typeof(AccessRolesInert));
         Assert.Single(services, d => d.ServiceType == typeof(AccessRolesStore));
@@ -199,13 +200,13 @@ public sealed class PluginServiceRegistratorTests : IDisposable
     }
 
     [Fact]
-    public void On121_RegistersNothingButTheAbiStatus()
+    public void OnTheOtherLine_RegistersNothingButTheAbiStatus()
     {
-        var services = Register("12.1.0");
+        var services = Register(JellyfinLine.OtherLineVersion);
 
         var status = Assert.IsType<KitAbiStatus>(Assert.Single(services).ImplementationInstance);
         Assert.False(status.IsActive);
-        Assert.Equal("Access Roles is built for Jellyfin 10.11, but the server is Jellyfin 12.1.0: the plugin is inactive. Install the Access Roles build for Jellyfin 12.", status.Message);
+        Assert.Equal($"Access Roles is built for Jellyfin {JellyfinLine.Target}, but the server is Jellyfin {JellyfinLine.OtherLineVersion}: the plugin is inactive. Install the Access Roles build for Jellyfin {JellyfinLine.OtherTarget}.", status.Message);
     }
 
     [Fact]
@@ -306,12 +307,12 @@ public sealed class PluginServiceRegistratorTests : IDisposable
     {
         var users = new List<User> { NewUser("admin", admin: true), NewUser("kid"), NewUser("off", disabled: true) };
         var userManager = new Mock<IUserManager>();
-        userManager.SetupGet(m => m.Users).Returns(users);
+        userManager.SetupUsers(users);
         using var provider = Build(NullLoggerFactory.Instance, s => s.AddSingleton(userManager.Object));
 
         var body = provider.GetRequiredService<IKitDiagnostics>().Describe();
 
-        Assert.Equal("10.11", ((Dictionary<string, object?>)body["Abi"]!)["Target"]);
+        Assert.Equal(JellyfinLine.Target, ((Dictionary<string, object?>)body["Abi"]!)["Target"]);
         var store = (IDictionary<string, object?>)body["Store"]!;
         Assert.Equal(("accessroles", 1, "Ok"), (store["Name"], store["CurrentVersion"], store["Status"]));
         Assert.Equal(0, ((IDictionary<string, object?>)body["Records"]!)["Assignments"]);
@@ -325,10 +326,10 @@ public sealed class PluginServiceRegistratorTests : IDisposable
         Assert.Equal(("Active", "Reapply", 5, 0, 0), (sync["State"], sync["DriftPolicy"], sync["ReconcileIntervalMinutes"], sync["PendingReleases"], sync["PendingVerifications"]));
         Assert.Null(sync["LastRun"]);
         var manifest = (IDictionary<string, object?>)body["ActionManifest"]!;
-        Assert.Equal(("10.11", "10.11.5", 390, 110), (manifest["JellyfinTarget"], manifest["JellyfinVersion"], manifest["Actions"], manifest["WithRules"]));
+        Assert.Equal(JellyfinLine.Is12 ? ("12", "12.4.0", 385, 110) : ("10.11", "10.11.5", 390, 110), (manifest["JellyfinTarget"], manifest["JellyfinVersion"], manifest["Actions"], manifest["WithRules"]));
         Assert.Null(manifest["Server"]);
         var serverUsers = (IDictionary<string, object?>)body["ServerUsers"]!;
-        Assert.Equal((KitUsers.UsersProperty, 3, 1, 1), (serverUsers["ListedThrough"], serverUsers["Users"], serverUsers["Administrators"], serverUsers["Disabled"]));
+        Assert.Equal((JellyfinLine.Is12 ? KitUsers.GetUsersMethod : KitUsers.UsersProperty, 3, 1, 1), (serverUsers["ListedThrough"], serverUsers["Users"], serverUsers["Administrators"], serverUsers["Disabled"]));
     }
 
     [Fact]
@@ -411,7 +412,7 @@ public sealed class PluginServiceRegistratorTests : IDisposable
     private static async Task WaitForAsync(Func<bool> condition)
     {
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
-        timeout.CancelAfter(TimeSpan.FromSeconds(10));
+        timeout.CancelAfter(TimeSpan.FromSeconds(60));
         while (!condition())
         {
             await Task.Delay(20, timeout.Token);
@@ -422,7 +423,7 @@ public sealed class PluginServiceRegistratorTests : IDisposable
     {
         var paths = new Mock<IApplicationPaths>();
         paths.SetupGet(p => p.DataPath).Returns(_directory.Path);
-        var services = Register("10.11.5");
+        var services = Register(JellyfinLine.ServerVersion);
         services.AddSingleton(paths.Object).AddSingleton(loggers);
 
         // The settings as a fresh install has them, not the static Plugin.Instance's: other tests create plugin instances

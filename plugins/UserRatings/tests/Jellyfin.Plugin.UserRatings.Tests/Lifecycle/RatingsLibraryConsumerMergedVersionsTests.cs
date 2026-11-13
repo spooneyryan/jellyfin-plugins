@@ -10,6 +10,7 @@ using MediaBrowser.Controller.Entities.Movies;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
+using Jellyfin.Plugin.Kit.TestSupport;
 
 namespace Jellyfin.Plugin.UserRatings.Tests.Lifecycle;
 
@@ -34,7 +35,7 @@ public sealed partial class RatingsLibraryConsumerTests
         var onRonin = await RateAsync(unmerged, _alice, 7);
 
         // Merged with no event (the server was off): only the step sees it.
-        version.PrimaryVersionId = primary.Id.ToString("N", CultureInfo.InvariantCulture);
+        version.PrimaryVersionId = JellyfinLine.VersionId(primary.Id);
         var result = await _consumer.MergeVersionsAsync(Ct);
 
         Assert.Equal((primary.Id, true), (_fx.Store.Get(alices.Id)!.ItemId, _fx.Store.Get(alices.Id)!.IsAttached));
@@ -64,7 +65,7 @@ public sealed partial class RatingsLibraryConsumerTests
         _library.Hide(_alice, primary);
         var alices = await RateAsync(version, _alice, 9);
         var bobs = await RateAsync(version, _bob, 6);
-        version.PrimaryVersionId = primary.Id.ToString("N", CultureInfo.InvariantCulture);
+        version.PrimaryVersionId = JellyfinLine.VersionId(primary.Id);
 
         var result = await _consumer.MergeVersionsAsync(Ct);
 
@@ -102,8 +103,8 @@ public sealed partial class RatingsLibraryConsumerTests
         var b = AddMovie("Heat (1995) - 1080p", _movies, "949");
         var a = AddMovie("Heat (1995) - 720p", _movies, "949");
         var onA = await RateAsync(a, _alice, 9);
-        a.PrimaryVersionId = b.Id.ToString("N", CultureInfo.InvariantCulture);
-        b.PrimaryVersionId = c.Id.ToString("N", CultureInfo.InvariantCulture);
+        a.PrimaryVersionId = JellyfinLine.VersionId(b.Id);
+        b.PrimaryVersionId = JellyfinLine.VersionId(c.Id);
 
         var first = await _consumer.MergeVersionsAsync(Ct);
 
@@ -122,8 +123,8 @@ public sealed partial class RatingsLibraryConsumerTests
         var a = AddMovie("Heat (1995) - 720p", _movies, "949");
         var onA = await RateAsync(a, _alice, 9);
         var bobsOnA = await RateAsync(a, _bob, 6);
-        a.PrimaryVersionId = b.Id.ToString("N", CultureInfo.InvariantCulture);
-        b.PrimaryVersionId = c.Id.ToString("N", CultureInfo.InvariantCulture);
+        a.PrimaryVersionId = JellyfinLine.VersionId(b.Id);
+        b.PrimaryVersionId = JellyfinLine.VersionId(c.Id);
 
         await _consumer.MergeVersionsAsync(Ct);
 
@@ -144,13 +145,13 @@ public sealed partial class RatingsLibraryConsumerTests
         for (var i = 0; i < length; i++)
         {
             var next = AddMovie($"Heat (1995) - version {i}", _movies, "949");
-            chain[^1].PrimaryVersionId = next.Id.ToString("N", CultureInfo.InvariantCulture);
+            chain[^1].PrimaryVersionId = JellyfinLine.VersionId(next.Id);
             chain.Add(next);
         }
 
         if (!tooLong)
         {
-            chain[^1].PrimaryVersionId = a.Id.ToString("N", CultureInfo.InvariantCulture);
+            chain[^1].PrimaryVersionId = JellyfinLine.VersionId(a.Id);
         }
 
         for (var day = 0; day < 2; day++)
@@ -173,7 +174,7 @@ public sealed partial class RatingsLibraryConsumerTests
         for (var i = 0; i < RatingsLibraryConsumer.MaxVersionHops; i++)
         {
             var next = AddMovie($"Heat (1995) - version {i}", _movies, "949");
-            last.PrimaryVersionId = next.Id.ToString("N", CultureInfo.InvariantCulture);
+            last.PrimaryVersionId = JellyfinLine.VersionId(next.Id);
             last = next;
         }
 
@@ -191,7 +192,7 @@ public sealed partial class RatingsLibraryConsumerTests
         var alices = await RateAsync(version, _alice, 9);
         var bobs = await RateAsync(version, _bob, 6);
         _users.Setup(u => u.GetUserById(_alice.Id)).Throws(new InvalidOperationException("The user store is unavailable."));
-        version.PrimaryVersionId = primary.Id.ToString("N", CultureInfo.InvariantCulture);
+        version.PrimaryVersionId = JellyfinLine.VersionId(primary.Id);
 
         await _consumer.MergeVersionsAsync(Ct);
 

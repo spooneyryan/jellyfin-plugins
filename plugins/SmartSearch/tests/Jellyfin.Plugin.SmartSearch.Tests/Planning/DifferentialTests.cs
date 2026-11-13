@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using Jellyfin.Plugin.Kit.TestSupport;
 using Xunit;
 
 namespace Jellyfin.Plugin.SmartSearch.Tests.Planning;
@@ -35,6 +36,7 @@ public sealed class DifferentialTests
             var rng = new Random(seed + w);
             var world = new PlannerWorld(zones[w].Item2);
             SyntheticLibrary.Populate(world, rng, RowsPerWorld, disagreeingUserData: w == 2);
+            var people = SyntheticLibrary.AddPeople(world, seed + w);
             var generator = new QueryGenerator(
                 rng,
                 SyntheticLibrary.Names,
@@ -44,7 +46,8 @@ public sealed class DifferentialTests
                 SyntheticLibrary.Ratings.Where(r => r is not null).Select(r => r!).ToList(),
                 world.Core.Libraries.Select(l => l.Id).ToList(),
                 world.Core.Rows.Where(r => r.Kind == Jellyfin.Data.Enums.BaseItemKind.Series).Select(r => (r.Id, r.Item.Name)).ToList(),
-                NotSeries(world));
+                NotSeries(world),
+                people);
             Differential.Run(world, generator, QueriesPerWorld, zones[w].Item1, report);
         }
 
@@ -63,8 +66,11 @@ public sealed class DifferentialTests
         [
             "Name", "NameContains", "HasOverview", "Years", "OfficialRatings", "Genres", "Tags", "ExcludeTags", "StudioIds", "AncestorIds",
             "MinCommunityRating", "MinPremiereDate", "MaxPremiereDate", "MinDateCreated", "MinWidth", "MaxWidth", "IsLocked", "IsPlayed",
-            "IsFavorite", "IsResumable", "HasTmdbId", "HasImdbId", "HasTvdbId", "IncludeItemTypes(narrowed)"
+            "IsFavorite", "IsResumable", "HasTmdbId", "HasImdbId", "HasTvdbId", "PersonIds", "IncludeItemTypes(narrowed)"
         ];
+
+        // Jellyfin 12 never gets MaxWidth (any wider version drops the item there).
+        properties = [.. properties.Where(p => !JellyfinLine.Is12 || p != "MaxWidth")];
         Assert.All(properties, p => Assert.True(report.Pushed.GetValueOrDefault(p) > 0, p + " was never pushed: " + detail));
         Assert.True(report.Matches > 10_000, detail);
 

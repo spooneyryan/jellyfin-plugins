@@ -1,0 +1,41 @@
+{
+  "comment": "Jellyfin 12 modern layout (the default): the Tag Cloud link in the app bar user menu below Settings, and a click on it opens the page. Runs in the modern layout (\"layout\": \"modern\": nothing saved on 12).",
+  "layout": "modern",
+  "steps": [
+    {
+      "login": "viewer"
+    },
+    {
+      "goto": "/web/index.html#/home"
+    },
+    {
+      "name": "the avatar is shown",
+      "waitFor": "!!document.querySelector('header .MuiAvatar-root')",
+      "timeout": 20000
+    },
+    {
+      "name": "click avatar",
+      "click": "header .MuiAvatar-root"
+    },
+    {
+      "name": "menu link",
+      "waitFor": "!!document.querySelector('#app-user-menu [data-jfkit-plugin=\"jftc\"]')",
+      "timeout": 10000
+    },
+    {
+      "sleep": 800
+    },
+    {
+      "screenshot": "tc-menu.png"
+    },
+    {
+      "name": "where",
+      "script": "var a=document.querySelector('#app-user-menu [data-jfkit-plugin=\"jftc\"]'); a.click(); return {text:a.textContent, href:a.getAttribute('href'), drawer: !!document.querySelector('.mainDrawer [data-jfkit-plugin=\"jftc\"]')};"
+    },
+    {
+      "name": "page opened, menu closed",
+      "waitFor": "location.hash.indexOf('jftc')>=0 && document.querySelectorAll('.jftc-svg text.jftc-word').length>0",
+      "timeout": 30000
+    }
+  ]
+}

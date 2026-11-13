@@ -27,6 +27,9 @@ internal static class SmartSearchRequestLimits
     /// <summary>The shortest text the series picker searches for.</summary>
     public const int MinSeriesPrefix = 2;
 
+    /// <summary>The shortest text <c>GET /SmartSearch/People</c> takes.</summary>
+    public const int MinPersonPrefix = 2;
+
     /// <summary>The longest text a lookup searches for.</summary>
     public const int MaxPrefix = 200;
 }

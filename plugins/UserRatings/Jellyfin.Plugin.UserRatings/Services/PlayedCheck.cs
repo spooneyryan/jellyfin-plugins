@@ -13,7 +13,8 @@ namespace Jellyfin.Plugin.UserRatings.Services;
 /// <c>RequirePlayedToRate</c>'s check, the plugin's first use of the kit's <see cref="FreshUserData"/>. A leaf item (a movie, an episode, a video, a book…) is played when
 /// its user data, read fresh from the database, says so: on 10.11.5 <c>GetUserData</c> on core's cached instance can answer
 /// with a blank record (core sets a parent's snapshot to null when a child changes), and the fresh read repairs that
-/// snapshot too. A Series, Season or MusicAlbum is played when any of its episodes or tracks is, which a count query with
+/// snapshot too. On Jellyfin 12 an unplayed video is played when another version of it is (a count query with the user's
+/// <c>IsPlayed</c> filter). A Series, Season or MusicAlbum is played when any of its episodes or tracks is, which a count query with
 /// the user's <c>IsPlayed</c> filter answers in SQL, never the container's own cached flag.
 /// </summary>
 internal sealed class PlayedCheck
@@ -72,6 +73,20 @@ internal sealed class PlayedCheck
             _logger.LogWarning("The user data of item {ItemId} couldn't be read from the database, so whether it was played isn't known", item.Id);
             return null;
         }
+
+#if JELLYFIN_12
+        // Jellyfin 12 shares the played state across a movie's versions: played on the 4K version, the web client shows
+        // the movie played. The user's IsPlayed filter answers it in SQL, version groups included.
+        if (!fresh.Data.Played && item is Video)
+        {
+            return _library.GetCount(KitItemQueries.IncludeEveryVersion(new InternalItemsQuery(user)
+            {
+                ItemIds = [item.Id],
+                IsPlayed = true,
+                Limit = 1
+            })) > 0;
+        }
+#endif
 
         return fresh.Data.Played;
     }

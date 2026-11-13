@@ -14,7 +14,7 @@ For everyone:
 - **A basic search**: a title that contains some text, a year or a range of years, and genres, over the item types
   and the library you pick. Text matches ignore case and accents ("amelie" finds *Amélie*).
 - **An advanced search**: rules over about thirty fields (title, original title, overview, series, library, type,
-  year, dates, genres, tags, studios, parental rating, show status, community and critic ratings, runtime, resolution,
+  year, dates, genres, tags, studios, people, parental rating, show status, community and critic ratings, runtime, resolution,
   container, video type, 3D, file size, bitrate, played, favourite, in progress, play count, last played, provider
   ids, locked), in groups that match **All**, **Any**, **None** or **Not all** of their rules.
 - **Results** as posters or rows, sorted fifteen ways, with **Open** and **Play**. The search is part of the page's
@@ -56,7 +56,7 @@ For admins:
 
 **Manually**
 1. Download the zip from the GitHub Releases page: <https://github.com/spooneyryan/jellyfin-plugins/releases>.
-2. Extract it into the `plugins/Smart Search_1.1.2.0` folder inside Jellyfin's data folder, and delete an older
+2. Extract it into the `plugins/Smart Search_1.2.0.0` folder inside Jellyfin's data folder, and delete an older
    `Smart Search_…` folder. That folder is, for example, `%ProgramData%\Jellyfin\Server` on Windows,
    `/var/lib/jellyfin` on Linux, or `/config` in Docker.
 3. Restart the server.
@@ -241,7 +241,17 @@ collections.
   more than you see. Its spoiler protection blurs the result images but doesn't hide titles or overviews.
 - **Other collection plugins** (SmartLists, Auto Collections) do similar things with their own rules; Smart Search's
   auto-collections reuse its saved searches. Don't let two plugins manage the same collection.
-- **Not in 1.1:** searching by people, collections, audio and subtitle languages or HDR, regular expressions, moving
+- **People rules** find what people are credited on, as actors, directors, writers, producers, composers or guest
+  stars, or in any role, matching any, all, none or not all of them ("Robert De Niro and Al Pacino as actors"). A show's
+  cast is credited on the show, a guest star on the episode. People are suggested only when they're credited on
+  something you can see: a user whose parental control blocks unrated items isn't suggested people credited only on
+  unrated items. Suggestions match the text ignoring case and accents ("zoë" finds "Zoë Kravitz"), but a typed name
+  without its accent ("zoe") doesn't find an accented one. Each suggestion request reads up to 1,000 names holding the
+  text and checks up to 100 of them, those starting with the text first. On Jellyfin 12 those names are only people
+  credited on what you can reach; on Jellyfin 10.11 they're people credited anywhere, so with many people you can't
+  see, a name can be missed (type more of it). On Jellyfin 10.11 a People rule with a role is also checked item by
+  item, so it can be slower on a large library.
+- **Not in 1.2:** searching by collections, audio and subtitle languages or HDR, regular expressions, moving
   rules within a search (duplicate and remove instead), a search link on Jellyfin's own search page, and
   auto-collections' own genres (a locked collection gathers none).
 

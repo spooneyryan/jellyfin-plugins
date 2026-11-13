@@ -16,6 +16,11 @@ const skip = !file ? 'KIT_CLIENT_SCRIPT is not set' : false;
 const source = skip ? '' : fs.readFileSync(file, 'utf8');
 const SHELL = '<div class="jfss-page" data-jfss-page="search"><p class="jfss-shell-note">This page needs the Smart Search web UI, which is turned off or failed to load.</p></div>';
 const SHOW_EVENTS = ['viewbeforeshow', 'pagebeforeshow', 'viewshow', 'pageshow'];
+
+// Jellyfin 12's web client defaults to the modern layout, 10.11's to the legacy one. The tests run in the legacy layout
+// (saved as desktop-legacy on 12) unless they ask for another; "experimental" is the modern layout on both lines.
+const MODERN_BY_DEFAULT = /"jellyfin":"12"/.test(source);
+const MODERN_LAYOUT = 'experimental';
 const ROOT = '#fallbackPage > [data-jfss-page] .jfss-search';
 
 const MOVIES = 'a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1';
@@ -78,6 +83,11 @@ function setup(options) {
     options = options || {};
     const page = createPage();
     page.context.location.hash = options.hash || '#/home';
+    const layout = options.layout !== undefined ? options.layout : (MODERN_BY_DEFAULT ? 'desktop-legacy' : null);
+    if (layout) {
+        page.context.localStorage.setItem('layout', layout);
+    }
+
     if (options.tv) {
         page.document.documentElement.classList.add('layout-tv');
     }
@@ -1296,7 +1306,7 @@ function treeModule() {
     const names = ['SS_TEXT', 'ssCatalog', 'ssOpShape', 'ssNewGroup', 'ssNewRule', 'ssFindNode', 'ssCountRules', 'ssCanAddRule', 'ssCanAddGroup',
         'ssCanDuplicate', 'ssCanUnwrap', 'ssAddRule', 'ssAddGroup', 'ssDuplicateNode', 'ssUnwrapGroup', 'ssRemoveNode', 'ssSetRuleField', 'ssSetRuleOp',
         'ssWhereFromTree', 'ssTreeFromWhere', 'ssWhereShapeOk', 'ssCheckTree', 'ssCheckRule', 'ssNodeOfPath', 'ssText', 'ssAdvancedStateFromQuery', 'ssKeptOfQuery',
-        'ssBuildQuery', 'ssSameQuery', 'ssReadState'];
+        'ssBuildQuery', 'ssSameQuery', 'ssReadState', 'ssRuleFromJson', 'ssRuleJson', 'ssNormalRule'];
     const code = ['00-strings.js', '20-api.js', '30-model.js', '35-tree.js'].map((f) => fs.readFileSync(new URL(f, web), 'utf8')).join('\n')
         + '\n({ ' + names.join(', ') + ' })';
     return vm.runInNewContext(code, { URLSearchParams });
@@ -1310,8 +1320,8 @@ test('the tree: built from the catalogue, edited, nested to the server\'s limits
     const t = treeModule();
     const catalog = t.ssCatalog(ALL_FIELDS, ALL_KINDS);
     assert.deepEqual(plain(catalog.groups), [...new Set(ALL_FIELDS.Fields.map((f) => f.Group))]);
-    assert.equal(catalog.fields.length, 33);
-    assert.deepEqual(['IsEmpty', 'Between', 'InLast', 'NoneOf', 'Ge'].map(t.ssOpShape), ['none', 'range', 'relative', 'values', 'value']);
+    assert.equal(catalog.fields.length, 34);
+    assert.deepEqual(['IsEmpty', 'Between', 'InLast', 'NoneOf', 'NotAllOf', 'Ge'].map(t.ssOpShape), ['none', 'range', 'relative', 'values', 'values', 'value']);
 
     const root = t.ssNewGroup('All', false, []);
     const title = t.ssAddRule(root, root.id, catalog, ['Movie']);
@@ -1547,6 +1557,8 @@ test('the tree\'s checks: the messages a search or a save stops at, and a server
 // ------------------------------------------------------------------------------------------------ the advanced form
 
 const SERIES_ID = 'c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3';
+const RIDLEY = 'd5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5';
+const TONY = 'e6e6e6e6e6e6e6e6e6e6e6e6e6e6e6e6';
 
 // The lookups the advanced form's editors use: shows by name, any field's values, and the server's check.
 function respondAdvanced(s, validate) {
@@ -1554,6 +1566,11 @@ function respondAdvanced(s, validate) {
         { Id: SERIES_ID, Name: 'Test Series', ProductionYear: 2020, LibraryId: SHOWS },
         { Id: 'c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4', Name: '<b>Tést</b>‮ שלום\u0007', ProductionYear: null, LibraryId: SHOWS }
     ]);
+    s.page.respond('GET', '/SmartSearch/People', (entry) => [
+        { Id: RIDLEY, Name: 'Ridley Scott' },
+        { Id: TONY, Name: 'Tony Scott' },
+        { Id: 'f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7', Name: '<i>Zoë</i>‮' }
+    ].filter((p) => p.Name.toLowerCase().includes(String(entry.query.prefix || '').toLowerCase())));
     s.page.respond('GET', /^\/SmartSearch\/Values\/(Tags|Studios|OfficialRating|Container)$/, (entry) => {
         const field = entry.path.split('/')[3];
         const values = { Tags: ['classic', 'cult'], Studios: ['A24'], OfficialRating: ['PG-13', 'R'], Container: ['mkv', 'mp4'] }[field];
@@ -1678,6 +1695,10 @@ test('every field can be built with its editor, and the search sends each rule a
         }, { Values: ['Horror', 'Comedy'] }],
         ['Tags', 'IsEmpty', () => {}, {}],
         ['Studios', 'NoneOf', (b) => pick(b, 'A2', 'suggestion'), { Values: ['A24'] }],
+        ['People', 'AllOf', async (b) => {
+            await pick(b, 'scott', 'suggestion');
+            s.change(s.rule().querySelector('.jfss-rule-role'), 'Director');
+        }, { Values: [{ Id: RIDLEY, Name: 'Ridley Scott' }], Role: 'Director' }],
         ['OfficialRating', 'Le', (b) => pick(b, 'PG', 'suggestion'), { Value: 'PG-13' }],
         ['SeriesStatus', 'AnyOf', (b) => choose(b, 'Ended'), { Values: ['Ended'] }],
         ['CommunityRating', 'Ge', (b) => value(b, '7.5'), { Value: 7.5 }],
@@ -1971,6 +1992,16 @@ function legacyHeader(page, opts) {
     return { header, right, search };
 }
 
+// jellyfin-web's modern layout (12's default, 10.11's experimental): the app bar's toolbar, its right-hand Box holding the
+// search button, a MUI IconButton rendered as a router link (AppToolbar's SearchButton).
+function modernHeader(page) {
+    const search = page.element('a', { class: 'MuiButtonBase-root MuiIconButton-root MuiIconButton-colorInherit MuiIconButton-sizeLarge', href: '#/search', 'aria-label': 'Search' });
+    const box = page.element('div', { class: 'MuiBox-root' }, [search, page.element('button', { class: 'MuiButtonBase-root MuiIconButton-root', 'aria-label': 'User' })]);
+    const header = page.element('header', { class: 'MuiPaper-root MuiAppBar-root' }, [page.element('div', { class: 'MuiToolbar-root' }, [box])]);
+    page.document.body.append(header);
+    return { header, right: box, search };
+}
+
 function showView(s, restored) {
     SHOW_EVENTS.forEach((type) => s.page.dispatch(s.view, type, { detail: { isRestored: !!restored } }));
 }
@@ -1983,7 +2014,7 @@ function navigate(s, hash) {
 // The script on #/home, signed in, with the header (unless opts.header is false) and a view shown.
 async function home(opts) {
     opts = opts || {};
-    const s = setup({ hash: opts.hash || '#/home', head: opts.head, tv: opts.tv });
+    const s = setup({ hash: opts.hash || '#/home', head: opts.head, tv: opts.tv, layout: opts.modern ? MODERN_LAYOUT : undefined });
     if (opts.entryPoints !== undefined) {
         const block = s.page.element('script', { type: 'application/json', 'data-jfss-entrypoints': '' });
         block.textContent = opts.entryPoints;
@@ -1991,7 +2022,7 @@ async function home(opts) {
     }
 
     s.page.respond('POST', '/SmartSearch/Diagnostics/ClientHealth', '', 204);
-    s.dom = opts.header === false ? null : legacyHeader(s.page, opts);
+    s.dom = opts.header === false ? null : (opts.modern ? modernHeader(s.page) : legacyHeader(s.page, opts));
     s.page.run(source, file);
     await s.page.advance(5);
     s.view = s.page.element('div', { id: 'indexPage', 'data-role': 'page', class: 'page homePage' });
@@ -2111,6 +2142,38 @@ test('on the TV layout the header button is the same button, a stop for the remo
     assert.equal(button.tagName, 'BUTTON', 'a button: jellyfin-web\'s focus manager takes it');
     assert.equal(button.nextSibling, s.dom.search);
     assert.equal(button.classList.contains('hide'), false);
+    assert.deepEqual(s.page.errors, []);
+});
+
+test("in the modern layout the header button goes before the app bar's search button, and back when React draws it again", { skip }, async () => {
+    const s = await home({ modern: true });
+    assert.equal(s.ours().length, 1);
+    const button = s.ours()[0];
+    assert.equal(button.nextSibling, s.dom.search, "right before the app bar's search button");
+    assert.equal(button.parentNode, s.dom.right);
+    assert.equal(button.classList.contains('hide'), false, "shown: the app bar's button has no hide class");
+    button.click();
+    assert.equal(s.page.context.location.hash, '#/jfss-search');
+
+    // React drops a node it doesn't know when it draws the toolbar again, or draws a new app bar.
+    button.remove();
+    await s.page.advance(400);
+    assert.equal(s.ours().length, 1, 'put back on the next scan');
+    assert.equal(s.ours()[0].nextSibling, s.dom.search);
+    s.dom.header.remove();
+    const again = modernHeader(s.page);
+    await s.page.advance(400);
+    assert.equal(s.ours().length, 1);
+    assert.equal(s.ours()[0].nextSibling, again.search, 'in the new app bar, before its search button');
+    assert.deepEqual(s.page.warnings.filter((w) => w.includes('web anchor')), []);
+    assert.deepEqual(s.page.errors, []);
+});
+
+test("in the modern layout without the app bar's search button: no button, and the modern anchor is the one reported", { skip }, async () => {
+    const s = await home({ modern: true, header: false, viewFirst: true });
+    await s.page.advance(5000);
+    assert.equal(s.ours().length, 0);
+    assert.deepEqual(s.page.warnings.filter((w) => w.includes('web anchor')).map((w) => w.replace(/ \(web .*\)$/, '')), ['[jfss] web anchor "headerSearchModern" missing on header']);
     assert.deepEqual(s.page.errors, []);
 });
 
@@ -2685,4 +2748,93 @@ test('without the collection\'s item list: no note, one console warning and one 
     assert.equal(reports[0].body.Missing[0].Anchor, 'collectionNoteBefore');
     assert.equal(reports[0].body.Missing[0].View, 'details');
     assert.deepEqual(s.page.errors, []);
+});
+
+test('the People rule: people suggested by GET /SmartSearch/People after 2 letters, only as suggested, in a role or in any; any, all, none and not all', { skip }, async () => {
+    const s = await advanced();
+    const box = s.addRule('People');
+    assert.deepEqual(box.querySelector('.jfss-rule-op').querySelectorAll('option').map((o) => [o.value, o.textContent]),
+        [['AnyOf', 'has any of'], ['AllOf', 'has all of'], ['NoneOf', 'has none of'], ['NotAllOf', 'doesn\'t have all of']]);
+    const input = box.querySelector('.jfss-picker-input');
+    assert.equal(input.getAttribute('aria-label'), 'Find a person (2 letters or more)');
+    assert.equal(box.querySelector('.jfss-picker-add'), null, 'a person is only picked from the suggestions (they need an id)');
+
+    // The role: "In any role" first and chosen, then core's person types.
+    const role = box.querySelector('.jfss-rule-role');
+    assert.equal(role.getAttribute('aria-label'), 'Role');
+    assert.deepEqual(role.querySelectorAll('option').map((o) => [o.value, o.textContent]),
+        [['', 'In any role'], ['Actor', 'As actor'], ['Director', 'As director'], ['Writer', 'As writer'], ['Producer', 'As producer'], ['Composer', 'As composer'], ['GuestStar', 'As guest star']]);
+    assert.equal(role.value, '');
+
+    // One letter asks nothing; two ask the server, whose names show as text.
+    type(s, input, 's');
+    await s.page.advance(300);
+    assert.equal(s.calls('GET', '/SmartSearch/People').length, 0);
+    type(s, input, 'sc');
+    await s.page.advance(300);
+    assert.deepEqual(s.calls('GET', '/SmartSearch/People')[0].query, { prefix: 'sc', limit: String(s.calls('GET', '/SmartSearch/People')[0].query.limit) });
+    // Never past the server's 100 (8 more than the people chosen, at most 100).
+    assert.ok(Number(s.calls('GET', '/SmartSearch/People')[0].query.limit) >= 8 && Number(s.calls('GET', '/SmartSearch/People')[0].query.limit) <= 100);
+    assert.deepEqual(s.rule().querySelectorAll('.jfss-suggestion').map((b) => b.textContent), ['Ridley Scott', 'Tony Scott']);
+    s.page.key(s.rule().querySelector('.jfss-picker-input'), 'Enter');
+    assert.deepEqual(s.rule().querySelectorAll('.jfss-chip').map((c) => c.textContent.trim()), ['Ridley Scott'], 'Enter takes the first suggestion; typed text alone is no person');
+    type(s, s.rule().querySelector('.jfss-picker-input'), 'tony');
+    await s.page.advance(300);
+    s.rule().querySelector('.jfss-suggestion').click();
+    type(s, s.rule().querySelector('.jfss-picker-input'), 'zo');
+    await s.page.advance(300);
+    assert.equal(s.rule().querySelector('.jfss-suggestion').textContent, '<i>Zoë</i>‮', 'a name is text');
+    assert.equal(s.rule().querySelector('.jfss-suggestion i'), null);
+
+    // Directed by Ridley Scott or Tony Scott.
+    s.change(s.rule().querySelector('.jfss-rule-role'), 'Director');
+    s.q('.jfss-search-button').click();
+    await s.page.advance(100);
+    const anyOf = { Field: 'People', Op: 'AnyOf', Values: [{ Id: RIDLEY, Name: 'Ridley Scott' }, { Id: TONY, Name: 'Tony Scott' }], Role: 'Director' };
+    assert.deepEqual(s.where(), { Match: 'All', Children: [anyOf] });
+
+    // In any role sends no Role; the other operators keep the people.
+    for (const op of ['AllOf', 'NoneOf', 'NotAllOf']) {
+        s.change(s.rule().querySelector('.jfss-rule-op'), op);
+        s.change(s.rule().querySelector('.jfss-rule-role'), op === 'NoneOf' ? '' : 'Actor');
+        s.q('.jfss-search-button').click();
+        await s.page.advance(100);
+        const want = { Field: 'People', Op: op, Values: anyOf.Values };
+        if (op !== 'NoneOf') {
+            want.Role = 'Actor';
+        }
+
+        assert.deepEqual(s.where(), { Match: 'All', Children: [want] });
+    }
+
+    // No person: the rule says so, nothing is sent.
+    const searches = s.searches().length;
+    s.all('.jfss-rule .jfss-chip').forEach(() => s.rule().querySelector('.jfss-chip').click());
+    s.q('.jfss-search-button').click();
+    await s.page.advance(100);
+    assert.equal(s.searches().length, searches);
+    assert.notEqual(s.q('.jfss-form-error').textContent, '');
+    assert.deepEqual(s.page.errors, []);
+});
+
+test('a People rule read back: the role and the operator kept, a role the page doesn\'t offer locked as it came', () => {
+    const t = treeModule();
+    const catalog = t.ssCatalog(ALL_FIELDS, ALL_KINDS);
+    const people = [{ Id: RIDLEY, Name: 'Ridley Scott' }, { Id: TONY, Name: 'Tony Scott' }];
+    for (const json of [
+        { Field: 'People', Op: 'AllOf', Values: people, Role: 'Actor' },
+        { Field: 'People', Op: 'NotAllOf', Values: people },
+        { Field: 'People', Op: 'AnyOf', Values: people.slice(0, 1), Role: 'GuestStar' }
+    ]) {
+        const rule = t.ssRuleFromJson(json, catalog);
+        assert.equal(rule.locked, undefined, JSON.stringify(json));
+        assert.deepEqual(plain(t.ssNormalRule(t.ssRuleJson(rule, catalog))), plain(t.ssNormalRule(json)));
+        assert.deepEqual(plain(t.ssCheckRule(rule, catalog, ALL_KINDS)), {});
+    }
+
+    const rule = t.ssNewRule(catalog, ['Movie'], 'People');
+    assert.deepEqual([rule.field, rule.op], ['People', 'AnyOf']);
+    assert.deepEqual(plain(rule.options), {}, 'Role isn\'t required: a new rule is in any role');
+    assert.equal(t.ssRuleFromJson({ Field: 'People', Op: 'IsEmpty' }, catalog).locked, true, 'People has no IsEmpty');
+    assert.equal(t.ssRuleFromJson({ Field: 'People', Op: 'AnyOf', Values: people, Role: 'Conductor' }, catalog).locked, true, 'a role the page does not offer');
 });

@@ -165,6 +165,7 @@ public class PluginServiceRegistrator : IPluginServiceRegistrator
             services.GetRequiredService<LibraryAccess>(),
             SmartSearchKit.Options.Clock(services)));
         serviceCollection.AddSingleton(services => new SeriesTypeahead(services.GetRequiredService<ValueIndexService>(), services.GetRequiredService<LibraryAccess>()));
+        serviceCollection.AddSingleton(services => new PersonTypeahead(services.GetRequiredService<ILibraryManager>(), services.GetRequiredService<LibraryAccess>(), services.GetRequiredService<EngineSlots>()));
         serviceCollection.AddSingleton<ISmartSearchLookups>(services =>
         {
             var configuration = services.GetRequiredService<IPluginConfigurationProvider>();
@@ -173,6 +174,7 @@ public class PluginServiceRegistrator : IPluginServiceRegistrator
                 services.GetRequiredService<IFieldCatalog>(),
                 services.GetRequiredService<ValueIndexService>(),
                 services.GetRequiredService<SeriesTypeahead>(),
+                services.GetRequiredService<PersonTypeahead>(),
                 () => EngineSettings.AllowedItemKinds(configuration.GetConfiguration()),
                 () => configuration.GetConfiguration().EnableSearchPage);
         });

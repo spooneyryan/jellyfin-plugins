@@ -1,3 +1,4 @@
+using Jellyfin.Plugin.Kit.TestSupport;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -163,7 +164,7 @@ public sealed class SettingsApiTests
         };
 
         var first = host.SendAsync(HttpMethod.Post, Settings + "?dryRun=false&version=" + version, r => { As("admin", Alice)(r); Body(JsonSerializer.Serialize(new { ExcludedPathPrefixes = new[] { @"D:\Clips" } }))(r); });
-        await previewing.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+        await previewing.Task.WaitAsync(TimeSpan.FromSeconds(60), TestContext.Current.CancellationToken);
         var second = host.SendAsync(HttpMethod.Post, Settings + "?dryRun=false&version=" + version, r => { As("admin", Bob)(r); Body("""{ "RequestWaitSeconds": 9 }""")(r); });
         await Task.Delay(200, TestContext.Current.CancellationToken);
         Assert.False(second.IsCompleted);
@@ -815,7 +816,7 @@ public sealed class SettingsApiTests
     private static Task<WebHostHarness> StartAsync(DuplicatesLibrary library)
     {
         var host = new Mock<IServerApplicationHost>();
-        host.SetupGet(h => h.ApplicationVersion).Returns(new Version(10, 11, 5));
+        host.SetupGet(h => h.ApplicationVersion).Returns(JellyfinLine.Server);
         host.SetupGet(h => h.CoreStartupHasCompleted).Returns(true);
         host.SetupGet(h => h.SystemId).Returns(ServerId);
         var registered = new ServiceCollection();

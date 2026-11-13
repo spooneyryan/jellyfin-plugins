@@ -7,9 +7,12 @@
   <PropertyGroup>
     <RootNamespace>Jellyfin.Plugin.TagCloud</RootNamespace>
     <!-- Keep equal to build.yaml's version (checked by tests/Repo.Tests). -->
-    <Version>1.0.1.0</Version>
-    <AssemblyVersion>1.0.1.0</AssemblyVersion>
-    <FileVersion>1.0.1.0</FileVersion>
+    <Version Condition="'$(JellyfinTarget)' != '12'">1.0.1.0</Version>
+    <Version Condition="'$(JellyfinTarget)' == '12'">2.0.0.0</Version>
+    <AssemblyVersion Condition="'$(JellyfinTarget)' != '12'">1.0.1.0</AssemblyVersion>
+    <AssemblyVersion Condition="'$(JellyfinTarget)' == '12'">2.0.0.0</AssemblyVersion>
+    <FileVersion Condition="'$(JellyfinTarget)' != '12'">1.0.1.0</FileVersion>
+    <FileVersion Condition="'$(JellyfinTarget)' == '12'">2.0.0.0</FileVersion>
   </PropertyGroup>
 
   <ItemGroup>

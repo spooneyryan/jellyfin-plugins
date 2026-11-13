@@ -70,6 +70,9 @@ public sealed partial class KitUsersCoverageTests
         Assert.Empty(UserManagerUsersReferences(assembly.Location));
     }
 
+#if !JELLYFIN_12
+    // Jellyfin 12's IUserManager has no Users property (only GetUsers()), so there the check has nothing to find and no
+    // control to run.
     [Fact]
     public void TheAssemblyCheck_FindsADirectRead()
     {
@@ -78,6 +81,7 @@ public sealed partial class KitUsersCoverageTests
     }
 
     internal static IEnumerable<User> ReadsUsersDirectly(IUserManager userManager) => userManager.Users;
+#endif
 
     private static List<string> UserManagerUsersReferences(string path)
     {

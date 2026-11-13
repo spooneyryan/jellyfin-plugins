@@ -16,6 +16,9 @@ import { createPage, plain } from '../../../../../kit/web/tests/fake-dom.mjs';
 const file = process.env.KIT_CLIENT_SCRIPT;
 const skip = !file ? 'KIT_CLIENT_SCRIPT is not set' : false;
 const source = skip ? '' : fs.readFileSync(file, 'utf8');
+// Jellyfin 12's web client defaults to the modern layout (the kit reports it as Experimental); 10.11's to the legacy one.
+const MODERN_BY_DEFAULT = /"jellyfin":"12"/.test(source);
+const PLUGIN_VERSION = skip ? '' : /"version":"([^"]+)"/.exec(source)[1];
 
 const MOVIE = { Id: 'item1', Name: 'Long Test Movie', Type: 'Movie', MediaType: 'Video', IsFolder: false, LocationType: 'FileSystem' };
 const CAPABILITIES = {
@@ -53,9 +56,13 @@ async function start(options) {
     return page;
 }
 
-function detailsPage(page) {
+// The details view; options.jellyfin12 gives Jellyfin 12's markup, whose sections sit in .detailPageSecondaryContainer
+// (no .detailPageContent), the first a hidden #childrenCollapsible on movies.
+function detailsPage(page, options) {
     const buttons = page.element('div', { class: 'mainDetailButtons' }, [page.element('button', { class: 'btnPlay' }), page.element('button', { class: 'btnMoreCommands' })]);
-    const content = page.element('div', { class: 'detailPageContent' }, [page.element('div', { class: 'nativeSection' })]);
+    const content = options && options.jellyfin12
+        ? page.element('div', { class: 'detailPageSecondaryContainer padded-left padded-bottom-page' }, [page.element('div', { id: 'childrenCollapsible', class: 'verticalSection hide' }), page.element('div', { class: 'nativeSection' })])
+        : page.element('div', { class: 'detailPageContent' }, [page.element('div', { class: 'nativeSection' })]);
     const view = page.element('div', { id: 'itemDetailPage', class: 'page' }, [buttons, content]);
     page.document.body.append(view);
     page.context.location.hash = '#/details?id=item1&serverId=server-1';
@@ -127,6 +134,19 @@ test('the details page gets the Add bookmark button before the more button and t
     assert.deepEqual(ready.querySelectorAll('button.jfbm-link').map((b) => b.textContent), ['Preview', 'Delete clip']);
     assert.ok(page.fetchLog.every((f) => f.userId === 'user-1'));
     assert.deepEqual(page.fetchLog.map((f) => f.method + ' ' + f.path).sort(), ['GET /Bookmarks', 'GET /Bookmarks/Capabilities']);
+    assert.equal(page.errors.length, 0, page.errors.join('\n'));
+});
+
+test('on Jellyfin 12\'s details page the section goes first in the secondary container, with the button', { skip }, async () => {
+    const page = await start();
+    const { buttons, content } = detailsPage(page, { jellyfin12: true });
+    await page.advance(400);
+
+    assert.ok(buttons.querySelector('.btnBookmarkItem'), 'Add bookmark button');
+    const section = content.firstElementChild;
+    assert.equal(section.className, 'verticalSection detailVerticalSection jfbm-section');
+    assert.equal(section.querySelector('h2').textContent, 'My bookmarks (2)');
+    assert.equal(section.nextElementSibling.id, 'childrenCollapsible');
     assert.equal(page.errors.length, 0, page.errors.join('\n'));
 });
 
@@ -1634,8 +1654,8 @@ test('a missing button row (detailButtons): no Add bookmark button, the section 
         Client: 'Jellyfin Web',
         ClientVersion: '10.11.5',
         Layout: 'Desktop',
-        Experimental: false,
-        PluginVersion: '1.2.2.0',
+        Experimental: MODERN_BY_DEFAULT,
+        PluginVersion: PLUGIN_VERSION,
         Missing: [{ Anchor: 'detailButtons', View: 'details', Count: 1 }, { Anchor: 'detailButtonsBefore', View: 'details', Count: 1 }]
     });
 

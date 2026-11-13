@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using Jellyfin.Plugin.Kit.TestSupport;
 using Jellyfin.Plugin.Kit.Api;
 using Jellyfin.Plugin.LibraryMaintenance.Api.Models;
 using Jellyfin.Plugin.LibraryMaintenance.Move;
@@ -274,7 +275,8 @@ public sealed class MovePlanServiceTests : IDisposable
         _s.Data[(carol.Id, movie.Id)] = new UserItemData { Key = "k", Played = true, PlayCount = 1 };
         _s.Data[(dave.Id, movie.Id)] = new UserItemData { Key = "k", Played = true, PlayCount = 2 };
         _w.Library.Add(new BoxSet { Name = "Sci-fi", LinkedChildren = [new LinkedChild { ItemId = movie.Id }] });
-        _w.Library.Add(new BoxSet { Name = "Classics", LinkedChildren = [new LinkedChild { Path = movie.Path }] });
+        // A link by path alone (10.11's older links); Jellyfin 12's links carry the id alone.
+        _w.Library.Add(new BoxSet { Name = "Classics", LinkedChildren = [JellyfinLine.Is12 ? JellyfinLine.Link(movie.Id) : JellyfinLine.Link(null, movie.Path)] });
         _w.Library.Add(new BoxSet { Name = "Other", LinkedChildren = [new LinkedChild { ItemId = Guid.NewGuid() }] });
         _w.Library.Add(new Playlist { Name = "Friday", LinkedChildren = [new LinkedChild { ItemId = movie.Id }] });
 

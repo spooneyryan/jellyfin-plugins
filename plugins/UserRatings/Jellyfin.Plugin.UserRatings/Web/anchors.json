@@ -10,10 +10,10 @@
     },
     {
       "name": "detailContent",
-      "css": [".detailPageSecondaryContainer .detailPageContent", ".detailPageContent", ".detailPagePrimaryContent .detailSection"],
+      "css": [".detailPageSecondaryContainer .detailPageContent", ".detailPageSecondaryContainer", ".detailPageContent", ".detailPagePrimaryContent .detailSection"],
       "required": true,
       "views": ["details"],
-      "note": "The secondary column the ratings section goes into (itemDetails-index-html chunk). On Series, Season and MusicAlbum pages it comes after the child list. Missing: no section."
+      "note": "The secondary column the ratings section goes into (itemDetails-index-html chunk). On Series, Season and MusicAlbum pages it comes after the child list. Jellyfin 12 has no .detailPageContent: the secondary container itself holds the sections. Missing: no section."
     },
     {
       "name": "sectionBefore",

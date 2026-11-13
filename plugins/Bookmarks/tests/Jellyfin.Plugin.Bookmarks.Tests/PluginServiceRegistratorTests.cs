@@ -26,10 +26,11 @@ namespace Jellyfin.Plugin.Bookmarks.Tests;
 public sealed class PluginServiceRegistratorTests
 {
     [Theory]
-    [InlineData("10.11.5")]
-    [InlineData("10.11.11")]
-    public void On1011_RegistersTheKitAndTheServices(string version)
+    [InlineData(false)]
+    [InlineData(true)]
+    public void OnItsLine_RegistersTheKitAndTheServices(bool laterPatch)
     {
+        var version = laterPatch ? JellyfinLine.LaterPatchVersion : JellyfinLine.ServerVersion;
         var services = Register(version);
 
         var status = Assert.IsType<KitAbiStatus>(Assert.Single(services, d => d.ServiceType == typeof(KitAbiStatus)).ImplementationInstance);
@@ -140,7 +141,7 @@ public sealed class PluginServiceRegistratorTests
     [Fact]
     public void TheClientScript_IsTheKitsEmbeddedScript_ForBookmarksOptions()
     {
-        var services = Register("10.11.5");
+        var services = Register(JellyfinLine.ServerVersion);
         services.AddLogging();
         using var provider = services.BuildServiceProvider();
 
@@ -159,7 +160,7 @@ public sealed class PluginServiceRegistratorTests
         paths.SetupGet(p => p.DataPath).Returns(directory.Path);
         var loggers = new Mock<ILoggerFactory>();
         loggers.Setup(f => f.CreateLogger(It.IsAny<string>())).Returns(NullLogger.Instance);
-        var services = Register("10.11.5");
+        var services = Register(JellyfinLine.ServerVersion);
         services.AddSingleton(paths.Object).AddSingleton(loggers.Object);
         using var provider = services.BuildServiceProvider();
 
@@ -173,14 +174,14 @@ public sealed class PluginServiceRegistratorTests
     }
 
     [Fact]
-    public void On121_RegistersNothingButTheAbiStatus()
+    public void OnTheOtherLine_RegistersNothingButTheAbiStatus()
     {
-        var services = Register("12.1.0");
+        var services = Register(JellyfinLine.OtherLineVersion);
 
         var descriptor = Assert.Single(services);
         var status = Assert.IsType<KitAbiStatus>(descriptor.ImplementationInstance);
         Assert.False(status.IsActive);
-        Assert.Equal("Bookmarks is built for Jellyfin 10.11, but the server is Jellyfin 12.1.0: the plugin is inactive. Install the Bookmarks build for Jellyfin 12.", status.Message);
+        Assert.Equal($"Bookmarks is built for Jellyfin {JellyfinLine.Target}, but the server is Jellyfin {JellyfinLine.OtherLineVersion}: the plugin is inactive. Install the Bookmarks build for Jellyfin {JellyfinLine.OtherTarget}.", status.Message);
     }
 
     [Fact]

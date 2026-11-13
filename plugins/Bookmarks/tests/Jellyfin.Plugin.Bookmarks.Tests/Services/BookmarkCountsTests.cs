@@ -61,7 +61,7 @@ public sealed class BookmarkCountsTests : IDisposable
         await _store.UpdateDocumentAsync(d => d with { KnownUsers = d.KnownUsers.With(gone, "carol") }, Ct);
 
         var users = new Mock<IUserManager>();
-        users.SetupGet(m => m.Users).Returns([_alice, _bob]);
+        users.SetupUsers([_alice, _bob]);
         var entry = BookmarkCounts.Describe(_store, users.Object);
         var json = JsonSerializer.SerializeToElement(entry);
 

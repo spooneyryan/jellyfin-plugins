@@ -1,3 +1,4 @@
+using Jellyfin.Plugin.Kit.TestSupport;
 using System;
 using System.IO;
 using System.Linq;
@@ -52,7 +53,7 @@ public sealed class ClientScriptTests
     {
         var script = Scripts.Value.ClientScriptText;
 
-        Assert.Contains("var KIT_BUILD = {\"plugin\":\"Bookmarks\",\"prefix\":\"jfbm\",\"route\":\"Bookmarks\",\"version\":\"1.2.2.0\",\"kit\":\"" + KitBuild.KitVersion + "\"", script, StringComparison.Ordinal);
+        Assert.Contains("var KIT_BUILD = {\"plugin\":\"Bookmarks\",\"prefix\":\"jfbm\",\"route\":\"Bookmarks\",\"version\":\"" + JellyfinLine.VersionOf(typeof(Plugin)) + "\",\"kit\":\"" + KitBuild.KitVersion + "\"", script, StringComparison.Ordinal);
         Assert.Contains("// ---- Web/js/90-main.js\n", script, StringComparison.Ordinal);
         Assert.Contains(".jfbm-row{", script, StringComparison.Ordinal);
         Assert.Contains(".jfbm-toast{", script, StringComparison.Ordinal);
@@ -126,7 +127,7 @@ public sealed class ClientScriptTests
     private static Task<WebHostHarness> StartAsync(string baseUrl)
     {
         var host = new Mock<IServerApplicationHost>();
-        host.SetupGet(h => h.ApplicationVersion).Returns(new Version(10, 11, 5));
+        host.SetupGet(h => h.ApplicationVersion).Returns(JellyfinLine.Server);
         var registered = new ServiceCollection();
         new PluginServiceRegistrator().RegisterServices(registered, host.Object);
 

@@ -10,6 +10,9 @@ const BANNER_ATTRIBUTE = 'data-jfar-banner';
 const USER_PAGE_ROUTES = Object.freeze(['/dashboard/users/profile', '/dashboard/users/access', '/dashboard/users/parentalcontrol', '/dashboard/users/password']);
 const NEW_USER_ROUTE = '/dashboard/users/add';
 
+// Jellyfin 12's user editor: one route per user and tab, /dashboard/users/<userId>/<tab>, with no query.
+const USER_PAGE_ROUTE_12 = /^\/dashboard\/users\/([0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12})\/(profile|access|parentalcontrol|password)$/i;
+
 const NOTICES = { key: null, pending: null, text: null };
 
 // The banner's key for the current route: 'user:<id>', 'add', or null.
@@ -17,6 +20,11 @@ function noticeKey() {
     const path = normalizePath(window.location.hash);
     if (path === NEW_USER_ROUTE) {
         return 'add';
+    }
+
+    const editor12 = USER_PAGE_ROUTE_12.exec(path);
+    if (editor12) {
+        return 'user:' + normalizeUserId(editor12[1]);
     }
 
     if (USER_PAGE_ROUTES.indexOf(path) < 0) {

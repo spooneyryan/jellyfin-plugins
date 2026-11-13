@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Xml.Linq;
+using Jellyfin.Plugin.Kit.TestSupport;
 using Jellyfin.Plugin.Kit.TestSupport.PluginIdentity;
 using Xunit;
 
@@ -15,7 +16,7 @@ namespace Jellyfin.Plugin.UserRatings.Tests;
 public sealed class PluginIdentityTests : IDisposable
 {
     private static readonly string Root = Path.Combine(PluginIdentityChecks.FindRepositoryRoot(), "plugins", "UserRatings");
-    private static readonly BuildYaml Yaml = BuildYaml.Load(Path.Combine(Root, "build.yaml"));
+    private static readonly BuildYaml Yaml = BuildYaml.Load(Path.Combine(Root, JellyfinLine.BuildYamlName));
     private readonly DirectoryInfo _scratch = Directory.CreateTempSubdirectory("userratings-identity-");
 
     [Fact]
@@ -27,10 +28,10 @@ public sealed class PluginIdentityTests : IDisposable
         Assert.Equal(PluginIdentityChecks.AssignedGuids["User Ratings"], Guid.Parse(Yaml.Guid));
 
         // Development builds were 0.3.<n>.0; 1.0.0.0 is the first release, 1.0.1.0 its fix release, 1.0.2.0 the owner name.
-        Assert.Equal("1.0.2.0", Yaml.Version);
+        Assert.Equal(JellyfinLine.Is12 ? "2.0.0.0" : "1.0.2.0", Yaml.Version);
         Assert.Empty(PluginIdentityChecks.CheckVersionFormat(Yaml.Version));
         Assert.Empty(PluginIdentityChecks.CheckTargetAbi(Yaml));
-        Assert.Equal("10.11.5.0", Yaml.TargetAbi);
+        Assert.Equal(JellyfinLine.Is12 ? "12.4.0.0" : "10.11.5.0", Yaml.TargetAbi);
         Assert.Equal(["Jellyfin.Plugin.UserRatings.dll"], Yaml.Artifacts);
     }
 
@@ -72,9 +73,10 @@ public sealed class PluginIdentityTests : IDisposable
         Assert.NotNull(database);
         Assert.False(database!.IsVisible);
 
-        // ... against the server's Microsoft.Data.Sqlite 9.0.11 exactly (Deploy's reference-version check).
+        // ... against the server's Microsoft.Data.Sqlite exactly (Deploy's reference-version check): 9.0.11 on 10.11.5,
+        // 10.0.14 on 12.4.
         var reference = Assert.Single(typeof(Plugin).Assembly.GetReferencedAssemblies(), a => a.Name == "Microsoft.Data.Sqlite");
-        Assert.Equal(new Version(9, 0, 11, 0), reference.Version);
+        Assert.Equal(JellyfinLine.Is12 ? new Version(10, 0, 14, 0) : new Version(9, 0, 11, 0), reference.Version);
     }
 
     [Fact]

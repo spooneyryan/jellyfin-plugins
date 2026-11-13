@@ -1,3 +1,4 @@
+using Jellyfin.Plugin.Kit.TestSupport;
 using System;
 using System.Linq;
 using System.Net.Http;
@@ -47,7 +48,7 @@ internal static class MoveApiHost
     public static Task<WebHostHarness> StartAsync(TestConfiguration configuration, Func<bool> isWindows, Action<IServiceCollection>? services = null, params Type[] extraControllers)
     {
         var host = new Mock<IServerApplicationHost>();
-        host.SetupGet(h => h.ApplicationVersion).Returns(new Version(10, 11, 5));
+        host.SetupGet(h => h.ApplicationVersion).Returns(JellyfinLine.Server);
         host.SetupGet(h => h.CoreStartupHasCompleted).Returns(true);
         var registered = new ServiceCollection();
         new PluginServiceRegistrator().RegisterServices(registered, host.Object);

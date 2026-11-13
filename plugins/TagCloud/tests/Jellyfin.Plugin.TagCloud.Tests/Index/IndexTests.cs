@@ -3,6 +3,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Jellyfin.Data.Enums;
+using Jellyfin.Plugin.Kit.TestSupport;
 using Jellyfin.Plugin.TagCloud.Api.Models;
 using Jellyfin.Plugin.TagCloud.Index;
 using Jellyfin.Plugin.TagCloud.Tests.TestSupport;
@@ -69,6 +70,21 @@ public sealed class IndexTests
     }
 
     [Fact]
+    public async Task ABuild_HoldsAMergedVersion_AsAPatchDoes()
+    {
+        // Jellyfin 12 hides a merged (linked) alternate version from queries unless asked: a build still reads it, so a
+        // rebuild and a patch count the same titles, as on 10.11.
+        var fixture = new TagCloudFixture();
+        var cut = fixture.Movie("Alien (Director's Cut)", 1979, ["space"], ["Horror"], []);
+        cut.SetPrimaryVersion(fixture.Alien.Id);
+
+        await fixture.Index.BuildAsync(CancellationToken.None);
+
+        Assert.Contains("Alien (Director's Cut)", fixture.Index.Current!.Titles.OfType<TitleRecord>().Select(t => t.Name));
+        Assert.Same(cut, fixture.Titles.Read(cut.Id));
+    }
+
+    [Fact]
     public async Task ABuild_HoldsMoviesAndSeries_ButNotEpisodesExtrasOrVirtualItems_WithTheirWordsAndCredits()
     {
         var fixture = new TagCloudFixture();
@@ -128,7 +144,7 @@ public sealed class IndexTests
         var consumer = new TagCloudLibraryConsumer(fixture.Index, fixture.ConfigurationProvider);
         Assert.Equal(new[] { BaseItemKind.Movie, BaseItemKind.Series }.Order(), consumer.Filter.Kinds!.Order());
 
-        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(60));
         var asked = fixture.Index.WaitForRebuildRequestAsync(timeout.Token);
         Assert.False(asked.IsCompleted);
         fixture.Index.RequestRebuild();

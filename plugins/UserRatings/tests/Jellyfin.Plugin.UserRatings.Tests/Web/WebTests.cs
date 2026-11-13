@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using Jellyfin.Plugin.Kit.TestSupport;
 using Jellyfin.Plugin.Kit.Diagnostics;
 using Jellyfin.Plugin.Kit.Hosting;
 using Jellyfin.Plugin.Kit.TestSupport.PluginIdentity;
@@ -138,7 +139,7 @@ public sealed partial class WebTests
     {
         var script = Scripts.Value.ClientScriptText;
 
-        Assert.Contains("var KIT_BUILD = {\"plugin\":\"User Ratings\",\"prefix\":\"jfur\",\"route\":\"UserRatings\",\"version\":\"1.0.2.0\",\"kit\":\"" + KitBuild.KitVersion + "\"", script, StringComparison.Ordinal);
+        Assert.Contains("var KIT_BUILD = {\"plugin\":\"User Ratings\",\"prefix\":\"jfur\",\"route\":\"UserRatings\",\"version\":\"" + JellyfinLine.VersionOf(typeof(Plugin)) + "\",\"kit\":\"" + KitBuild.KitVersion + "\"", script, StringComparison.Ordinal);
         Assert.Contains("// ---- Web/js/00-strings.js\n", script, StringComparison.Ordinal);
         Assert.Contains("// ---- Web/js/30-stars.js\n", script, StringComparison.Ordinal);
         Assert.Contains("// ---- Web/js/90-main.js\n", script, StringComparison.Ordinal);
@@ -179,7 +180,7 @@ public sealed partial class WebTests
         Assert.Equal(order.Order(), order);
         Assert.Single(Regex.Matches(script!, @"^function mount\(", RegexOptions.Multiline));
         Assert.Contains(".jfur-set-choices,.jfur-set-checks{display:flex;flex-wrap:wrap;gap:.5em}", script, StringComparison.Ordinal);
-        Assert.Contains("const KIT_BUILD = {\"plugin\":\"User Ratings\",\"prefix\":\"jfur\",\"route\":\"UserRatings\",\"version\":\"1.0.2.0\"", script, StringComparison.Ordinal);
+        Assert.Contains("const KIT_BUILD = {\"plugin\":\"User Ratings\",\"prefix\":\"jfur\",\"route\":\"UserRatings\",\"version\":\"" + JellyfinLine.VersionOf(typeof(Plugin)) + "\"", script, StringComparison.Ordinal);
         Assert.Contains("const kit = createKit(KIT_BUILD, KIT_CSS, { styleId: KIT_BUILD.prefix + '-admin-styles'", script, StringComparison.Ordinal);
         Assert.Contains("function mount(view, params) {", script, StringComparison.Ordinal);
         Assert.EndsWith("export { mount };\n", script.ReplaceLineEndings("\n"), StringComparison.Ordinal);
@@ -353,7 +354,7 @@ public sealed partial class WebTests
         var own = catalog.Anchors.Where(a => !a.Name.StartsWith(WebAnchorCatalog.KitNamePrefix, StringComparison.Ordinal)).ToList();
         Assert.Equal(["detailPage", "detailContent", "sectionBefore", "miscInfo", "detailButtons", "detailButtonsBefore"], own.Select(a => a.Name));
         Assert.Equal(["#itemDetailPage:not(.hide)", ".itemDetailPage:not(.hide)"], own[0].Css);
-        Assert.Equal([".detailPageSecondaryContainer .detailPageContent", ".detailPageContent", ".detailPagePrimaryContent .detailSection"], own[1].Css);
+        Assert.Equal([".detailPageSecondaryContainer .detailPageContent", ".detailPageSecondaryContainer", ".detailPageContent", ".detailPagePrimaryContent .detailSection"], own[1].Css);
         Assert.Equal(["#castCollapsible", "#guestCastCollapsible", "#similarCollapsible"], own[2].Css);
         Assert.Equal([".itemMiscInfo-primary", ".itemMiscInfo"], own[3].Css);
         Assert.Equal([".mainDetailButtons"], own[4].Css);

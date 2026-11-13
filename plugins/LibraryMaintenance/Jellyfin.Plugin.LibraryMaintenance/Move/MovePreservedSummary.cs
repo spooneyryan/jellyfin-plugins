@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Jellyfin.Data.Enums;
+using Jellyfin.Plugin.Kit.Library;
 using Jellyfin.Plugin.Kit.Users;
 using Jellyfin.Plugin.LibraryMaintenance.Api.Models;
 using Jellyfin.Plugin.LibraryMaintenance.Move.Paths;
@@ -94,11 +95,12 @@ internal sealed class MovePreservedSummary
             ? PathRules.IsSameOrUnder(path, unit.SourceRoot)
             : unit.Entries.Any(e => PathRules.SamePath(System.IO.Path.Join(unit.SourceRoot, e.RelativePath), path));
 
-    // The collections or playlists whose linked children include one of the unit's items, by id or by path.
+    // The collections or playlists whose linked children include one of the unit's items, by id or by path (10.11 only:
+    // Jellyfin 12's links carry the id alone).
     private List<string> Containing(BaseItemKind kind, HashSet<Guid> ids, HashSet<string> paths)
         => (_library.GetItemList(new InternalItemsQuery { IncludeItemTypes = [kind], Recursive = true }) ?? [])
             .OfType<Folder>()
-            .Where(f => (f.LinkedChildren ?? []).Any(c => c is not null && ((c.ItemId is { } id && ids.Contains(id)) || (c.Path is { } path && paths.Contains(path)))))
+            .Where(f => (f.LinkedChildren ?? []).Any(c => c is not null && ((c.ItemId is { } id && ids.Contains(id)) || (KitItemQueries.LinkPath(c) is { } path && paths.Contains(path)))))
             .Select(f => f.Name ?? string.Empty)
             .Order(StringComparer.CurrentCultureIgnoreCase)
             .ToList();

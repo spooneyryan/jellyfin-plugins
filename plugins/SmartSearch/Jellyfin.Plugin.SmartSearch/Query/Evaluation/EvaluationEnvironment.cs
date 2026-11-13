@@ -7,8 +7,9 @@ namespace Jellyfin.Plugin.SmartSearch.Query.Evaluation;
 
 /// <summary>
 /// What a compiled rule needs besides the row: the time relative rules count from, the server's time
-/// zone (whose calendar days date-only values name), the rating scores for <c>OfficialRating Le/Ge</c>, and the
-/// members of libraries for <c>Library</c> rules (the <c>LibraryMembershipResolver</c>).
+/// zone (whose calendar days date-only values name), the rating scores for <c>OfficialRating Le/Ge</c>, the
+/// members of libraries for <c>Library</c> rules (the <c>LibraryMembershipResolver</c>), and the items a person is credited
+/// on for <c>People</c> rules (the <c>PeopleRoleResolver</c>).
 /// </summary>
 internal sealed class EvaluationEnvironment
 {
@@ -30,6 +31,13 @@ internal sealed class EvaluationEnvironment
     /// can't be compiled.
     /// </summary>
     public Func<IReadOnlyCollection<Guid>, IReadOnlySet<Guid>>? LibraryMembers { get; init; }
+
+    /// <summary>
+    /// Gets whether an item is credited to a person (the person's id and name as the rule holds them, and the role,
+    /// <c>null</c> for any): a test on an item id, made once per reference when a rule is compiled; or <c>null</c> when no
+    /// resolver is set, and a <c>People</c> rule then can't be compiled.
+    /// </summary>
+    public Func<Guid, string?, string?, Func<Guid, bool>>? PeopleMembers { get; init; }
 
     /// <summary>Creates an environment over the server's rating scores and clock.</summary>
     /// <param name="localization">The localization manager.</param>

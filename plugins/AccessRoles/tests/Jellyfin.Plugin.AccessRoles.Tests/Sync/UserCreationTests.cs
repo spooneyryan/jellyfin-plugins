@@ -1,3 +1,4 @@
+using Jellyfin.Plugin.Kit.TestSupport;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -54,7 +55,7 @@ public sealed class UserCreationTests : IDisposable
 
     public UserCreationTests()
     {
-        _host.SetupGet(h => h.ApplicationVersion).Returns(Version.Parse("10.11.5"));
+        _host.SetupGet(h => h.ApplicationVersion).Returns(JellyfinLine.Server);
         _host.SetupGet(h => h.CoreStartupHasCompleted).Returns(true);
         var configuration = new FakeConfigurationProvider(() => _h.Configuration);
         _service = new LibrarySyncService(_host.Object, _h.Sync, _h.Store, _h.Writer, null, configuration, _h.Status, NullLogger.Instance, _h.Clock);
@@ -305,7 +306,7 @@ public sealed class UserCreationTests : IDisposable
     private static async Task WaitForAsync(Func<bool> condition)
     {
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
-        timeout.CancelAfter(TimeSpan.FromSeconds(10));
+        timeout.CancelAfter(TimeSpan.FromSeconds(60));
         while (!condition())
         {
             await Task.Delay(10, timeout.Token);

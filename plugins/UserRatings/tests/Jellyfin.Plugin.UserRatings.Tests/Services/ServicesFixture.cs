@@ -17,6 +17,7 @@ using MediaBrowser.Controller.Entities.Movies;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Model.Entities;
 using Moq;
+using Jellyfin.Plugin.Kit.TestSupport;
 
 namespace Jellyfin.Plugin.UserRatings.Tests.Services;
 
@@ -42,7 +43,7 @@ internal sealed class ServicesFixture : IDisposable
         Viewer2 = NewUser("viewer2");
         Users = [Admin, Viewer, Viewer2];
 
-        UserManager.SetupGet(m => m.Users).Returns(() => Users);
+        UserManager.SetupUsers(() => Users);
         UserData.Setup(u => u.GetUserData(It.IsAny<User>(), It.IsAny<BaseItem>())).Returns((User user, BaseItem item)
             => item.UserData?.Where(e => e.UserId.Equals(user.Id)).Select(r => new UserItemData { Key = r.CustomDataKey, Played = r.Played, IsFavorite = r.IsFavorite, PlayCount = r.PlayCount }).FirstOrDefault()
                 ?? new UserItemData { Key = "blank" });

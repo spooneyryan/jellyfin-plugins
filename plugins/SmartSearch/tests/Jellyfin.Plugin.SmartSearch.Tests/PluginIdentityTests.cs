@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Xml.Linq;
+using Jellyfin.Plugin.Kit.TestSupport;
 using Jellyfin.Plugin.Kit.TestSupport.PluginIdentity;
 using Xunit;
 
@@ -16,7 +17,7 @@ namespace Jellyfin.Plugin.SmartSearch.Tests;
 public sealed class PluginIdentityTests : IDisposable
 {
     private static readonly string Root = Path.Combine(PluginIdentityChecks.FindRepositoryRoot(), "plugins", "SmartSearch");
-    private static readonly BuildYaml Yaml = BuildYaml.Load(Path.Combine(Root, "build.yaml"));
+    private static readonly BuildYaml Yaml = BuildYaml.Load(Path.Combine(Root, JellyfinLine.BuildYamlName));
     private readonly DirectoryInfo _scratch = Directory.CreateTempSubdirectory("smartsearch-identity-");
 
     [Fact]
@@ -27,8 +28,8 @@ public sealed class PluginIdentityTests : IDisposable
         Assert.Equal(("Smart Search", "d92488d5-409f-4ad0-af1d-3615db9d0513"), (Yaml.Name, Yaml.Guid));
         Assert.Equal(PluginIdentityChecks.AssignedGuids["Smart Search"], Guid.Parse(Yaml.Guid));
 
-        // 1.1.1.0 gives auto-collections their default poster, 1.1.2.0 the owner name; development builds after it are 1.1.2.<n>.
-        Assert.Equal("1.1.2.0", Yaml.Version);
+        // 1.1.1.0 gives auto-collections their default poster, 1.1.2.0 the owner name, 1.2.0.0 (2.1.0.0 on Jellyfin 12) the People rule.
+        Assert.Equal(JellyfinLine.Is12 ? "2.1.0.0" : "1.2.0.0", Yaml.Version);
         Assert.Empty(PluginIdentityChecks.CheckVersionFormat(Yaml.Version));
         Assert.Empty(PluginIdentityChecks.CheckTargetAbi(Yaml));
         Assert.Equal(["Jellyfin.Plugin.SmartSearch.dll"], Yaml.Artifacts);

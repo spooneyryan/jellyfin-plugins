@@ -333,7 +333,7 @@ public sealed class LibraryDemoTests : IDisposable
         var movies2 = Library("Movies 2");
         var primary = MovieIn(movies2, "Heat");
         var secondary = MovieIn(movies, "Heat 4K");
-        secondary.SetPrimaryVersionId(primary.Id.ToString("N"));
+        secondary.SetPrimaryVersion(primary.Id);
         primary.LinkedAlternateVersions = [new LinkedChild { ItemId = secondary.Id }];
         _library.Hide(kid, primary);
         var demo = CreateDemo(access: new LibraryAccess(_library.Object, user => user == kid ? [movies] : [movies, movies2]));
@@ -382,7 +382,7 @@ public sealed class LibraryDemoTests : IDisposable
         Assert.Equal((TaskTriggerInfoType.DailyTrigger, new TimeSpan(3, 10, 0).Ticks), (trigger.Type, trigger.TimeOfDayTicks));
 
         // With the registrator's services: every step runs, and with the demos off none fails.
-        _host.SetupGet(h => h.ApplicationVersion).Returns(new Version(10, 11, 5));
+        _host.SetupGet(h => h.ApplicationVersion).Returns(JellyfinLine.Server);
         var paths = new Mock<IApplicationPaths>();
         paths.SetupGet(p => p.DataPath).Returns(_directory.Path);
         var services = new ServiceCollection();

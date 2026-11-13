@@ -160,7 +160,7 @@ public sealed class ManualEditTests : IDisposable
         var requests = host.Queue.Requests.Count;
 
         host.ScanRunning = true;
-        Box().LinkedChildren = [.. Box().LinkedChildren, new LinkedChild { ItemId = c.Id, Type = LinkedChildType.Manual }];
+        Box().LinkedChildren = [.. Box().LinkedChildren, new LinkedChild { ItemId = c.Id, Type = MediaBrowser.Controller.Entities.LinkedChildType.Manual }];
         host.Listener.OnCollectionEdited(Box(), [c.Id], added: true);
         await host.Listener.WhenIdleAsync();
         Assert.Equal(requests, host.Queue.Requests.Count);
@@ -317,7 +317,7 @@ public sealed class ManualEditTests : IDisposable
         // As the server does: the links change, then the event fires.
         var box = host.Locator.Locate(host.Store.Find(definitionId)!).Box!;
         box.LinkedChildren = added
-            ? [.. box.LinkedChildren, .. ids.Select(id => new LinkedChild { ItemId = id, Type = LinkedChildType.Manual })]
+            ? [.. box.LinkedChildren, .. ids.Select(id => new LinkedChild { ItemId = id, Type = MediaBrowser.Controller.Entities.LinkedChildType.Manual })]
             : [.. box.LinkedChildren.Where(l => l.ItemId is not { } id || !ids.Contains(id))];
         host.Listener.OnCollectionEdited(box, ids, added);
         await host.Listener.WhenIdleAsync();
@@ -331,7 +331,7 @@ public sealed class ManualEditTests : IDisposable
     private AutoCollectionHost Host()
     {
         var users = new Mock<IUserManager>();
-        users.SetupGet(m => m.Users).Returns([_world.Admin, _world.Kid]);
+        users.SetupUsers([_world.Admin, _world.Kid]);
         users.Setup(m => m.GetUserById(It.IsAny<Guid>())).Returns((Guid id) => new[] { _world.Admin, _world.Kid }.FirstOrDefault(u => u.Id.Equals(id)));
         return new AutoCollectionHost(_world, _harness, _folder.Combine("data"), _persistence, users.Object);
     }

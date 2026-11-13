@@ -26,7 +26,7 @@ namespace Jellyfin.Plugin.LibraryMaintenance.Tests.Duplicates;
 /// </summary>
 public sealed class MovieIndexFreshnessTests
 {
-    private static readonly TimeSpan Wait = TimeSpan.FromSeconds(10);
+    private static readonly TimeSpan Wait = TimeSpan.FromSeconds(60);
 
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 

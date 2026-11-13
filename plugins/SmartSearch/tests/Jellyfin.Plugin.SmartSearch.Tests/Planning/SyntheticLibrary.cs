@@ -331,4 +331,43 @@ internal static class SyntheticLibrary
             }
         }
     }
+
+    /// <summary>The people credited in <see cref="AddPeople"/>: case twins, a non-ASCII name, one with no Person item.</summary>
+    public static readonly string[] PeopleNames = ["Ridley Scott", "Tony Scott", "ridley scott", "Al Pacino", "Robert De Niro", "Zoë Kravitz", "Nobody Item", "Ann Lee"];
+
+    /// <summary>The credit types written: the field's roles and some it doesn't name.</summary>
+    public static readonly string[] CreditTypes = ["Actor", "Actor", "Director", "Writer", "Producer", "Composer", "GuestStar", "Conductor", "Lyricist"];
+
+    /// <summary>
+    /// Credits people on the world's rows from a generator of its own (so the other draws stay as they were), and returns the
+    /// references a People rule may name: each person's item, a stale id with a known name, an unknown person.
+    /// </summary>
+    /// <param name="world">The populated world.</param>
+    /// <param name="seed">The seed.</param>
+    /// <returns>The references.</returns>
+    public static List<(Guid Id, string Name)> AddPeople(PlannerWorld world, int seed)
+    {
+        var rng = new Random(seed);
+        var core = world.Core;
+        var refs = new List<(Guid Id, string Name)>();
+        foreach (var name in PeopleNames.Where(n => n != "Nobody Item"))
+        {
+            var person = core.AddPerson(name);
+            refs.Add((person.Id, person.Name));
+        }
+
+        refs.Add((Guid.NewGuid(), "Al Pacino"));
+        refs.Add((Guid.NewGuid(), "Nobody Item"));
+        refs.Add((Guid.NewGuid(), "Nobody At All"));
+        foreach (var row in core.Rows.Where(r => r.Kind is BaseItemKind.Movie or BaseItemKind.Series or BaseItemKind.Episode or BaseItemKind.Video))
+        {
+            var credits = rng.Next(4);
+            for (var c = 0; c < credits; c++)
+            {
+                row.Credits.Add((Pick(rng, PeopleNames), Pick(rng, CreditTypes)));
+            }
+        }
+
+        return refs;
+    }
 }

@@ -229,10 +229,13 @@ internal sealed class ClipPlanner : IClipPlanner
 
     private MediaSourceInfo SelectMediaSource(Video item, User user, string? mediaSourceId)
     {
+        // Without the bookmark's version (none saved, or gone), the item's own file: Jellyfin 12 lists the version the user
+        // last played first, so the first source would depend on the user's history.
         var sources = _mediaSourceManager.GetStaticMediaSources(item, false, user);
         var source = (string.IsNullOrEmpty(mediaSourceId)
                 ? null
                 : sources.FirstOrDefault(s => string.Equals(s.Id, mediaSourceId, StringComparison.OrdinalIgnoreCase)))
+            ?? sources.FirstOrDefault(s => string.Equals(s.Id, item.Id.ToString("N", CultureInfo.InvariantCulture), StringComparison.OrdinalIgnoreCase))
             ?? (sources.Count > 0 ? sources[0] : null)
             ?? throw new ClipExtractionException("The video has no playable media source.");
 

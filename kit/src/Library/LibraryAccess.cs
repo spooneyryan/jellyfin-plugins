@@ -223,7 +223,7 @@ internal sealed class LibraryAccess
         var query = user is null ? new InternalItemsQuery() : new InternalItemsQuery(user);
         query.TopParentIds = topParents;
         query.GroupByPresentationUniqueKey = false;
-        return query;
+        return KitItemQueries.IncludeEveryVersion(query);
     }
 
     /// <summary>
@@ -291,6 +291,7 @@ internal sealed class LibraryAccess
             query.TopParentIds = topParents;
             query.GroupByPresentationUniqueKey = false;
             query.DtoOptions = new DtoOptions(false) { EnableImages = false, EnableUserData = false };
+            KitItemQueries.IncludeEveryVersion(query);
             foreach (var item in _library.GetItemList(query))
             {
                 if (item is not null && !IsOwned(item) && (user is null || ParentsVisible(item, user, parents)))

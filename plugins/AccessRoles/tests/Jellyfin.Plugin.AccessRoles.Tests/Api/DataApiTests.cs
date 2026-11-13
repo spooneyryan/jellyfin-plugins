@@ -13,6 +13,7 @@ using Jellyfin.Plugin.Kit.Storage;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 using static Jellyfin.Plugin.AccessRoles.Tests.TestSupport.AccessFixtures;
+using Jellyfin.Plugin.Kit.TestSupport;
 
 namespace Jellyfin.Plugin.AccessRoles.Tests.Api;
 
@@ -367,7 +368,7 @@ public sealed class DataApiTests
         return Directory.Exists(directory) ? Directory.GetFiles(directory) : [];
     }
 
-    private static Jellyfin.Database.Implementations.Entities.User User(AccessRolesApi api, string name) => api.UserManager.Object.Users.Single(u => u.Username == name);
+    private static Jellyfin.Database.Implementations.Entities.User User(AccessRolesApi api, string name) => api.UserManager.Object.AllUsers().Single(u => u.Username == name);
 
     private static Jellyfin.Plugin.AccessRoles.Access.ServerUser Server(Jellyfin.Database.Implementations.Entities.User user) => new(user.Id, user.Username, false, false, false, AllFolders);
 }

@@ -94,7 +94,7 @@ public sealed class AdminToolsApiTests : IAsyncLifetime
         var root = envelope.RootElement;
         Assert.Equal("jellyfin-plugin-export/1", root.GetProperty("Format").GetString());
         Assert.Equal("Bookmarks", root.GetProperty("Plugin").GetString());
-        Assert.Equal("1.2.2.0", root.GetProperty("PluginVersion").GetString());
+        Assert.Equal(JellyfinLine.VersionOf(typeof(Plugin)), root.GetProperty("PluginVersion").GetString());
         Assert.Equal(2, root.GetProperty("SchemaVersion").GetInt32());
         Assert.Equal(new[] { "admin", "alex" }, root.GetProperty("Users").EnumerateArray().Select(u => u.GetProperty("Name").GetString()).Order());
         Assert.Equal(2, root.GetProperty("Data").GetProperty("Bookmarks").GetArrayLength());
@@ -805,7 +805,7 @@ public sealed class AdminToolsApiTests : IAsyncLifetime
     private Task<WebHostHarness> StartAsync(string? dataPath = null)
     {
         var applicationHost = new Mock<IServerApplicationHost>();
-        applicationHost.SetupGet(h => h.ApplicationVersion).Returns(new Version(10, 11, 5));
+        applicationHost.SetupGet(h => h.ApplicationVersion).Returns(JellyfinLine.Server);
         applicationHost.SetupGet(h => h.SystemId).Returns("0123456789abcdef0123456789abcdef");
         var registered = new ServiceCollection();
         new PluginServiceRegistrator().RegisterServices(registered, applicationHost.Object);
@@ -822,7 +822,7 @@ public sealed class AdminToolsApiTests : IAsyncLifetime
         paths.SetupGet(p => p.DataPath).Returns(dataPath ?? _data.Path);
         paths.SetupGet(p => p.PluginConfigurationsPath).Returns(Path.Combine(dataPath ?? _data.Path, "config"));
         var users = new Mock<IUserManager>();
-        users.SetupGet(m => m.Users).Returns(() => _server.ToList());
+        users.SetupUsers(() => _server.ToList());
         users.Setup(m => m.GetUserById(It.IsAny<Guid>())).Returns((Guid id) => _server.Find(u => u.Id == id));
         var tasks = _tasks;
 

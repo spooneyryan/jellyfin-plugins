@@ -9,9 +9,12 @@
 
   <!-- Server packages. Plugin projects reference them with ExcludeAssets="runtime"; the server ships them. -->
   <ItemGroup>
-    <PackageVersion Include="Jellyfin.Controller" Version="10.11.5" />
-    <PackageVersion Include="Jellyfin.Model" Version="10.11.5" />
-    <PackageVersion Include="Microsoft.Data.Sqlite.Core" Version="9.0.11" />
+    <PackageVersion Include="Jellyfin.Controller" Version="10.11.5" Condition="'$(JellyfinTarget)' == '10.11'" />
+    <PackageVersion Include="Jellyfin.Controller" Version="12.4.0" Condition="'$(JellyfinTarget)' == '12'" />
+    <PackageVersion Include="Jellyfin.Model" Version="10.11.5" Condition="'$(JellyfinTarget)' == '10.11'" />
+    <PackageVersion Include="Jellyfin.Model" Version="12.4.0" Condition="'$(JellyfinTarget)' == '12'" />
+    <PackageVersion Include="Microsoft.Data.Sqlite.Core" Version="9.0.11" Condition="'$(JellyfinTarget)' == '10.11'" />
+    <PackageVersion Include="Microsoft.Data.Sqlite.Core" Version="10.0.14" Condition="'$(JellyfinTarget)' == '12'" />
   </ItemGroup>
 
   <!--
@@ -19,7 +22,8 @@
     the native SQLite 3.46.1 build the server ships. Plugins never reference it.
   -->
   <ItemGroup>
-    <PackageVersion Include="Microsoft.Data.Sqlite" Version="9.0.11" />
+    <PackageVersion Include="Microsoft.Data.Sqlite" Version="9.0.11" Condition="'$(JellyfinTarget)' == '10.11'" />
+    <PackageVersion Include="Microsoft.Data.Sqlite" Version="10.0.14" Condition="'$(JellyfinTarget)' == '12'" />
   </ItemGroup>
 
   <!-- Analyzers (every non-test project, see Directory.Build.props). -->
@@ -31,7 +35,8 @@
 
   <!-- Tests (kit/build/TestSupport.props). -->
   <ItemGroup>
-    <PackageVersion Include="Microsoft.AspNetCore.TestHost" Version="9.0.11" />
+    <PackageVersion Include="Microsoft.AspNetCore.TestHost" Version="9.0.11" Condition="'$(JellyfinTarget)' == '10.11'" />
+    <PackageVersion Include="Microsoft.AspNetCore.TestHost" Version="10.0.14" Condition="'$(JellyfinTarget)' == '12'" />
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.9.0" />
     <PackageVersion Include="Moq" Version="4.18.4" />
     <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.5" />
@@ -43,8 +48,10 @@
     Directory.Packages.props), so the kit's startup log and the schema-prefix walker are checked against the real thing.
   -->
   <ItemGroup>
-    <PackageVersion Include="Serilog" Version="4.2.0" />
-    <PackageVersion Include="Swashbuckle.AspNetCore.SwaggerGen" Version="6.2.3" />
+    <PackageVersion Include="Serilog" Version="4.2.0" Condition="'$(JellyfinTarget)' == '10.11'" />
+    <PackageVersion Include="Serilog" Version="4.3.0" Condition="'$(JellyfinTarget)' == '12'" />
+    <PackageVersion Include="Swashbuckle.AspNetCore.SwaggerGen" Version="6.2.3" Condition="'$(JellyfinTarget)' == '10.11'" />
+    <PackageVersion Include="Swashbuckle.AspNetCore.SwaggerGen" Version="10.2.3" Condition="'$(JellyfinTarget)' == '12'" />
   </ItemGroup>
 
   <!--
@@ -52,6 +59,7 @@
     database reads (DatabasePushdownFacts) are translated and run by the real thing.
   -->
   <ItemGroup>
-    <PackageVersion Include="Microsoft.EntityFrameworkCore.Sqlite" Version="9.0.11" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Sqlite" Version="9.0.11" Condition="'$(JellyfinTarget)' == '10.11'" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.14" Condition="'$(JellyfinTarget)' == '12'" />
   </ItemGroup>
 </Project>

@@ -1,3 +1,4 @@
+using Jellyfin.Plugin.Kit.TestSupport;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -58,7 +59,7 @@ internal sealed class FilterHarness : IDisposable
     public FilterHarness()
     {
         var host = new Mock<IServerApplicationHost>();
-        host.SetupGet(h => h.ApplicationVersion).Returns(Version.Parse("10.11.5"));
+        host.SetupGet(h => h.ApplicationVersion).Returns(JellyfinLine.Server);
         Configuration = new FakeConfigurationProvider(() => Sync.Configuration);
         _service = new LibrarySyncService(host.Object, Sync.Sync, Sync.Store, Sync.Writer, null, Configuration, Sync.Status, NullLogger.Instance, Sync.Clock);
 

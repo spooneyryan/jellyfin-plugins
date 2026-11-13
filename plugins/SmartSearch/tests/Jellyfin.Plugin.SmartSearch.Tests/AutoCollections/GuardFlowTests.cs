@@ -49,7 +49,7 @@ public sealed class GuardFlowTests : IDisposable
         _manager.SetPermission(PermissionKind.EnableAllFolders, true);
         var users = new Mock<IUserManager>();
         var all = new[] { _world.Admin, _world.Kid, _manager };
-        users.SetupGet(m => m.Users).Returns(all);
+        users.SetupUsers(all);
         users.Setup(m => m.GetUserById(It.IsAny<Guid>())).Returns((Guid id) => all.FirstOrDefault(u => u.Id.Equals(id)));
         _host = new AutoCollectionHost(_world, _harness, _folder.Combine("data"), _persistence, users.Object);
         for (var i = 0; i < 10; i++)

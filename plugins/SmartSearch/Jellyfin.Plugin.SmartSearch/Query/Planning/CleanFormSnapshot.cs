@@ -5,7 +5,7 @@ namespace Jellyfin.Plugin.SmartSearch.Query.Planning;
 
 /// <summary>
 /// The clean-form probe's answer: the item names and <c>ItemValues</c> rows whose
-/// stored clean form differs from what the evaluator compares (today's <c>RemoveDiacritics().ToLowerInvariant()</c> of the
+/// stored clean form differs from what the evaluator compares (<see cref="Evaluation.RuleValues.Fold"/> of the
 /// value, or of each <c>|</c>-separated part of it, which is how items load their lists). On a database created by 10.9 or
 /// later both lists are normally empty.
 /// </summary>

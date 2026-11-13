@@ -519,7 +519,7 @@ public sealed class ReadOnlyStoreApiTests : IAsyncLifetime
     {
         // The plugin's own registrations for everything this touches; Jellyfin's services are mocks.
         var applicationHost = new Mock<IServerApplicationHost>();
-        applicationHost.SetupGet(h => h.ApplicationVersion).Returns(new Version(10, 11, 5));
+        applicationHost.SetupGet(h => h.ApplicationVersion).Returns(JellyfinLine.Server);
         applicationHost.SetupGet(h => h.CoreStartupHasCompleted).Returns(true);
         var registered = new ServiceCollection();
         new PluginServiceRegistrator().RegisterServices(registered, applicationHost.Object);
@@ -557,7 +557,7 @@ public sealed class ReadOnlyStoreApiTests : IAsyncLifetime
         var users = new Mock<IUserManager>();
         users.Setup(m => m.GetUserById(AdminId)).Returns(_admin);
         users.Setup(m => m.GetUserById(ViewerId)).Returns(_viewer);
-        users.SetupGet(m => m.Users).Returns([_admin]);
+        users.SetupUsers([_admin]);
         var library = new Mock<ILibraryManager>();
         library.Setup(m => m.GetItemList(It.IsAny<MediaBrowser.Controller.Entities.InternalItemsQuery>())).Returns([]);
         library.Setup(m => m.GetItemById<Video>(It.IsAny<Guid>(), It.IsAny<User?>()))

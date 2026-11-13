@@ -50,6 +50,11 @@ Options:
                           (blocked by default, sandbox-policy.mjs)
   --keep-profile          keep the temporary browser profile
   --out <file>            also write the JSON result to this file
+  --layout <name>         the web client's layout at the start: legacy (the drawer and header), modern (10.11's
+                          experimental layout, 12's default), default (whatever the client picks) or a saved value
+                          such as desktop-legacy. Also WEBCHECK_LAYOUT, or "layout" in the steps file. Unset: legacy,
+                          which every steps file without "layout" was written for (on a Jellyfin 12 sandbox it saves
+                          desktop-legacy; 10.11 starts there). Set once per tab: a step may change it afterwards.
 
 Steps as flags (run in the order given, after any --steps file):
   --login <user>          sign in through the web login form (password from credentials.json)
@@ -87,6 +92,7 @@ function parseArgs(argv) {
         else if (arg === '--allow-external') { options.allowExternal = true; }
         else if (arg === '--keep-profile') { options.keepProfile = true; }
         else if (arg === '--out') { options.out = next(); }
+        else if (arg === '--layout') { options.layout = next(); }
         else if (stepFlags[arg]) {
             const value = next();
             const action = stepFlags[arg];
@@ -95,6 +101,38 @@ function parseArgs(argv) {
         else { throw new Error(`Unknown argument ${arg} (see --help)`); }
     }
     return options;
+}
+
+// ------------------------------------------------------------------------------------------------ layout
+
+// The Jellyfin line of a sandbox: its web.version file ("12.4.0|<sha>") names the web client it serves.
+function sandboxMajor(sandbox) {
+    try {
+        const text = fs.readFileSync(path.join(sandbox.root, 'web.version'), 'utf8');
+        const major = Number.parseInt(text.split('.')[0], 10);
+        return Number.isFinite(major) ? major : null;
+    } catch {
+        return null;
+    }
+}
+
+// The layout setting the web client starts with (localStorage "layout", read at boot): saved once per tab and origin
+// before any page script, so a step that changes it afterwards (a reload into another layout) keeps its own value.
+function resolveLayout(name, sandbox) {
+    const major = sandbox ? sandboxMajor(sandbox) : null;
+    const is12 = major !== null && major >= 12;
+    const wanted = name || 'legacy';
+    let value;
+    if (wanted === 'default') value = null;
+    else if (wanted === 'legacy') value = is12 ? 'desktop-legacy' : null;
+    else if (wanted === 'modern') value = is12 ? null : 'experimental';
+    else if (/^[a-z-]{1,40}$/.test(wanted)) value = wanted;
+    else throw new Error(`Bad layout ${wanted} (legacy, modern, default or a saved value such as desktop-legacy)`);
+    const label = value === null ? `${wanted} (nothing saved)` : `${wanted} (${value})`;
+    if (value === null) return { label, script: null };
+    const script = `(() => { try { if (location.protocol.startsWith('http') && !sessionStorage.getItem('webcheck-layout')) {
+        sessionStorage.setItem('webcheck-layout', '1'); localStorage.setItem('layout', ${JSON.stringify(value)}); } } catch (e) { } })();`;
+    return { label, script };
 }
 
 // ------------------------------------------------------------------------------------------------ sandbox
@@ -354,6 +392,7 @@ async function main() {
         return found;
     };
     const steps = [...(definition.steps || []), ...options.steps];
+    const layout = resolveLayout(options.layout ?? process.env.WEBCHECK_LAYOUT ?? definition.layout ?? null, options.url ? null : sandbox);
     const failOnException = options.failOnException || definition.failOnException === true;
     const defaultTimeout = definition.timeout || options.timeout;
     if (steps.length === 0) throw new Error('No steps (use --steps or step flags; see --help)');
@@ -364,7 +403,7 @@ async function main() {
     const screenshotDir = path.join(sandbox.browser, 'screenshots');
 
     const result = {
-        ok: false, name: definition.name || null, sandbox: options.sandbox, baseUrl, browser: browser.name, pid: null,
+        ok: false, name: definition.name || null, sandbox: options.sandbox, baseUrl, browser: browser.name, pid: null, layout: layout.label,
         steps: [], console: [], exceptions: [], failedRequests: [], blockedRequests: [], delayedRequests: [], screenshots: [], vars: {}, closed: null
     };
     const vars = {};
@@ -403,6 +442,7 @@ async function main() {
             const own = (method, params = {}) => cdp.send(method, params, sessionId);
             await own('Fetch.enable', { patterns: [{ urlPattern: '*' }] });
             await Promise.all([own('Page.enable'), own('Runtime.enable'), own('Log.enable'), own('Network.enable')]);
+            if (layout.script) await own('Page.addScriptToEvaluateOnNewDocument', { source: layout.script });
             await own('Network.setCacheDisabled', { cacheDisabled: true });
             await own('Network.setBypassServiceWorker', { bypass: true });
             await own('Emulation.setDeviceMetricsOverride', { width: DESKTOP.width, height: DESKTOP.height, deviceScaleFactor: 1, mobile: false });

@@ -3,7 +3,7 @@
 Builds one plugin and installs it into a Jellyfin data folder's plugins directory.
 
 .DESCRIPTION
-Reads plugins/<Plugin>/build.yaml (the single source of truth) and publishes the plugin project
+Reads plugins/<Plugin>/build.yaml (build.12.yaml for -JellyfinTarget 12; the single source of truth) and publishes the plugin project
 into artifacts/deploy/<Plugin>/<Configuration> (with -SourceRoot, into a folder of this run's own; below). The publish
 output must contain no *.dll other than the build.yaml artifacts (the meta.json "assemblies" allowlist): that catches
 server assemblies, SQLite and other dependencies that must never ship with a plugin. Every assembly those DLLs reference
@@ -146,7 +146,7 @@ if ($RealServer) {
     }
 
     if ($Configuration -ne 'Release') { throw "-RealServer installs a release, which is built in Release, not $Configuration." }
-    $release = Assert-PluginReleaseCheckout -Path $source -Plugin $Plugin -RepoRoot $repo -LockReason $ReleaseLock
+    $release = Assert-PluginReleaseCheckout -Path $source -Plugin $Plugin -RepoRoot $repo -LockReason $ReleaseLock -JellyfinTarget $JellyfinTarget
     $Plugin = $release.Plugin
     Write-Host "Release checkout: $source is $($release.Tag) (commit $($release.Commit)), unchanged, nothing ignored or hidden in it, locked for this run."
 }
@@ -171,16 +171,18 @@ if (-not (Test-Path -LiteralPath $DataDir)) {
 # (what -NoBuild installs). Another checkout goes into a folder of this run's own and is checked and installed from there,
 # so that a build of the plugin in this checkout that lands in artifacts\deploy meanwhile (Deploy-Plugin.ps1's
 # default, dev-server.ps1 -Configuration Release, a rehearsal, another session) is never what gets installed.
-$info = Get-PluginBuildInfo -Plugin $Plugin -RepoRoot $source
+$info = Get-PluginBuildInfo -Plugin $Plugin -RepoRoot $source -JellyfinTarget $JellyfinTarget
 if (-not (Test-Path -LiteralPath $info.Project)) { throw "Plugin project not found: $($info.Project)" }
 
 $artifacts = Join-Path $repo 'artifacts'
-$shared = Join-Path $artifacts "deploy\$($info.Folder)\$Configuration"
+# A Jellyfin 12 build has its own folder (deploy\<Plugin>\j12\<Configuration>), so -NoBuild never installs the other line's.
+$lineFolder = if ($JellyfinTarget -eq '12') { "j12\$Configuration" } else { $Configuration }
+$shared = Join-Path $artifacts "deploy\$($info.Folder)\$lineFolder"
 $output = $shared
 $runFolder = $null
 if ($SourceRoot) {
     $stamp = (Get-Date).ToUniversalTime().ToString('yyyyMMdd-HHmmss', [System.Globalization.CultureInfo]::InvariantCulture)
-    $runFolder = Join-Path $artifacts ('builds\{0}-{1}-{2}-{3}' -f $info.Folder, $Configuration, $stamp, [guid]::NewGuid().ToString('N').Substring(0, 8))
+    $runFolder = Join-Path $artifacts ('builds\{0}-{1}-{2}-{3}' -f $info.Folder, ($lineFolder -replace '\\', '-'), $stamp, [guid]::NewGuid().ToString('N').Substring(0, 8))
     $output = $runFolder
 }
 
@@ -259,7 +261,7 @@ try {
     $mainDll = Join-Path $output $allowed[0]
     $fileVersion = (Get-Item -LiteralPath $mainDll).VersionInfo.FileVersion
     if ($fileVersion -ne $info.Version) {
-        throw "$($allowed[0]) has file version $fileVersion, but build.yaml says $($info.Version)."
+        throw "$($allowed[0]) has file version $fileVersion, but $($info.YamlName) says $($info.Version)."
     }
 
     # --- The plugin's image: the release tag's (read from git), or another checkout's, or else the one committed at this

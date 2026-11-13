@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using Jellyfin.Plugin.Kit.TestSupport;
 using Jellyfin.Plugin.Kit.Hosting;
 using Jellyfin.Plugin.Kit.TestSupport.PluginIdentity;
 using Jellyfin.Plugin.Kit.TestSupport.Web;
@@ -41,7 +42,7 @@ public sealed class ClientScriptTests
     {
         var script = Scripts.Value.ClientScriptText;
 
-        Assert.Contains("var KIT_BUILD = {\"plugin\":\"Tag Cloud\",\"prefix\":\"jftc\",\"route\":\"TagCloud\",\"version\":\"1.0.1.0\",\"kit\":\"" + KitBuild.KitVersion + "\"", script, StringComparison.Ordinal);
+        Assert.Contains("var KIT_BUILD = {\"plugin\":\"Tag Cloud\",\"prefix\":\"jftc\",\"route\":\"TagCloud\",\"version\":\"" + JellyfinLine.VersionOf(typeof(Plugin)) + "\",\"kit\":\"" + KitBuild.KitVersion + "\"", script, StringComparison.Ordinal);
         Assert.Contains("// ---- Web/js/90-main.js\n", script, StringComparison.Ordinal);
         Assert.Contains(".jftc-cloud{", script, StringComparison.Ordinal);
         Assert.Contains(".jftc-show{", script, StringComparison.Ordinal);

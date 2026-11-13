@@ -530,6 +530,7 @@ public sealed partial class SandboxToolingTests
         // The real plugin against the real server's program folder, read only (as Deploy-Plugin.ps1 and dev-server.ps1
         // do by default). Skipped where Jellyfin isn't installed.
         const string Installed = @"C:\ProgramData\Jellyfin\Server";
+        Assert.SkipWhen(JellyfinLine.Is12, "The installed server is Jellyfin 10.11; the 12 build's references are checked against a 12.x folder (Deploy-Plugin.ps1 -JellyfinTarget 12).");
         Assert.SkipUnless(File.Exists(Path.Combine(Installed, "jellyfin.dll")), "Jellyfin is not installed in " + Installed + ".");
         var bookmarks = Path.Combine(AppContext.BaseDirectory, "Jellyfin.Plugin.Bookmarks.dll");
         Assert.True(File.Exists(bookmarks), bookmarks);

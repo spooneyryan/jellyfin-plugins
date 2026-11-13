@@ -21,11 +21,12 @@ public sealed class SqliteBehaviourTests : IDisposable
     [Fact]
     public void TheTestPackage_IsTheServersSqliteBuild_WithForeignKeysOnByDefault()
     {
-        // Same native build as Jellyfin 10.11.5 ships (SQLite 3.46.1, DEFAULT_FOREIGN_KEYS), so these tests
-        // describe the server. The kit runs its pragmas anyway, so behaviour doesn't depend on the build.
+        // Same native build as the server of the build's line ships (Jellyfin 10.11.5: SQLite 3.46.1; 12.4: 3.53.3, both
+        // DEFAULT_FOREIGN_KEYS), so these tests describe the server. The kit runs its pragmas anyway, so behaviour doesn't
+        // depend on the build.
         using var connection = Open(_directory.Combine("defaults.db"), pooling: false);
 
-        Assert.Equal("3.46.1", SqliteFixture.Text(connection, "SELECT sqlite_version();"));
+        Assert.Equal(JellyfinLine.Is12 ? "3.53.3" : "3.46.1", SqliteFixture.Text(connection, "SELECT sqlite_version();"));
         Assert.Equal(1L, SqliteFixture.Scalar(connection, "PRAGMA foreign_keys;"));
         Assert.Equal(2L, SqliteFixture.Scalar(connection, "PRAGMA synchronous;"));
         Assert.Equal("delete", SqliteFixture.Text(connection, "PRAGMA journal_mode;"));

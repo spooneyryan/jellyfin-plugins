@@ -10,6 +10,7 @@ using Jellyfin.Plugin.LibraryMaintenance.Duplicates.Index;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.Movies;
 using Moq;
+using Jellyfin.Plugin.Kit.TestSupport;
 
 namespace Jellyfin.Plugin.LibraryMaintenance.Tests.Duplicates;
 
@@ -162,19 +163,19 @@ internal sealed class DuplicatesLibrary
     public static Video MergeVersions(params Video[] videos)
     {
         var items = videos.OrderBy(i => i.Id).ToList();
-        var primary = items.FirstOrDefault(i => i.LinkedAlternateVersions.Length + 1 > 1 && string.IsNullOrEmpty(i.PrimaryVersionId)) ?? items[0];
+        var primary = items.FirstOrDefault(i => i.LinkedAlternateVersions.Length + 1 > 1 && i.PrimaryVersionText() is null) ?? items[0];
         var list = primary.LinkedAlternateVersions.ToList();
         foreach (var item in items.Where(i => i.Id != primary.Id))
         {
-            item.SetPrimaryVersionId(primary.Id.ToString("N", CultureInfo.InvariantCulture));
-            if (!list.Any(l => string.Equals(l.Path, item.Path, StringComparison.OrdinalIgnoreCase)))
+            item.SetPrimaryVersion(primary.Id);
+            if (!list.Any(l => l.ItemId == item.Id || string.Equals(l.LinkPath(), item.Path, StringComparison.OrdinalIgnoreCase)))
             {
-                list.Add(new LinkedChild { Path = item.Path, ItemId = item.Id });
+                list.Add(JellyfinLine.Link(item.Id, item.Path));
             }
 
             foreach (var linked in item.LinkedAlternateVersions)
             {
-                if (!list.Any(l => string.Equals(l.Path, linked.Path, StringComparison.OrdinalIgnoreCase)))
+                if (!list.Any(l => (l.ItemId is { } id && id == linked.ItemId) || (l.LinkPath() is { } path && string.Equals(path, linked.LinkPath(), StringComparison.OrdinalIgnoreCase))))
                 {
                     list.Add(linked);
                 }
@@ -200,14 +201,14 @@ internal sealed class DuplicatesLibrary
             .ToList();
         foreach (var version in versions.Take(savedVersions ?? versions.Count))
         {
-            version.SetPrimaryVersionId(null);
+            version.SetPrimaryVersion(null);
             version.LinkedAlternateVersions = [];
         }
 
         if (savedVersions is null)
         {
             primary.LinkedAlternateVersions = [];
-            primary.SetPrimaryVersionId(null);
+            primary.SetPrimaryVersion(null);
         }
     }
 

@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using Emby.Naming.Common;
 using Emby.Naming.TV;
+using Jellyfin.Plugin.Kit.Library;
 using Jellyfin.Plugin.LibraryMaintenance.Move.Paths;
 using MediaBrowser.Controller.Entities.TV;
 using MediaBrowser.Controller.Library;
@@ -50,7 +51,7 @@ internal sealed class EpisodeDestinationGuard
         Series? series = null;
         for (var dir = destination.ExistingDirectory; PathRules.IsUnder(dir, location); dir = Path.GetDirectoryName(dir)!)
         {
-            if (_library.FindByPath(dir, true) is Series found)
+            if (KitItemQueries.FindAnyByPath(_library, dir, true) is Series found)
             {
                 series = found;
                 break;
@@ -116,7 +117,7 @@ internal sealed class EpisodeDestinationGuard
 
         var first = Path.GetRelativePath(seriesPath, targetDirectory).Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)[0];
         var seasonPath = Path.Join(seriesPath, first);
-        if (_library.FindByPath(seasonPath, true) is Season season)
+        if (KitItemQueries.FindAnyByPath(_library, seasonPath, true) is Season season)
         {
             return season.IndexNumber;
         }

@@ -5,6 +5,7 @@ using System.Linq;
 using Jellyfin.Plugin.Kit.Library;
 using MediaBrowser.Controller.Entities;
 using Xunit;
+using Jellyfin.Plugin.Kit.TestSupport;
 
 namespace Jellyfin.Plugin.LibraryMaintenance.Tests.Duplicates;
 
@@ -80,7 +81,8 @@ public sealed class VersionSetFixtureTests
         Assert.Equal(new[] { primary.Id }, set.MemberIds);
         Assert.Equal(VersionSetState.StaleLinks, set.State);
         Assert.Equal(new[] { b.Id, c.Id }, set.StaleLinkIds);
-        Assert.Equal(new[] { b.Path, c.Path }, set.StaleLinks.Select(l => l.Path));
+        // Jellyfin 12's links carry the id alone.
+        Assert.Equal(JellyfinLine.Is12 ? new string?[] { null, null } : new[] { b.Path, c.Path }, set.StaleLinks.Select(l => l.Path));
 
         // The renamed file is a movie of its own, which Duplicates then pairs with the set by title.
         var alone = sets.Single(s => s.RootId == renamed.Id);
@@ -104,7 +106,7 @@ public sealed class VersionSetFixtureTests
         Assert.Equal(VersionSetState.StaleLinks | VersionSetState.Unlisted, set.State);
         Assert.Equal(new[] { b.Id }, set.UnlistedIds);
         Assert.Empty(set.StaleLinkIds);
-        Assert.Equal(new[] { b.Path }, set.StaleLinks.Select(l => l.Path));
+        Assert.Equal(JellyfinLine.Is12 ? new string?[] { null } : new[] { b.Path }, set.StaleLinks.Select(l => l.Path));
     }
 
     [Fact]
@@ -176,7 +178,7 @@ public sealed class VersionSetFixtureTests
         var b = library.Add("Solaris", 1972, file: "Solaris (1972) - Criterion.mkv");
         var c = library.Add("Solaris", 1972, DuplicatesLibrary.MoreMovies);
         var first = DuplicatesLibrary.MergeVersions(a, b);
-        b.SetPrimaryVersionId(null);
+        b.SetPrimaryVersion(null);
         var second = DuplicatesLibrary.MergeVersions(b, c);
 
         var sets = Grouped(library);
@@ -199,9 +201,9 @@ public sealed class VersionSetFixtureTests
         var a = library.Add("Stalker", 1979);
         var b = library.Add("Stalker", 1979, file: "Stalker (1979) - Restored.mkv");
         var c = library.Add("Stalker", 1979, file: "Stalker (1979) - 4K.mkv");
-        a.SetPrimaryVersionId(c.Id.ToString("N", CultureInfo.InvariantCulture));
-        b.SetPrimaryVersionId(a.Id.ToString("N", CultureInfo.InvariantCulture));
-        c.SetPrimaryVersionId(b.Id.ToString("N", CultureInfo.InvariantCulture));
+        a.SetPrimaryVersion(c.Id);
+        b.SetPrimaryVersion(a.Id);
+        c.SetPrimaryVersion(b.Id);
 
         var set = Assert.Single(Grouped(library));
 
@@ -325,8 +327,8 @@ public sealed class VersionSetFixtureTests
         var dune = DuplicatesLibrary.MergeVersions(library.Add("Dune", 1984), library.Add("Dune", 1984, file: "b.mkv"), library.Add("Dune", 1984, file: "c.mkv"));
         library.SplitVersions(dune, savedVersions: 1);
         var stalker = new[] { library.Add("Stalker", 1979), library.Add("Stalker", 1979, file: "b.mkv") };
-        stalker[0].SetPrimaryVersionId(stalker[1].Id.ToString("N", CultureInfo.InvariantCulture));
-        stalker[1].SetPrimaryVersionId(stalker[0].Id.ToString("N", CultureInfo.InvariantCulture));
+        stalker[0].SetPrimaryVersion(stalker[1].Id);
+        stalker[1].SetPrimaryVersion(stalker[0].Id);
         DuplicatesLibrary.MergeVersions(library.Add("Paddington", 2014, DuplicatesLibrary.Kids), library.Add("Paddington", 2014));
 
         expected = new()

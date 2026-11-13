@@ -1680,8 +1680,9 @@ internal sealed class RatingsLibraryConsumer : KitBackgroundService, ILibraryCha
         return held;
     }
 
-    // Any item at a path, its kind judged by the caller (Judge); a blank path is never looked up (10.11.5's FindByPath then
-    // answers with the newest item of the whole library).
+    // Any item at a path, its kind judged by the caller (Judge), alternate versions and owned items included (Jellyfin 12
+    // hides them from FindByPath); a blank path is never looked up (10.11.5's FindByPath then answers with the newest item
+    // of the whole library).
     private BaseItem? FindAnyAtPath(string? path)
     {
         if (string.IsNullOrWhiteSpace(path))
@@ -1691,7 +1692,7 @@ internal sealed class RatingsLibraryConsumer : KitBackgroundService, ILibraryCha
 
         try
         {
-            return _library.FindByPath(path, null);
+            return KitItemQueries.FindAnyByPath(_library, path, null);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
@@ -1776,7 +1777,7 @@ internal sealed class RatingsLibraryConsumer : KitBackgroundService, ILibraryCha
         return new Landing(landing.Id, CaptureOrNull(landing), landing.Path);
     }
 
-    // The primary version an item was merged into (PrimaryVersionId, a string on 10.11.5), followed to the end of a chain
+    // The primary version an item was merged into (PrimaryVersionId: a string on 10.11.5, a Guid? on 12), followed to the end of a chain
     // (10.11.5 leaves A → B when B is merged into C later) while the library has the next one (the
     // kit's LibraryPresence), and, for a member the server knows, when that member can open the last one
     // (a primary in a library the member can't open would hide their rating from them); null otherwise, and the rating
@@ -1786,7 +1787,7 @@ internal sealed class RatingsLibraryConsumer : KitBackgroundService, ILibraryCha
         var visited = new HashSet<Guid> { item.Id };
         var current = item;
         var hops = 0;
-        while (current is Video { PrimaryVersionId: { } text } && Guid.TryParse(text, out var nextId) && nextId != Guid.Empty && nextId != current.Id)
+        while (current is Video video && KitItemQueries.PrimaryVersionGuid(video) is { } nextId && nextId != Guid.Empty && nextId != current.Id)
         {
             if (hops == MaxVersionHops || !visited.Add(nextId))
             {
@@ -1868,6 +1869,15 @@ internal sealed class RatingsLibraryConsumer : KitBackgroundService, ILibraryCha
         {
             return AtPath.Ignored;
         }
+
+#if JELLYFIN_12
+        // Jellyfin 12 re-creates a local alternate version stored as a Video under a Movie as a Movie, under a new id
+        // (its id hashes the type): the same file, still a version, so it takes the rating unless strong ids contradict.
+        if (identity.Kind == nameof(BaseItemKind.Video) && atPath is Video version && KitItemQueries.PrimaryVersionGuid(version) is not null)
+        {
+            return IdentityResolver.ConflictsWith(identity, atPath) ? AtPath.ConflictingProviderIds : AtPath.Takes;
+        }
+#endif
 
         return IdentityResolver.CompareIds(identity, atPath) == MatchStrength.Strong ? AtPath.Takes : AtPath.KindChanged;
     }

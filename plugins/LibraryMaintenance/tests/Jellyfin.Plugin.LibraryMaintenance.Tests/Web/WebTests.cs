@@ -40,7 +40,7 @@ public sealed class WebTests
         PluginIdentityChecks.FindRepositoryRoot(), "plugins", "LibraryMaintenance", "tests", "Jellyfin.Plugin.LibraryMaintenance.Tests", "Web");
 
     // The version the build says (build.yaml), so a development build's bump doesn't touch these tests.
-    private static readonly string BuildVersion = BuildYaml.Load(Path.Combine(PluginIdentityChecks.FindRepositoryRoot(), "plugins", "LibraryMaintenance", "build.yaml")).Version;
+    private static readonly string BuildVersion = BuildYaml.Load(Path.Combine(PluginIdentityChecks.FindRepositoryRoot(), "plugins", "LibraryMaintenance", JellyfinLine.BuildYamlName)).Version;
 
     [Fact]
     public void TheDashboardPages_FollowTheDashboardRules()
@@ -214,7 +214,7 @@ public sealed class WebTests
     private static Task<WebHostHarness> StartAsync(string baseUrl)
     {
         var host = new Mock<IServerApplicationHost>();
-        host.SetupGet(h => h.ApplicationVersion).Returns(new Version(10, 11, 5));
+        host.SetupGet(h => h.ApplicationVersion).Returns(JellyfinLine.Server);
         var registered = new ServiceCollection();
         new PluginServiceRegistrator().RegisterServices(registered, host.Object);
 

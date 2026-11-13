@@ -1,0 +1,94 @@
+---
+name: "Library Maintenance"
+guid: "fd47a1d3-dd8c-4e34-aeea-4f2edd973800"
+version: "2.0.0.0"
+targetAbi: "12.4.0.0"
+framework: "net10.0"
+overview: "Find duplicate movies across your libraries, and preview moving media"
+description: >
+  An admin-only Dashboard page that lists the movies your libraries hold more
+  than once, matched on the title, or on the title and the year. Versions
+  Jellyfin already groups count once, and its local alternates are never
+  reported. From an item's menu, administrators can also preview moving a
+  movie, an episode or a music video to another folder: a preview only.
+  Nothing is deleted, merged, moved or written to your libraries.
+category: "General"
+owner: "NoRepine"
+artifacts:
+- "Jellyfin.Plugin.LibraryMaintenance.dll"
+changelog: |
+  2.0.0
+  - For Jellyfin 12.4 and later: the same plugin as 1.0.4, built for
+    Jellyfin 12. Jellyfin 10.11 servers keep 1.0.4.
+  1.0.4
+  - First public release.
+  - An admin-only page that lists the movies your libraries hold more than once, with the space the extra copies take.
+  - A preview of moving a movie, an episode or a music video to another folder. The plugin is read-only: it moves, deletes and changes nothing in your libraries.
+  1.0.3
+  - Move preview: a movie whose name already ends with its year (such as
+    "Big Buck Test (2008)") is no longer shown with the year twice, in the
+    dialog's texts or in the name of a new folder for a loose movie.
+  - Move preview: an item the server can't read (such as the placeholder
+    Jellyfin 10.11 keeps for detached watch data) is answered as not there
+    or not movable, with a reason, instead of an error that failed the
+    whole request; the other items in the request are answered as usual.
+  - The page and the item menu's script now use the same shared toolkit as
+    the other plugins of this suite: fields and lists stay inside a
+    phone's screen, the confirmation dialog's buttons can be reached with
+    the TV remote, and Backspace works as Back in a dialog on a Hisense TV
+    or the TV layout (not while typing).
+  - Duplicates: an administrator with a parental rating limit no longer
+    sees a movie that sits in a folder rated above that limit, as Jellyfin
+    itself hides it from them.
+  - Two internal clean-ups with no visible change: a name clash with the
+    shared toolkit resolved in the code, and the page's tabs made
+    focusable the toolkit's way.
+  - Still a preview only: nothing is moved. The settings are kept as they
+    are.
+
+  1.0.2
+  - The move preview, plan-only: "Move media to new location" in an
+    administrator's item menu (a movie, an episode or a music video; not
+    on the TV layout) opens a dialog that shows what would move, lets you
+    pick a library and a folder, and previews the move with its warnings
+    and everything that stands in the way. There is no Move button: this
+    build cannot move, rename, create or delete a file or folder.
+  - A preview opens each file that would move exclusively for an instant,
+    to tell whether another program has it open, so don't preview an item
+    that is being imported or written; otherwise it changes nothing on
+    disk and starts no scan.
+  - The plugin now adds its script to the web client's pages. The
+    Settings tab has a new section, Web client and Move, to switch the
+    script, Move and its menu entry off: use it, not Disable on the
+    Plugins page, which deletes the plugin on Jellyfin 10.11.5.
+  - Settings: an excluded folder whose second character is ? (such as
+    \?\C:\x) is a device path too, refused like the others.
+  - Duplicates is unchanged, and the settings are kept as they are.
+
+  1.0.1
+  - Settings: an excluded folder written as a Windows device or NT path
+    (\\?\..., \\.\..., \??\..., either slash) is refused by a save and left
+    out by an import, and one already in the saved settings is never opened
+    by the preview ("a device path, not a folder path: not checked"), so a
+    preview no longer connects to the server such a path names.
+  - Diagnostics: "Skipped: no name" and "Left out by the excluded folders"
+    count only the movies the administrator can see (a parental rating or
+    tags limit).
+  - Nothing else changes; the settings are kept as they are.
+
+  1.0.0
+  - First release. An admin-only Dashboard page lists
+    the movies your libraries hold more than once, matched on the title and
+    year (Title + Year) or the title alone (Title only), each group with its
+    confidence (Confirmed, Likely, Possible, Conflict), its reasons and
+    flags, every copy with its poster, edition, size, resolution, libraries
+    and path, the suggested copy to keep first, and Open to its page.
+    Filters by library, confidence and title, five orders, 50 groups at a
+    time. An administrator sees only the libraries and movies their account
+    can see.
+  - Settings: the libraries to read, the folders to leave out (with a
+    preview of the movies the change leaves out, before it is saved), the
+    title rules (edition phrases, leading articles), the index's build after
+    a library scan; export to a file and import from one.
+  - Diagnostics: the movie index's numbers and its version links.
+  - Read-only: nothing is deleted, merged or written to your libraries.

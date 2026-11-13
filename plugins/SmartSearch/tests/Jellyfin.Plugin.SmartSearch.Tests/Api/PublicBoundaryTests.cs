@@ -48,7 +48,7 @@ public sealed class PublicBoundaryTests
         AssertTypes(
             [
                 typeof(SmartSearchFieldCatalogDto), typeof(SmartSearchFieldDto), typeof(SmartSearchFieldOptionDto), typeof(SmartSearchLibraryDto),
-                typeof(SmartSearchMatchMode), typeof(SmartSearchQueryDefinition), typeof(SmartSearchQueryNode), typeof(SmartSearchQueryOperator),
+                typeof(SmartSearchMatchMode), typeof(SmartSearchPersonDto), typeof(SmartSearchQueryDefinition), typeof(SmartSearchQueryNode), typeof(SmartSearchQueryOperator),
                 typeof(SmartSearchQueryScope), typeof(SmartSearchQuerySort), typeof(SmartSearchRelativeUnit), typeof(SmartSearchRequestDto),
                 typeof(SmartSearchResultDto), typeof(SmartSearchSeriesDto), typeof(SmartSearchValidateRequestDto), typeof(SmartSearchValidationDto),
                 typeof(SmartSearchValidationErrorDto), typeof(SmartSearchValueDto),

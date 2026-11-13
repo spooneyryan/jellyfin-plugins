@@ -388,7 +388,7 @@ public sealed class RecordsAdminApiTests : IAsyncLifetime
     private Task<WebHostHarness> StartAsync(PluginConfiguration? configuration = null)
     {
         var applicationHost = new Mock<IServerApplicationHost>();
-        applicationHost.SetupGet(h => h.ApplicationVersion).Returns(new Version(10, 11, 5));
+        applicationHost.SetupGet(h => h.ApplicationVersion).Returns(JellyfinLine.Server);
         var registered = new ServiceCollection();
         new PluginServiceRegistrator().RegisterServices(registered, applicationHost.Object);
         Type[] own =
@@ -402,7 +402,7 @@ public sealed class RecordsAdminApiTests : IAsyncLifetime
         var paths = new Mock<IApplicationPaths>();
         paths.SetupGet(p => p.DataPath).Returns(_data.Path);
         var users = new Mock<IUserManager>();
-        users.SetupGet(m => m.Users).Returns(() => _server.ToList());
+        users.SetupUsers(() => _server.ToList());
         users.Setup(m => m.GetUserById(It.IsAny<Guid>())).Returns((Guid id) => _server.Find(u => u.Id == id));
 
         return new WebHostHarness()

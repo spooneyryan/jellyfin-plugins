@@ -9,7 +9,7 @@ namespace Jellyfin.Plugin.SmartSearch.Services;
 
 /// <summary>
 /// The rule builder's lookups, each scoped to what the signed-in user can see: their libraries, the values of a field
-/// with their counts, and series by name. Nothing from a library the user can't open, or from an item above their
+/// with their counts, series by name, and people by name. Nothing from a library the user can't open, or from an item above their
 /// parental limit or carrying a tag they're blocked from, is listed or counted.
 /// </summary>
 public interface ISmartSearchLookups
@@ -37,4 +37,16 @@ public interface ISmartSearchLookups
     /// <param name="cancellationToken">The request's cancellation token.</param>
     /// <returns>The series, those whose name starts with the text first, then by name.</returns>
     Task<IReadOnlyList<SmartSearchSeriesDto>> GetSeriesAsync(User user, string? prefix, int limit, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Gets the people whose name contains the text who are credited on an item the user can see in their libraries
+    /// (<c>PersonTypeahead</c>): a person credited only on items in libraries the user can't open is never listed. It takes
+    /// a search slot.
+    /// </summary>
+    /// <param name="user">The signed-in user.</param>
+    /// <param name="prefix">The text, at least 2 characters.</param>
+    /// <param name="limit">The most people, 1 to 100.</param>
+    /// <param name="cancellationToken">The request's cancellation token.</param>
+    /// <returns>The people, those whose name starts with the text first, then by name.</returns>
+    Task<IReadOnlyList<SmartSearchPersonDto>> GetPeopleAsync(User user, string? prefix, int limit, CancellationToken cancellationToken);
 }

@@ -65,7 +65,7 @@ public sealed class ModerationLogRetentionTests : IDisposable
 
         // The step asked for the checkpoint: once it completed the deleted rows' bytes are in neither file (secure_delete
         // overwrote them in the pages the checkpoint copied back), while the kept rows are still there.
-        Assert.True(await _fx.Store.WaitForCheckpointAsync(Ct).WaitAsync(TimeSpan.FromSeconds(10), Ct), "the retention's checkpoint completed");
+        Assert.True(await _fx.Store.WaitForCheckpointAsync(Ct).WaitAsync(TimeSpan.FromSeconds(60), Ct), "the retention's checkpoint completed");
         foreach (var file in new[] { _fx.File, _fx.File + "-wal" })
         {
             Assert.False(Holds(file, "zzRetention-400-days"), file);

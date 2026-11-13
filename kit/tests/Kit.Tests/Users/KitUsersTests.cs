@@ -6,6 +6,7 @@ using Jellyfin.Plugin.Kit.Users;
 using MediaBrowser.Controller.Library;
 using Moq;
 using Xunit;
+using Jellyfin.Plugin.Kit.TestSupport;
 
 namespace Jellyfin.Plugin.Kit.Tests.Users;
 
@@ -109,13 +110,13 @@ public sealed class KitUsersTests
     }
 
     [Fact]
-    public void TheServersIUserManager_On1011_5_IsReadThroughUsers()
+    public void TheServersIUserManager_IsReadThroughTheMemberItsLineHas()
     {
-        // The Jellyfin.Controller package the kit compiles against is 10.11.5's.
-        Assert.Equal(KitUsers.UsersProperty, KitUsers.MemberUsed<IUserManager>());
+        // The Jellyfin.Controller package the kit compiles against: 10.11.5's Users property, 12's GetUsers().
+        Assert.Equal(JellyfinLine.Is12 ? KitUsers.GetUsersMethod : KitUsers.UsersProperty, KitUsers.MemberUsed<IUserManager>());
         var users = Users("admin", "viewer", "viewer2");
         var manager = new Mock<IUserManager>();
-        manager.SetupGet(m => m.Users).Returns(users);
+        manager.SetupUsers(users);
 
         Assert.Equal(users, KitUsers.GetAll(manager.Object));
     }

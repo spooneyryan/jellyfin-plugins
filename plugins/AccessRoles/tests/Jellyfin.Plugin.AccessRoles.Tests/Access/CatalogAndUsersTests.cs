@@ -91,7 +91,7 @@ public sealed class CatalogAndUsersTests : IDisposable
         admin.SetPermission(PermissionKind.IsAdministrator, true);
         admin.SetPermission(PermissionKind.EnableAllFolders, true);
         var manager = new Mock<IUserManager>();
-        manager.SetupGet(m => m.Users).Returns([kid, admin]);
+        manager.SetupUsers([kid, admin]);
         manager.Setup(m => m.GetUserById(kid.Id)).Returns(kid);
 
         var users = new JellyfinServerUsers(manager.Object);

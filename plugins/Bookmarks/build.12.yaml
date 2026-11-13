@@ -1,0 +1,136 @@
+---
+name: "Bookmarks"
+guid: "d0ee1b2a-7f71-4654-8ff2-163a81441b03"
+version: "2.0.0.0"
+targetAbi: "12.4.0.0"
+framework: "net10.0"
+overview: "Named per-user bookmarks, My Bookmarks and My Clips pages, and ffmpeg clip extraction"
+description: >
+  Lets each user bookmark moments in movies and episodes, optionally with an
+  end time and a name, and extract the bookmarked range into a clip file with
+  ffmpeg. Adds bookmark buttons and Shift+B to the web player, a bookmarks
+  list to item pages, a My Bookmarks page listing every bookmark and a My
+  Clips page listing every clip, and imports Jellyfin Enhanced's bookmarks;
+  no other plugin is needed for the web UI.
+category: "General"
+owner: "NoRepine"
+artifacts:
+- "Jellyfin.Plugin.Bookmarks.dll"
+changelog: |
+  2.0.0
+  - For Jellyfin 12.4 and later: the same plugin as 1.2.2, built for
+    Jellyfin 12. Jellyfin 10.11 servers keep 1.2.2.
+  1.2.2
+  - First public release.
+  - Each user can bookmark moments in movies and episodes while watching, name them, and find them again on the My Bookmarks page.
+  - A bookmark with an end time can be cut into a clip file with ffmpeg; the My Clips page lists, previews and downloads your clips.
+  - Bookmarks made in Jellyfin Enhanced can be imported.
+  1.2.1
+  - Privacy: when a user is deleted from the server, the names and notes
+    of their bookmarks are removed from everything Bookmarks keeps: the
+    bookmark data, its backup copy and the archive, whichever deleted-user
+    choice is set. A clip file that choice keeps stays as it is, and its
+    file name (and the title inside it) carries the bookmark's name; the
+    Delete choice removes those too. Snapshots taken before the deletion
+    still hold the text until they rotate out.
+  - My Clips, All users: an admin sees only the clips of videos they can
+    open. Clips of videos no longer in the library are shown only to
+    admins with access to every library. The totals still count every
+    clip.
+  - Making a clip again keeps its file's name: the new clip replaces the
+    old file once it is written. If the old file is in use, the new clip
+    gets a name of its own, as before.
+  - Settings: a warning as you type when the clip folder is in a Movies or
+    TV library, where Jellyfin would show the clips as duplicates of their
+    films and episodes. Diagnostics shows the same warning.
+  - Jellyfin Enhanced import: a bookmark file with text that isn't valid
+    UTF-8 is reported as unreadable for that user, instead of failing the
+    import.
+  - Data safety: snapshots kept after the bookmark data was found missing
+    or unreadable rotate as usual again once none of them is left.
+  1.2.0
+  - My Clips page (Library tools in the menu, after My Bookmarks): every
+    clip of yours across all videos, the clips of deleted bookmarks
+    included, with what each is right now (ready, being made, failed, file
+    missing, clip folder offline); searched, filtered and sorted; each
+    previewed (Fast MKV clips too), downloaded, played from its start,
+    renamed (its file too), made again, cancelled or deleted, several at
+    once. Nothing is offered that could lose a clip whose folder is offline.
+  - Admins can switch My Clips to All users (owners and file paths, never a
+    note), unless the new setting turns that off.
+  - Deleting a bookmark now keeps its clip unless you tick Also delete its
+    clip.
+  - Clips: new clip files are named after the video, the bookmark's name and
+    the range, never the note. The daily maintenance marks clips whose file
+    is gone (only in a clip folder it recognises) and archives a deleted
+    bookmark's kept clip after 30 days missing; no clip file is ever
+    deleted by it. A rename is finished after a crash.
+  - Data safety: an unreadable bookmarks.json is never started empty; the
+    settings page offers Restore or Start empty instead.
+  - TV: the details page's Bookmarks section is reached past Jellyfin
+    Enhanced 12.14's closed Reviews.
+  - Before going back to 1.1.x, check that Diagnostics shows no clip file
+    renames not finished.
+  1.1.6
+  - Player: the video's bookmarks are marked on the progress bar, beside
+    the chapter marks: an amber tick at each bookmark's start, a band
+    over a range. Point at a tick for its name and time; click it to play
+    from there.
+  1.1.5
+  - Player: the bookmark buttons and Shift+B find the playing video again
+    after videos are played one after another from My Bookmarks. The web
+    client then keeps earlier player views hidden beside the shown one, and
+    1.1.4 (and earlier) looked only at the first, saying "Start playing a
+    video" while one played.
+  1.1.4
+  - Player: a Set end time button between the scissors and Bookmarks ends
+    one of the video's bookmarks at the current moment. It lists the
+    video's bookmarks, the nearest one before this moment first, each with
+    the range it would get; choosing one saves it at once, and the toast
+    offers Make a clip. It turns point bookmarks, such as those imported
+    from Jellyfin Enhanced, into ranges without opening the editor.
+  1.1.3
+  - Clips: a clip whose name (or note, or video name) had an emoji or a
+    similar two-part character at the 80th character of its file name is
+    written and kept under its own name; 1.1.2 cut that character in half,
+    so the clip was lost at the next start, its download failed and an empty
+    file was left. A new clip never takes the file name another bookmark's
+    clip has, even one whose file is missing; 1.1.2 could, and deleting or
+    remaking that bookmark then deleted the other one's clip. A clip file is
+    never deleted while another bookmark still has it.
+  1.1.2
+  - Data safety: bookmarks.json missing or empty with no backup copy, while
+    its snapshots hold bookmarks (a file deleted by hand, or a backup of the
+    snapshots folder alone put back), is restored at start from the newest
+    snapshot that holds them, with a banner on the settings page, and every
+    earlier snapshot is kept until one is restored; 1.1.1 started empty there
+    and its daily maintenance deleted those snapshots. When none of them can
+    be restored, the data is read-only (DataMissing) and DEVELOPMENT.md says how
+    to go on. Clips the snapshot held queued or being made are marked failed,
+    to be made again, rather than made a second time.
+  1.1.1
+  - Jellyfin Enhanced 12.12: the switch-off checklist's last step follows the
+    Keyboard tab of the Jellyfin Enhanced the server runs (on 12.12, click
+    Bookmark Current Time's key at the left end of its row, press another key
+    combination, Save Settings); keys are read the way 12.12 reads them (a
+    lower-case b counts as B); the Plugin Pages link's note updated.
+  1.1.0
+  - Names: every bookmark can have a name of up to 100 characters, separate
+    from its note; the player's quick bookmark (Shift+B or the button) asks for
+    one in a small dialog, with the chapter's title suggested.
+  - My Bookmarks page (Library tools in the menu): every bookmark of yours,
+    searched, filtered, sorted, grouped by video or flat, renamed in place and
+    deleted several at once, with your naming preferences and this device's
+    shortcut under Player options.
+  - Jellyfin Enhanced: a one-time import of its bookmarks (a dry run first),
+    then a checklist to switch its bookmarks off; "Use B" once B is free.
+  - Bookmarks stay with their video when it is moved or renamed, wait as
+    "Not in library" while it is gone, and are never moved onto another cut.
+  - Clips: a free-space guard, unfinished files cleaned up at startup, files
+    in use never deleted, and clips named after the bookmark's name.
+  - Data: schema 2, upgraded from 1.0 with a kept copy; export, import,
+    snapshots and restore on the settings page; per-user counts in
+    Diagnostics.
+  - No File Transformation needed for the web UI any more.
+  1.0.0
+  - Initial release.

@@ -108,7 +108,7 @@ const KIT_ANCHORS = Object.freeze({
     pageShow: Object.freeze({ event: 'pageshow', note: 'fired after viewshow, also for restored views' }),
     layoutTv: Object.freeze({ htmlClass: 'layout-tv', note: 'html class' }),
     layoutMobile: Object.freeze({ htmlClass: 'layout-mobile', note: 'html class' }),
-    layoutSetting: Object.freeze({ storageKey: 'layout', experimental: 'experimental', note: 'the experimental layout keeps html.layout-desktop' }),
+    layoutSetting: Object.freeze({ storageKey: 'layout', experimental: 'experimental', legacy12: Object.freeze(['desktop-legacy', 'mobile-legacy', 'tv']), note: 'the experimental (10.11) or modern (12) layout keeps html.layout-desktop. 10.11: only "experimental" is the experimental layout. 12: the modern layout is the default (no value, auto, desktop, mobile, modern); only desktop-legacy, mobile-legacy and tv are legacy' }),
     detailsRoute: Object.freeze({ hash: '#/details', note: 'item details route, #/details?id=<id>&serverId=<id>' }),
     customElements: Object.freeze({ global: 'CustomElements.upgradeSubtree', note: 'upgrades is="emby-*" elements' }),
     jellyfinEnhanced: Object.freeze({ global: 'JellyfinEnhanced', note: 'present when Jellyfin Enhanced runs' }),
@@ -123,6 +123,7 @@ const KIT_ANCHORS = Object.freeze({
     pluginPagesHost: Object.freeze({ pageClass: 'userPreferencesPage', route: '/userpluginsettings.html', brokenRoute: '/userpluginsettings', param: 'pageUrl', note: 'the Plugin Pages host view; FallbackRoute rewrites the route without .html when the Plugin Pages route patch is missing' }),
     pluginPages: Object.freeze({ global: 'PluginPages', userList: 'PluginPages/User', itemId: 'data-itemid', note: 'a global const of /PluginPages/inject.js (typeof only, not a window property); its drawer links carry data-itemid="<Id>"' }),
     drawer: Object.freeze({ container: 'mainDrawer-scrollContainer', userMenu: 'userMenuOptions', note: '"Library tools" goes right before .userMenuOptions, which exists only while signed in' }),
+    appUserMenu: Object.freeze({ id: 'app-user-menu', settings: 'a[href="#/mypreferencesmenu"]', divider: 'hr', icon: '.MuiListItemIcon-root', text: '.MuiListItemText-root', backdrop: '.MuiBackdrop-root', pluginPagesLink: 'a[data-plugin-pages="true"]', note: 'the experimental (10.11) and modern (12, the default) layouts hide the drawer: "Library tools" goes into the app bar user menu, a MUI Menu kept mounted while closed, right after its Settings item (a react-router <a href="#/mypreferencesmenu">), as Plugin Pages 3.x adds its links there' }),
     libraryMenu: Object.freeze({ global: 'LibraryMenu.setTitle', note: 'sets the header title' }),
     // The item "⋮" menu and the selection bar's bulk menu.
     actionSheet: Object.freeze({
@@ -197,7 +198,7 @@ class KitApiError extends Error {
 
 /**
  * Creates the kit of one plugin.
- * @param {{plugin: string, prefix: string, route: string, version: string, kit: string, mvid: string}} build KIT_BUILD
+ * @param {{plugin: string, prefix: string, route: string, version: string, kit: string, jellyfin: string, mvid: string}} build KIT_BUILD
  * @param {string} css KIT_CSS: kit.css for this prefix followed by the plugin's own Web/css files
  * @param {{styleId?: string}} [options] styleId: the id of the style element (default `<prefix>-styles`)
  */
@@ -2081,13 +2082,24 @@ function createKit(build, css, options) {
         isMobile: function () {
             return document.documentElement.classList.contains(A.layoutMobile.htmlClass);
         },
-        isExperimental: function () {
+        // The layout without the legacy drawer and header: 10.11's experimental layout, chosen by hand, or Jellyfin 12's
+        // modern layout, its default (only Desktop, Mobile and TV in Display mode, saved as desktop-legacy, mobile-legacy
+        // and tv, are legacy). KIT_BUILD.jellyfin is the Jellyfin line the plugin is built for, the server's.
+        isModern: function () {
             try {
                 const store = localStore();
-                return !!store && store.getItem(A.layoutSetting.storageKey) === A.layoutSetting.experimental;
+                const value = store ? store.getItem(A.layoutSetting.storageKey) : null;
+                if (build.jellyfin === '12') {
+                    return !kit.layout.isTv() && A.layoutSetting.legacy12.indexOf(value) < 0;
+                }
+
+                return value === A.layoutSetting.experimental;
             } catch (e) {
                 return false;
             }
+        },
+        isExperimental: function () {
+            return kit.layout.isModern();
         }
     };
 
@@ -3021,7 +3033,9 @@ function createKit(build, css, options) {
             return commands.indexOf(command) >= 0;
         };
         const qualifies = record.kind === 'bulk'
-            ? has(AS.bulkMarker) && has(AS.bulkAdminMarker)
+            // Jellyfin 12 offers the admin-only groupvideos only when the first selected item is a video, so it can't tell an
+            // admin's bulk menu; kit.user.isAdmin() below does.
+            ? has(AS.bulkMarker)
             : !has(AS.bulkMarker) && AS.itemMarkers.some(has);
         if (!qualifies) {
             return;
@@ -3936,6 +3950,11 @@ function createKit(build, css, options) {
 
     function ensureNav() {
         selectHosts();
+        ensureDrawerNav();
+        ensureMenuNav();
+    }
+
+    function ensureDrawerNav() {
         const parts = drawerParts();
         const wanted = wantedNav(parts);
         const keys = wanted.map(function (page) {
@@ -3991,6 +4010,132 @@ function createKit(build, css, options) {
         if (added) {
             kit.upgrade(section);
         }
+    }
+
+    // The experimental (10.11) and modern (12, the default) layouts hide the drawer, so the same links also go into the
+    // app bar's user menu (#app-user-menu, kept mounted while closed), after a divider right below Settings, as Plugin
+    // Pages 3.x adds its own there. They are copies of the Settings item, without React's handlers: a click follows the
+    // href (the hash router shows the page) and closes the menu through its backdrop. Shared by our plugins: a divider
+    // with SHARED.navAttr, then every plugin's links by data-order.
+    function menuParts() {
+        const menu = document.getElementById(A.appUserMenu.id);
+        const settings = menu ? menu.querySelector(A.appUserMenu.settings) : null;
+        return settings && settings.parentNode ? { menu: menu, list: settings.parentNode, settings: settings } : null;
+    }
+
+    function wantedMenuNav(parts) {
+        if (!parts || !navShown() || !userState.id || !pages.hostsKnown) {
+            return [];
+        }
+
+        const mode = hostMode();
+        return pages.list.filter(function (page) {
+            if (isTurnedOff(page.key)) {
+                return false;
+            }
+
+            if (pages.hosts[page.key] !== 'PluginPages') {
+                return true;
+            }
+
+            // Plugin Pages' menu links carry no id: one with the page's title is the page.
+            return mode === 'Auto' && !Array.prototype.some.call(parts.list.querySelectorAll(A.appUserMenu.pluginPagesLink), function (a) {
+                return (a.textContent || '').trim() === page.title;
+            });
+        });
+    }
+
+    function menuLinks(divider) {
+        const links = [];
+        for (let node = divider ? divider.nextElementSibling : null; node && node.hasAttribute(SHARED.navPlugin); node = node.nextElementSibling) {
+            links.push(node);
+        }
+
+        return links;
+    }
+
+    function closeUserMenu(menu) {
+        const backdrop = menu.querySelector(A.appUserMenu.backdrop);
+        if (backdrop) {
+            backdrop.click();
+        } else {
+            menu.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+        }
+    }
+
+    function menuLink(parts, page) {
+        const link = parts.settings.cloneNode(true);
+        link.removeAttribute('id');
+        link.classList.remove('Mui-focusVisible', 'Mui-selected');
+        link.setAttribute('href', pageHref(page.key));
+        link.setAttribute('tabindex', '-1');
+        const icon = link.querySelector(A.appUserMenu.icon);
+        if (icon) {
+            icon.replaceChildren(h('span', { class: classes(N.icon, page.icon), 'aria-hidden': 'true' }));
+        }
+
+        const text = link.querySelector(A.appUserMenu.text);
+        const label = text ? (text.firstElementChild || text) : link;
+        label.textContent = page.title;
+        link.setAttribute(SHARED.navPlugin, pfx);
+        link.setAttribute(SHARED.navOrder, String(page.order));
+        link.setAttribute(pageAttr('menu'), page.key);
+        link.addEventListener('click', function () {
+            closeUserMenu(parts.menu);
+        });
+        return link;
+    }
+
+    function ensureMenuNav() {
+        const parts = menuParts();
+        const wanted = wantedMenuNav(parts);
+        const keys = wanted.map(function (page) {
+            return page.key;
+        });
+        let divider = parts ? childWith(parts.list, SHARED.navAttr) : null;
+        if (divider) {
+            menuLinks(divider).forEach(function (link) {
+                if (link.getAttribute(SHARED.navPlugin) === pfx && keys.indexOf(link.getAttribute(pageAttr('menu'))) < 0) {
+                    link.remove();
+                }
+            });
+            if (menuLinks(divider).length === 0) {
+                divider.remove();
+                divider = null;
+            }
+        }
+
+        if (!parts || wanted.length === 0) {
+            return;
+        }
+
+        if (!divider) {
+            const native = parts.list.querySelector(A.appUserMenu.divider);
+            divider = native ? native.cloneNode(false) : h('hr', {});
+            divider.setAttribute(SHARED.navAttr, '1');
+            parts.settings.after(divider);
+        }
+
+        wanted.forEach(function (page) {
+            const links = menuLinks(divider);
+            const href = pageHref(page.key);
+            const existing = links.filter(function (link) {
+                return link.getAttribute(SHARED.navPlugin) === pfx && link.getAttribute(pageAttr('menu')) === page.key;
+            })[0];
+            if (existing) {
+                if (existing.getAttribute('href') !== href) {
+                    existing.setAttribute('href', href);
+                }
+
+                return;
+            }
+
+            const link = menuLink(parts, page);
+            const before = links.filter(function (other) {
+                return Number(other.getAttribute(SHARED.navOrder)) <= page.order;
+            });
+            (before.length ? before[before.length - 1] : divider).after(link);
+        });
     }
 
     function startPages() {

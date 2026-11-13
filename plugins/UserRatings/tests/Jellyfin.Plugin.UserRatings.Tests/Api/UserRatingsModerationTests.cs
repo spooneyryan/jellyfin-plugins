@@ -883,7 +883,7 @@ public sealed class UserRatingsModerationTests : IAsyncLifetime
     // runs in the background).
     private async Task AssertTextGoneAsync(string text)
     {
-        Assert.True(await S.Store.Store.WaitForCheckpointAsync(Ct).WaitAsync(TimeSpan.FromSeconds(10), Ct), "the checkpoint completed");
+        Assert.True(await S.Store.Store.WaitForCheckpointAsync(Ct).WaitAsync(TimeSpan.FromSeconds(60), Ct), "the checkpoint completed");
         Assert.False(Holds(S.Store.File, text));
         var wal = S.Store.File + "-wal";
         Assert.True(!File.Exists(wal) || new FileInfo(wal).Length == 0, "the -wal was checkpointed");

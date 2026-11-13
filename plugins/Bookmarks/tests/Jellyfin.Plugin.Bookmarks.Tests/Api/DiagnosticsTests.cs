@@ -96,7 +96,7 @@ public sealed class DiagnosticsTests : IDisposable
         Assert.True(entry.GetProperty("Required").GetBoolean());
         Assert.Equal(2, entry.GetProperty("Count").GetInt32());
         Assert.Equal(2, entry.GetProperty("Users").GetInt32());
-        Assert.Equal("1.2.2.0", diagnostics.GetProperty("PluginVersion").GetString());
+        Assert.Equal(JellyfinLine.VersionOf(typeof(Plugin)), diagnostics.GetProperty("PluginVersion").GetString());
         Assert.Equal(Path.Combine(_data.Path, "bookmarks", "bookmarks.json"), diagnostics.GetProperty("Store").GetProperty("File").GetString());
         Assert.Equal("Ok", diagnostics.GetProperty("Store").GetProperty("Status").GetString());
         Assert.Equal(2, diagnostics.GetProperty("Store").GetProperty("Version").GetInt32());
@@ -316,7 +316,7 @@ public sealed class DiagnosticsTests : IDisposable
     private Task<WebHostHarness> StartAsync()
     {
         var applicationHost = new Mock<IServerApplicationHost>();
-        applicationHost.SetupGet(h => h.ApplicationVersion).Returns(new Version(10, 11, 5));
+        applicationHost.SetupGet(h => h.ApplicationVersion).Returns(JellyfinLine.Server);
         var registered = new ServiceCollection();
         new PluginServiceRegistrator().RegisterServices(registered, applicationHost.Object);
         var paths = new Mock<IApplicationPaths>();

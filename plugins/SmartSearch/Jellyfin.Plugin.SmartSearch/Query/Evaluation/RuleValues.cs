@@ -16,12 +16,23 @@ namespace Jellyfin.Plugin.SmartSearch.Query.Evaluation;
 internal static class RuleValues
 {
     /// <summary>
-    /// Folds text for comparison: <c>RemoveDiacritics().ToLowerInvariant()</c>, the same as <c>CleanName</c>
-    /// (<c>BaseItemRepository.cs:1391-1399</c>).
+    /// Folds text for comparison the way core stores <c>CleanName</c> and <c>CleanValue</c>: on 10.11
+    /// <c>RemoveDiacritics().ToLowerInvariant()</c> (<c>BaseItemRepository.cs:1391-1399</c>); on 12 core's
+    /// <c>GetCleanValue</c>, which also turns punctuation into spaces and collapses them ("Sci-Fi" is "sci fi"). Text that
+    /// is only punctuation keeps the 10.11 fold, so a term never folds to nothing.
     /// </summary>
     /// <param name="text">The text.</param>
     /// <returns>The folded text.</returns>
-    public static string Fold(string text) => text.RemoveDiacritics().ToLowerInvariant();
+    public static string Fold(string text)
+    {
+        var folded = text.RemoveDiacritics().ToLowerInvariant();
+#if JELLYFIN_12
+        var clean = text.GetCleanValue();
+        return string.IsNullOrEmpty(clean) ? folded : clean;
+#else
+        return folded;
+#endif
+    }
 
     /// <summary>Gets the rule's operator.</summary>
     /// <param name="rule">The rule.</param>
@@ -84,6 +95,39 @@ internal static class RuleValues
     /// <param name="rule">The rule.</param>
     /// <returns>The ids.</returns>
     public static IReadOnlyList<Guid> ReferenceIds(SmartSearchQueryNode rule) => ValuesOf(rule).Select(v => ReferenceId(rule, v)).ToList();
+
+    /// <summary>Reads <c>Values</c> as references <c>{Id, Name}</c>: each id with its name (trimmed), <c>null</c> when it has none.</summary>
+    /// <param name="rule">The rule.</param>
+    /// <returns>The references.</returns>
+    public static IReadOnlyList<(Guid Id, string? Name)> References(SmartSearchQueryNode rule)
+        => ValuesOf(rule).Select(v => QueryReference.Read(v) is { Valid: true } reference ? (reference.Id, reference.Name) : throw Invalid(rule, "has a Values entry that isn't a reference {Id, Name}")).ToList();
+
+    /// <summary>
+    /// Reads <c>Values</c> as references, once per id: of two with one id, the one the canonical form keeps (the smallest
+    /// name, ordinal, no name first), so a rule and its canonical form (one hash) always mean the same people.
+    /// </summary>
+    /// <param name="rule">The rule.</param>
+    /// <returns>The references, in the order of their ids' first appearance.</returns>
+    public static IReadOnlyList<(Guid Id, string? Name)> DistinctReferences(SmartSearchQueryNode rule)
+        => References(rule).GroupBy(r => r.Id).Select(g => g.OrderBy(r => r.Name, StringComparer.Ordinal).First()).ToList();
+
+    /// <summary>
+    /// Reads a <c>People</c> rule's <c>Role</c> in its canonical spelling (<see cref="Fields.FieldRegistry.PersonRoles"/>, as
+    /// core stores a credit's type), or <c>null</c> for any role.
+    /// </summary>
+    /// <param name="rule">The rule.</param>
+    /// <returns>The role, or <c>null</c>.</returns>
+    public static string? Role(SmartSearchQueryNode rule)
+    {
+        if (string.IsNullOrWhiteSpace(rule.Role))
+        {
+            return null;
+        }
+
+        var trimmed = rule.Role.Trim();
+        return Fields.FieldRegistry.PersonRoles.FirstOrDefault(r => string.Equals(r, trimmed, StringComparison.OrdinalIgnoreCase))
+            ?? throw Invalid(rule, "has a Role that isn't one of the roles");
+    }
 
     /// <summary>Reads <c>Values</c> as item kinds.</summary>
     /// <param name="rule">The rule.</param>

@@ -315,8 +315,38 @@ public sealed class FakeLibrary
 
     private List<BaseItem> GetItemList(InternalItemsQuery query)
     {
-        Queries.Add(query);
         IEnumerable<BaseItem> items = _items;
+        if (string.IsNullOrWhiteSpace(query.Path))
+        {
+            Queries.Add(query);
+        }
+        else
+        {
+            // The kit's FindAnyByPath on Jellyfin 12, counted as a FindByPath: a Path query, newest first (the last added
+            // here), at most one.
+            PathLookups.Add(query.Path);
+            items = items.Where(i => string.Equals(i.Path, query.Path, StringComparison.Ordinal)).Reverse();
+        }
+
+        if (query.IsFolder is { } isFolder)
+        {
+            items = items.Where(i => i.IsFolder == isFolder);
+        }
+
+#if JELLYFIN_12
+        // Jellyfin 12 hides alternate versions unless the query asks for them (BaseItemRepository.TranslateQuery.cs:798-812).
+        if (query.OwnerIds.Length == 0 && query.ExtraTypes.Length == 0 && !query.IncludeOwnedItems && query.IsResumable != true && !query.IncludeAlternateVersions)
+        {
+            items = items.Where(i => i is not Video { PrimaryVersionId: not null });
+        }
+
+        // The items an owner owns (BaseItem.GetExtras, and the owned items of a query with OwnerIds).
+        if (query.OwnerIds.Length > 0)
+        {
+            items = items.Where(i => query.OwnerIds.Contains(i.OwnerId));
+        }
+#endif
+
         if (query.IncludeItemTypes.Length > 0)
         {
             items = items.Where(i => query.IncludeItemTypes.Contains(i.GetBaseItemKind()));

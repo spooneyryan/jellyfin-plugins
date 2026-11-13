@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Emby.Naming.Common;
+using Jellyfin.Plugin.Kit.Library;
 using Jellyfin.Plugin.LibraryMaintenance.Move.Paths;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.TV;
@@ -680,7 +681,7 @@ internal sealed class UnitPlanner
         static bool IsOwnFolder(BaseItem? item, IReadOnlySet<Guid>? except)
             => item is Video video && video is not Episode && !video.IsInMixedFolder && video.ExtraType is null && (except is null || !except.Contains(video.Id));
 
-        if (_library.FindByPath(directory, false) is var folderItem && IsOwnFolder(folderItem, except))
+        if (KitItemQueries.FindAnyByPath(_library, directory, false) is var folderItem && IsOwnFolder(folderItem, except))
         {
             return (Video)folderItem!;
         }
@@ -689,7 +690,7 @@ internal sealed class UnitPlanner
         {
             foreach (var file in new DirectoryInfo(directory).EnumerateFiles("*", ForeignMediaGuard.Listing))
             {
-                if (SidecarMatcher.IsVideo(file.Name, _naming) && _library.FindByPath(file.FullName, false) is var found && IsOwnFolder(found, except))
+                if (SidecarMatcher.IsVideo(file.Name, _naming) && KitItemQueries.FindAnyByPath(_library, file.FullName, false) is var found && IsOwnFolder(found, except))
                 {
                     return (Video)found!;
                 }
@@ -730,14 +731,20 @@ internal sealed class UnitPlanner
         }
     }
 
-    // The primary, its versions and its parts: ids (versions and parts are typeof(Video), Video.cs:362-370), paths
-    // (ignoring case) and the members to plan.
+    // The primary, its versions and its parts: ids (on 10.11 versions and parts are typeof(Video), Video.cs:362-370; on 12
+    // a version takes its primary's type, LibraryManager.ResolveAlternateVersion, and parts stay Video), paths (ignoring
+    // case) and the members to plan.
     private (HashSet<Guid> Ids, HashSet<string> Paths, List<(UnitItemRole Role, string Path, Type Type, Guid Id)> Members) OwnItems(Video item)
     {
         var members = new List<(UnitItemRole Role, string Path, Type Type, Guid Id)> { (UnitItemRole.Primary, item.Path, item.GetType(), item.Id) };
         foreach (var path in item.LocalAlternateVersions ?? [])
         {
-            members.Add((UnitItemRole.Version, path, typeof(Video), _library.GetNewItemId(path, typeof(Video))));
+#if JELLYFIN_12
+            var versionType = item.GetType();
+#else
+            var versionType = typeof(Video);
+#endif
+            members.Add((UnitItemRole.Version, path, versionType, _library.GetNewItemId(path, versionType)));
         }
 
         foreach (var path in item.AdditionalParts ?? [])
@@ -756,8 +763,14 @@ internal sealed class UnitPlanner
         return all.Concat(source.Locations).ToList();
     }
 
+    // The item's extras: on 10.11 its ExtraIds; on 12, which keeps no list, the items it owns that are extras (the owned
+    // items also include its local versions and parts, without an ExtraType).
     private List<BaseItem> Extras(BaseItem item)
+#if JELLYFIN_12
+        => _library.GetItemList(new InternalItemsQuery { OwnerIds = [item.Id], IncludeOwnedItems = true }).Where(e => e.ExtraType is not null && !string.IsNullOrEmpty(e.Path)).ToList();
+#else
         => (item.ExtraIds ?? []).Where(id => id != Guid.Empty).Select(id => _library.GetItemById(id)).OfType<BaseItem>().Where(e => !string.IsNullOrEmpty(e.Path)).ToList();
+#endif
 
     // An episode's images in its metadata folder (PlanEpisodeImages): those that move, the target's metadata folder, whether
     // the commit makes it, and the issues for the unit.

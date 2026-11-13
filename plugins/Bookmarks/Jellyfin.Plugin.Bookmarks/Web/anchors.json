@@ -10,10 +10,10 @@
     },
     {
       "name": "detailContent",
-      "css": [".detailPageContent"],
+      "css": [".detailPageContent", ".detailPageSecondaryContainer"],
       "required": true,
       "views": ["details"],
-      "note": "The content column inside detailPage; the Bookmarks section goes first in it (itemDetails-index-html chunk). bm:Web/bookmarks.js:1134-1251. Missing: no section and no button."
+      "note": "The content column inside detailPage; the Bookmarks section goes first in it (itemDetails-index-html chunk). bm:Web/bookmarks.js:1134-1251. Jellyfin 12 has no .detailPageContent: its secondary container holds the sections (first is a hidden #childrenCollapsible on movies). Missing: no section and no button."
     },
     {
       "name": "detailButtons",

@@ -193,6 +193,15 @@ internal sealed class ShortcutPolicy
             Add("Shift+" + key);
         }
 
+#if JELLYFIN_12
+        // jellyfin-web 12: , and . step one frame back or forward; with Shift they change the playback rate.
+        foreach (var key in new[] { ",", "." })
+        {
+            Add(key);
+            Add("Shift+" + key);
+        }
+#endif
+
         return list;
     }
 }

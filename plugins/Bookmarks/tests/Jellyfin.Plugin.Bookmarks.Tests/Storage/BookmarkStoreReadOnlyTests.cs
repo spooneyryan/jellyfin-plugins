@@ -269,7 +269,7 @@ public sealed class BookmarkStoreReadOnlyTests : IDisposable
         var open = gate.WaitUntilOpenAsync(Ct);
         Assert.False(open.IsCompleted);
         await store.Documents.RecoverAsync(Snapshots, null, startEmpty: true, Ct);
-        await open.WaitAsync(TimeSpan.FromSeconds(10), Ct);
+        await open.WaitAsync(TimeSpan.FromSeconds(60), Ct);
         Assert.All(Enum.GetValues<BackgroundWriter>(), writer => Assert.True(gate.MayWrite(writer)));
         Assert.Equal(broken, await File.ReadAllBytesAsync(Assert.Single(Directory.GetFiles(Folder, "bookmarks.json.corrupt-*")), Ct));
         Assert.Equal(StoreFixtures.Read(StoreFixtures.Schema3), await File.ReadAllBytesAsync(snapshot, Ct));

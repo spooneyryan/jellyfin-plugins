@@ -66,6 +66,14 @@
     "imageUrl": "https://raw.githubusercontent.com/spooneyryan/jellyfin-plugins/main/plugins/SmartSearch/image.png",
     "versions": [
       {
+        "version": "2.1.0.0",
+        "changelog": "- First release for Jellyfin 12.4 and later (versions 2.x; Jellyfin 10.11\n  servers keep getting 1.x).\n- People in the advanced search: a People rule finds what one or more\n  people are credited on, as actors, directors, writers, producers,\n  composers or guest stars, or in any role. It matches any, all, none\n  or not all of them: \"Robert De Niro and Al Pacino as actors\", or\n  \"directed by Ridley Scott or Tony Scott\".\n- People are picked from suggestions as you type (2 letters or more).\n  Only people credited on something you can see are suggested.\n- Saved searches and auto-collections can use People rules. A saved\n  rule still finds a person after Jellyfin rebuilds its people, by\n  their name.",
+        "targetAbi": "12.4.0.0",
+        "sourceUrl": "https://github.com/spooneyryan/jellyfin-plugins/releases/download/smartsearch%2Fv2.1.0/smartsearch_2.1.0.0.zip",
+        "checksum": "5573824f8c87fd7b00057f0400841adb",
+        "timestamp": "2026-11-13T05:28:28Z"
+      },
+      {
         "version": "1.1.2.0",
         "changelog": "- First public release.\n- An Advanced Search page: find movies, shows, episodes, music videos and collections by rules over title, year, library, genres, ratings, watch state and more, and save searches, private or shared.\n- Auto-collections: Jellyfin collections that the plugin keeps equal to a saved search's results.\n- Every search only shows what the signed-in user may see.",
         "targetAbi": "10.11.5.0",

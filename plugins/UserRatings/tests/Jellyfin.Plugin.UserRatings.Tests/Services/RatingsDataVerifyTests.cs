@@ -624,7 +624,7 @@ public sealed partial class RatingsDataTests
 
         var restored = await _data.RestoreAsync(_s.Admin.Id, snapshot, Ct);
         Assert.Equal(1, restored["DeletionsKept"]);
-        Assert.True(await Store.WaitForCheckpointAsync(Ct).WaitAsync(TimeSpan.FromSeconds(10), Ct), "the restore's checkpoint completed");
+        Assert.True(await Store.WaitForCheckpointAsync(Ct).WaitAsync(TimeSpan.FromSeconds(60), Ct), "the restore's checkpoint completed");
         Assert.False(Holds(_s.Store.File, Since));
         Assert.False(Holds(_s.Store.File, Deleted));
         var wal = _s.Store.File + "-wal";

@@ -1,3 +1,4 @@
+using Jellyfin.Plugin.Kit.TestSupport;
 using System;
 using System.IO;
 using System.Linq;
@@ -398,6 +399,42 @@ public sealed partial class RatingsLibraryConsumerTests
     }
 
     [Fact]
+    public async Task AVersionVideo_BackAsAMovieVersionAtItsPath_TakesTheRatingOnJellyfin12_WithoutIds()
+    {
+        // Jellyfin 12 deletes a local alternate version stored as a Video under a Movie and re-creates it as a Movie under a
+        // new id (the id hashes the type): the same file, still a version of the same primary, and no ids of its own.
+        var primary = AddMovie("Heat (1995)", _movies, "949");
+        var path = Path.Combine(Path.GetDirectoryName(primary.Path)!, "Heat (1995) - 4K.mkv");
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        await File.WriteAllTextAsync(path, "synthetic", Ct);
+        var version = _library.Add(new Video { Name = "Heat (1995) - 4K", Path = path });
+        version.SetPrimaryVersion(primary.Id);
+        await RateAsync(AddMovie("Ronin (1998)", _movies, "8195"), _bob);
+        var rating = await RateAsync(version, _alice, 9, "The 4K cut.");
+        var monitor = Monitor();
+
+        _library.Remove(version);
+        var again = _library.Add(new Movie { Name = "Heat (1995) - 4K", Path = path });
+        again.SetPrimaryVersion(primary.Id);
+        _library.RaiseAdded(again);
+        await monitor.FlushAsync(fullPass: true, duringPostScan: true, null, Ct);
+
+        var row = _fx.Store.Get(rating.Id)!;
+        AssertMemberFieldsKept(rating, row);
+        if (JellyfinLine.Is12)
+        {
+            // It lands on the version's primary, as a rating on a merged version does (Land).
+            Assert.True(row.IsAttached);
+            Assert.Contains(row.ItemId, new[] { again.Id, primary.Id });
+            Assert.Empty(_entries);
+        }
+        else
+        {
+            Assert.Equal((version.Id, RatingValues.DetachReason.Ambiguous), (row.ItemId, row.DetachReason));
+        }
+    }
+
+    [Fact]
     public async Task TheSweep_TooLeavesAHeldRatingAmbiguous_WhenAnotherFilmOrAVideoIsAtItsPath()
     {
         var heat = AddMovie("Heat (1995)", _movies, "949");
@@ -676,7 +713,7 @@ public sealed partial class RatingsLibraryConsumerTests
     private static async Task<WebHostHarness> StartAdminHostAsync(IUserRatingsAdminApi api, IKitDiagnostics? diagnostics = null)
     {
         var applicationHost = new Mock<IServerApplicationHost>();
-        applicationHost.SetupGet(h => h.ApplicationVersion).Returns(new Version(10, 11, 5));
+        applicationHost.SetupGet(h => h.ApplicationVersion).Returns(JellyfinLine.Server);
         return await new WebHostHarness()
             .WithServices(services =>
             {

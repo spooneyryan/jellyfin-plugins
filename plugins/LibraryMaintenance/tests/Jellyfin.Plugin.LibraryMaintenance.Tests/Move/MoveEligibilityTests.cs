@@ -12,6 +12,7 @@ using MediaBrowser.Controller.LiveTv;
 using MediaBrowser.Model.Entities;
 using Moq;
 using Xunit;
+using Jellyfin.Plugin.Kit.TestSupport;
 
 namespace Jellyfin.Plugin.LibraryMaintenance.Tests.Move;
 
@@ -227,7 +228,7 @@ public sealed class MoveEligibilityTests : IDisposable
     {
         var movie = _w.Movie(Path.Join(_w.Movies, "Alien (1979)", "Alien (1979).mkv"), "Alien", 1979, false);
         var partner = _w.Movie(Path.Join(_w.Movies, "Alien (1979) Directors Cut", "Alien (1979) Directors Cut.mkv"), "Alien", 1979, false);
-        partner.PrimaryVersionId = movie.Id.ToString("N");
+        partner.PrimaryVersionId = JellyfinLine.VersionId(movie.Id);
 
         Assert.True(_gate.TryMarkBusy(OperationOwner.Duplicates, "merge-1", [movie.Id], out _));
         var self = _eligibility.Check(movie.Id, null);

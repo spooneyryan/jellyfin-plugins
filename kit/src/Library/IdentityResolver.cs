@@ -337,7 +337,7 @@ internal sealed class IdentityResolver
         return kind.Length > 0 && char.IsLetter(kind[0]) && Enum.TryParse(kind, ignoreCase: false, out value) && Enum.IsDefined(value);
     }
 
-    private static InternalItemsQuery NewQuery(BaseItemKind kind) => new()
+    private static InternalItemsQuery NewQuery(BaseItemKind kind) => KitItemQueries.IncludeEveryVersion(new()
     {
         IncludeItemTypes = [kind],
         Recursive = true,
@@ -346,7 +346,7 @@ internal sealed class IdentityResolver
         Limit = QueryLimit,
         OrderBy = [(ItemSortBy.SortName, SortOrder.Ascending), (ItemSortBy.DateCreated, SortOrder.Ascending)],
         DtoOptions = new DtoOptions(false) { Fields = [ItemFields.ProviderIds], EnableImages = false, EnableUserData = false }
-    };
+    });
 
     /// <summary>
     /// Finds the item at a path, provided it has the expected kind. A blank path is never looked up, and without an
@@ -359,7 +359,7 @@ internal sealed class IdentityResolver
             return null;
         }
 
-        return _library.FindByPath(path, null) is { } item && string.Equals(ItemIdentity.KindOf(item), kind, StringComparison.Ordinal)
+        return KitItemQueries.FindAnyByPath(_library, path, null) is { } item && string.Equals(ItemIdentity.KindOf(item), kind, StringComparison.Ordinal)
             ? item
             : null;
     }

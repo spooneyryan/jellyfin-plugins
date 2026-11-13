@@ -192,10 +192,10 @@ internal sealed class FreshUserData
         }
 
         // No user: this isn't an access filter (the caller checked access), and no grouping or user filter may drop it.
-        return _library.GetItemList(new InternalItemsQuery
+        return _library.GetItemList(KitItemQueries.IncludeEverything(new InternalItemsQuery
         {
             ItemIds = [itemId],
             DtoOptions = new DtoOptions(false) { EnableImages = false, EnableUserData = true }
-        }).FirstOrDefault(i => i is not null && i.Id == itemId);
+        })).FirstOrDefault(i => i is not null && i.Id == itemId);
     }
 }

@@ -15,8 +15,10 @@ namespace Jellyfin.Plugin.SmartSearch.Tests.Execution;
 /// a batch at a time and dropped, so what the engine holds is the ids and the matches' sort keys, not the items. The
 /// managed heap is measured after a full collection at every batch, so the peak is what the evaluation keeps alive.
 /// 20,000 rows by default; <c>SMARTSEARCH_SCALE_ROWS</c> sets another size and <c>SMARTSEARCH_SCALE_REPORT</c> names a
-/// file for the numbers.
+/// file for the numbers. GC.GetTotalMemory is the whole process's heap, so this runs alone, after the tests that run in
+/// parallel: their allocations would count as this engine's (on net10.0 they pushed the peak past the bound).
 /// </summary>
+[Collection(EngineScaleCollection.Name)]
 public sealed class EngineScaleTests
 {
     [Fact]
@@ -86,4 +88,11 @@ public sealed class EngineScaleTests
             await File.WriteAllLinesAsync(file, report, TestContext.Current.CancellationToken);
         }
     }
+}
+
+/// <summary>The memory-bound scale tests don't run beside other tests, whose allocations the process heap would include.</summary>
+[CollectionDefinition(Name, DisableParallelization = true)]
+public sealed class EngineScaleCollection
+{
+    public const string Name = "Engine scale";
 }

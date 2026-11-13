@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Jellyfin.Plugin.Kit.Library;
 using Jellyfin.Plugin.LibraryMaintenance.Move.Paths;
 using Jellyfin.Plugin.LibraryMaintenance.Move.Planning;
 using Jellyfin.Plugin.LibraryMaintenance.Operations;
@@ -70,7 +71,7 @@ internal sealed class MovePreflight
             }
         }
 
-        if (Guid.TryParse(item.PrimaryVersionId, CultureInfo.InvariantCulture, out var primary) && primary != Guid.Empty)
+        if (KitItemQueries.PrimaryVersionGuid(item) is { } primary && primary != Guid.Empty)
         {
             yield return primary;
         }

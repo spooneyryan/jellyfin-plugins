@@ -37,6 +37,11 @@ const ssApi = {
     series: function (prefix, limit, signal) {
         return kit.api('GET', 'SmartSearch/Series', { query: { prefix: prefix, limit: String(limit || 10) }, signal: signal });
     },
+    // GET /SmartSearch/People: [{ Id, Name }], the people credited on something the user can see whose name holds the
+    // text (2 characters or more), those starting with it first.
+    people: function (prefix, limit, signal) {
+        return kit.api('GET', 'SmartSearch/People', { query: { prefix: prefix, limit: String(limit || 10) }, signal: signal });
+    },
     // POST /SmartSearch/Validate: { Valid, Supported, Errors [{ Path, Code, Message }], UsesPerUserFields,
     // UsesAdminOnlyFields, UnavailableFields }, the query checked as the user would send it, nothing run.
     validate: function (query) {

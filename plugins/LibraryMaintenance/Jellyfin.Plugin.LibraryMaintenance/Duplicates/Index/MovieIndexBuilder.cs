@@ -22,7 +22,9 @@ namespace Jellyfin.Plugin.LibraryMaintenance.Duplicates.Index;
 /// <c>GroupByPresentationUniqueKey = false</c>, no user, and explicit, never empty, <c>TopParentIds</c>: owned items (local
 /// alternates, extras) have no top parent, so it leaves them out, and an item with an <c>OwnerId</c> is dropped again in
 /// memory. It never sets <c>HasOwnerId</c>: on 10.11.5 <c>HasOwnerId = false</c> means <c>OwnerId IS NULL</c>, while every
-/// item saved on 10.11 stores the zero GUID, so it would drop nearly every movie.
+/// item saved on 10.11 stores the zero GUID, so it would drop nearly every movie. Jellyfin 12 hides merged alternate
+/// versions from both queries unless asked (<see cref="KitItemQueries.IncludeEveryVersion"/>), which they are, so
+/// the index groups the same version sets on both lines; owned items stay hidden.
 /// </remarks>
 internal sealed class MovieIndexBuilder
 {
@@ -87,7 +89,7 @@ internal sealed class MovieIndexBuilder
             throw new ArgumentException("A library query needs its folders; none would read every library.", nameof(topParentIds));
         }
 
-        return new InternalItemsQuery
+        return KitItemQueries.IncludeEveryVersion(new InternalItemsQuery
         {
             IncludeItemTypes = [BaseItemKind.Movie],
             Recursive = true,
@@ -95,7 +97,7 @@ internal sealed class MovieIndexBuilder
             TopParentIds = topParentIds,
             GroupByPresentationUniqueKey = false,
             DtoOptions = MinimalDtoOptions()
-        };
+        });
     }
 
     /// <summary>
@@ -246,12 +248,12 @@ internal sealed class MovieIndexBuilder
         for (var chunk = 0; chunk < chunks; chunk++)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            var query = new InternalItemsQuery
+            var query = KitItemQueries.IncludeEveryVersion(new InternalItemsQuery
             {
                 ItemIds = ids.Skip(chunk * ChunkSize).Take(ChunkSize).ToArray(),
                 GroupByPresentationUniqueKey = false,
                 DtoOptions = MinimalDtoOptions()
-            };
+            });
             foreach (var item in _library.GetItemList(query) ?? [])
             {
                 if (item is not Video video || !librariesOf.TryGetValue(item.Id, out var of) || fetched.ContainsKey(item.Id))

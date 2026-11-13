@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Jellyfin.Plugin.Kit.Hosting;
+using Jellyfin.Plugin.Kit.TestSupport;
 using Jellyfin.Plugin.Kit.Tests.TestHosting;
 using MediaBrowser.Controller;
 using Microsoft.Extensions.DependencyInjection;
@@ -39,18 +40,19 @@ public sealed class KitAbiGuardTests
     }
 
     [Fact]
-    public void ThisBuild_TargetsJellyfin1011()
+    public void ThisBuild_TargetsItsJellyfinLine()
     {
         // kit/build/Kit.props writes JellyfinTarget into the assembly metadata.
-        Assert.Equal("10.11", KitBuild.JellyfinTarget);
+        Assert.Equal(JellyfinLine.Target, KitBuild.JellyfinTarget);
         Assert.Equal(System.IO.File.ReadAllText(System.IO.Path.Combine(TestPaths.KitRoot, "VERSION")).Trim(), KitBuild.KitVersion);
     }
 
     [Theory]
-    [InlineData("10.11.5")]
-    [InlineData("10.11.11")]
-    public void Register_OnA1011Server_ReturnsTrueAndRegistersOnlyTheStatus(string server)
+    [InlineData(0)]
+    [InlineData(1)]
+    public void Register_OnAServerOfItsLine_ReturnsTrueAndRegistersOnlyTheStatus(int which)
     {
+        var server = (JellyfinLine.Is12 ? new[] { "12.4.0", "12.0.0" } : new[] { "10.11.5", "10.11.11" })[which];
         var services = new ServiceCollection();
         var errors = new List<(string Category, string Message)>();
 
@@ -59,30 +61,30 @@ public sealed class KitAbiGuardTests
         Assert.True(active);
         var status = Assert.IsType<KitAbiStatus>(Assert.Single(services).ImplementationInstance);
         Assert.True(status.IsActive);
-        Assert.Equal("10.11", status.Target);
+        Assert.Equal(JellyfinLine.Target, status.Target);
         Assert.Equal(server, status.Server);
         Assert.Empty(errors);
     }
 
     [Fact]
-    public void Register_OnA121Server_RegistersNothingButTheStatusAndLogsOneError()
+    public void Register_OnAServerOfTheOtherLine_RegistersNothingButTheStatusAndLogsOneError()
     {
         var services = new ServiceCollection();
         var errors = new List<(string Category, string Message)>();
 
-        var active = KitAbiGuard.Register(services, Host("12.1.0"), TestKit.Options, (c, m) => errors.Add((c, m)));
+        var active = KitAbiGuard.Register(services, Host(JellyfinLine.OtherLineVersion), TestKit.Options, (c, m) => errors.Add((c, m)));
 
         Assert.False(active);
         var descriptor = Assert.Single(services);
         Assert.Equal(typeof(KitAbiStatus), descriptor.ServiceType);
         var status = Assert.IsType<KitAbiStatus>(descriptor.ImplementationInstance);
         Assert.False(status.IsActive);
-        Assert.Equal("12.1.0", status.Server);
+        Assert.Equal(JellyfinLine.OtherLineVersion, status.Server);
 
         var (category, message) = Assert.Single(errors);
         Assert.Equal("Jellyfin.Plugin.KitTest.Kit.AbiGuard", category);
         Assert.Equal(
-            "Kit Test is built for Jellyfin 10.11, but the server is Jellyfin 12.1.0: the plugin is inactive. Install the Kit Test build for Jellyfin 12.",
+            $"Kit Test is built for Jellyfin {JellyfinLine.Target}, but the server is Jellyfin {JellyfinLine.OtherLineVersion}: the plugin is inactive. Install the Kit Test build for Jellyfin {JellyfinLine.OtherTarget}.",
             message);
         Assert.Equal(message, status.Message);
     }
@@ -138,10 +140,10 @@ public sealed class KitAbiGuardTests
     public void Register_NeverThrows()
     {
         // RegisterServices must never throw, even when the logger or the arguments fail.
-        Assert.False(KitAbiGuard.Register(new ServiceCollection(), Host("12.1.0"), TestKit.Options, (_, _) => throw new InvalidOperationException()));
+        Assert.False(KitAbiGuard.Register(new ServiceCollection(), Host(JellyfinLine.OtherLineVersion), TestKit.Options, (_, _) => throw new InvalidOperationException()));
         Assert.False(KitAbiGuard.Register(new ServiceCollection(), null!, TestKit.Options, (_, _) => { }));
-        Assert.False(KitAbiGuard.Register(null!, Host("10.11.5"), TestKit.Options, (_, _) => { }));
-        Assert.False(KitAbiGuard.Register(new ServiceCollection(), Host("10.11.5"), null!, (_, _) => { }));
+        Assert.False(KitAbiGuard.Register(null!, Host(JellyfinLine.ServerVersion), TestKit.Options, (_, _) => { }));
+        Assert.False(KitAbiGuard.Register(new ServiceCollection(), Host(JellyfinLine.ServerVersion), null!, (_, _) => { }));
     }
 
     [Fact]
@@ -149,7 +151,7 @@ public sealed class KitAbiGuardTests
     {
         var services = new ServiceCollection();
 
-        Assert.False(KitAbiGuard.Register(services, Host("12.1.0"), TestKit.Options));
+        Assert.False(KitAbiGuard.Register(services, Host(JellyfinLine.OtherLineVersion), TestKit.Options));
         Assert.Single(services);
     }
 

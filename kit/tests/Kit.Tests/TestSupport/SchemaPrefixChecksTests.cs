@@ -8,7 +8,11 @@ using Jellyfin.Plugin.Kit.Tests.TestHosting;
 using Jellyfin.Plugin.Kit.TestSupport.Api;
 using MediaBrowser.Model.Querying;
 using Microsoft.Extensions.DependencyInjection;
+#if JELLYFIN_12
+using Microsoft.OpenApi;
+#else
 using Microsoft.OpenApi.Models;
+#endif
 using Swashbuckle.AspNetCore.Swagger;
 using Xunit;
 
@@ -169,7 +173,7 @@ public sealed class SchemaPrefixChecksTests
         var walked = SchemaPrefixChecks.FindReachedSchemas(controllers, typeof(FxGoodController).Assembly).Select(r => r.Type).ToHashSet();
         var ours = created.Where(type => InvolvesKitTests(type)).ToHashSet();
 
-        Assert.NotEmpty(document.Components.Schemas);
+        Assert.NotEmpty(document.Components!.Schemas!);
         Assert.Equal(ours.Select(Name).Order(), walked.Select(Name).Order());
     }
 
@@ -178,7 +182,7 @@ public sealed class SchemaPrefixChecksTests
     {
         await using var host = await MvcTestHost.StartAsync([typeof(FxGoodController)], services => services.AddSwaggerGen(ConfigureLikeJellyfin));
 
-        var ids = host.Services.GetRequiredService<ISwaggerProvider>().GetSwagger("api-docs").Components.Schemas.Keys.ToHashSet();
+        var ids = host.Services.GetRequiredService<ISwaggerProvider>().GetSwagger("api-docs").Components!.Schemas!.Keys.ToHashSet();
 
         Assert.All(ExpectedGoodIds, id => Assert.Contains(id, ids));
     }

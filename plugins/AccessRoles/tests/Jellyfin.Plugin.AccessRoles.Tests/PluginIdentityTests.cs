@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Xml.Linq;
+using Jellyfin.Plugin.Kit.TestSupport;
 using Jellyfin.Plugin.Kit.TestSupport.PluginIdentity;
 using Xunit;
 
@@ -16,7 +17,7 @@ namespace Jellyfin.Plugin.AccessRoles.Tests;
 public sealed class PluginIdentityTests : IDisposable
 {
     private static readonly string Root = Path.Combine(PluginIdentityChecks.FindRepositoryRoot(), "plugins", "AccessRoles");
-    private static readonly BuildYaml Yaml = BuildYaml.Load(Path.Combine(Root, "build.yaml"));
+    private static readonly BuildYaml Yaml = BuildYaml.Load(Path.Combine(Root, JellyfinLine.BuildYamlName));
     private readonly DirectoryInfo _scratch = Directory.CreateTempSubdirectory("accessroles-identity-");
 
     [Fact]
@@ -28,7 +29,7 @@ public sealed class PluginIdentityTests : IDisposable
         Assert.Equal(PluginIdentityChecks.AssignedGuids["Access Roles"], Guid.Parse(Yaml.Guid));
 
         // Development builds were 0.9.<n>.0 (0.9.1.0 to 0.9.16.0); 1.0.0.0 was the first release, 1.0.1.0 its fixes, 1.0.2.0 corrected texts, and 1.0.3.0 the owner name.
-        Assert.Equal("1.0.3.0", Yaml.Version);
+        Assert.Equal(JellyfinLine.Is12 ? "2.0.0.0" : "1.0.3.0", Yaml.Version);
         Assert.Empty(PluginIdentityChecks.CheckVersionFormat(Yaml.Version));
         Assert.Empty(PluginIdentityChecks.CheckTargetAbi(Yaml));
         Assert.Equal(["Jellyfin.Plugin.AccessRoles.dll"], Yaml.Artifacts);

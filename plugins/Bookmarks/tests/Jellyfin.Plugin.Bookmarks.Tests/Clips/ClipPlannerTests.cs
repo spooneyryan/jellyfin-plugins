@@ -275,6 +275,23 @@ public sealed partial class ClipPlannerTests : IDisposable
         Assert.Equal(_source.Path, _planner.Plan(Bookmark() with { MediaSourceId = "gone" }, BookmarkClipMode.Accurate).Command.InputPath);
     }
 
+    [Fact]
+    public void Plan_WithoutTheBookmarkedVersion_TakesTheItemsOwnFile_NotTheFirstSource()
+    {
+        // Jellyfin 12 lists the version the user last played first.
+        var own = new MediaSourceInfo
+        {
+            Id = _movie.Id.ToString("N", System.Globalization.CultureInfo.InvariantCulture),
+            Path = _directory.CreateFile(Path.Combine("media", "Heat (1995) - 1080p.mkv")),
+            Protocol = MediaProtocol.File
+        };
+        _mediaSourceManager.Setup(m => m.GetStaticMediaSources(_movie, false, _user)).Returns(() => [_source, own]);
+
+        Assert.Equal(own.Path, _planner.Plan(Bookmark() with { MediaSourceId = "gone" }, BookmarkClipMode.Accurate).Command.InputPath);
+        Assert.Equal(own.Path, _planner.Plan(Bookmark() with { MediaSourceId = null }, BookmarkClipMode.Accurate).Command.InputPath);
+        Assert.Equal(_source.Path, _planner.Plan(Bookmark() with { MediaSourceId = "source-1" }, BookmarkClipMode.Accurate).Command.InputPath);
+    }
+
     [Theory]
     [InlineData(VideoRangeType.HDR10, true, true, "TonemapX")]
     [InlineData(VideoRangeType.HDR10, false, true, "ZScale")]

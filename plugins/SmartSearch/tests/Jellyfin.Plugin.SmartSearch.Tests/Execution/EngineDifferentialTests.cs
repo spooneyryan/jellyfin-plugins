@@ -34,6 +34,7 @@ public sealed class EngineDifferentialTests
             var rng = new Random(seed + w);
             var world = new PlannerWorld(zones[w].Item2);
             SyntheticLibrary.Populate(world, rng, RowsPerWorld, disagreeingUserData: w == 2);
+            var people = SyntheticLibrary.AddPeople(world, seed + w);
             var generator = new QueryGenerator(
                 rng,
                 SyntheticLibrary.Names,
@@ -43,7 +44,8 @@ public sealed class EngineDifferentialTests
                 SyntheticLibrary.Ratings.Where(r => r is not null).Select(r => r!).ToList(),
                 world.Core.Libraries.Select(l => l.Id).ToList(),
                 world.Core.Rows.Where(r => r.Kind == Jellyfin.Data.Enums.BaseItemKind.Series).Select(r => (r.Id, r.Item.Name)).ToList(),
-                DifferentialTests.NotSeries(world));
+                DifferentialTests.NotSeries(world),
+                people);
             EngineDifferential.Run(world, generator, QueriesPerWorld, zones[w].Item1, report);
         }
 

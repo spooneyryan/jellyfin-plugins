@@ -19,6 +19,7 @@ using MediaBrowser.Model.Users;
 using Moq;
 using Xunit;
 using static Jellyfin.Plugin.AccessRoles.Tests.TestSupport.AccessFixtures;
+using Jellyfin.Plugin.Kit.TestSupport;
 
 namespace Jellyfin.Plugin.AccessRoles.Tests.Sync;
 
@@ -1053,7 +1054,7 @@ public sealed class LibrarySyncTests : IDisposable
         // As the roles API saves a change: the analysis, then the ledger kept (ChangeAnalysis.KeepLedger).
         var before = _h.Store.Current;
         var after = before with { Assignments = [.. before.Assignments.Select(change)] };
-        var report = ChangeAnalysis.Analyze(before, after, _h.Catalog.Read(), [.. _h.Server.Manager.Object.Users.Select(JellyfinServerUsers.From)], choice);
+        var report = ChangeAnalysis.Analyze(before, after, _h.Catalog.Read(), [.. _h.Server.Manager.Object.AllUsers().Select(JellyfinServerUsers.From)], choice);
         var saved = ChangeAnalysis.KeepLedger(after, report, _h.Now);
         await _h.SaveAsync(_ => saved);
     }

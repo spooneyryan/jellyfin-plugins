@@ -164,6 +164,8 @@ internal static class Differential
         if (q.HasTmdbId is not null) { yield return "HasTmdbId"; }
         if (q.HasImdbId is not null) { yield return "HasImdbId"; }
         if (q.HasTvdbId is not null) { yield return "HasTvdbId"; }
+        if (q.PersonIds.Length > 0) { yield return "PersonIds"; }
+        if (q.PersonTypes.Length > 0) { yield return "PersonTypes"; }
         if (q.IncludeItemTypes.Length is > 0 and < 6) { yield return "IncludeItemTypes(narrowed)"; }
     }
 }

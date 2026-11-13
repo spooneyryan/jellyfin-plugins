@@ -9,7 +9,8 @@ using Xunit;
 namespace Jellyfin.Plugins.Repo.Tests;
 
 /// <summary>
-/// The packages the server ships are pinned to exactly the versions Jellyfin 10.11.5 ships: a
+/// The packages the server ships are pinned, for each line, to exactly the versions that line's Jellyfin ships (10.11.5,
+/// 12.4.0; Directory.Packages.props pins each under a JellyfinTarget condition): a
 /// plugin compiled against a newer Microsoft.Data.Sqlite than the server has passes the DLL allowlist but can stop the
 /// whole server at startup. Deploy-Plugin.ps1's reference-version check catches it at install time; this catches it in
 /// the repository.
@@ -18,29 +19,53 @@ public sealed class ServerPackagePinTests
 {
     private static readonly string Root = PluginIdentityChecks.FindRepositoryRoot();
 
-    // What Jellyfin 10.11.5 ships: v10.11.5:Directory.Packages.props (Microsoft.Data.Sqlite 9.0.11, whose .Core package
-    // has the same version) and the server packages of the release itself.
-    private static readonly Dictionary<string, string> ServerShips = new(StringComparer.OrdinalIgnoreCase)
+    // What each line's Jellyfin ships: v10.11.5:Directory.Packages.props (Microsoft.Data.Sqlite 9.0.11, whose .Core
+    // package has the same version), v12.4:Directory.Packages.props (10.0.14), and the server packages of the release.
+    private static readonly Dictionary<string, Dictionary<string, string>> ServerShips = new(StringComparer.Ordinal)
     {
-        ["Jellyfin.Controller"] = "10.11.5",
-        ["Jellyfin.Model"] = "10.11.5",
-        ["Microsoft.Data.Sqlite.Core"] = "9.0.11",
-        ["Microsoft.Data.Sqlite"] = "9.0.11",
+        ["10.11"] = new(StringComparer.OrdinalIgnoreCase)
+        {
+            ["Jellyfin.Controller"] = "10.11.5",
+            ["Jellyfin.Model"] = "10.11.5",
+            ["Microsoft.Data.Sqlite.Core"] = "9.0.11",
+            ["Microsoft.Data.Sqlite"] = "9.0.11",
+        },
+        ["12"] = new(StringComparer.OrdinalIgnoreCase)
+        {
+            ["Jellyfin.Controller"] = "12.4.0",
+            ["Jellyfin.Model"] = "12.4.0",
+            ["Microsoft.Data.Sqlite.Core"] = "10.0.14",
+            ["Microsoft.Data.Sqlite"] = "10.0.14",
+        },
     };
 
-    [Fact]
-    public void ServerPackages_ArePinnedToExactlyWhatJellyfin10115Ships()
+    [Theory]
+    [InlineData("10.11", "10.11.5")]
+    [InlineData("12", "12.4.0")]
+    public void ServerPackages_ArePinnedToExactlyWhatEachLinesJellyfinShips(string line, string jellyfin)
     {
-        var versions = CentralVersions();
+        var versions = CentralVersions(line);
 
-        Assert.Equal("9.0.11", versions["Microsoft.Data.Sqlite.Core"]);
-        foreach (var (package, shipped) in ServerShips)
+        Assert.Equal(ServerShips[line].Count, ServerShips[line].Keys.Count(versions.ContainsKey));
+        foreach (var (package, shipped) in ServerShips[line])
         {
-            if (versions.TryGetValue(package, out var pinned))
-            {
-                Assert.True(pinned == shipped, $"Directory.Packages.props pins {package} at {pinned}; Jellyfin 10.11.5 ships {shipped}. Pin exactly the server's version, never higher, and no range.");
-            }
+            var pinned = versions[package];
+            Assert.True(pinned == shipped, $"Directory.Packages.props pins {package} at {pinned} for Jellyfin {line}; Jellyfin {jellyfin} ships {shipped}. Pin exactly the server's version, never higher, and no range.");
         }
+    }
+
+    [Fact]
+    public void EveryLineSpecificPin_NamesOneOfTheTwoLines()
+    {
+        // A condition naming no line (a typo, '12.4') would leave the package unpinned on both.
+        var conditions = XDocument.Load(Path.Combine(Root, "Directory.Packages.props")).Descendants()
+            .Where(e => e.Name.LocalName == "PackageVersion")
+            .Select(e => e.Attribute("Condition")?.Value)
+            .OfType<string>()
+            .Distinct(StringComparer.Ordinal)
+            .Order(StringComparer.Ordinal);
+
+        Assert.Equal([LineCondition("10.11"), LineCondition("12")], conditions);
     }
 
     [Fact]
@@ -97,7 +122,8 @@ public sealed class ServerPackagePinTests
         var support = XDocument.Load(Path.Combine(Root, "kit", "build", "TestSupport.props"));
         var full = Assert.Single(support.Descendants(), e => e.Name.LocalName == "PackageReference" && e.Attribute("Include")?.Value == "Microsoft.Data.Sqlite");
         Assert.Equal("'$(KitUseSqlite)' == 'true'", full.Parent!.Attribute("Condition")?.Value);
-        Assert.Equal("9.0.11", CentralVersions()["Microsoft.Data.Sqlite"]);
+        Assert.Equal("9.0.11", CentralVersions("10.11")["Microsoft.Data.Sqlite"]);
+        Assert.Equal("10.0.14", CentralVersions("12")["Microsoft.Data.Sqlite"]);
 
         var offenders = ProjectFiles()
             .Where(f => !Path.GetFileName(f).Equals("TestSupport.props", StringComparison.OrdinalIgnoreCase) && !Path.GetFileNameWithoutExtension(f).EndsWith(".Tests", StringComparison.Ordinal))
@@ -120,10 +146,14 @@ public sealed class ServerPackagePinTests
         Assert.Empty(offenders);
     }
 
-    private static Dictionary<string, string> CentralVersions()
+    // The pins a line's build sees: those without a condition, and those under its JellyfinTarget condition.
+    private static Dictionary<string, string> CentralVersions(string line)
         => XDocument.Load(Path.Combine(Root, "Directory.Packages.props")).Descendants()
             .Where(e => e.Name.LocalName == "PackageVersion")
+            .Where(e => e.Attribute("Condition") is null || e.Attribute("Condition")!.Value == LineCondition(line))
             .ToDictionary(e => e.Attribute("Include")!.Value, e => e.Attribute("Version")!.Value, StringComparer.OrdinalIgnoreCase);
+
+    private static string LineCondition(string line) => $"'$(JellyfinTarget)' == '{line}'";
 
     private static IEnumerable<string> ProjectFiles()
         => new[] { "Directory.Build.props", "Directory.Build.targets", "Directory.Packages.props" }

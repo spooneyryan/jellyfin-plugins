@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Security.AccessControl;
 using System.Threading.Tasks;
+using Jellyfin.Plugin.Kit.TestSupport;
 using Jellyfin.Plugin.LibraryMaintenance.Move;
 using Jellyfin.Plugin.LibraryMaintenance.Move.Planning;
 using Jellyfin.Plugin.LibraryMaintenance.Move.Preflight;
@@ -280,7 +281,7 @@ public sealed class MovePreflightTests : IDisposable
     {
         var (movie, _, _) = OwnFolderMovie();
         var linked = _w.Movie(Path.Join(_w.Movies, "Alien (1979) Directors Cut", "Alien (1979) Directors Cut.mkv"), "Alien", 1979, false);
-        movie.LinkedAlternateVersions = [new LinkedChild { Path = linked.Path, ItemId = linked.Id }];
+        movie.LinkedAlternateVersions = [JellyfinLine.Link(linked.Id, linked.Path)];
 
         Assert.True(_gate.TryMarkBusy(OperationOwner.Duplicates, "merge-1", [linked.Id], out _));
         var unit = _w.Plan(movie, _w.MoviesLibrary, _w.CultLibrary);
@@ -368,9 +369,12 @@ public sealed class MovePreflightTests : IDisposable
     {
         var a = Guid.NewGuid();
         var b = Guid.NewGuid();
-        var video = new Movie { LinkedAlternateVersions = [new LinkedChild { ItemId = a }, new LinkedChild { ItemId = null }], PrimaryVersionId = b.ToString("N") };
+        var video = new Movie { LinkedAlternateVersions = [new LinkedChild { ItemId = a }, new LinkedChild { ItemId = null }], PrimaryVersionId = JellyfinLine.VersionId(b) };
         Assert.Equal([a, b], MovePreflight.VersionPartners(video));
+#if !JELLYFIN_12
+        // 10.11 stores the id as text, which can be anything.
         Assert.Empty(MovePreflight.VersionPartners(new Movie { PrimaryVersionId = "not a guid" }));
+#endif
     }
 
     private (Movie Movie, string Version, string Featurette) OwnFolderMovie()

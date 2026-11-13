@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Jellyfin.Data.Enums;
 using Jellyfin.Database.Implementations.Entities;
 using Jellyfin.Plugin.Kit.Library;
+using Jellyfin.Plugin.Kit.TestSupport;
 using Jellyfin.Plugin.SmartSearch.AutoCollections;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.Movies;
@@ -66,6 +67,8 @@ public sealed class CollectionWriterTests
         _writer = new DirectReplaceWriter(_library.Object, _persistence, _locator, NullLogger.Instance);
     }
 
+#if !JELLYFIN_12
+    // Jellyfin 12's links carry the item id alone.
     [Fact]
     public void ALink_IsFoundByItsCachedId_ThenItsPath_ThenItsLibraryItemId_AndAnEmptyIdIsNeverLookedUp()
     {
@@ -86,6 +89,7 @@ public sealed class CollectionWriterTests
         Assert.Equal(1, links.Dead);
         Assert.DoesNotContain(Guid.Empty, _lookedUp);
     }
+#endif
 
     [Fact]
     public void CachedIds_AreCheckedInBatchesOfIdsOnly_AndOnlyAGoneOneIsLookedUpOnItsOwn()
@@ -93,12 +97,13 @@ public sealed class CollectionWriterTests
         var movies = Enumerable.Range(0, 1200).Select(i => Movie("M" + i)).ToList();
         var moved = Movie("Moved", path: "/media/moved.mkv");
         var gone = Guid.NewGuid();
-        var box = Box([.. movies.Select(m => new LinkedChild { ItemId = m.Id }), new LinkedChild { ItemId = gone, Path = moved.Path }]);
+        var box = Box([.. movies.Select(m => m.Id).Select(id => new LinkedChild { ItemId = id }), JellyfinLine.Link(gone, moved.Path)]);
 
         var links = _links.Resolve(box);
 
-        Assert.Equal([.. movies.Select(m => m.Id), moved.Id], links.Members);
-        Assert.Equal(0, links.Dead);
+        // A gone id is found again by its path on 10.11; Jellyfin 12's links have none, so it's dead.
+        Assert.Equal(JellyfinLine.Is12 ? [.. movies.Select(m => m.Id)] : [.. movies.Select(m => m.Id), moved.Id], links.Members);
+        Assert.Equal(JellyfinLine.Is12 ? 1 : 0, links.Dead);
         Assert.Equal([LinkResolver.IdsPerQuery, LinkResolver.IdsPerQuery, 201], _idQueries);
         Assert.Equal([gone], _lookedUp);
     }
@@ -107,7 +112,7 @@ public sealed class CollectionWriterTests
     public void ResolvedLinks_CountDeadAndDuplicateLinks_AndHashWhatTheyName()
     {
         var a = Movie("A");
-        var box = Box(new LinkedChild { ItemId = a.Id }, new LinkedChild { ItemId = a.Id }, new LinkedChild { Path = "/media/gone.mkv" });
+        var box = Box(new LinkedChild { ItemId = a.Id }, new LinkedChild { ItemId = a.Id }, DeadLink("/media/gone.mkv"));
 
         var links = _links.Resolve(box);
         var again = _links.Resolve(Box(new LinkedChild { ItemId = a.Id }));
@@ -184,7 +189,7 @@ public sealed class CollectionWriterTests
         var added = Movie("Added");
         var dropped = Movie("Dropped by the server");
         var definition = Definition();
-        var box = Marked(definition, new LinkedChild { ItemId = kept.Id }, new LinkedChild { ItemId = gone.Id }, new LinkedChild { Path = "/media/dead.mkv" });
+        var box = Marked(definition, new LinkedChild { ItemId = kept.Id }, new LinkedChild { ItemId = gone.Id }, DeadLink("/media/dead.mkv"));
 
         var diff = CollectionDiff.Compute(box, _links.Resolve(box), [kept.Id, added.Id, dropped.Id], definition);
 
@@ -239,8 +244,8 @@ public sealed class CollectionWriterTests
         var kept = Movie("Kept", path: "/media/kept.mkv");
         var added = Movie("Added");
         var definition = Definition() with { Name = "Renamed", Presentation = new AutoCollectionPresentation { SortMode = SmartSearchSortMode.QueryOrder } };
-        var keptLink = new LinkedChild { Path = kept.Path, ItemId = Guid.Empty };
-        var box = Marked(Definition(definition.Id), keptLink, new LinkedChild { Path = "/media/dead.mkv" });
+        var keptLink = ByPath(kept);
+        var box = Marked(Definition(definition.Id), keptLink, DeadLink("/media/dead.mkv"));
 
         var written = await _writer.WriteAsync(box, _links.Resolve(box), [added.Id, kept.Id, Guid.NewGuid()], definition, CancellationToken.None);
 
@@ -324,7 +329,7 @@ public sealed class CollectionWriterTests
         var kept = Movie("Kept", path: "/media/kept.mkv");
         var added = Movie("Added");
         var definition = Definition() with { Name = "Renamed", Presentation = new AutoCollectionPresentation { SortMode = SmartSearchSortMode.SortName, OverviewMode = SmartSearchOverviewMode.Managed, Overview = "New" } };
-        var keptLink = new LinkedChild { Path = kept.Path, ItemId = Guid.Empty };
+        var keptLink = ByPath(kept);
         var box = Marked(Definition(definition.Id), keptLink);
         box.Overview = "Old";
         box.DisplayOrder = "PremiereDate";
@@ -335,7 +340,7 @@ public sealed class CollectionWriterTests
         await Assert.ThrowsAsync<System.IO.IOException>(() => _writer.WriteAsync(box, _links.Resolve(box), [added.Id, kept.Id], definition, CancellationToken.None));
 
         Assert.Same(links, box.LinkedChildren);
-        Assert.Equal(Guid.Empty, keptLink.ItemId);
+        Assert.Equal(JellyfinLine.Is12 ? kept.Id : Guid.Empty, keptLink.ItemId);
         Assert.Equal("Horror", box.Name);
         Assert.Equal("Old", box.Overview);
         Assert.Equal("PremiereDate", box.DisplayOrder);
@@ -422,6 +427,12 @@ public sealed class CollectionWriterTests
             _persistence.Boxes.Where(b => CollectionLocator.HasTether(b, definition.Id)).Cast<BaseItem>().ToList());
         return await _writer.CreateAsync(definition, ids, CancellationToken.None);
     }
+
+    // A link to no item: by a path no item has on 10.11, by an id no item has on 12 (whose links carry the id alone).
+    private static LinkedChild DeadLink(string path) => JellyfinLine.Is12 ? JellyfinLine.Link(Guid.NewGuid()) : JellyfinLine.Link(null, path);
+
+    // A link a scan wrote: by path with no cached id on 10.11, by id on 12.
+    private static LinkedChild ByPath(BaseItem item) => JellyfinLine.Is12 ? JellyfinLine.Link(item.Id) : JellyfinLine.Link(Guid.Empty, item.Path);
 
     private Movie Movie(string name, string? path = null) => Item(new Movie { Name = name }, path);
 

@@ -120,7 +120,7 @@ public sealed class KitUserDeletedConsumerTests : IDisposable
         var paths = new Mock<IApplicationPaths>();
         paths.SetupGet(p => p.DataPath).Returns(Path.Combine(_data.Path, "data"));
         var userManager = new Mock<IUserManager>();
-        userManager.SetupGet(m => m.Users).Returns(serverUsers);
+        userManager.SetupUsers(serverUsers);
         var source = TestKit.Options;
         var options = new KitOptions
         {

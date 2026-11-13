@@ -5,6 +5,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
+using Jellyfin.Plugin.Kit.TestSupport;
 using Jellyfin.Plugin.Kit.TestSupport.PluginIdentity;
 using MediaBrowser.Common.Plugins;
 using MediaBrowser.Model.Plugins;
@@ -146,7 +147,7 @@ public sealed class PluginIdentityTests
     }
 
     private static BuildYaml LoadBuildYaml(string plugin)
-        => BuildYaml.Load(Path.Combine(RepositoryRoot, "plugins", plugin, "build.yaml"));
+        => BuildYaml.Load(Path.Combine(RepositoryRoot, "plugins", plugin, JellyfinLine.BuildYamlName));
 
     private static string GetAssemblyName(BuildYaml yaml)
     {

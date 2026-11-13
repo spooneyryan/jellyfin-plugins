@@ -263,7 +263,7 @@ public sealed class IdentityDemoTests : IDisposable
     public void TheRegistrator_WiresTheDemoToTheKitsIdentityServices()
     {
         var host = new Mock<IServerApplicationHost>();
-        host.SetupGet(h => h.ApplicationVersion).Returns(new Version(10, 11, 5));
+        host.SetupGet(h => h.ApplicationVersion).Returns(JellyfinLine.Server);
         var paths = new Mock<IApplicationPaths>();
         paths.SetupGet(p => p.DataPath).Returns(_directory.Path);
         var loggerFactory = new Mock<ILoggerFactory>();

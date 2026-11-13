@@ -108,7 +108,8 @@ public sealed class AccessRulesActionFilterTests : IDisposable
             .Where(a => a.Rules.Any(r => (r.Kind == RuleKind.LockedReject && r.Lock == AccessRolesLock.AdminSurfaces) || r.Kind is RuleKind.ConfigurationReadGuard or RuleKind.RestartBlock))
             .Select(a => a.Key["Jellyfin.Api.Controllers.".Length..]);
         Assert.Equal(expected.Order(StringComparer.Ordinal), refused.Order(StringComparer.Ordinal));
-        Assert.Equal((390 - 14 - 29, 29), (passed, refused.Count));
+        // Jellyfin 12.4 has five actions fewer than 10.11.5 (385, not 390).
+        Assert.Equal(((JellyfinLine.Is12 ? 385 : 390) - 14 - 29, 29), (passed, refused.Count));
 
         // A plugin's action outside the manifest, and an action the manifest doesn't know: on.
         Assert.True((await _h.RunAsync(FilterHarness.Descriptor("Jellyfin.Plugin.Other.OtherController", "Save", "Jellyfin.Plugin.Other", "POST", "Other/Save"), FilterHarness.NonAdmin(_kid.Id))).Ran);

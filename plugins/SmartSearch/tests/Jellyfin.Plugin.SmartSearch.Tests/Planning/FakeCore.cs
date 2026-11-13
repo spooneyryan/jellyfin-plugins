@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Reflection;
 using System.Security.Cryptography;
@@ -22,6 +23,7 @@ using MediaBrowser.Model.Dto;
 using MediaBrowser.Model.Entities;
 using MediaBrowser.Model.Querying;
 using Moq;
+using Jellyfin.Plugin.Kit.TestSupport;
 
 namespace Jellyfin.Plugin.SmartSearch.Tests.Planning;
 
@@ -62,7 +64,15 @@ internal sealed class FakeCore : IPushdownFacts
         "Genres", "Tags", "ExcludeTags", "StudioIds", "AncestorIds", "MinCommunityRating", "MinPremiereDate", "MaxPremiereDate",
         "MinDateCreated", "MinWidth", "MaxWidth", "IsLocked", "IsPlayed", "IsFavorite", "IsResumable", "HasTmdbId", "HasImdbId", "HasTvdbId",
         "User", "MaxParentalRating", "BlockUnratedItems", "ExcludeInheritedTags", "IncludeInheritedTags", "GroupByPresentationUniqueKey",
-        "DtoOptions", "OrderBy", "Recursive", "EnableTotalRecordCount", "StartIndex", "Limit"
+        "DtoOptions", "OrderBy", "Recursive", "EnableTotalRecordCount", "StartIndex", "Limit", "PersonIds",
+
+        // Jellyfin 12: the fake returns every version, as 10.11 did and as the plugin asks.
+        "IncludeAlternateVersions",
+#if JELLYFIN_12
+        // Jellyfin 12 checks PersonTypes on the PersonIds credit; 10.11 ignores it in item queries, so there it is unmodelled
+        // and setting it throws.
+        "PersonTypes"
+#endif
     };
 
     private static readonly BaseItemKind[] GroupedKinds = [BaseItemKind.Episode, BaseItemKind.Video, BaseItemKind.Movie, BaseItemKind.MusicVideo, BaseItemKind.Series, BaseItemKind.Season];
@@ -76,6 +86,7 @@ internal sealed class FakeCore : IPushdownFacts
     private CleanFormSnapshot? _probed;
     private readonly Dictionary<Guid, IReadOnlyList<CollectionFolder>> _userLibraries = [];
     private readonly Dictionary<Guid, FakeRow> _byId = [];
+    private readonly Dictionary<Guid, Person> _persons = [];
 
     public FakeCore()
     {
@@ -90,6 +101,18 @@ internal sealed class FakeCore : IPushdownFacts
         Library.Setup(l => l.GetItemsResult(It.IsAny<InternalItemsQuery>())).Returns((InternalItemsQuery q) => ItemsResult(q));
         Library.Setup(l => l.GetItemById(It.IsAny<Guid>())).Returns((Guid id) => Find(id));
         Library.Setup(l => l.GetStudioId(It.IsAny<string>())).Returns((string name) => StudioIds?.Invoke(name) ?? StudioId(name));
+        Library.Setup(l => l.GetPerson(It.IsAny<string>())).Returns((string name) =>
+        {
+            PersonLookups++;
+            return _persons.Values.FirstOrDefault(p => string.Equals(p.Name, name, StringComparison.Ordinal));
+        });
+        Library.Setup(l => l.GetPeople(It.IsAny<InternalPeopleQuery>())).Returns((InternalPeopleQuery q) => PeopleOf(q));
+        Library.Setup(l => l.GetPeopleNames(It.IsAny<InternalPeopleQuery>())).Returns((InternalPeopleQuery q) => PeopleNames(q));
+#if JELLYFIN_12
+        Library.Setup(l => l.GetPeopleItems(It.IsAny<InternalPeopleQuery>())).Returns((InternalPeopleQuery q) => new QueryResult<BaseItem>([.. PeopleItems(q)]));
+#else
+        Library.Setup(l => l.GetPeopleItems(It.IsAny<InternalPeopleQuery>())).Returns((InternalPeopleQuery q) => PeopleItems(q).ToList());
+#endif
         // No fake item has a path: a version link resolves by its cached id only.
         Library.Setup(l => l.FindByPath(It.IsAny<string>(), It.IsAny<bool?>())).Returns((BaseItem?)null);
         _others[RootId] = new AggregateFolder { Id = RootId, Name = "root" };
@@ -97,8 +120,14 @@ internal sealed class FakeCore : IPushdownFacts
         UserData = new Mock<IUserDataManager>(MockBehavior.Strict);
         UserData.Setup(u => u.GetUserData(It.IsAny<User>(), It.IsAny<BaseItem>())).Returns((User user, BaseItem item) => GetUserData(user, item));
         Dto = new Mock<IDtoService>(MockBehavior.Strict);
+#if JELLYFIN_12
+        // Jellyfin 12 adds skipVisibilityCheck; the fake checks visibility either way.
+        Dto.Setup(d => d.GetBaseItemDtos(It.IsAny<IReadOnlyList<BaseItem>>(), It.IsAny<DtoOptions>(), It.IsAny<User?>(), It.IsAny<BaseItem?>(), It.IsAny<bool>()))
+            .Returns((IReadOnlyList<BaseItem> items, DtoOptions options, User? user, BaseItem? owner, bool skipVisibilityCheck) => items
+#else
         Dto.Setup(d => d.GetBaseItemDtos(It.IsAny<IReadOnlyList<BaseItem>>(), It.IsAny<DtoOptions>(), It.IsAny<User?>(), It.IsAny<BaseItem?>()))
             .Returns((IReadOnlyList<BaseItem> items, DtoOptions options, User? user, BaseItem? owner) => items
+#endif
                 .Where(i => user is null || RowById(i.Id) is not { } row || IsVisibleTo(row, user))
                 .Select(i => ToDto(i, options, user))
                 .ToList());
@@ -305,8 +334,8 @@ internal sealed class FakeCore : IPushdownFacts
             item.PresentationUniqueKey = created?.PresentationUniqueKey ?? spec.PresentationUniqueKey ?? id.ToString("N");
             if (item is Video video && created is not null)
             {
-                video.PrimaryVersionId = created.PrimaryVersionId;
-                video.LinkedAlternateVersions = created.LinkedVersions.Select(v => new LinkedChild { ItemId = v, Type = LinkedChildType.Manual }).ToArray();
+                video.PrimaryVersionId = JellyfinLine.VersionIdFromText(created.PrimaryVersionId);
+                video.LinkedAlternateVersions = created.LinkedVersions.Select(v => new LinkedChild { ItemId = v, Type = MediaBrowser.Controller.Entities.LinkedChildType.Manual }).ToArray();
             }
 
             spec.Configure?.Invoke(item);
@@ -346,6 +375,7 @@ internal sealed class FakeCore : IPushdownFacts
         }
 
         row.Providers.AddRange(spec.Providers);
+        row.Credits.AddRange(spec.People);
         if (spec.StoredValues is { } stored)
         {
             // The ItemValuesMap rows as stored (seeded with SeedValue), whatever the item's columns say.
@@ -398,7 +428,7 @@ internal sealed class FakeCore : IPushdownFacts
     {
         ArgumentNullException.ThrowIfNull(primary);
         ArgumentNullException.ThrowIfNull(secondary);
-        secondary.PrimaryVersionId = primary.Id.ToString("N");
+        secondary.PrimaryVersionId = primary.Id.ToString("N", CultureInfo.InvariantCulture);
         secondary.PresentationUniqueKey = primary.PresentationUniqueKey;
         primary.LinkedVersions.Add(secondary.Id);
         SyncVersions(primary);
@@ -420,7 +450,7 @@ internal sealed class FakeCore : IPushdownFacts
         ArgumentNullException.ThrowIfNull(others);
         foreach (var row in others.Where(r => r.Id != primary.Id))
         {
-            row.PrimaryVersionId = primary.Id.ToString("N");
+            row.PrimaryVersionId = primary.Id.ToString("N", CultureInfo.InvariantCulture);
             row.PresentationUniqueKey = row.PrimaryVersionId;
             foreach (var listed in row.LinkedVersions.Prepend(row.Id).Where(id => !primary.LinkedVersions.Contains(id)).ToList())
             {
@@ -449,9 +479,9 @@ internal sealed class FakeCore : IPushdownFacts
     {
         foreach (var item in new[] { row.Item, row.ItemWithoutProviderIds }.OfType<Video>())
         {
-            item.PrimaryVersionId = row.PrimaryVersionId;
+            item.PrimaryVersionId = JellyfinLine.VersionIdFromText(row.PrimaryVersionId);
             item.PresentationUniqueKey = row.PresentationUniqueKey;
-            item.LinkedAlternateVersions = row.LinkedVersions.Select(v => new LinkedChild { ItemId = v, Type = LinkedChildType.Manual }).ToArray();
+            item.LinkedAlternateVersions = row.LinkedVersions.Select(v => new LinkedChild { ItemId = v, Type = MediaBrowser.Controller.Entities.LinkedChildType.Manual }).ToArray();
         }
     }
 
@@ -494,7 +524,13 @@ internal sealed class FakeCore : IPushdownFacts
     }
 
     /// <summary>core's <c>GetCleanValue</c>: whitespace as is, else <c>RemoveDiacritics().ToLowerInvariant()</c>.</summary>
-    public static string Clean(string value) => string.IsNullOrWhiteSpace(value) ? value : value.RemoveDiacritics().ToLowerInvariant();
+    public static string Clean(string value) => string.IsNullOrWhiteSpace(value) ? value
+#if JELLYFIN_12
+        // Jellyfin 12's clean form (StringExtensions.GetCleanValue): punctuation is a space, spaces collapse.
+        : value.GetCleanValue();
+#else
+        : value.RemoveDiacritics().ToLowerInvariant();
+#endif
 
     /// <summary>
     /// What <c>GetUserData(user, item)</c> returns on 10.11.5 (UserDataManager.cs:239): one of the user's rows the item
@@ -866,7 +902,124 @@ internal sealed class FakeCore : IPushdownFacts
     }
 
     private BaseItem? Find(Guid id)
-        => RowById(id)?.Item ?? (BaseItem?)(_studios.TryGetValue(id, out var studio) ? studio.Studio : null) ?? Libraries.FirstOrDefault(l => l.Id == id) ?? _others.GetValueOrDefault(id);
+        => RowById(id)?.Item ?? (BaseItem?)(_studios.TryGetValue(id, out var studio) ? studio.Studio : null) ?? _persons.GetValueOrDefault(id) ?? Libraries.FirstOrDefault(l => l.Id == id) ?? _others.GetValueOrDefault(id);
+
+    /// <summary>Adds a <c>Person</c> item (what <c>GetPerson</c> and <c>PersonIds</c> find by its name).</summary>
+    /// <param name="name">The person's name.</param>
+    /// <param name="id">Their id, or a new one.</param>
+    /// <returns>The person.</returns>
+    public Person AddPerson(string name, Guid? id = null)
+    {
+        var person = new Person { Id = id ?? Guid.NewGuid(), Name = name };
+        _persons[person.Id] = person;
+        return person;
+    }
+
+    /// <summary>The name of the person a reference names: the Person item of its id, else one of its name; <c>null</c> for none.</summary>
+    /// <param name="id">The reference's id.</param>
+    /// <param name="name">The reference's name.</param>
+    /// <returns>The person's name.</returns>
+    public string? PersonName(Guid id, string? name)
+        => _persons.TryGetValue(id, out var person) ? person.Name
+            : _persons.Values.FirstOrDefault(p => name is not null && string.Equals(p.Name, name.Trim(), StringComparison.Ordinal))?.Name;
+
+    /// <summary>Removes a <c>Person</c> item (people rebuilt: the credits stay, the item's id is gone).</summary>
+    /// <param name="person">The person.</param>
+    public void RemovePerson(Person person) => _persons.Remove(person.Id);
+
+    /// <summary>Gets the <c>GetPeople</c> calls the fake answered (the 10.11 role checks).</summary>
+    public List<InternalPeopleQuery> PeopleQueries { get; } = [];
+
+    // GetPeople with ItemId: the item's credits of the types asked for (Peoples.PersonType), as PersonInfo.
+    private List<PersonInfo> PeopleOf(InternalPeopleQuery q)
+    {
+        PeopleQueries.Add(q);
+        if (q.ItemId == Guid.Empty || RowById(q.ItemId) is not { } row)
+        {
+            return [];
+        }
+
+        return row.Credits
+            .Where(c => q.PersonTypes.Count == 0 || q.PersonTypes.Contains(c.Type, StringComparer.Ordinal))
+            .Select(c => new PersonInfo { Name = c.Name, Type = Enum.Parse<PersonKind>(c.Type) })
+            .ToList();
+    }
+
+    // GetPeopleItems: the Person items credited anywhere whose name holds the text (core compares upper(Name), ASCII only),
+    // at most Limit of them, whatever the user can see; the user is read only for the Person's own IsVisible (parental).
+    private IEnumerable<Person> PeopleItems(InternalPeopleQuery q)
+    {
+        var names = Rows.SelectMany(r => r.Credits).Select(c => c.Name).Distinct(StringComparer.Ordinal)
+            .Where(n => string.IsNullOrWhiteSpace(q.NameContains) || AsciiUpper(n).Contains(AsciiUpper(q.NameContains), StringComparison.Ordinal))
+            .Order(StringComparer.Ordinal);
+        var people = names.Select(n => _persons.Values.FirstOrDefault(p => string.Equals(p.Name, n, StringComparison.Ordinal))).OfType<Person>();
+        return q.Limit > 0 ? people.Take(q.Limit) : people;
+    }
+
+    private static string AsciiUpper(string text) => string.Concat(text.Select(c => c is >= 'a' and <= 'z' ? (char)(c - 32) : c));
+
+    /// <summary>Gets or sets the number of <c>GetPerson</c> calls the fake answered.</summary>
+    public int PersonLookups { get; set; }
+
+    /// <summary>Gets the <c>GetPeopleNames</c> calls the fake answered.</summary>
+    public List<InternalPeopleQuery> PeopleNameQueries { get; } = [];
+
+    /// <summary>Gets or sets <c>Person.IsVisible(user)</c> (core's needs the static configuration a unit test hasn't got).</summary>
+    public Func<Person, User, bool> PersonVisible { get; set; } = (_, _) => true;
+
+    // GetPeopleNames: the distinct credited names (Peoples.Name) whose upper(Name) holds upper(NameContains) (SQLite's upper
+    // is ASCII only; core upper-cases the text with .NET), at most Limit. Jellyfin 12 also keeps the names credited on an
+    // item its AccessFilter lets through (modelled by running that query: core applies its libraries, parental rating and
+    // tags; with IncludeOwnedItems, an item owned by one of those too), the lower(Name) range
+    // NameStartsWithOrGreater..NameLessThan (lower is ASCII only too, the bounds .NET's ToLowerInvariant), StartIndex, and
+    // orders them by Name (BINARY). 10.11.5 has no order (no ORDER BY): the fake answers
+    // the newest credit first, so nothing may rely on an alphabetical window there.
+    private List<string> PeopleNames(InternalPeopleQuery q)
+    {
+        PeopleNameQueries.Add(q);
+        IEnumerable<FakeRow> rows = Rows;
+#if JELLYFIN_12
+        if (q.AccessFilter is { } access)
+        {
+            // IncludeOwnedItems (core's PersonsController sets it): an owned item (alternate version, extra) of a reachable
+            // item is reachable too.
+            var owned = access.IncludeOwnedItems;
+            access.IncludeOwnedItems = false;
+            var reachable = Run(access).Select(r => r.Id).ToHashSet();
+            access.IncludeOwnedItems = owned;
+            rows = rows.Where(r => reachable.Contains(r.Id) || (owned && !r.Item.OwnerId.Equals(Guid.Empty) && reachable.Contains(r.Item.OwnerId))).ToList();
+        }
+#endif
+        var names = rows.SelectMany(r => r.Credits).Select(c => c.Name).Distinct(StringComparer.Ordinal)
+            .Where(n => string.IsNullOrWhiteSpace(q.NameContains) || AsciiUpper(n).Contains(q.NameContains.ToUpperInvariant(), StringComparison.Ordinal));
+#if JELLYFIN_12
+        names = names
+            .Where(n => string.IsNullOrWhiteSpace(q.NameStartsWithOrGreater) || string.CompareOrdinal(AsciiLower(n), q.NameStartsWithOrGreater.ToLowerInvariant()) >= 0)
+            .Where(n => string.IsNullOrWhiteSpace(q.NameLessThan) || string.CompareOrdinal(AsciiLower(n), q.NameLessThan.ToLowerInvariant()) < 0)
+            .Order(StringComparer.Ordinal)
+            .Skip(q.StartIndex ?? 0);
+#else
+        names = names.Reverse();
+#endif
+        return [.. q.Limit > 0 ? names.Take(q.Limit) : names];
+    }
+
+    // PersonIds: a credit whose name is one of the Person items' names (BaseItems joined to Peoples by Name); on Jellyfin 12
+    // of one of PersonTypes too (the same credit).
+    private bool CreditedTo(FakeRow r, InternalItemsQuery q)
+    {
+        if (q.PersonIds.Length == 0)
+        {
+            return true;
+        }
+
+        var names = q.PersonIds.Select(id => _persons.GetValueOrDefault(id)?.Name).OfType<string>().ToHashSet(StringComparer.Ordinal);
+#if JELLYFIN_12
+        return r.Credits.Any(c => names.Contains(c.Name) && (q.PersonTypes.Length == 0 || q.PersonTypes.Contains(c.Type, StringComparer.Ordinal)));
+#else
+        return r.Credits.Any(c => names.Contains(c.Name));
+#endif
+    }
 
     private IEnumerable<string> TagCleans(FakeRow r) => r.Values.Where(v => v.Type == ItemValueType.Tags).Select(v => v.CleanValue);
 
@@ -917,6 +1070,7 @@ internal sealed class FakeCore : IPushdownFacts
             && (q.HasTmdbId is not { } tmdb || HasKey(r, "tmdb") == tmdb)
             && (q.HasImdbId is not { } imdb || HasKey(r, "imdb") == imdb)
             && (q.HasTvdbId is not { } tvdb || HasKey(r, "tvdb") == tvdb)
+            && CreditedTo(r, q)
             && PassesAccess(r, q);
     }
 

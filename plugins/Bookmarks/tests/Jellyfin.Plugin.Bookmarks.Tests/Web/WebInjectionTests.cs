@@ -1,3 +1,4 @@
+using Jellyfin.Plugin.Kit.TestSupport;
 using System;
 using System.Linq;
 using System.Net;
@@ -27,7 +28,7 @@ public sealed class WebInjectionTests
     private static readonly string Mvid8 = typeof(Plugin).Assembly.ManifestModule.ModuleVersionId.ToString("N")[..8];
 
     private static readonly string ExpectedTag =
-        "<script data-jfbm-plugin=\"1.2.2.0\" src=\"../Bookmarks/ClientScript?v=1.2.2.0-" + Mvid8 + "\" defer></script>";
+        "<script data-jfbm-plugin=\"" + JellyfinLine.VersionOf(typeof(Plugin)) + "\" src=\"../Bookmarks/ClientScript?v=" + JellyfinLine.VersionOf(typeof(Plugin)) + "-" + Mvid8 + "\" defer></script>";
 
     private readonly PluginConfiguration _configuration = new();
 
@@ -110,7 +111,7 @@ public sealed class WebInjectionTests
     private async Task<WebHostHarness> StartAsync(string baseUrl, IStartupFilter? inner = null)
     {
         var host = new Mock<IServerApplicationHost>();
-        host.SetupGet(h => h.ApplicationVersion).Returns(new Version(10, 11, 5));
+        host.SetupGet(h => h.ApplicationVersion).Returns(JellyfinLine.Server);
         var registered = new ServiceCollection();
         new PluginServiceRegistrator().RegisterServices(registered, host.Object);
         var provider = new Mock<IPluginConfigurationProvider>();

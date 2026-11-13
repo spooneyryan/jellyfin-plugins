@@ -5,7 +5,7 @@
 //
 // The tree: a group { id, type: 'group', match: 'All' | 'Any', negate, children } or a rule { id, type: 'rule', field,
 // op, input: { value, from, to, amount } (what the fields hold, as text), unit, bool, values (the Values as sent: text,
-// numbers, ids, { Id, Name }), options: { IncludeOriginalTitle, Provider } }. A rule this page can't edit as it is (a field
+// numbers, ids, { Id, Name }), options: { IncludeOriginalTitle, Provider, Role } }. A rule this page can't edit as it is (a field
 // it doesn't know or isn't offered, an operator its field doesn't list, a value of another shape) is kept as it came:
 // { locked: true, json }, sent unchanged, and can only be removed or duplicated.
 //
@@ -27,7 +27,8 @@ const SS_OP_SHAPES = Object.freeze({
     NotInLast: 'relative',
     AnyOf: 'values',
     AllOf: 'values',
-    NoneOf: 'values'
+    NoneOf: 'values',
+    NotAllOf: 'values'
 });
 
 function ssOpShape(op) {
@@ -349,8 +350,10 @@ function ssRuleJson(rule, catalog) {
         json.IncludeOriginalTitle = true;
     }
 
+    // A Role is written only as one of its choices (one the page doesn't offer: the rule is locked as it came).
     ['Provider', 'Role'].forEach(function (name) {
-        if (ssHasOption(field, name) && rule.options[name]) {
+        const option = ssOption(field, name);
+        if (option && rule.options[name] && (name !== 'Role' || !Array.isArray(option.Choices) || option.Choices.indexOf(rule.options[name]) >= 0)) {
             json[name] = rule.options[name];
         }
     });

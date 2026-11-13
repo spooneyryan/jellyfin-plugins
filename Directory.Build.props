@@ -12,14 +12,20 @@
   </PropertyGroup>
 
   <!--
-    Jellyfin line to build for. Only 10.11 is wired up; the 12 line (net10.0,
-    Jellyfin.Controller 12.x, JELLYFIN_12) is added with the Jellyfin 12 port, and Directory.Build.targets rejects it until then.
+    Jellyfin line to build for: 10.11 (the default: net9.0, Jellyfin.Controller 10.11.5) or 12 (-p:JellyfinTarget=12:
+    net10.0, Jellyfin.Controller 12.x, JELLYFIN_12 defined). Directory.Packages.props picks each line's package versions.
+    A 12 build restores and builds into obj\j12 and bin\j12, so both lines build in one checkout without one line's
+    project.assets.json replacing the other's.
   -->
   <PropertyGroup>
     <JellyfinTarget Condition="'$(JellyfinTarget)' == ''">10.11</JellyfinTarget>
     <TargetFramework Condition="'$(JellyfinTarget)' == '10.11'">net9.0</TargetFramework>
     <TargetFramework Condition="'$(JellyfinTarget)' == '12'">net10.0</TargetFramework>
     <DefineConstants Condition="'$(JellyfinTarget)' == '12'">$(DefineConstants);JELLYFIN_12</DefineConstants>
+    <BaseIntermediateOutputPath Condition="'$(JellyfinTarget)' == '12'">obj\j12\</BaseIntermediateOutputPath>
+    <BaseOutputPath Condition="'$(JellyfinTarget)' == '12'">bin\j12\</BaseOutputPath>
+    <!-- Neither line compiles the other's generated files (obj\Release beside obj\j12). -->
+    <DefaultItemExcludes>$(DefaultItemExcludes);obj\**;bin\**</DefaultItemExcludes>
   </PropertyGroup>
 
   <PropertyGroup>

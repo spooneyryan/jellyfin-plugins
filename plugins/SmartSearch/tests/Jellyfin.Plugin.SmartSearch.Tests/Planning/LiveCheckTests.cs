@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Text.Json;
 using Jellyfin.Database.Implementations.Entities;
+using Jellyfin.Plugin.Kit.TestSupport;
 using Jellyfin.Plugin.SmartSearch.Query.Planning;
 using Xunit;
 
@@ -72,6 +73,8 @@ public sealed class LiveCheckTests
     [Fact]
     public void LiveCheck_FoundNoFalseNegative_AndTheFakeDoesWhatCoreDid()
     {
+        // The fixture was recorded on a 10.11.5 server; Jellyfin 12's queries and clean forms differ (no 12.4 recording yet).
+        Assert.SkipWhen(JellyfinLine.Is12, "The live fixture was recorded on Jellyfin 10.11.5.");
         var fixture = LiveFixture.Load();
         Assert.Equal("10.11.5", fixture.Server);
         Assert.True(fixture.Runs.Count >= 1000, fixture.Runs.Count + " runs");

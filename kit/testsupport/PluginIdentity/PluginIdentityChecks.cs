@@ -144,14 +144,18 @@ internal static partial class PluginIdentityChecks
             : [$"Version '{version}': before 1.0 a plugin is 0.Minor.Patch.0; development builds X.Y.Z.<n> are for released plugins only."];
     }
 
-    /// <summary>Checks that the csproj sets Version, AssemblyVersion and FileVersion, each equal to <paramref name="expected"/>.</summary>
+    /// <summary>
+    /// Checks that the csproj sets Version, AssemblyVersion and FileVersion, each equal to <paramref name="expected"/>, for
+    /// the build's Jellyfin line: once without a condition, or once for each line (<c>'$(JellyfinTarget)' != '12'</c> and
+    /// <c>== '12'</c>), the one for this build counted.
+    /// </summary>
     public static IReadOnlyList<string> CheckProjectVersions(XDocument project, string expected)
     {
         var problems = new List<string>();
         foreach (var property in new[] { "Version", "AssemblyVersion", "FileVersion" })
         {
             var values = project.Descendants()
-                .Where(e => e.Name.LocalName == property && e.Parent?.Name.LocalName == "PropertyGroup")
+                .Where(e => e.Name.LocalName == property && e.Parent?.Name.LocalName == "PropertyGroup" && IsForThisLine((string?)e.Attribute("Condition")))
                 .ToList();
             if (values.Count != 1)
             {
@@ -390,6 +394,28 @@ internal static partial class PluginIdentityChecks
         }
 
         throw new NotSupportedException($"Can't create a {type.FullName} for the plugin constructor.");
+    }
+
+    // Whether a csproj property's Condition applies to the build's line: none, or one on JellyfinTarget and 12.
+    private static bool IsForThisLine(string? condition)
+    {
+        if (string.IsNullOrWhiteSpace(condition))
+        {
+            return true;
+        }
+
+        var compact = condition.Replace(" ", string.Empty, StringComparison.Ordinal);
+        if (compact.Contains("'$(JellyfinTarget)'=='12'", StringComparison.Ordinal))
+        {
+            return Jellyfin.Plugin.Kit.TestSupport.JellyfinLine.Is12;
+        }
+
+        if (compact.Contains("'$(JellyfinTarget)'!='12'", StringComparison.Ordinal))
+        {
+            return !Jellyfin.Plugin.Kit.TestSupport.JellyfinLine.Is12;
+        }
+
+        return true;
     }
 
     private static string? ToShortFrameworkName(string? frameworkName)

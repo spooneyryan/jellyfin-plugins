@@ -40,10 +40,19 @@ internal sealed class QueryGenerator
     private readonly IReadOnlyList<Guid> _libraries;
     private readonly IReadOnlyList<(Guid Id, string Name)> _series;
     private readonly IReadOnlyList<(Guid Id, string Name)> _notSeries;
+    private readonly IReadOnlyList<(Guid Id, string Name)> _people;
+    private readonly Random _peopleRng;
 
-    public QueryGenerator(Random rng, IReadOnlyList<string> names, IReadOnlyList<string> genres, IReadOnlyList<string> tags, IReadOnlyList<string> studios, IReadOnlyList<string> ratings, IReadOnlyList<Guid> libraries, IReadOnlyList<(Guid Id, string Name)> series, IReadOnlyList<(Guid Id, string Name)>? notSeries = null)
+    /// <param name="people">The people a People rule names (Person items, stale ids with a known name, unknown people); none
+    /// writes no People rule and leaves the generator's draws as they were.</param>
+    public QueryGenerator(Random rng, IReadOnlyList<string> names, IReadOnlyList<string> genres, IReadOnlyList<string> tags, IReadOnlyList<string> studios, IReadOnlyList<string> ratings, IReadOnlyList<Guid> libraries, IReadOnlyList<(Guid Id, string Name)> series, IReadOnlyList<(Guid Id, string Name)>? notSeries = null, IReadOnlyList<(Guid Id, string Name)>? people = null)
     {
         _notSeries = notSeries ?? [];
+        _people = people ?? [];
+
+        // People rules draw from a stream of their own, so the other rules come out as they did before the field.
+        // (seeded from the people, not from rng, which other draws share).
+        _peopleRng = new Random(_people.Count * 7919 + 17);
         _rng = rng;
         _names = names;
         _genres = genres;
@@ -285,8 +294,32 @@ internal sealed class QueryGenerator
         _ => "{\"Field\":\"Title\",\"Op\":\"Eq\",\"Value\":" + Str(Pick(_names)) + "}"
     };
 
+    // A People rule: one to three people, in a role (sometimes in another case) or in any, with any of the four operators.
+    private string PeopleRule()
+    {
+        var r = _peopleRng;
+        var op = new[] { "AnyOf", "AllOf", "NoneOf", "NotAllOf" }[r.Next(4)];
+        var values = Enumerable.Range(0, 1 + r.Next(3)).Select(_ => _people[r.Next(_people.Count)]).DistinctBy(p => p.Id).ToList();
+        var rule = "{\"Field\":\"People\",\"Op\":" + Str(op) + ",\"Values\":[" + string.Join(",", values.Select(p => "{\"Id\":" + Str(p.Id.ToString("N")) + ",\"Name\":" + Str(p.Name) + "}")) + "]";
+        var role = r.Next(6) switch
+        {
+            0 or 1 => null,
+            2 => "Actor",
+            3 => "Director",
+            4 => r.Next(2) == 0 ? "writer" : "Producer",
+            _ => "GuestStar"
+        };
+        return rule + (role is null ? string.Empty : ",\"Role\":" + Str(role)) + "}";
+    }
+
     private string Rule()
     {
+        // One rule in 15 is a People rule, when the generator has people (their own draws, see PeopleRule).
+        if (_people.Count > 0 && _peopleRng.Next(15) == 0)
+        {
+            return PeopleRule();
+        }
+
         var provider = Pick(new[] { "Tmdb", "imdb", "TVDB", "Imdb" });
         return _rng.Next(31) switch
         {

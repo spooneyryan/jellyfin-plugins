@@ -76,5 +76,8 @@ internal enum PushProperty
     Name,
 
     /// <summary><c>NameContains</c>: the folded term in <c>CleanName</c> or <c>OriginalTitle</c>.</summary>
-    NameContains
+    NameContains,
+
+    /// <summary><c>PersonIds</c> (and on Jellyfin 12 <c>PersonTypes</c>): credited to one of the people (<see cref="PeopleConstraint"/>).</summary>
+    PersonIds
 }

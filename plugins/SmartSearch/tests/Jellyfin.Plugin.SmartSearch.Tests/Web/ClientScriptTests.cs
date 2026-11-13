@@ -5,6 +5,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
+using Jellyfin.Plugin.Kit.TestSupport;
 using Jellyfin.Plugin.Kit.Hosting;
 using Jellyfin.Plugin.Kit.TestSupport.PluginIdentity;
 using Jellyfin.Plugin.Kit.TestSupport.Web;
@@ -48,7 +49,7 @@ public sealed class ClientScriptTests
     {
         var script = Scripts.Value.ClientScriptText;
 
-        Assert.Contains("var KIT_BUILD = {\"plugin\":\"Smart Search\",\"prefix\":\"jfss\",\"route\":\"SmartSearch\",\"version\":\"1.1.2.0\",\"kit\":\"" + KitBuild.KitVersion + "\"", script, StringComparison.Ordinal);
+        Assert.Contains("var KIT_BUILD = {\"plugin\":\"Smart Search\",\"prefix\":\"jfss\",\"route\":\"SmartSearch\",\"version\":\"" + JellyfinLine.VersionOf(typeof(Plugin)) + "\",\"kit\":\"" + KitBuild.KitVersion + "\"", script, StringComparison.Ordinal);
         Assert.Contains("// ---- Web/js/90-main.js\n", script, StringComparison.Ordinal);
         Assert.DoesNotContain("__PFX__", script, StringComparison.Ordinal);
         Assert.Null(Scripts.Value.AdminScriptText);

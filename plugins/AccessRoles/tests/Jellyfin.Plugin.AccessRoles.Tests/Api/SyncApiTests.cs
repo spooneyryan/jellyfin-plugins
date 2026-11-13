@@ -14,6 +14,7 @@ using Jellyfin.Plugin.AccessRoles.Tests.TestSupport;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 using static Jellyfin.Plugin.AccessRoles.Tests.TestSupport.AccessFixtures;
+using Jellyfin.Plugin.Kit.TestSupport;
 
 namespace Jellyfin.Plugin.AccessRoles.Tests.Api;
 
@@ -749,5 +750,5 @@ public sealed class SyncApiTests
 
     private static string Path(User user) => "/AccessRoles/Admin/Users/" + user.Id.ToString("N");
 
-    private static User User(AccessRolesApi api, string name) => api.UserManager.Object.Users.Single(u => u.Username == name);
+    private static User User(AccessRolesApi api, string name) => api.UserManager.Object.AllUsers().Single(u => u.Username == name);
 }

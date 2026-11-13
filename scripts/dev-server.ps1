@@ -122,6 +122,17 @@ if (-not $PSBoundParameters.ContainsKey('Port')) {
     else { throw "Sandbox '$Name' is not a standard sandbox; pass -Port." }
 }
 
+# The Jellyfin it runs and the plugins it deploys follow the last run too, so a probe's restart of a sandbox on another
+# Jellyfin (a 12.x download) never falls back to the installed server's program folder or deploys every plugin.
+if (-not $PSBoundParameters.ContainsKey('JellyfinDir') -and $previous -and $previous.PSObject.Properties['JellyfinDir'] -and $previous.JellyfinDir) {
+    $JellyfinDir = [string]$previous.JellyfinDir
+}
+
+if (-not $PSBoundParameters.ContainsKey('Plugins') -and -not $standard -and $previous -and $previous.PSObject.Properties['Plugins']) {
+    $Plugins = @($previous.Plugins | ForEach-Object { [string]$_ })
+    if ($Plugins.Count -eq 0) { $Plugins = @('None') }
+}
+
 if ($PSBoundParameters.ContainsKey('Community')) { $requestedCommunity = $Community }
 elseif ($standard) { $requestedCommunity = $standard.Community }
 elseif ($previous -and $previous.PSObject.Properties['Community']) { $requestedCommunity = @($previous.Community | ForEach-Object { [string]$_ }) }
@@ -163,6 +174,10 @@ if ($Port -eq 8096) { throw 'Refusing port 8096: it belongs to the real Jellyfin
 # --- Paths: every one explicit and outside C:\ProgramData\Jellyfin and the Jellyfin program folder.
 $JellyfinDir = Resolve-FullPath $JellyfinDir
 $jellyfinExe = Join-Path $JellyfinDir 'jellyfin.exe'
+# The plugins are built for the line of the Jellyfin that runs the sandbox (a Jellyfin 12 program folder: -JellyfinTarget 12).
+# Without a readable version (a stand-in folder of the tests), 10.11; Deploy-Plugin.ps1 checks the server against it.
+$jellyfinTarget = '10.11'
+try { $jellyfinTarget = Get-JellyfinTargetOf -JellyfinDir $JellyfinDir } catch { $jellyfinTarget = '10.11' }
 $ffmpeg = Join-Path $JellyfinDir 'ffmpeg.exe'
 $sourceWeb = Join-Path $JellyfinDir 'jellyfin-web'
 foreach ($required in $jellyfinExe, $ffmpeg, (Join-Path $sourceWeb 'index.html')) {
@@ -291,7 +306,7 @@ else {
 
 foreach ($plugin in $allPlugins) {
     if ($selected -contains $plugin) {
-        & (Join-Path $PSScriptRoot 'Deploy-Plugin.ps1') -Plugin $plugin -DataDir $sandbox.DataDir -Configuration $Configuration -NoBuild:$NoBuild -JellyfinDir $JellyfinDir
+        & (Join-Path $PSScriptRoot 'Deploy-Plugin.ps1') -Plugin $plugin -DataDir $sandbox.DataDir -Configuration $Configuration -NoBuild:$NoBuild -JellyfinDir $JellyfinDir -JellyfinTarget $jellyfinTarget
     }
     else {
         $info = Get-PluginBuildInfo -Plugin $plugin

@@ -169,7 +169,7 @@ public sealed class ClipStorageApiTests : IAsyncLifetime
         // The plugin's own registrations for the controllers, the manager, the worker and the guard; Jellyfin's services are
         // mocks, the planner and ffmpeg fakes, and the probe a fake in place of the real one.
         var applicationHost = new Mock<IServerApplicationHost>();
-        applicationHost.SetupGet(h => h.ApplicationVersion).Returns(new Version(10, 11, 5));
+        applicationHost.SetupGet(h => h.ApplicationVersion).Returns(JellyfinLine.Server);
         applicationHost.SetupGet(h => h.CoreStartupHasCompleted).Returns(true);
         var registered = new ServiceCollection();
         new PluginServiceRegistrator().RegisterServices(registered, applicationHost.Object);

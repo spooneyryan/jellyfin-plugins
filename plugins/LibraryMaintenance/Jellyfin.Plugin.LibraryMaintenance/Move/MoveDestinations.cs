@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using Jellyfin.Database.Implementations.Entities;
 using Jellyfin.Plugin.Kit.Api;
+using Jellyfin.Plugin.Kit.Library;
 using Jellyfin.Plugin.LibraryMaintenance.Api.Models;
 using Jellyfin.Plugin.LibraryMaintenance.Move.Paths;
 using Jellyfin.Plugin.LibraryMaintenance.Move.Planning;
@@ -224,7 +225,7 @@ internal sealed class MoveDestinations
             return Row(folder, relative, "Ignored", "Jellyfin ignores a folder of this name here: it reads it as the extras of the folder above.");
         }
 
-        switch (_library.FindByPath(folder.FullName, true))
+        switch (KitItemQueries.FindAnyByPath(_library, folder.FullName, true))
         {
             case Season:
                 return Row(folder, relative, "Season", null);

@@ -1926,6 +1926,15 @@ GitHub release of its tag `<plugin folder in lower case>/v<x.y.z>` (`bookmarks/v
 `https://github.com/spooneyryan/jellyfin-plugins/releases/download/<plugin>%2Fv<x.y.z>/<plugin>_<x.y.z.0>.zip`. Tested on
 Windows with Jellyfin 10.11.5.
 
+**Two lines.** Each plugin is released for Jellyfin 10.11 from `build.yaml` (1.x, `net9.0`) and for Jellyfin 12 from
+`build.12.yaml` (2.x, `net10.0`, built with `-p:JellyfinTarget=12`). Both lines' versions sit in the one catalog, each with
+its `targetAbi`. A 10.11 server is offered only 1.x (a `targetAbi` of 12.4 is newer than it); a 12 server is offered
+every version, since Jellyfin sets no minimum, and takes the highest, so the 12 line's numbers stay above every 1.x. A release of the 12 line is the same procedure with
+`build.12.yaml` in step 1 and `-JellyfinTarget 12` in steps 2 and 4 (`-f jellyfin_target=12` for the run by hand); its tag
+is `<plugin>/v2.x.y`, and the workflow takes the line from the build file that says the tag's version. To check
+references against a Jellyfin 12, pass `-JellyfinDir` with a 12.x program folder (the sandbox's
+`artifacts\jellyfin-12.4-win\jellyfin`); `Test-ReleaseCatalog.ps1 -JellyfinDir` with one rehearses the 12 line.
+
 1. **Version and notes.** Set `version: "x.y.z.0"` in `plugins/<Plugin>/build.yaml` and put an `x.y.z` section at the
    top of its `changelog`: that section is the version's notes in the catalog and on the GitHub release. Commit.
 2. **Package.** `./scripts/Package-Release.ps1 -Plugin <Plugin>` builds the committed sources and writes
@@ -1976,7 +1985,12 @@ stay. Optional hardening, not done yet: pin the workflow's actions (`actions/che
 ./scripts/Package-Release.ps1 [-Plugin <names>] [-AllowDirty]           # zips, and manifest.json updated
 ./scripts/Package-Release.ps1 -Tag bookmarks/v1.2.2 -Verify             # the release workflow's check; writes no manifest
 ./scripts/Package-Release.ps1 -BaseUrl http://127.0.0.1:8115 -OutDir artifacts/release-test   # a test catalog
+./scripts/Package-Release.ps1 -Plugin Bookmarks -JellyfinTarget 12 -JellyfinDir <a Jellyfin 12.x folder>   # the 12 line
 ```
+
+`-JellyfinTarget` (10.11 or 12) picks the build file (`build.yaml` or `build.12.yaml`) and the build's line. Without it:
+with `-Tag`, the line whose build file says the tag's version; otherwise the line of the Jellyfin in `-JellyfinDir`;
+else 10.11. A default `-JellyfinDir` of the other line skips the reference check with a warning.
 
 Every `plugins/*/build.yaml` plugin by default. Each is built in Release (`dotnet publish`, deterministic, the
 checkout's path mapped to `/_/`, no git or source-link data, so the build depends on neither the checkout's folder nor

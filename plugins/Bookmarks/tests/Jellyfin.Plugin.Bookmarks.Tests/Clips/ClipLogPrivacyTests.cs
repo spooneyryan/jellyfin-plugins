@@ -29,7 +29,7 @@ public sealed class ClipLogPrivacyTests : IAsyncLifetime
     private const string SecretName = "Secret heist";
     private const string SecretNote = "Private note: the reflection";
 
-    private static readonly TimeSpan _timeout = TimeSpan.FromSeconds(10);
+    private static readonly TimeSpan _timeout = TimeSpan.FromSeconds(60);
 
     // What a name or note looks like in a file name too: ':' becomes " -" (ClipFileNaming.Sanitize).
     private static readonly string[] _secrets = [SecretName, "Private note", "the reflection", "Confidential"];

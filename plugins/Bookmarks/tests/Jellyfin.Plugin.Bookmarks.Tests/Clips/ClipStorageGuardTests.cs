@@ -264,7 +264,7 @@ public sealed class ClipStorageGuardTests : IDisposable
 
         _probe.Available(Gb - 1);
         _clock.Advance(TimeSpan.FromSeconds(5));
-        await watch.WaitAsync(TimeSpan.FromSeconds(10), Ct);
+        await watch.WaitAsync(TimeSpan.FromSeconds(60), Ct);
 
         Assert.True(job.Token.IsCancellationRequested);
         Assert.Equal(ClipStopReason.LowDiskSpace, job.StopReason);
@@ -286,7 +286,7 @@ public sealed class ClipStorageGuardTests : IDisposable
         // Raised mid-encode above twice the free space.
         _configuration.MinFreeSpaceMegabytes = 7 * 1024;
         _clock.Advance(TimeSpan.FromSeconds(5));
-        await watch.WaitAsync(TimeSpan.FromSeconds(10), Ct);
+        await watch.WaitAsync(TimeSpan.FromSeconds(60), Ct);
 
         Assert.Equal(ClipStopReason.LowDiskSpace, job.StopReason);
     }
@@ -318,7 +318,7 @@ public sealed class ClipStorageGuardTests : IDisposable
         }
 
         await stop.CancelAsync();
-        await watch.WaitAsync(TimeSpan.FromSeconds(10), Ct);
+        await watch.WaitAsync(TimeSpan.FromSeconds(60), Ct);
 
         Assert.False(job.Token.IsCancellationRequested);
         Assert.Equal(ClipStopReason.None, job.StopReason);
@@ -333,7 +333,7 @@ public sealed class ClipStorageGuardTests : IDisposable
         await _clock.WaitForArmedTimersAsync();
 
         await stop.CancelAsync();
-        await watch.WaitAsync(TimeSpan.FromSeconds(10), Ct);
+        await watch.WaitAsync(TimeSpan.FromSeconds(60), Ct);
 
         Assert.Equal(0, _probe.Calls);
         Assert.Equal(0, _clock.ArmedTimers);
@@ -682,12 +682,13 @@ public sealed class ClipStorageGuardTests : IDisposable
     // The two tests above: a probe or folder check that doesn't answer hangs for HangsFor, the guard gives up after
     // ProbeTimeout, and DescribeCurrentRoot must answer well before the hang ends (GivenUpBy). The fake probe that does
     // answer must get a thread-pool thread within ProbeTimeout: 200 ms was too short while the ffmpeg tests kept every core
-    // busy during a whole-solution `dotnet test` (2 failures in 4 runs), so it is 1.5 s.
-    private static readonly TimeSpan ProbeTimeout = TimeSpan.FromSeconds(1.5);
+    // busy during a whole-solution `dotnet test` (2 failures in 4 runs), so it is 4 s, for a 4-core CI runner running every
+    // test assembly at once. The hangs end when each test does (share.Set()), so a long HangsFor costs nothing.
+    private static readonly TimeSpan ProbeTimeout = TimeSpan.FromSeconds(4);
 
-    private static readonly TimeSpan HangsFor = TimeSpan.FromSeconds(12);
+    private static readonly TimeSpan HangsFor = TimeSpan.FromSeconds(120);
 
-    private static readonly TimeSpan GivenUpBy = TimeSpan.FromSeconds(6);
+    private static readonly TimeSpan GivenUpBy = TimeSpan.FromSeconds(30);
 
     private ClipStorageGuard GuardOn(IClipFileSystem files)
         => ClipFileSupport.Guard(_store, _probe, _configuration, _clock, _logger, BookmarkPaths.ForRoot(_directory.Combine("data")), ProbeTimeout, files);
@@ -697,7 +698,7 @@ public sealed class ClipStorageGuardTests : IDisposable
 
     private static async Task WaitUntilAsync(Func<bool> condition)
     {
-        var deadline = DateTime.UtcNow.AddSeconds(10);
+        var deadline = DateTime.UtcNow.AddSeconds(60);
         while (!condition())
         {
             Assert.True(DateTime.UtcNow < deadline, "Timed out waiting.");

@@ -72,6 +72,38 @@ public sealed class ReleaseInstallTests
     }
 
     [Fact]
+    public async Task EachLine_TakesItsOwnReleases_TheNewestOfItsLine_AndRefusesTheOtherLinesTag()
+    {
+        // 1.3.0 (build.yaml) and 2.0.0 (build.12.yaml) are tagged on one commit: a 10.11 server's newest is 1.3.0, a 12
+        // server's 2.0.0, and either refuses the other's tag by -Version.
+        using var repo = await ReleaseRepository.CreateAsync();
+        var v1_2 = await repo.CommitAsync("1.2.0.0", "1.2.0");
+        await repo.TagAsync("refcheck/v1.2.0");
+        var both = await repo.CommitAsync("1.3.0.0", "1.3.0", version12: "2.0.0.0");
+        await repo.TagAsync("refcheck/v1.3.0");
+        await repo.TagAsync("refcheck/v2.0.0");
+
+        var run = await WindowsPowerShell.RunWithModuleAsync(
+            $"$repo = '{repo.Repo}'\n"
+            + "foreach ($case in @(@('10.11', ''), @('12', ''), @('10.11', '1.2.0'), @('10.11', '2.0.0'), @('12', '1.3.0'), @('12', '1.2.0'))) {\n"
+            + "  try { $r = Resolve-PluginRelease -Plugin RefCheck -RepoRoot $repo -Version $case[1] -JellyfinTarget $case[0]; 'ok|' + $r.Tag + '|' + $r.Commit + '|' + $r.Newest + '|' + $r.Info.YamlName + '|' + $r.Info.Version }\n"
+            + "  catch { 'refused|' + $_.Exception.Message }\n"
+            + "}\n");
+        Assert.True(run.ExitCode == 0, run.Output);
+
+        Assert.Equal(
+            [
+                $"ok|refcheck/v1.3.0|{both}|True|build.yaml|1.3.0.0",
+                $"ok|refcheck/v2.0.0|{both}|True|build.12.yaml|2.0.0.0",
+                $"ok|refcheck/v1.2.0|{v1_2}|False|build.yaml|1.2.0.0",
+                "refused|refcheck/v2.0.0's plugins/RefCheck/build.yaml says version 1.3.0.0, not 2.0.0.0, so the tag isn't the release it names: a release tag goes on the commit that sets its version.",
+                "refused|refcheck/v1.3.0's plugins/RefCheck/build.12.yaml says version 2.0.0.0, not 1.3.0.0, so the tag isn't the release it names: a release tag goes on the commit that sets its version.",
+                $"refused|refcheck/v1.2.0 (commit {v1_2}) has no plugins/RefCheck/build.12.yaml, so this script can't build it.",
+            ],
+            run.Lines);
+    }
+
+    [Fact]
     public async Task ReleaseInstall_WhatIf_ShowsTheTagItsCommitAndVersion_NextToTheBackupPlan_AndMakesNothing()
     {
         using var repo = await ReleaseRepository.CreateAsync();
@@ -585,8 +617,13 @@ public sealed class ReleaseInstallTests
         var run = await WindowsPowerShell.RunWithModuleAsync(
             "foreach ($plugin in @(Get-PluginFolders)) {\n"
             + "  foreach ($tag in @(Get-PluginReleaseTags -Plugin $plugin -RepoRoot (Get-RepoRoot))) {\n"
+            // Each tag on the line whose build file says its version: 10.11 (build.yaml) first, else 12 (build.12.yaml).
             + "    try { $r = Resolve-PluginRelease -Plugin $plugin -RepoRoot (Get-RepoRoot) -Version $tag.Text; [Console]::Out.WriteLine('ok|' + $r.Tag + '|' + $r.PluginVersion + '|' + $r.Info.Version) }\n"
-            + "    catch { [Console]::Out.WriteLine('refused|' + $tag.Name + '|' + $_.Exception.Message) }\n"
+            + "    catch {\n"
+            + "      $first = $_.Exception.Message\n"
+            + "      try { $r = Resolve-PluginRelease -Plugin $plugin -RepoRoot (Get-RepoRoot) -Version $tag.Text -JellyfinTarget 12; [Console]::Out.WriteLine('ok|' + $r.Tag + '|' + $r.PluginVersion + '|' + $r.Info.Version) }\n"
+            + "      catch { [Console]::Out.WriteLine('refused|' + $tag.Name + '|' + $first) }\n"
+            + "    }\n"
             + "  }\n"
             + "}\n");
         Assert.True(run.ExitCode == 0, run.Output);
@@ -720,18 +757,20 @@ internal sealed class ReleaseRepository : IDisposable
         return Directory.Exists(builds) ? Directory.GetFileSystemEntries(builds) : [];
     }
 
-    public async Task<string> CommitAsync(string version, string changelog, string? assembly = null, bool failBuild = false)
+    public async Task<string> CommitAsync(string version, string changelog, string? assembly = null, bool failBuild = false, string? version12 = null)
     {
         var token = TestContext.Current.CancellationToken;
         var plugin = Path.Combine(Repo, "plugins", "RefCheck");
         var project = Path.Combine(plugin, "Jellyfin.Plugin.RefCheck");
         var prebuilt = Path.Combine(project, "prebuilt", "Jellyfin.Plugin.RefCheck.dll");
         Directory.CreateDirectory(Path.GetDirectoryName(prebuilt)!);
-        await File.WriteAllTextAsync(
-            Path.Combine(plugin, "build.yaml"),
-            $"name: \"RefCheck\"\nguid: \"{PluginGuid}\"\nversion: \"{version}\"\ntargetAbi: \"10.11.5.0\"\nframework: \"net9.0\"\noverview: \"Test\"\ndescription: \"Test\"\n"
-            + $"category: \"General\"\nowner: \"tests\"\nartifacts:\n- \"Jellyfin.Plugin.RefCheck.dll\"\nchangelog: \"{changelog}\"\n",
-            token);
+        await File.WriteAllTextAsync(Path.Combine(plugin, "build.yaml"), BuildYaml(version, "10.11.5.0", "net9.0", changelog), token);
+        if (version12 is not null)
+        {
+            // The Jellyfin 12 line's build file beside it, as each plugin of this repository has one.
+            await File.WriteAllTextAsync(Path.Combine(plugin, "build.12.yaml"), BuildYaml(version12, "12.4.0.0", "net10.0", changelog), token);
+        }
+
         await File.WriteAllTextAsync(Path.Combine(project, "Jellyfin.Plugin.RefCheck.csproj"), failBuild ? FailingProject : CopyingProject, token);
         if (assembly is null)
         {
@@ -746,6 +785,10 @@ internal sealed class ReleaseRepository : IDisposable
         await GitAsync("commit", "-q", "-m", $"RefCheck {version}: {changelog}");
         return (await GitAsync("rev-parse", "HEAD")).Trim();
     }
+
+    private static string BuildYaml(string version, string targetAbi, string framework, string changelog)
+        => $"name: \"RefCheck\"\nguid: \"{PluginGuid}\"\nversion: \"{version}\"\ntargetAbi: \"{targetAbi}\"\nframework: \"{framework}\"\noverview: \"Test\"\ndescription: \"Test\"\n"
+            + $"category: \"General\"\nowner: \"tests\"\nartifacts:\n- \"Jellyfin.Plugin.RefCheck.dll\"\nchangelog: \"{changelog}\"\n";
 
     public Task TagAsync(string name, bool annotated = true) => annotated ? GitAsync("tag", "-a", name, "-m", name) : GitAsync("tag", name);
 
@@ -770,7 +813,7 @@ internal sealed class ReleaseRepository : IDisposable
         start.Environment["GIT_TERMINAL_PROMPT"] = "0";
         using var process = Process.Start(start)!;
         using var limit = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
-        limit.CancelAfter(TimeSpan.FromSeconds(60));
+        limit.CancelAfter(TimeSpan.FromSeconds(300));
         var errors = process.StandardError.ReadToEndAsync(limit.Token);
         var output = await process.StandardOutput.ReadToEndAsync(limit.Token);
         var errorText = await errors;

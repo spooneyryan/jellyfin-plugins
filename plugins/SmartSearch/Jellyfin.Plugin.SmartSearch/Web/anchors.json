@@ -6,7 +6,14 @@
       "css": [".skinHeader .headerRight .headerSearchButton", ".headerRight .headerSearchButton"],
       "required": false,
       "views": ["header"],
-      "note": "jellyfin-web 10.11.5's own search button in the legacy header's right side (chunk 73233.*.chunk.js: rendered with the class hide inside .headerRight, shown once a local user is signed in, hidden again on sign-out). The Advanced search button goes right before it and copies its hide class. Absent in the experimental layout. Missing: no header button; the drawer link remains."
+      "note": "jellyfin-web 10.11.5's own search button in the legacy header's right side (chunk 73233.*.chunk.js: rendered with the class hide inside .headerRight, shown once a local user is signed in, hidden again on sign-out). The Advanced search button goes right before it and copies its hide class. Hidden in the modern layout (see headerSearchModern). Missing: no header button; the drawer link remains."
+    },
+    {
+      "name": "headerSearchModern",
+      "css": ["header .MuiToolbar-root a.MuiIconButton-root[href^='#/search']", "a.MuiIconButton-root[href^='#/search']"],
+      "required": false,
+      "views": ["header"],
+      "note": "jellyfin-web's search button in the modern layout's app bar (12's default, 10.11's experimental): a MUI IconButton link to #/search in the toolbar's right-hand Box (chunk 78701.*.chunk.js on 12.4). React draws it, so the Advanced search button is put back before it on every scan. Missing: no header button; the page's own link remains."
     },
     {
       "name": "collectionNoteBefore",

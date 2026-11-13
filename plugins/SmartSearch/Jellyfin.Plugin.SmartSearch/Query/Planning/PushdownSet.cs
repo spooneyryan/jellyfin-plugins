@@ -189,6 +189,19 @@ internal sealed class PushdownSet
                 case PushProperty.NameContains:
                     query.NameContains = Value<string>(constraint);
                     break;
+                case PushProperty.PersonIds:
+                    var people = (PeopleConstraint)constraint;
+                    query.PersonIds = [.. people.Ids];
+                    if (people.Role is { } role)
+                    {
+#if JELLYFIN_12
+                        query.PersonTypes = [role];
+#else
+                        throw new InvalidOperationException("Jellyfin 10.11 ignores PersonTypes in item queries; a role is never pushed there (" + role + ").");
+#endif
+                    }
+
+                    break;
                 default:
                     throw new InvalidOperationException("No query property for " + property + ".");
             }
@@ -233,6 +246,7 @@ internal sealed class PushdownSet
         BoundConstraint<int> b => b.Value.ToString(System.Globalization.CultureInfo.InvariantCulture),
         ValueConstraint<bool> v => v.Value ? "true" : "false",
         ValueConstraint<string> v => v.Value,
+        PeopleConstraint p => "[" + string.Join(",", p.Ids.Select(g => g.ToString("N"))) + "]" + (p.Role is null ? string.Empty : " as " + p.Role),
         _ => constraint.ToString() ?? string.Empty
     };
 }

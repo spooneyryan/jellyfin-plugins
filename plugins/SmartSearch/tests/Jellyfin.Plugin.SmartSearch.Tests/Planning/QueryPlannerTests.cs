@@ -4,6 +4,7 @@ using System.Linq;
 using Jellyfin.Data.Enums;
 using Jellyfin.Database.Implementations.Enums;
 using Jellyfin.Database.Implementations.Entities;
+using Jellyfin.Plugin.Kit.TestSupport;
 using Jellyfin.Plugin.SmartSearch.Query.Planning;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Model.Querying;
@@ -305,15 +306,17 @@ public sealed class QueryPlannerTests
 
     [Theory]
     [InlineData("""{"Field":"Title","Op":"Contains","Value":"AMÉLIE"}""", "amelie")]
-    [InlineData("""{"Field":"Title","Op":"Contains","Value":"50%"}""", "50%")]
-    [InlineData("""{"Field":"Title","Op":"Contains","Value":"[x]"}""", "[x]")]
+    [InlineData("""{"Field":"Title","Op":"Contains","Value":"50%"}""", "50%", "50")]
+    [InlineData("""{"Field":"Title","Op":"Contains","Value":"[x]"}""", "[x]", "x")]
     [InlineData("""{"Field":"Title","Op":"Contains","Value":"Brød"}""", "brod")]
     [InlineData("""{"Field":"Title","Op":"Contains","Value":"%_"}""", null)]
     [InlineData("""{"Field":"Title","Op":"Contains","Value":"amelie","IncludeOriginalTitle":true}""", null)]
     [InlineData("""{"Field":"Title","Op":"StartsWith","Value":"amelie"}""", null)]
     [InlineData("""{"Field":"Title","Op":"NotContains","Value":"amelie"}""", null)]
-    public void Title_Contains_PushesTheCleanTerm(string rule, string? expected)
+    public void Title_Contains_PushesTheCleanTerm(string rule, string? expected, string? expectedOn12 = null)
     {
+        // Jellyfin 12's clean form turns punctuation into spaces and trims ("[x]" is "x").
+        expected = JellyfinLine.Is12 && expectedOn12 is not null ? expectedOn12 : expected;
         var world = new PlannerWorld();
         foreach (var (name, original) in new[] { ("Amélie", "Le Fabuleux Destin"), ("AMELIE 2", null), ("50% Off", null), ("5000 Miles", "50 Prozent"), ("[x] Files", null), ("x Files", "ÉMILIE"), ("Brød", null), ("Brod", null), ("Ærø", null), ("_", null) })
         {
@@ -415,7 +418,9 @@ public sealed class QueryPlannerTests
 
         var plan = world.Plan(Q(rule));
         Assert.Equal(min, plan.CandidateQuery!.MinWidth);
-        Assert.Equal(max, plan.CandidateQuery.MaxWidth);
+
+        // Jellyfin 12 drops an item from MaxWidth when any of its versions is wider: only the lower bound is pushed.
+        Assert.Equal(JellyfinLine.Is12 ? null : max, plan.CandidateQuery.MaxWidth);
         Assert.Null(plan.CandidateQuery.IsHD);
         Assert.Null(plan.CandidateQuery.Is4K);
         world.RunAndCheck(Q(rule));
@@ -523,13 +528,21 @@ public sealed class QueryPlannerTests
         var space = world.Add(BaseItemKind.Movie, "Space", world.Movies, s => s.Studios = ["AC DC"]);
 
         var plan = world.Plan(Q("""{"Field":"Studios","Op":"AnyOf","Values":["AC/DC"]}"""));
+#if JELLYFIN_12
+        // Jellyfin 12's clean form makes "AC/DC" and "AC DC" one name, for core and the evaluator alike: pushed, both match.
+        Assert.Equal([shared.Id], plan.CandidateQuery!.StudioIds);
+        Assert.Equal(new[] { slash.Item.Id, space.Item.Id }.Order(), world.RunAndCheck(Q("""{"Field":"Studios","Op":"AnyOf","Values":["AC/DC"]}""")).Order());
+#else
         Assert.Empty(plan.CandidateQuery!.StudioIds);
         Assert.Equal(PushdownExactness.Declined, plan.Steps[0].Exactness);
         Assert.Equal(slash.Item.Id, Assert.Single(world.RunAndCheck(Q("""{"Field":"Studios","Op":"AnyOf","Values":["AC/DC"]}"""))));
+#endif
 
         // The Studio item's own name is pushed.
         Assert.Equal([shared.Id], world.Plan(Q("""{"Field":"Studios","Op":"AnyOf","Values":["AC DC"]}""")).CandidateQuery!.StudioIds);
-        Assert.Equal(space.Item.Id, Assert.Single(world.RunAndCheck(Q("""{"Field":"Studios","Op":"AnyOf","Values":["AC DC"]}"""))));
+        Assert.Equal(
+            JellyfinLine.Is12 ? new[] { slash.Item.Id, space.Item.Id }.Order() : [space.Item.Id],
+            world.RunAndCheck(Q("""{"Field":"Studios","Op":"AnyOf","Values":["AC DC"]}""")).Order());
     }
 
     [Fact]

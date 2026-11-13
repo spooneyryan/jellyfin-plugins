@@ -42,6 +42,7 @@ public sealed class ApiConventionTests
         "SmartSearchFieldOptionDto",
         "SmartSearchLibraryDto",
         "SmartSearchMatchMode",
+        "SmartSearchPersonDto",
         "SmartSearchQueryDefinition",
         "SmartSearchQueryNode",
         "SmartSearchQueryOperator",

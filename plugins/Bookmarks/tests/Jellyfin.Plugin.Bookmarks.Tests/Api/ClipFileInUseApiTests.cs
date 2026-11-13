@@ -235,7 +235,7 @@ public sealed class ClipFileInUseApiTests : IAsyncLifetime
         // The plugin's own registrations for everything this touches (ClipFileOps with the real file system and the real
         // 200 ms between attempts); Jellyfin's services are mocks, ffmpeg is fake.
         var applicationHost = new Mock<IServerApplicationHost>();
-        applicationHost.SetupGet(h => h.ApplicationVersion).Returns(new Version(10, 11, 5));
+        applicationHost.SetupGet(h => h.ApplicationVersion).Returns(JellyfinLine.Server);
         applicationHost.SetupGet(h => h.CoreStartupHasCompleted).Returns(true);
         var registered = new ServiceCollection();
         new PluginServiceRegistrator().RegisterServices(registered, applicationHost.Object);

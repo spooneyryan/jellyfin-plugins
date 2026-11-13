@@ -40,7 +40,7 @@ public sealed class ClientScriptTests
     private static readonly string WebTestsFolder = Path.Combine(
         PluginIdentityChecks.FindRepositoryRoot(), "plugins", "LibraryMaintenance", "tests", "Jellyfin.Plugin.LibraryMaintenance.Tests", "Web");
 
-    private static readonly string BuildVersion = BuildYaml.Load(Path.Combine(PluginIdentityChecks.FindRepositoryRoot(), "plugins", "LibraryMaintenance", "build.yaml")).Version;
+    private static readonly string BuildVersion = BuildYaml.Load(Path.Combine(PluginIdentityChecks.FindRepositoryRoot(), "plugins", "LibraryMaintenance", JellyfinLine.BuildYamlName)).Version;
 
     private static readonly string Mvid8 = typeof(Plugin).Assembly.ManifestModule.ModuleVersionId.ToString("N")[..8];
 
@@ -251,7 +251,7 @@ public sealed class ClientScriptTests
     private Task<WebHostHarness> StartAsync(string baseUrl)
     {
         var host = new Mock<IServerApplicationHost>();
-        host.SetupGet(h => h.ApplicationVersion).Returns(new Version(10, 11, 5));
+        host.SetupGet(h => h.ApplicationVersion).Returns(JellyfinLine.Server);
         var registered = new ServiceCollection();
         new PluginServiceRegistrator().RegisterServices(registered, host.Object);
         var provider = new Mock<IPluginConfigurationProvider>();

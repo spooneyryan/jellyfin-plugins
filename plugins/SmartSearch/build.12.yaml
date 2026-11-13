@@ -1,0 +1,102 @@
+---
+name: "Smart Search"
+guid: "d92488d5-409f-4ad0-af1d-3615db9d0513"
+version: "2.1.0.0"
+targetAbi: "12.4.0.0"
+framework: "net10.0"
+overview: "An Advanced Search page with rules over title, year, library and more, saved queries, and auto-collections"
+description: >
+  Adds an Advanced Search page under Library tools in the menu: find movies,
+  shows and episodes by title, year, library, type, genre and many more
+  fields, combine rules with All and Any groups, and save searches, private
+  or shared. Every search runs as the signed-in user, over the libraries they
+  can open. Administrators and users who manage collections can turn a
+  saved search into an auto-collection, a Jellyfin collection the plugin
+  keeps equal to the search's results. Administrators set the limits a
+  search runs under and export, import and restore the saved searches and
+  auto-collections.
+category: "General"
+owner: "NoRepine"
+artifacts:
+- "Jellyfin.Plugin.SmartSearch.dll"
+changelog: |
+  2.1.0
+  - First release for Jellyfin 12.4 and later (versions 2.x; Jellyfin 10.11
+    servers keep getting 1.x).
+  - People in the advanced search: a People rule finds what one or more
+    people are credited on, as actors, directors, writers, producers,
+    composers or guest stars, or in any role. It matches any, all, none
+    or not all of them: "Robert De Niro and Al Pacino as actors", or
+    "directed by Ridley Scott or Tony Scott".
+  - People are picked from suggestions as you type (2 letters or more).
+    Only people credited on something you can see are suggested.
+  - Saved searches and auto-collections can use People rules. A saved
+    rule still finds a person after Jellyfin rebuilds its people, by
+    their name.
+  2.0.0
+  - For Jellyfin 12.4 and later: the same plugin as 1.1.2, built for
+    Jellyfin 12. Jellyfin 10.11 servers keep 1.1.2.
+  - Text rules compare names as Jellyfin 12 does: punctuation counts as a
+    space, so "Spider-Man" finds "Spider Man" and "Sci-Fi" finds "Sci Fi".
+  - A rule only another version of a movie meets still finds it, as on
+    10.11.
+  - The Advanced search button is in the header of Jellyfin 12's default
+    layout too, next to its search button.
+  - Auto-collections: Jellyfin 12 removes an item from its collections
+    when the item leaves the library (a drive that was away during a
+    scan), so a member you added by hand doesn't come back with it.
+  1.1.2
+  - First public release.
+  - An Advanced Search page: find movies, shows, episodes, music videos and collections by rules over title, year, library, genres, ratings, watch state and more, and save searches, private or shared.
+  - Auto-collections: Jellyfin collections that the plugin keeps equal to a saved search's results.
+  - Every search only shows what the signed-in user may see.
+  1.1.1
+  - Auto-collections: a collection without a poster gets the plugin's
+    default auto-collection poster, once, at its next update (new
+    collections when they are made). A poster you upload is never
+    replaced, and one you remove or replace later is left as it is. A
+    setting, on by default, turns it off; that removes no poster.
+  - The plugin has its own image on the Dashboard's Plugins page.
+  1.1.0
+  - Auto-collections: a Jellyfin collection that the plugin keeps equal to
+    a saved search's results. Make one on the Advanced Search page's new
+    Auto-collections tab, from a preview. For administrators and users who
+    manage collections.
+  - They update on their own: a few minutes after files are added or
+    removed, after a library scan, every night and when you ask; a search
+    on watch state also follows its chosen user's played and favourite
+    changes.
+  - Safe by default: a collection is never emptied on its own, and large
+    removals are held for review (Apply or Keep) when the library looks
+    unhealthy. Items added or removed in Jellyfin's own editor stay
+    pinned or excluded. Collections are locked by default.
+  - A saved search that auto-collections follow can't be changed or
+    deleted in a way that stops them unless they first keep a copy of it.
+  - The collection's page says it updates automatically. Export and import
+    carry the auto-collections.
+  1.0.0
+  - The first release, for Jellyfin 10.11.5. An Advanced Search page,
+    under Library tools in the menu and behind an Advanced search button
+    in the header, finds movies, shows, episodes, music videos, home
+    videos and collections. The basic form searches by title, years and
+    genres; the advanced form builds rules over about thirty fields
+    (titles, overview, series, library, type, dates, genres, tags,
+    studios, parental rating, show status, ratings, runtime, resolution,
+    container, file size, watch state, provider ids and more) in nested
+    All, Any, None and Not all groups, and works from the keyboard and on
+    a TV. Results show as posters or rows, sorted fifteen ways, with Open
+    and Play, and the search is part of the page's address, so it can be
+    bookmarked and shared.
+  - Every search runs as the signed-in user: it finds only what Jellyfin's
+    own library views would show them, and its suggestions come only from
+    what they can see. A search that is too broad, too slow or arrives
+    while the server is busy is refused with a hint, never cut short.
+  - Saved searches: save, rename, duplicate, share and delete them on the
+    Saved queries tab, and open one from its link. A shared search always
+    runs as the person who opens it.
+  - Settings: whether the page and the header button are on, which item
+    kinds users can search, the limits a search runs under, sharing, the
+    number of saved searches a user may keep and what happens to a
+    deleted user's searches. Administrators export, import and restore
+    the saved searches, with a dry run first, and a daily task keeps
+    snapshots of them (seven by default).

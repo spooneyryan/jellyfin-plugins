@@ -92,15 +92,20 @@ internal sealed class TitleReader
     /// <summary>
     /// Reads every title of every library.
     /// </summary>
+    /// <remarks>
+    /// Jellyfin 12 hides merged alternate versions from queries unless asked; they are read here as on 10.11, so a rebuild
+    /// counts the same titles a patch (<see cref="Read"/>, by id, never filtered) admits. Local alternates stay out
+    /// through <see cref="IsTitle"/>.
+    /// </remarks>
     /// <returns>The titles.</returns>
     public IReadOnlyList<BaseItem> ReadAll()
-        => _library.GetItemList(new InternalItemsQuery
+        => _library.GetItemList(KitItemQueries.IncludeEveryVersion(new InternalItemsQuery
         {
             IncludeItemTypes = Kinds,
             Recursive = true,
             IsVirtualItem = false,
             DtoOptions = NoImagesOrUserData()
-        }).Where(IsTitle).ToList();
+        })).Where(IsTitle).ToList();
 
     /// <summary>
     /// Reads one title again, for a patch.

@@ -9,6 +9,7 @@ using Jellyfin.Plugin.UserRatings.Storage;
 using Jellyfin.Plugin.UserRatings.Tests.Services;
 using MediaBrowser.Controller.Entities.Movies;
 using Xunit;
+using Jellyfin.Plugin.Kit.TestSupport;
 
 namespace Jellyfin.Plugin.UserRatings.Tests.Lifecycle;
 
@@ -312,7 +313,7 @@ public sealed partial class RatingsLibraryConsumerTests
 
         // Back under its id (an Exact match by id), merged into the primary meanwhile.
         _fx.Clock.Advance(TimeSpan.FromMinutes(5));
-        version.PrimaryVersionId = primary.Id.ToString("N", CultureInfo.InvariantCulture);
+        version.PrimaryVersionId = JellyfinLine.VersionId(primary.Id);
         _library.Add(version);
         _library.RaiseAdded(version);
         await monitor.FlushAsync(fullPass: true, duringPostScan: true, null, Ct);
@@ -333,7 +334,7 @@ public sealed partial class RatingsLibraryConsumerTests
         var bobs = await RateAsync(version, _bob, 6);
         var monitor = Monitor();
 
-        version.PrimaryVersionId = primary.Id.ToString("N", CultureInfo.InvariantCulture);
+        version.PrimaryVersionId = JellyfinLine.VersionId(primary.Id);
         version.ProviderIds["Imdb"] = "tt0113277";
         _library.RaiseUpdated(version, MediaBrowser.Controller.Library.ItemUpdateType.MetadataEdit);
         await monitor.FlushAsync(fullPass: true, duringPostScan: true, null, Ct);

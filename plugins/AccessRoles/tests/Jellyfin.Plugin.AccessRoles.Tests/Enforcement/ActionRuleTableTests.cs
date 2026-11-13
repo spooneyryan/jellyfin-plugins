@@ -6,6 +6,7 @@ using Jellyfin.Plugin.AccessRoles.Model;
 using Jellyfin.Plugin.AccessRoles.Policy;
 using Jellyfin.Plugin.AccessRoles.Rules;
 using Jellyfin.Plugin.AccessRoles.Tests.TestSupport;
+using Jellyfin.Plugin.Kit.TestSupport;
 using Xunit;
 
 namespace Jellyfin.Plugin.AccessRoles.Tests.Enforcement;
@@ -29,7 +30,8 @@ public sealed class ActionRuleTableTests
         Assert.All(rules, r => Assert.True(Enum.IsDefined(ActionRuleTable.Owner(r))));
 
         var summary = _table.Summary();
-        Assert.Equal((390, 280), ((int)summary["Actions"]!, (int)summary["NoRule"]!));
+        // Jellyfin 12.4 has five actions fewer than 10.11.5, none of them with a rule.
+        Assert.Equal(JellyfinLine.Is12 ? (385, 275) : (390, 280), ((int)summary["Actions"]!, (int)summary["NoRule"]!));
         var counts = Enum.GetValues<RuleOwner>().ToDictionary(o => o, o => (IDictionary<string, object?>)summary[o.ToString()]!);
         Assert.Equal((14, 14), ((int)counts[RuleOwner.Settings]["Actions"]!, (int)counts[RuleOwner.Settings]["Rules"]!));
         Assert.Equal((14, 14), ((int)counts[RuleOwner.LibraryHooks]["Actions"]!, (int)counts[RuleOwner.LibraryHooks]["Rules"]!));

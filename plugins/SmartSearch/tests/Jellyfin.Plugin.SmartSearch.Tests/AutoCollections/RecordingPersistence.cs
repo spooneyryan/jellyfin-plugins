@@ -45,7 +45,7 @@ internal sealed class RecordingPersistence : ICollectionPersistence
             IsLocked = isLocked,
             ProviderIds = new Dictionary<string, string>(providerIds, StringComparer.OrdinalIgnoreCase),
             DateCreated = new DateTime(2026, 11, 1, 12, 0, 0, DateTimeKind.Utc).AddMinutes(Boxes.Count),
-            LinkedChildren = CreateThrowsAfterMaking ? [] : itemIds.Select(id => new LinkedChild { ItemId = id, Type = LinkedChildType.Manual }).ToArray()
+            LinkedChildren = CreateThrowsAfterMaking ? [] : itemIds.Select(id => new LinkedChild { ItemId = id, Type = MediaBrowser.Controller.Entities.LinkedChildType.Manual }).ToArray()
         };
         Boxes.Add(box);
         if (CreateThrowsAfterMaking)
@@ -104,7 +104,7 @@ internal sealed class RecordingPersistence : ICollectionPersistence
         Added.Add(itemIds.ToList());
         DuringCall?.Invoke(collectionId);
         var box = Boxes.Single(b => b.Id.Equals(collectionId));
-        box.LinkedChildren = [.. box.LinkedChildren, .. itemIds.Select(id => new LinkedChild { ItemId = id, Type = LinkedChildType.Manual })];
+        box.LinkedChildren = [.. box.LinkedChildren, .. itemIds.Select(id => new LinkedChild { ItemId = id, Type = MediaBrowser.Controller.Entities.LinkedChildType.Manual })];
         return Task.CompletedTask;
     }
 

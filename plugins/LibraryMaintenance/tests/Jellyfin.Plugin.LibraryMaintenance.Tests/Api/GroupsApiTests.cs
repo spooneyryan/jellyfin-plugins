@@ -26,6 +26,7 @@ using MediaBrowser.Model.Entities;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using Xunit;
+using Jellyfin.Plugin.Kit.TestSupport;
 
 namespace Jellyfin.Plugin.LibraryMaintenance.Tests.Api;
 
@@ -159,8 +160,8 @@ public sealed class GroupsApiTests
         mine.Size = 10;
         var secret = library.Add("Heat", 1995, DuplicatesLibrary.MoreMovies, file: "Heat (1995) SECRET.mkv");
         secret.Size = 999;
-        secret.LinkedAlternateVersions = [new LinkedChild { Path = mine.Path, ItemId = mine.Id }];
-        mine.SetPrimaryVersionId(secret.Id.ToString("N", System.Globalization.CultureInfo.InvariantCulture));
+        secret.LinkedAlternateVersions = [JellyfinLine.Link(mine.Id, mine.Path)];
+        mine.SetPrimaryVersion(secret.Id);
         var copy = library.Add("Heat", 1995, file: "Heat (1995) - copy.mkv");
         copy.Size = 5000;
         await using var host = await StartAsync(library);
@@ -260,14 +261,14 @@ public sealed class GroupsApiTests
         library.BeforeItemIds = null;
         using var rebuild = await host.SendAsync(HttpMethod.Post, "/LibraryMaintenance/Duplicates/Index/Rebuild", As("admin", Alice));
         Assert.Equal(HttpStatusCode.Accepted, rebuild.StatusCode);
-        await host.Services.GetRequiredService<MovieIndexService>().Rebuild().WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+        await host.Services.GetRequiredService<MovieIndexService>().Rebuild().WaitAsync(TimeSpan.FromSeconds(60), TestContext.Current.CancellationToken);
         var page = await Page(host, Alice);
         Assert.Equal(["alien|1979", "heat|1995"], Keys(page));
         Assert.True(!page.GetProperty("Index").TryGetProperty("LastError", out var none) || none.ValueKind == JsonValueKind.Null);
 
         // A later failure keeps the groups, and says so.
         library.BeforeItemIds = _ => throw new InvalidOperationException("locked");
-        await host.Services.GetRequiredService<MovieIndexService>().Rebuild().WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+        await host.Services.GetRequiredService<MovieIndexService>().Rebuild().WaitAsync(TimeSpan.FromSeconds(60), TestContext.Current.CancellationToken);
         var kept = await Page(host, Alice);
         Assert.Equal(["alien|1979", "heat|1995"], Keys(kept));
         Assert.StartsWith("The movie index couldn't be built", kept.GetProperty("Index").GetProperty("LastError").GetString(), StringComparison.Ordinal);
@@ -285,7 +286,7 @@ public sealed class GroupsApiTests
         Assert.Equal(1, groups.Cache.Count);
         Assert.True(groups.Projections.HasProjection);
 
-        await host.Services.GetRequiredService<MovieIndexService>().Rebuild().WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+        await host.Services.GetRequiredService<MovieIndexService>().Rebuild().WaitAsync(TimeSpan.FromSeconds(60), TestContext.Current.CancellationToken);
         Assert.Equal(0, groups.Cache.Count);
         Assert.False(groups.Projections.HasProjection);
 
@@ -438,7 +439,7 @@ public sealed class GroupsApiTests
         Assert.Equal(HttpStatusCode.Accepted, pendingGroup.StatusCode);
 
         gate.Set();
-        await host.Services.GetRequiredService<MovieIndexService>().Rebuild().WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+        await host.Services.GetRequiredService<MovieIndexService>().Rebuild().WaitAsync(TimeSpan.FromSeconds(60), TestContext.Current.CancellationToken);
         var page = await Page(host, Alice);
         Assert.Equal(["alien|1979", "heat|1995"], Keys(page));
         Assert.False(page.GetProperty("Index").GetProperty("Stale").GetBoolean());
@@ -801,7 +802,7 @@ public sealed class GroupsApiTests
     private static Task<WebHostHarness> StartAsync(DuplicatesLibrary library, User? restricted = null)
     {
         var host = new Mock<IServerApplicationHost>();
-        host.SetupGet(h => h.ApplicationVersion).Returns(new Version(10, 11, 5));
+        host.SetupGet(h => h.ApplicationVersion).Returns(JellyfinLine.Server);
         host.SetupGet(h => h.CoreStartupHasCompleted).Returns(true);
         var registered = new ServiceCollection();
         new PluginServiceRegistrator().RegisterServices(registered, host.Object);

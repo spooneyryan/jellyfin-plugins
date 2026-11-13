@@ -13,6 +13,7 @@ using Jellyfin.Plugin.AccessRoles.Sync;
 using Jellyfin.Plugin.AccessRoles.Tests.TestSupport;
 using Xunit;
 using static Jellyfin.Plugin.AccessRoles.Tests.TestSupport.AccessFixtures;
+using Jellyfin.Plugin.Kit.TestSupport;
 
 namespace Jellyfin.Plugin.AccessRoles.Tests.Sync;
 
@@ -345,7 +346,7 @@ public sealed class PreferenceMirrorTests : IDisposable
 
     private async Task AssignAsync(User user, IEnumerable<AccessRolesLock> locks, AccessRolesAssignmentState state = AccessRolesAssignmentState.Managed, bool keep = false)
     {
-        var number = 100 + _sync.Server.Manager.Object.Users.ToList().FindIndex(u => u.Id.Equals(user.Id));
+        var number = 100 + _sync.Server.Manager.Object.AllUsers().ToList().FindIndex(u => u.Id.Equals(user.Id));
         var role = Role(number, "Role " + number, locks);
         await _sync.SaveAsync(d => d with
         {

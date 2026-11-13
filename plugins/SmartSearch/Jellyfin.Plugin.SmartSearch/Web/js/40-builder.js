@@ -10,6 +10,8 @@
 
 const SS_SUGGEST_DELAY_MS = 250;
 const SS_SUGGEST_LIMIT = 8;
+// The lookups' most (GET /SmartSearch/Values, /People: limit 1 to 100); past it the server answers 400.
+const SS_LOOKUP_LIMIT_MAX = 100;
 
 let ssIdCounter = 0;
 

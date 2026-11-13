@@ -1,3 +1,4 @@
+using Jellyfin.Plugin.Kit.TestSupport;
 using System;
 using System.Linq;
 using System.Net.Http;
@@ -71,7 +72,7 @@ internal sealed class ApiFixture : IAsyncDisposable
         script.Setup(s => s.AdminScript()).Returns(new ContentResult { Content = "/* module */", ContentType = "text/javascript" });
         Moderation = new RatingsModeration(Services.Store.Store, Services.ItemAccess, Services.UserManager.Object, Services.Library.Object, Services.ArchivedLines, Services.Store.Clock, Services.Store.Logger);
         var applicationHost = new Mock<IServerApplicationHost>();
-        applicationHost.SetupGet(h => h.ApplicationVersion).Returns(new Version(10, 11, 5));
+        applicationHost.SetupGet(h => h.ApplicationVersion).Returns(JellyfinLine.Server);
 
         // The moderation admin routes over the real admin API; its other routes aren't part of these tests.
         _lifecycle ??= new RatingsLibraryConsumer(

@@ -47,6 +47,15 @@ internal static class QueryOperators
         SmartSearchQueryOperator.IsEmpty, SmartSearchQueryOperator.IsNotEmpty
     ];
 
+    /// <summary>
+    /// Gets the operators of the <c>People</c> field: any, all, none or not all of the people, in the rule's role. There is
+    /// no <c>IsEmpty</c>: credits are read per person, never per item.
+    /// </summary>
+    public static IReadOnlyList<SmartSearchQueryOperator> People { get; } =
+    [
+        SmartSearchQueryOperator.AnyOf, SmartSearchQueryOperator.AllOf, SmartSearchQueryOperator.NoneOf, SmartSearchQueryOperator.NotAllOf
+    ];
+
     /// <summary>Gets the choice operators.</summary>
     public static IReadOnlyList<SmartSearchQueryOperator> Choice { get; } = [SmartSearchQueryOperator.AnyOf, SmartSearchQueryOperator.NoneOf];
 
@@ -61,7 +70,7 @@ internal static class QueryOperators
         SmartSearchQueryOperator.IsEmpty or SmartSearchQueryOperator.IsNotEmpty => OperatorShape.None,
         SmartSearchQueryOperator.Between => OperatorShape.Range,
         SmartSearchQueryOperator.InLast or SmartSearchQueryOperator.NotInLast => OperatorShape.Relative,
-        SmartSearchQueryOperator.AnyOf or SmartSearchQueryOperator.AllOf or SmartSearchQueryOperator.NoneOf => OperatorShape.Values,
+        SmartSearchQueryOperator.AnyOf or SmartSearchQueryOperator.AllOf or SmartSearchQueryOperator.NoneOf or SmartSearchQueryOperator.NotAllOf => OperatorShape.Values,
         _ => OperatorShape.Value
     };
 

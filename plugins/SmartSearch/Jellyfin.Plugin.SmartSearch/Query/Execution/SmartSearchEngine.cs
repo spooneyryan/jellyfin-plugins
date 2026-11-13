@@ -158,7 +158,7 @@ internal sealed class SmartSearchEngine : ISmartSearchEngine
             var environment = _environment();
             if (context.NowUtc is { } now)
             {
-                environment = new EvaluationEnvironment { NowUtc = now, TimeZone = environment.TimeZone, RatingScore = environment.RatingScore, LibraryMembers = environment.LibraryMembers };
+                environment = new EvaluationEnvironment { NowUtc = now, TimeZone = environment.TimeZone, RatingScore = environment.RatingScore, LibraryMembers = environment.LibraryMembers, PeopleMembers = environment.PeopleMembers };
             }
 
             var request = new PlanRequest(query, evaluationUser, PlanPurpose.EvaluateAll, context.AllowedLibraries);

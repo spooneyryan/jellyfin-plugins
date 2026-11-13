@@ -147,7 +147,7 @@ internal sealed class PlannerWorld : IDisposable
     {
         File(path, 100);
         var trailer = Library.Add(new Trailer { Id = IdOf(path, typeof(Trailer)), Name = "Trailer", Path = path, ExtraType = ExtraType.Trailer, OwnerId = owner.Id });
-        owner.ExtraIds = [.. owner.ExtraIds ?? [], trailer.Id];
+        owner.AddExtraId(trailer.Id);
         return trailer;
     }
 
@@ -155,7 +155,7 @@ internal sealed class PlannerWorld : IDisposable
     {
         File(path, 100);
         var extra = Library.Add(new Video { Id = IdOf(path, typeof(Video)), Name = "Extra", Path = path, ExtraType = type, OwnerId = owner.Id });
-        owner.ExtraIds = [.. owner.ExtraIds ?? [], extra.Id];
+        owner.AddExtraId(extra.Id);
         return extra;
     }
 

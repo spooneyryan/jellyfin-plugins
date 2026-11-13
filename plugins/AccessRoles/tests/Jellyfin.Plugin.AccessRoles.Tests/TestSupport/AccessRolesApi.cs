@@ -42,7 +42,7 @@ internal sealed class AccessRolesApi : IAsyncDisposable
     private AccessRolesApi()
     {
         UserManager = new Mock<IUserManager>(MockBehavior.Loose);
-        UserManager.SetupGet(m => m.Users).Returns(() => _users.ToList());
+        UserManager.SetupUsers(() => _users.ToList());
         UserManager.Setup(m => m.GetUserById(It.IsAny<Guid>())).Returns((Guid id) => _users.FirstOrDefault(u => u.Id.Equals(id)));
 
         // The library sync reads the users' DTOs and writes their policies: the policy as 10.11.5 builds it, and a
@@ -159,7 +159,7 @@ internal sealed class AccessRolesApi : IAsyncDisposable
     private async Task StartHostAsync()
     {
         var host = new Mock<IServerApplicationHost>();
-        host.SetupGet(h => h.ApplicationVersion).Returns(Version.Parse("10.11.5"));
+        host.SetupGet(h => h.ApplicationVersion).Returns(JellyfinLine.Server);
         host.SetupGet(h => h.SystemId).Returns(SystemId);
         // The server's paths are in the collection before the registrator runs, as 10.11.5's ApplicationHost adds them (the
         // emergency stop is read from them).

@@ -74,6 +74,8 @@ const SS_TEXT = Object.freeze({
     amountLabel: 'Amount',
     unitLabel: 'Unit',
     providerLabel: 'Provider',
+    roleLabel: 'Role',
+    anyRole: 'In any role',
     includeOriginalTitle: 'Include original title',
     yes: 'Yes',
     no: 'No',
@@ -86,6 +88,7 @@ const SS_TEXT = Object.freeze({
     addValue: 'Add a value',
     addValueButton: 'Add',
     findShow: 'Find a show (2 letters or more)',
+    findPerson: 'Find a person (2 letters or more)',
     removeValue: 'Remove {name}',
     chosenValues: 'Chosen values',
     suggestions: 'Suggestions',
@@ -483,7 +486,7 @@ const SS_OP_LABELS = Object.freeze({
     Text: Object.freeze({ Contains: 'contains', NotContains: 'doesn\'t contain', Eq: 'is', Ne: 'is not', StartsWith: 'starts with', EndsWith: 'ends with', Matches: 'matches', IsEmpty: 'is empty', IsNotEmpty: 'is not empty' }),
     Number: Object.freeze({ Eq: 'is', Ne: 'is not', Lt: 'is less than', Le: 'is at most', Gt: 'is more than', Ge: 'is at least', Between: 'is between', AnyOf: 'is any of', IsEmpty: 'is empty', IsNotEmpty: 'is not empty' }),
     Date: Object.freeze({ Before: 'is before', After: 'is after', Between: 'is between', InLast: 'is in the last', NotInLast: 'is not in the last', IsEmpty: 'is empty', IsNotEmpty: 'is not empty' }),
-    List: Object.freeze({ AnyOf: 'has any of', AllOf: 'has all of', NoneOf: 'has none of', IsEmpty: 'has none', IsNotEmpty: 'has some' }),
+    List: Object.freeze({ AnyOf: 'has any of', AllOf: 'has all of', NoneOf: 'has none of', NotAllOf: 'doesn\'t have all of', IsEmpty: 'has none', IsNotEmpty: 'has some' }),
     Choice: Object.freeze({ AnyOf: 'is any of', NoneOf: 'is none of', Le: 'is at most', Ge: 'is at least' }),
     Bool: Object.freeze({ Is: 'is' }),
     any: Object.freeze({ Eq: 'is', Ne: 'is not', AnyOf: 'is any of', NoneOf: 'is none of', IsEmpty: 'is empty', IsNotEmpty: 'is not empty' })
@@ -505,6 +508,9 @@ const SS_CHOICE_LABELS = Object.freeze({
 });
 
 const SS_PROVIDER_LABELS = Object.freeze({ Tmdb: 'TMDb', Imdb: 'IMDb', Tvdb: 'TheTVDB' });
+
+// The People rule's roles (the Role option's Choices, core's person types), as the page shows them.
+const SS_ROLE_LABELS = Object.freeze({ Actor: 'As actor', Director: 'As director', Writer: 'As writer', Producer: 'As producer', Composer: 'As composer', GuestStar: 'As guest star' });
 
 // The Advanced Search page: its key, label and icon are the server's (SmartSearchKit), and its Plugin Pages Id
 // is Jellyfin.Plugin.SmartSearch.SearchPage. "Library tools" lists it after Bookmarks' (10, 20) and Tag Cloud's (30).

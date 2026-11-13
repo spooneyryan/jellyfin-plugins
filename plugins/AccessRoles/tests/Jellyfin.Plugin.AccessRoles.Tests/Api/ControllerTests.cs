@@ -36,14 +36,14 @@ public sealed class ControllerTests : IDisposable
     {
         await using var harness = await StartAsync();
 
-        using var response = await harness.SendAsync(HttpMethod.Get, "/AccessRoles/ClientScript?v=1.0.3.0-00000000");
+        using var response = await harness.SendAsync(HttpMethod.Get, "/AccessRoles/ClientScript?v=" + JellyfinLine.VersionOf(typeof(Plugin)) + "-00000000");
         var text = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
         using var current = await harness.SendAsync(HttpMethod.Get, "/AccessRoles/ClientScript", r => r.Headers.TryAddWithoutValidation("If-None-Match", response.Headers.ETag!.Tag));
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Equal("text/javascript; charset=utf-8", response.Content.Headers.ContentType?.ToString());
         Assert.Equal("\"" + typeof(Plugin).Assembly.ManifestModule.ModuleVersionId.ToString("N") + "\"", response.Headers.ETag?.Tag);
-        Assert.Contains("var KIT_BUILD = {\"plugin\":\"Access Roles\",\"prefix\":\"jfar\",\"route\":\"AccessRoles\",\"version\":\"1.0.3.0\",\"kit\":\"" + KitBuild.KitVersion + "\"", text, StringComparison.Ordinal);
+        Assert.Contains("var KIT_BUILD = {\"plugin\":\"Access Roles\",\"prefix\":\"jfar\",\"route\":\"AccessRoles\",\"version\":\"" + JellyfinLine.VersionOf(typeof(Plugin)) + "\",\"kit\":\"" + KitBuild.KitVersion + "\"", text, StringComparison.Ordinal);
         Assert.Contains(" 9 plugin file(s) of Web/js. ", text, StringComparison.Ordinal);
         Assert.Equal(HttpStatusCode.NotModified, current.StatusCode);
     }
@@ -62,7 +62,7 @@ public sealed class ControllerTests : IDisposable
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Equal("text/javascript; charset=utf-8", response.Content.Headers.ContentType?.ToString());
         Assert.Equal("\"" + typeof(Plugin).Assembly.ManifestModule.ModuleVersionId.ToString("N") + "\"", response.Headers.ETag?.Tag);
-        Assert.StartsWith("/* Access Roles 1.0.3.0 dashboard module, kit ", text, StringComparison.Ordinal);
+        Assert.StartsWith("/* Access Roles " + JellyfinLine.VersionOf(typeof(Plugin)) + " dashboard module, kit ", text, StringComparison.Ordinal);
         Assert.Contains(" 14 plugin file(s) of Web/admin/js. ", text, StringComparison.Ordinal);
         Assert.EndsWith("export { mount };\n", text, StringComparison.Ordinal);
         Assert.Equal(HttpStatusCode.NotModified, current.StatusCode);
@@ -78,8 +78,8 @@ public sealed class ControllerTests : IDisposable
         configuration.EnableWebUi = false;
         var off = await harness.GetStringAsync("/web/index.html");
 
-        Assert.Equal(1, Count(on, "data-jfar-plugin=\"1.0.3.0\""));
-        Assert.Contains("src=\"../AccessRoles/ClientScript?v=1.0.3.0-", on, StringComparison.Ordinal);
+        Assert.Equal(1, Count(on, "data-jfar-plugin=\"" + JellyfinLine.VersionOf(typeof(Plugin)) + "\""));
+        Assert.Contains("src=\"../AccessRoles/ClientScript?v=" + JellyfinLine.VersionOf(typeof(Plugin)) + "-", on, StringComparison.Ordinal);
         Assert.DoesNotContain("data-jfar", off, StringComparison.Ordinal);
 
         // The web guard's head fragment, once, right before </head>: inline, so it runs while the page is parsed, before jellyfin-web's
@@ -109,7 +109,7 @@ public sealed class ControllerTests : IDisposable
             var keys = body.RootElement.EnumerateObject().Select(p => p.Name).ToList();
             Assert.Equal("application/json; charset=utf-8", response.Content.Headers.ContentType?.ToString());
             Assert.Superset(new HashSet<string>(["Abi", "ActionManifest", "ClientHealth", "Enforcement", "KitVersion", "PluginVersion", "Records", "ServerUsers", "Store", "WebAnchors"]), keys.ToHashSet());
-            Assert.Equal("1.0.3.0", body.RootElement.GetProperty("PluginVersion").GetString());
+            Assert.Equal(JellyfinLine.VersionOf(typeof(Plugin)), body.RootElement.GetProperty("PluginVersion").GetString());
         }
     }
 
@@ -135,7 +135,7 @@ public sealed class ControllerTests : IDisposable
     {
         // On a Jellyfin line the build isn't for, the registrator adds only KitAbiStatus, and the kit's gate answers 503
         // before a controller is built.
-        await using var harness = await StartAsync(version: "12.1.0");
+        await using var harness = await StartAsync(version: JellyfinLine.OtherLineVersion);
 
         using var script = await harness.SendAsync(HttpMethod.Get, "/AccessRoles/ClientScript");
         using var diagnostics = await harness.SendAsync(HttpMethod.Get, "/AccessRoles/Admin/Diagnostics", r => AddCaller(r, "admin"));
@@ -159,10 +159,10 @@ public sealed class ControllerTests : IDisposable
 
     private static int Count(string text, string needle) => (text.Length - text.Replace(needle, string.Empty, StringComparison.Ordinal).Length) / needle.Length;
 
-    private Task<WebHostHarness> StartAsync(PluginConfiguration? configuration = null, string version = "10.11.5")
+    private Task<WebHostHarness> StartAsync(PluginConfiguration? configuration = null, string? version = null)
     {
         var host = new Mock<IServerApplicationHost>();
-        host.SetupGet(h => h.ApplicationVersion).Returns(Version.Parse(version));
+        host.SetupGet(h => h.ApplicationVersion).Returns(Version.Parse(version ?? JellyfinLine.ServerVersion));
         var registered = new ServiceCollection();
         new PluginServiceRegistrator().RegisterServices(registered, host.Object);
         var paths = new Mock<IApplicationPaths>();

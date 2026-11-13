@@ -17,6 +17,7 @@ using Jellyfin.Plugin.Kit.Storage;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 using static Jellyfin.Plugin.AccessRoles.Tests.TestSupport.AccessFixtures;
+using Jellyfin.Plugin.Kit.TestSupport;
 
 namespace Jellyfin.Plugin.AccessRoles.Tests.Api;
 
@@ -465,7 +466,7 @@ public sealed class DataSafetyTests
         return await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
     }
 
-    internal static Jellyfin.Database.Implementations.Entities.User User(AccessRolesApi api, string name) => api.UserManager.Object.Users.Single(u => u.Username == name);
+    internal static Jellyfin.Database.Implementations.Entities.User User(AccessRolesApi api, string name) => api.UserManager.Object.AllUsers().Single(u => u.Username == name);
 
     internal static ServerUser Server(Jellyfin.Database.Implementations.Entities.User user) => new(user.Id, user.Username, false, false, false, AllFolders);
 

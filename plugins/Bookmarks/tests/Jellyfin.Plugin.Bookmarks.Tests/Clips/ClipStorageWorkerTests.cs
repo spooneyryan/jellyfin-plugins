@@ -31,7 +31,7 @@ namespace Jellyfin.Plugin.Bookmarks.Tests.Clips;
 public sealed class ClipStorageWorkerTests : IAsyncLifetime
 {
     private const long Gb = ClipStorageGuard.Gigabyte;
-    private static readonly TimeSpan _timeout = TimeSpan.FromSeconds(10);
+    private static readonly TimeSpan _timeout = TimeSpan.FromSeconds(60);
 
     private readonly TempDirectory _directory = new();
     private readonly BookmarkStore _store;

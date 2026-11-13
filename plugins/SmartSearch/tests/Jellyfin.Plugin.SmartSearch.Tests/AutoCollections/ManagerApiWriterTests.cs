@@ -53,7 +53,9 @@ public sealed class ManagerApiWriterTests : IDisposable
     public void TheSetting_ChoosesTheWriter_AutoBeingTheDirectOneOnThisServer(string? value, bool managerApi)
     {
         Assert.Equal("Auto", new PluginConfiguration().CollectionWriter);
-        Assert.Equal(managerApi ? CollectionWriterKind.ManagerApi : CollectionWriterKind.DirectReplace, AutoCollectionSettings.From(new PluginConfiguration { CollectionWriter = value! }).CollectionWriter);
+        // Auto is the server's collection calls on Jellyfin 12, the direct writer on 10.11.
+        var auto = value is not ("DirectReplace" or "ManagerApi" or "managerapi") && JellyfinLine.Is12;
+        Assert.Equal(managerApi || auto ? CollectionWriterKind.ManagerApi : CollectionWriterKind.DirectReplace, AutoCollectionSettings.From(new PluginConfiguration { CollectionWriter = value! }).CollectionWriter);
     }
 
     [Fact]
@@ -144,7 +146,7 @@ public sealed class ManagerApiWriterTests : IDisposable
     {
         var users = new Mock<IUserManager>();
         var all = new[] { _world.Admin, _world.Kid };
-        users.SetupGet(m => m.Users).Returns(all);
+        users.SetupUsers(all);
         users.Setup(m => m.GetUserById(It.IsAny<Guid>())).Returns((Guid id) => all.FirstOrDefault(u => u.Id.Equals(id)));
         return new AutoCollectionHost(_world, _harness, _folder.Combine("data"), _persistence, users.Object);
     }

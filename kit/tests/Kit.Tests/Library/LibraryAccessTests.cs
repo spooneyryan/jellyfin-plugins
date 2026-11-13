@@ -12,6 +12,7 @@ using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.Movies;
 using MediaBrowser.Controller.Entities.TV;
 using Xunit;
+using Jellyfin.Plugin.Kit.TestSupport;
 
 namespace Jellyfin.Plugin.Kit.Tests.Library;
 
@@ -128,7 +129,7 @@ public sealed class LibraryAccessTests
         // With a user, core groups by PresentationUniqueKey and keeps one member of a merged set, even for ItemIds.
         var primary = MovieIn(_movies, "Heat");
         var secondary = MovieIn(_movies, "Heat 4K");
-        secondary.SetPrimaryVersionId(primary.Id.ToString("N", CultureInfo.InvariantCulture));
+        secondary.SetPrimaryVersion(primary.Id);
         primary.PresentationUniqueKey = primary.Id.ToString("N", CultureInfo.InvariantCulture);
 
         var query = _access.CreateQuery(_viewer)!;
@@ -207,7 +208,7 @@ public sealed class LibraryAccessTests
         // A version set across libraries: the primary in Movies 2, which kid can't open; the 4K secondary in Movies matched.
         var primary = MovieIn(_movies2, "Heat");
         var secondary = MovieIn(_movies, "Heat 4K");
-        secondary.SetPrimaryVersionId(primary.Id.ToString("N", CultureInfo.InvariantCulture));
+        secondary.SetPrimaryVersion(primary.Id);
         primary.LinkedAlternateVersions = [new LinkedChild { ItemId = secondary.Id }];
         var lookup = VersionSets.LibraryLookup(_library.Object);
 

@@ -61,9 +61,9 @@ internal sealed record VersionMember
         return new VersionMember
         {
             Id = item.Id,
-            PrimaryVersionId = video?.PrimaryVersionId,
+            PrimaryVersionId = video is null ? null : KitItemQueries.PrimaryVersionText(video),
             LinkedAlternateVersions = video?.LinkedAlternateVersions is { Length: > 0 } links
-                ? links.Where(l => l is not null).Select(l => new VersionLink(l.ItemId, l.Path, l.LibraryItemId)).ToList()
+                ? links.Where(l => l is not null).Select(l => new VersionLink(l.ItemId, KitItemQueries.LinkPath(l), KitItemQueries.LinkLibraryItemId(l))).ToList()
                 : [],
             Path = item.Path,
             SortName = item.SortName

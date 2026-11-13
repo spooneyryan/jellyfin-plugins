@@ -70,5 +70,11 @@ public enum SmartSearchQueryOperator
     NoneOf,
 
     /// <summary>Bool: is the value.</summary>
-    Is
+    Is,
+
+    /// <summary>
+    /// People: lacks at least one of the values (NOT <see cref="AllOf"/>). Added last, so the other members keep their
+    /// numbers.
+    /// </summary>
+    NotAllOf
 }

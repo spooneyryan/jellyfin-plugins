@@ -1212,6 +1212,18 @@ function Test-JellyfinTargetMatch {
     return $true
 }
 
+function Get-JellyfinTargetOf {
+    <#
+    The JellyfinTarget a Jellyfin program folder's server takes: '10.11' for 10.11.x, the major version from 12 on
+    ('12' for 12.x), as Directory.Build.props names the lines. Throws when the folder holds no readable Jellyfin.
+    #>
+    param([Parameter(Mandatory = $true)] [string] $JellyfinDir)
+    $version = Get-JellyfinServerVersion -JellyfinDir (Resolve-FullPath $JellyfinDir)
+    if ($null -eq $version) { throw "Can't tell which Jellyfin $JellyfinDir holds (no readable jellyfin.dll or jellyfin.exe)." }
+    if ($version.Major -ge 12) { return [string]$version.Major }
+    return "$($version.Major).$($version.Minor)"
+}
+
 function Assert-JellyfinTarget {
     <#
     Deploy-Plugin.ps1: the Jellyfin program folder the reference-version check compares with (-JellyfinDir) must hold
@@ -1356,18 +1368,32 @@ function Get-PluginFolders {
         Sort-Object Name | Select-Object -ExpandProperty Name)
 }
 
+function Get-BuildYamlName {
+    <#
+    The file that describes a plugin's build for a Jellyfin line: build.yaml for 10.11 (the default), build.<major>.yaml
+    from 12 on (build.12.yaml: version 2.x.y.0, targetAbi 12.x, net10.0). Every plugin folder has a build.yaml.
+    #>
+    param([string] $JellyfinTarget = '10.11')
+    if (-not $JellyfinTarget -or $JellyfinTarget -eq '10.11') { return 'build.yaml' }
+    if ($JellyfinTarget -notmatch '^(1[2-9]|[2-9][0-9])$') { throw "JellyfinTarget '$JellyfinTarget' is neither 10.11 nor a major version from 12 on." }
+    return "build.$JellyfinTarget.yaml"
+}
+
 function Get-PluginBuildInfo {
     <#
     What plugins/<Plugin>/build.yaml says, with the project to build: in this repository, or in the checkout
     RepoRoot (Deploy-Plugin.ps1 -SourceRoot, a release tag's temporary worktree). With YamlText the file's text is
     given instead (a release tag's build.yaml read with git show, YamlSource naming it); Project is still RepoRoot's.
+    JellyfinTarget picks the line's file (Get-BuildYamlName): build.12.yaml for 12.
     #>
     param(
         [Parameter(Mandatory = $true)] [string] $Plugin,
         [string] $RepoRoot = $script:RepoRoot,
         [AllowEmptyString()] [string] $YamlText,
-        [string] $YamlSource
+        [string] $YamlSource,
+        [string] $JellyfinTarget = '10.11'
     )
+    $yamlName = Get-BuildYamlName -JellyfinTarget $JellyfinTarget
     # The folder's own spelling (-Plugin bookmarks is plugins\Bookmarks): it names the build's folders, the
     # backup and, through git, the release tag's files, where case matters.
     if (-not $PSBoundParameters.ContainsKey('YamlText')) {
@@ -1376,7 +1402,7 @@ function Get-PluginBuildInfo {
     }
 
     $folder = Join-Path (Join-Path $RepoRoot 'plugins') $Plugin
-    $yamlPath = Join-Path $folder 'build.yaml'
+    $yamlPath = Join-Path $folder $yamlName
     if ($PSBoundParameters.ContainsKey('YamlText')) {
         if (-not $YamlSource) { $YamlSource = $yamlPath }
         $yamlPath = $YamlSource
@@ -1398,14 +1424,16 @@ function Get-PluginBuildInfo {
     if ($assemblies.Count -eq 0) { throw "$yamlPath lists no DLL in 'artifacts'." }
     $mainAssembly = [System.IO.Path]::GetFileNameWithoutExtension($assemblies[0])
     return [pscustomobject]@{
-        Folder     = $Plugin
-        Path       = $folder
-        Yaml       = $yaml
-        Name       = [string]$yaml['name']
-        Guid       = [string]$yaml['guid']
-        Version    = [string]$yaml['version']
-        Assemblies = [string[]]$assemblies
-        Project    = Join-Path (Join-Path $folder $mainAssembly) ($mainAssembly + '.csproj')
+        Folder         = $Plugin
+        Path           = $folder
+        YamlName       = $yamlName
+        JellyfinTarget = $(if ($JellyfinTarget) { $JellyfinTarget } else { '10.11' })
+        Yaml           = $yaml
+        Name           = [string]$yaml['name']
+        Guid           = [string]$yaml['guid']
+        Version        = [string]$yaml['version']
+        Assemblies     = [string[]]$assemblies
+        Project        = Join-Path (Join-Path $folder $mainAssembly) ($mainAssembly + '.csproj')
     }
 }
 
@@ -1592,16 +1620,42 @@ function Resolve-PluginRelease {
     - that commit has no plugins folder (bookmarks/v1.0.0 predates this repository's layout), no folder plugins/<Plugin> in
       any case or no build.yaml in it, or its version isn't the tag's as x.y.z.0 (bookmarks/v1.1.1 needs 1.1.1.0).
     Plugin is matched to the tag's folder case-insensitively (-Plugin bookmarks is plugins/Bookmarks).
+    JellyfinTarget is the server's line (10.11 by default): the tag's build file is that line's (Get-BuildYamlName), and
+    without Version the newest release passes over the other line's tags (those whose commit's build file of the other
+    line, not this one's, says the tag's version), so a 10.11 server never picks a Jellyfin 12 release (2.x,
+    build.12.yaml) or the other way round. A tag that no line's build file names is still refused as before.
     Returns Plugin (the folder's name as the tag spells it), Tag, Version (x.y.z), PluginVersion (x.y.z.0), Commit (the
     full id), Branches (those that contain it),
     Newest (no tag names a newer version), Tags (every release tag, newest first), Info (Get-PluginBuildInfo of the tag's
     build.yaml, its Project inside the worktree) and WorktreePath (Get-ReleaseWorktreePath; Get-ReleaseWorktreeProblem says
     whether it is free).
     #>
-    param([Parameter(Mandatory = $true)] [string] $Plugin, [Parameter(Mandatory = $true)] [string] $RepoRoot, [string] $Version)
+    param([Parameter(Mandatory = $true)] [string] $Plugin, [Parameter(Mandatory = $true)] [string] $RepoRoot, [string] $Version, [string] $JellyfinTarget = '10.11')
     $RepoRoot = ConvertFrom-DevicePath (Resolve-FullPath $RepoRoot)
     $prefix = Get-PluginReleaseTagPrefix $Plugin
+    $buildYaml = Get-BuildYamlName -JellyfinTarget $JellyfinTarget
     $tags = @(Get-PluginReleaseTags -Plugin $Plugin -RepoRoot $RepoRoot)
+    # The newest release (without Version; also what Newest compares with): the newest tag that isn't the other line's
+    # (the other line's build file says its version, this line's doesn't). A tag no build file names stays, and its check
+    # below refuses it.
+    $folderNames = @(@(Get-PluginFolders -RepoRoot $RepoRoot | Where-Object { $_ -ieq $Plugin }) + $Plugin | Select-Object -Unique)
+    $says = {
+        param([string] $TagName, [string] $Wanted, [string] $File)
+        foreach ($name in $folderNames) {
+            $shown = Invoke-Git -Repo $RepoRoot -Arguments @('show', ('refs/tags/' + $TagName + '^{commit}:plugins/' + $name + '/' + $File))
+            if ($shown.ExitCode -ne 0) { continue }
+            $said = $null
+            try { $said = [string](ConvertFrom-BuildYaml -Text (@($shown.Output) -join "`n") -Source "${TagName}:$File")['version'] } catch { $said = $null }
+            if ($said -eq $Wanted) { return $true }
+        }
+        return $false
+    }
+    $otherYaml = Get-BuildYamlName -JellyfinTarget $(if ($buildYaml -eq 'build.yaml') { '12' } else { '10.11' })
+    $newestFirst = @($tags | Where-Object {
+            $wanted = $_.Text + '.0'
+            -not ((& $says $_.Name $wanted $otherYaml) -and -not (& $says $_.Name $wanted $buildYaml))
+        })
+    if ($newestFirst.Count -eq 0) { $newestFirst = $tags }
     $known = 'none'
     if ($tags.Count -gt 0) { $known = @($tags | ForEach-Object { $_.Name }) -join ', ' }
 
@@ -1623,7 +1677,7 @@ function Resolve-PluginRelease {
                 "never the working tree. Tag the release first, or rehearse the working tree on a stopped sandbox with -FromWorkingTree. Plugins in this checkout: $pluginList.")
         }
 
-        $matching = @($tags | Where-Object { $_.Version -eq $tags[0].Version })
+        $matching = @($tags | Where-Object { $_.Version -eq $newestFirst[0].Version })
     }
 
     if ($matching.Count -gt 1) {
@@ -1665,14 +1719,14 @@ function Resolve-PluginRelease {
     }
 
     $Plugin = $named[0]
-    $yamlName = "plugins/$Plugin/build.yaml"
+    $yamlName = "plugins/$Plugin/$buildYaml"
     $show = Invoke-Git -Repo $RepoRoot -Arguments @('show', ($commit + ':' + $yamlName))
     if ($show.ExitCode -ne 0) {
         throw "$($tag.Name) (commit $commit) has no ${yamlName}, so this script can't build it."
     }
 
     $worktree = Get-ReleaseWorktreePath -Plugin $Plugin -Version $tag.Text -RepoRoot $RepoRoot
-    $info = Get-PluginBuildInfo -Plugin $Plugin -RepoRoot $worktree -YamlText (@($show.Output) -join "`n") -YamlSource "$($tag.Name):$yamlName"
+    $info = Get-PluginBuildInfo -Plugin $Plugin -RepoRoot $worktree -YamlText (@($show.Output) -join "`n") -YamlSource "$($tag.Name):$yamlName" -JellyfinTarget $JellyfinTarget
     $pluginVersion = $tag.Text + '.0'
     if ($info.Version -ne $pluginVersion) {
         throw "$($tag.Name)'s $yamlName says version $($info.Version), not $pluginVersion, so the tag isn't the release it names: a release tag goes on the commit that sets its version."
@@ -1685,7 +1739,7 @@ function Resolve-PluginRelease {
         PluginVersion = $pluginVersion
         Commit        = $commit
         Branches      = [string[]]$branches
-        Newest        = [bool]($tags[0].Version -eq $tag.Version)
+        Newest        = [bool]($newestFirst[0].Version -eq $tag.Version)
         Tags          = @($tags)
         Info          = $info
         WorktreePath  = $worktree
@@ -1898,7 +1952,8 @@ function Assert-PluginReleaseCheckout {
         [Parameter(Mandatory = $true)] [string] $Path,
         [Parameter(Mandatory = $true)] [string] $Plugin,
         [Parameter(Mandatory = $true)] [string] $RepoRoot,
-        [Parameter(Mandatory = $true)] [string] $LockReason
+        [Parameter(Mandatory = $true)] [string] $LockReason,
+        [string] $JellyfinTarget = '10.11'
     )
     $full = ConvertFrom-DevicePath (Resolve-FullPath $Path)
     if (-not (Test-Path -LiteralPath $full -PathType Container)) { throw "$full is not a folder." }
@@ -1930,14 +1985,14 @@ function Assert-PluginReleaseCheckout {
     }
 
     $head = ([string]@(Assert-Git -Repo $full -Arguments @('rev-parse', 'HEAD') -What "Reading the HEAD of $full")[0]).Trim()
-    $info = Get-PluginBuildInfo -Plugin $Plugin -RepoRoot $full
+    $info = Get-PluginBuildInfo -Plugin $Plugin -RepoRoot $full -JellyfinTarget $JellyfinTarget
     $match = [regex]::Match($info.Version, '^([0-9]{1,9})\.([0-9]{1,9})\.([0-9]{1,9})\.0$')
     if (-not $match.Success) {
-        throw "$full's plugins/$($info.Folder)/build.yaml says version $($info.Version), which no release tag names (a release's version is <major>.<minor>.<patch>.0)."
+        throw "$full's plugins/$($info.Folder)/$($info.YamlName) says version $($info.Version), which no release tag names (a release's version is <major>.<minor>.<patch>.0)."
     }
 
     $version = '{0}.{1}.{2}' -f @([int]$match.Groups[1].Value, [int]$match.Groups[2].Value, [int]$match.Groups[3].Value)
-    $release = Resolve-PluginRelease -Plugin $info.Folder -RepoRoot $RepoRoot -Version $version
+    $release = Resolve-PluginRelease -Plugin $info.Folder -RepoRoot $RepoRoot -Version $version -JellyfinTarget $JellyfinTarget
     if ($release.Commit -ne $head) { throw "$full is at commit $head, but $($release.Tag) is commit $($release.Commit): it isn't that release's checkout." }
 
     $registered = @(Get-GitWorktrees -RepoRoot $RepoRoot | Where-Object { Test-SamePath $_.Path $full })

@@ -141,7 +141,7 @@ internal sealed record MovieRecord
             DateCreated = video.DateCreated,
             Tmdb = NullIfBlank(video.GetProviderId(MetadataProvider.Tmdb)),
             Imdb = NullIfBlank(video.GetProviderId(MetadataProvider.Imdb)),
-            PrimaryVersionId = NullIfBlank(video.PrimaryVersionId),
+            PrimaryVersionId = NullIfBlank(KitItemQueries.PrimaryVersionText(video)),
             PresentationUniqueKey = video.PresentationUniqueKey,
             Links = member.LinkedAlternateVersions,
             LocalAlternateCount = video.LocalAlternateVersions?.Length ?? 0,

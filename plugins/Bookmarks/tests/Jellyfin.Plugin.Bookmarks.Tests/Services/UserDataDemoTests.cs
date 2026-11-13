@@ -388,7 +388,7 @@ public sealed class UserDataDemoTests : IDisposable
     private Mock<IUserManager> UserManager()
     {
         var userManager = new Mock<IUserManager>();
-        userManager.SetupGet(m => m.Users).Returns(() => _users.ToList());
+        userManager.SetupUsers(() => _users.ToList());
         userManager.Setup(m => m.GetUserById(It.IsAny<Guid>())).Returns((Guid id) => _users.Find(u => u.Id == id));
         return userManager;
     }
@@ -420,7 +420,7 @@ public sealed class UserDataDemoTests : IDisposable
     private Task<WebHostHarness> StartAsync()
     {
         var applicationHost = new Mock<IServerApplicationHost>();
-        applicationHost.SetupGet(h => h.ApplicationVersion).Returns(new Version(10, 11, 5));
+        applicationHost.SetupGet(h => h.ApplicationVersion).Returns(JellyfinLine.Server);
         applicationHost.SetupGet(h => h.SystemId).Returns("server-1");
         var registered = new ServiceCollection();
         new PluginServiceRegistrator().RegisterServices(registered, applicationHost.Object);

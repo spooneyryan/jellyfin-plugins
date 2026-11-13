@@ -7,9 +7,12 @@
   <PropertyGroup>
     <RootNamespace>Jellyfin.Plugin.AccessRoles</RootNamespace>
     <!-- Keep equal to build.yaml's version (checked by tests/Repo.Tests). Development builds were 0.9.<n>.0; 1.0.0.0 was the first release, 1.0.1.0 its fixes, 1.0.2.0 corrected texts, 1.0.3.0 the owner name. -->
-    <Version>1.0.3.0</Version>
-    <AssemblyVersion>1.0.3.0</AssemblyVersion>
-    <FileVersion>1.0.3.0</FileVersion>
+    <Version Condition="'$(JellyfinTarget)' != '12'">1.0.3.0</Version>
+    <Version Condition="'$(JellyfinTarget)' == '12'">2.0.0.0</Version>
+    <AssemblyVersion Condition="'$(JellyfinTarget)' != '12'">1.0.3.0</AssemblyVersion>
+    <AssemblyVersion Condition="'$(JellyfinTarget)' == '12'">2.0.0.0</AssemblyVersion>
+    <FileVersion Condition="'$(JellyfinTarget)' != '12'">1.0.3.0</FileVersion>
+    <FileVersion Condition="'$(JellyfinTarget)' == '12'">2.0.0.0</FileVersion>
   </PropertyGroup>
 
   <ItemGroup>
@@ -40,7 +43,9 @@
     <None Remove="Configuration\AccessRolesJs.js" />
     <EmbeddedResource Include="Configuration\AccessRolesJs.js" />
     <None Remove="Rules\Manifests\*.json" />
-    <EmbeddedResource Include="Rules\Manifests\*.json" LogicalName="ActionManifest.%(Filename)%(Extension)" />
+    <!-- One action manifest per build: the Jellyfin line's own (Jellyfin.Api's actions differ between 10.11 and 12). -->
+    <EmbeddedResource Include="Rules\Manifests\jellyfin-api-10.11.*.json" LogicalName="ActionManifest.%(Filename)%(Extension)" Condition="'$(JellyfinTarget)' != '12'" />
+    <EmbeddedResource Include="Rules\Manifests\jellyfin-api-12.*.json" LogicalName="ActionManifest.%(Filename)%(Extension)" Condition="'$(JellyfinTarget)' == '12'" />
   </ItemGroup>
 
 </Project>

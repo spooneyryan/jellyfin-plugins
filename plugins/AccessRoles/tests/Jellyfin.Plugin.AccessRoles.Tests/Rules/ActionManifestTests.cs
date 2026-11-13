@@ -7,6 +7,7 @@ using System.Text.RegularExpressions;
 using Jellyfin.Plugin.AccessRoles.Model;
 using Jellyfin.Plugin.AccessRoles.Rules;
 using Jellyfin.Plugin.Kit.Hosting;
+using Jellyfin.Plugin.Kit.TestSupport;
 using Xunit;
 
 namespace Jellyfin.Plugin.AccessRoles.Tests.Rules;
@@ -166,23 +167,29 @@ public sealed class ActionManifestTests
     private static readonly HashSet<RuleKind> ScopeKinds =
     [
         RuleKind.HardenLatest, RuleKind.HardenItems, RuleKind.HardenParent, RuleKind.HardenUpcoming, RuleKind.HardenNextUp,
-        RuleKind.HardenEpisodes, RuleKind.HardenAggregates, RuleKind.GenericBackstop, RuleKind.BackstopExempt
+        RuleKind.HardenEpisodes, RuleKind.HardenAggregates, RuleKind.GenericBackstop, RuleKind.BackstopExempt,
+
+        // Jellyfin 12's GET /Persons binds parentId, which the People rule hides as it does appearsInItemId.
+        RuleKind.HardenPeople
     ];
 
     private static readonly Lazy<ActionManifest> Manifest = new(ActionManifest.ForBuild);
 
+    // Each build embeds the manifest reviewed for its own line: 10.11.5 for the 10.11 build, 12.4.0 for the 12 build.
+    private static readonly string EmbeddedResource = JellyfinLine.Is12 ? "ActionManifest.jellyfin-api-12.4.json" : "ActionManifest.jellyfin-api-10.11.5.json";
+
     [Fact]
-    public void TheBuild_EmbedsOneManifest_ForJellyfin1011_Reviewed_On1011Point5()
+    public void TheBuild_EmbedsOneManifest_ForItsLine_ReviewedOnThatRelease()
     {
-        Assert.Equal(["ActionManifest.jellyfin-api-10.11.5.json"], ActionManifest.EmbeddedResources());
+        Assert.Equal([EmbeddedResource], ActionManifest.EmbeddedResources());
         var manifest = Manifest.Value;
 
         Assert.Equal(ActionManifest.CurrentFormat, manifest.Format);
         Assert.Equal(KitBuild.JellyfinTarget, manifest.JellyfinTarget);
-        Assert.Equal("10.11", manifest.JellyfinTarget);
-        Assert.Equal("10.11.5", manifest.JellyfinVersion);
+        Assert.Equal(JellyfinLine.Is12 ? "12" : "10.11", manifest.JellyfinTarget);
+        Assert.Equal(JellyfinLine.Is12 ? "12.4.0" : "10.11.5", manifest.JellyfinVersion);
         Assert.Equal("Jellyfin.Api", manifest.Assembly);
-        Assert.Equal("1e27f460fe741429a1200b3ceb524d34e5d524ce", Commit(manifest));
+        Assert.Equal(JellyfinLine.Is12 ? "83d0d0e7f76e23e2e085c8ff67d28b772d35967d" : "1e27f460fe741429a1200b3ceb524d34e5d524ce", Commit(manifest));
     }
 
     [Fact]
@@ -291,7 +298,7 @@ public sealed class ActionManifestTests
         var problems = actions.Where(a => !a.Rules.Any(r => ScopeKinds.Contains(r.Kind))).Select(a => a.Key).ToList();
 
         Assert.True(problems.Count == 0, "Scope parameters without a hardening rule: " + string.Join(", ", problems));
-        Assert.Equal(22, actions.Count);
+        Assert.Equal(JellyfinLine.Is12 ? 23 : 22, actions.Count);
     }
 
     [Fact]
@@ -299,11 +306,21 @@ public sealed class ActionManifestTests
     {
         // The seven server-configuration actions are AdminSurfaces, the seven DVR actions stay native.
         var actions = Manifest.Value.Actions.Where(a => a.Policies.Contains("LiveTvManagement")).ToList();
-
+        string[] configuration = ["AddListingProvider", "AddTunerHost", "DeleteListingProvider", "DeleteTunerHost", "DiscoverTuners", "ResetTuner", "SetChannelMapping"];
+#if JELLYFIN_12
+        // Jellyfin 12.4 makes the seven server-configuration actions RequiresElevation; they keep the AdminSurfaces lock.
+        Assert.Equal(7, actions.Count);
+        Assert.DoesNotContain(actions, a => a.Rules.Count > 0);
+        var elevated = Manifest.Value.Actions.Where(a => configuration.Contains(a.Action) && a.Controller.EndsWith("LiveTvController", StringComparison.Ordinal)).ToList();
+        Assert.Equal(7, elevated.Count);
+        Assert.All(elevated, a => Assert.Equal(["RequiresElevation"], a.Policies));
+        Assert.All(elevated, a => Assert.Contains(a.Rules, r => r.Kind == RuleKind.LockedReject));
+#else
         Assert.Equal(14, actions.Count);
         Assert.Equal(
-            ["AddListingProvider", "AddTunerHost", "DeleteListingProvider", "DeleteTunerHost", "DiscoverTuners", "ResetTuner", "SetChannelMapping"],
+            configuration,
             actions.Where(a => a.Rules.Count > 0).Select(a => a.Action).Order(StringComparer.Ordinal));
+#endif
         Assert.Equal(
             ["CancelSeriesTimer", "CancelTimer", "CreateSeriesTimer", "CreateTimer", "DeleteRecording", "UpdateSeriesTimer", "UpdateTimer"],
             actions.Where(a => a.Rules.Count == 0).Select(a => a.Action).Order(StringComparer.Ordinal));
@@ -347,7 +364,7 @@ public sealed class ActionManifestTests
     public void TheEmbeddedFile_IsInItsCanonicalForm()
     {
         // One action per line, so the candidate after a Jellyfin update (ActionManifestCandidateTests) diffs line by line.
-        using var stream = typeof(ActionManifest).Assembly.GetManifestResourceStream("ActionManifest.jellyfin-api-10.11.5.json")!;
+        using var stream = typeof(ActionManifest).Assembly.GetManifestResourceStream(EmbeddedResource)!;
         using var reader = new StreamReader(stream, Encoding.UTF8);
         var text = reader.ReadToEnd();
 
@@ -423,7 +440,7 @@ public sealed class ActionManifestTests
         Assert.Throws<InvalidDataException>(() => LoadText("{\"Controller\":\"C\",\"Action\":\"A\",\"ScopeParameters\":[\"parentId\"],\"Review\":\"r\"}"));
         Assert.Throws<InvalidDataException>(() => LoadText("{\"Controller\":\"C\",\"Action\":\"A\",\"Review\":\"r\"},{\"Controller\":\"C\",\"Action\":\"A\",\"Review\":\"r\"}"));
         Assert.Throws<InvalidDataException>(() => ActionManifest.Load(new MemoryStream(Encoding.UTF8.GetBytes("{\"Format\":\"other/1\",\"JellyfinTarget\":\"10.11\",\"JellyfinVersion\":\"v\",\"Source\":\"s\",\"Assembly\":\"a\",\"Actions\":[]}"))));
-        Assert.Throws<InvalidDataException>(() => ActionManifest.ForTarget("12"));
+        Assert.Throws<InvalidDataException>(() => ActionManifest.ForTarget(JellyfinLine.Is12 ? "10.11" : "12"));
     }
 
     // A local run without the reviewed DLL skips; CI must check, so there it fails.

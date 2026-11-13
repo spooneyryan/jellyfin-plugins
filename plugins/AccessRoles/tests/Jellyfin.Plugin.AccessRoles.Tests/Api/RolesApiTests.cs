@@ -11,6 +11,7 @@ using Jellyfin.Plugin.AccessRoles.Storage;
 using Jellyfin.Plugin.AccessRoles.Tests.TestSupport;
 using Xunit;
 using static Jellyfin.Plugin.AccessRoles.Tests.TestSupport.AccessFixtures;
+using Jellyfin.Plugin.Kit.TestSupport;
 
 namespace Jellyfin.Plugin.AccessRoles.Tests.Api;
 
@@ -256,7 +257,7 @@ public sealed class RolesApiTests
     public async Task DeletingARole_NeedsAChoiceForMembersItTakesOutOfLibraryManagement_AndAuditsTheirFrozenAccess()
     {
         await using var api = await StartWithUsersAsync();
-        var kid = api.UserManager.Object.Users.Single(u => u.Username == "kid");
+        var kid = api.UserManager.Object.AllUsers().Single(u => u.Username == "kid");
         var id = await CreateKidAsync(api);
         await api.JsonAsync(HttpMethod.Put, "/AccessRoles/Admin/Users/" + kid.Id.ToString("N"), body: new { RoleIds = new[] { id } });
 
@@ -282,7 +283,7 @@ public sealed class RolesApiTests
     public async Task DeletingARole_CanReassignItsMembers_ButNotWhileItIsADefaultRole()
     {
         await using var api = await StartWithUsersAsync();
-        var kid = api.UserManager.Object.Users.Single(u => u.Username == "kid");
+        var kid = api.UserManager.Object.AllUsers().Single(u => u.Username == "kid");
         var id = await CreateKidAsync(api);
         var (_, other) = await api.JsonAsync(HttpMethod.Post, "/AccessRoles/Admin/Roles", body: new { Name = "Little", Locks = new[] { "Home" }, Libraries = new { Mode = "Only", Refs = new[] { new { Id = Kids.Id } } } });
         var otherId = Guid.Parse((string)other!["Role"]!["Id"]!);
@@ -308,8 +309,8 @@ public sealed class RolesApiTests
         // nobody saw. ifMembers is the role's MembersToken as read; a member added, or a member's assignment changed, since
         // then is a 409 Changed naming the members, and nothing is changed.
         await using var api = await StartWithUsersAsync();
-        var kid = api.UserManager.Object.Users.Single(u => u.Username == "kid");
-        var viewer = api.UserManager.Object.Users.Single(u => u.Username == "viewer");
+        var kid = api.UserManager.Object.AllUsers().Single(u => u.Username == "kid");
+        var viewer = api.UserManager.Object.AllUsers().Single(u => u.Username == "viewer");
         var id = await CreateKidAsync(api);
         var (_, other) = await api.JsonAsync(HttpMethod.Post, "/AccessRoles/Admin/Roles", body: new { Name = "Little", Locks = new[] { "Home" }, Libraries = new { Mode = "Only", Refs = new[] { new { Id = Kids.Id } } } });
         var otherId = Guid.Parse((string)other!["Role"]!["Id"]!);
@@ -356,7 +357,7 @@ public sealed class RolesApiTests
     public async Task AnUpdateWithIfMembers_IsRefusedWhenTheMembersChangedSince_AndADryRunAnswersTheStoredToken()
     {
         await using var api = await StartWithUsersAsync();
-        var viewer = api.UserManager.Object.Users.Single(u => u.Username == "viewer");
+        var viewer = api.UserManager.Object.AllUsers().Single(u => u.Username == "viewer");
         var (_, created) = await api.JsonAsync(HttpMethod.Post, "/AccessRoles/Admin/Roles", body: KidRequest());
         var id = (string)created!["Role"]!["Id"]!;
         var stored = (string?)created["Role"]!["UpdatedUtc"];
@@ -465,7 +466,7 @@ public sealed class RolesApiTests
         // libraries; another admin then gave the target every library, and the DELETE with ifUpdatedAt and ifMembers still
         // deleted and moved the members to it. ifPreview compares the effect.
         await using var api = await StartWithUsersAsync();
-        var kid = api.UserManager.Object.Users.Single(u => u.Username == "kid");
+        var kid = api.UserManager.Object.AllUsers().Single(u => u.Username == "kid");
         var id = await CreateKidAsync(api);
         var (_, target) = await api.JsonAsync(HttpMethod.Post, "/AccessRoles/Admin/Roles", body: new { Name = "Shows only", Libraries = new { Mode = "Only", Refs = new[] { new { Id = Shows.Id } } } });
         var targetId = Guid.Parse((string)target!["Role"]!["Id"]!);
@@ -502,8 +503,8 @@ public sealed class RolesApiTests
         // The 409 used to name every member now, so a member removed since went unnamed and the unchanged
         // ones were named.
         await using var api = await StartWithUsersAsync();
-        var kid = api.UserManager.Object.Users.Single(u => u.Username == "kid");
-        var viewer = api.UserManager.Object.Users.Single(u => u.Username == "viewer");
+        var kid = api.UserManager.Object.AllUsers().Single(u => u.Username == "kid");
+        var viewer = api.UserManager.Object.AllUsers().Single(u => u.Username == "viewer");
         var id = await CreateKidAsync(api);
         await api.JsonAsync(HttpMethod.Post, "/AccessRoles/Admin/Users/Bulk", body: new { UserIds = new[] { kid.Id, viewer.Id }, AddRoleIds = new[] { id } });
         var read = await MembersTokenAsync(api, id);
@@ -536,7 +537,7 @@ public sealed class RolesApiTests
         return api;
     }
 
-    private static Guid AdminId(AccessRolesApi api) => api.UserManager.Object.Users.Single(u => u.Username == "admin").Id;
+    private static Guid AdminId(AccessRolesApi api) => api.UserManager.Object.AllUsers().Single(u => u.Username == "admin").Id;
 
     private static async Task<string> MembersTokenAsync(AccessRolesApi api, Guid roleId)
     {

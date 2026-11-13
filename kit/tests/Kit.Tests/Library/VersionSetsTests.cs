@@ -7,6 +7,7 @@ using Jellyfin.Plugin.Kit.TestSupport.Library;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.Movies;
 using Xunit;
+using Jellyfin.Plugin.Kit.TestSupport;
 
 namespace Jellyfin.Plugin.Kit.Tests.Library;
 
@@ -158,8 +159,8 @@ public sealed class VersionSetsTests
         NativeMergeVersions(a, c);
 
         // What native does: A points at C and C lists A and A's list (B); A's list is cleared; B still points at A.
-        Assert.Equal(c.Id.ToString("N", CultureInfo.InvariantCulture), a.PrimaryVersionId);
-        Assert.Equal(a.Id.ToString("N", CultureInfo.InvariantCulture), b.PrimaryVersionId);
+        Assert.Equal(c.Id.ToString("N", CultureInfo.InvariantCulture), a.PrimaryVersionText());
+        Assert.Equal(a.Id.ToString("N", CultureInfo.InvariantCulture), b.PrimaryVersionText());
         Assert.Empty(a.LinkedAlternateVersions);
 
         var set = Assert.Single(Group(new[] { a, b, c, d }.Select(VersionMember.From)));
@@ -375,8 +376,8 @@ public sealed class VersionSetsTests
         var library = new FakeLibrary();
         var primary = library.Add(new Movie { Name = "Heat", SortName = "Heat" });
         var secondary = library.Add(new Movie { Name = "Heat 4K", SortName = "Heat 4K" });
-        secondary.SetPrimaryVersionId(primary.Id.ToString("N", CultureInfo.InvariantCulture));
-        primary.LinkedAlternateVersions = [new LinkedChild { ItemId = secondary.Id, Path = @"C:\media\Heat 4K.mkv" }];
+        secondary.SetPrimaryVersion(primary.Id);
+        primary.LinkedAlternateVersions = [JellyfinLine.Link(secondary.Id, @"C:\media\Heat 4K.mkv")];
 
         var lookup = VersionSets.LibraryLookup(library.Object);
 
@@ -406,8 +407,8 @@ public sealed class VersionSetsTests
     public void From_ReadsAVideosVersionFields_AndAnyOtherItemIsStandalone()
     {
         var video = new Movie { Id = S1, Path = @"C:\a.mkv", SortName = "a" };
-        video.SetPrimaryVersionId(P.ToString("N", CultureInfo.InvariantCulture));
-        var folder = new Folder { Id = X };
+        video.SetPrimaryVersion(P);
+        var folder = new Folder { Id = X, Name = "Folder", SortName = "folder" };
 
         var member = VersionMember.From(video);
         Assert.Equal(P, member.PointsAt);
@@ -440,19 +441,19 @@ public sealed class VersionSetsTests
     private static void NativeMergeVersions(params Video[] videos)
     {
         var items = videos.OrderBy(i => i.Id).ToList();
-        var primary = items.FirstOrDefault(i => i.LinkedAlternateVersions.Length + 1 > 1 && string.IsNullOrEmpty(i.PrimaryVersionId)) ?? items[0];
+        var primary = items.FirstOrDefault(i => i.LinkedAlternateVersions.Length + 1 > 1 && i.PrimaryVersionText() is null) ?? items[0];
         var list = primary.LinkedAlternateVersions.ToList();
         foreach (var item in items.Where(i => i.Id != primary.Id))
         {
-            item.SetPrimaryVersionId(primary.Id.ToString("N", CultureInfo.InvariantCulture));
-            if (!list.Any(l => string.Equals(l.Path, item.Path, StringComparison.OrdinalIgnoreCase)))
+            item.SetPrimaryVersion(primary.Id);
+            if (!list.Any(l => Same(l, item.Id, item.Path)))
             {
-                list.Add(new LinkedChild { Path = item.Path, ItemId = item.Id });
+                list.Add(JellyfinLine.Link(item.Id, item.Path));
             }
 
             foreach (var linked in item.LinkedAlternateVersions)
             {
-                if (!list.Any(l => string.Equals(l.Path, linked.Path, StringComparison.OrdinalIgnoreCase)))
+                if (!list.Any(l => Same(l, linked.ItemId, linked.LinkPath())))
                 {
                     list.Add(linked);
                 }
@@ -463,4 +464,8 @@ public sealed class VersionSetsTests
 
         primary.LinkedAlternateVersions = list.ToArray();
     }
+
+    // 10.11 compares the listed paths, ignoring case; 12's links carry only the item id.
+    private static bool Same(LinkedChild link, Guid? id, string? path)
+        => JellyfinLine.Is12 ? link.ItemId == id : string.Equals(link.LinkPath(), path, StringComparison.OrdinalIgnoreCase);
 }

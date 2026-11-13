@@ -81,7 +81,8 @@ public sealed class AccessRolesRecoveryLineTests
                 + "\n" + second + "\n",
             new UTF8Encoding(true),
             TestContext.Current.CancellationToken);
-        Assert.DoesNotContain("8096", await File.ReadAllTextAsync(script, TestContext.Current.CancellationToken), StringComparison.Ordinal);
+        // Never the production server's port; the stand-in's own (any free one, 58096 once) may have the digits inside it.
+        Assert.DoesNotMatch(@"(?<!\d)8096(?!\d)", await File.ReadAllTextAsync(script, TestContext.Current.CancellationToken));
 
         var run = await WindowsPowerShell.RunFileAsync(script, [], executable: executable);
 

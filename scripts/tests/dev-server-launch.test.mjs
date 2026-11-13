@@ -22,6 +22,19 @@ function running(pid) {
     return (r.stdout || '').includes(`"${pid}"`);
 }
 
+// Whether the process is gone within the time given: one whose pipes just closed (spawnSync came back) may still be
+// listed for a moment while Windows runs it down.
+async function goneWithin(pid, ms) {
+    const until = Date.now() + ms;
+    while (running(pid)) {
+        if (Date.now() >= until) {
+            return false;
+        }
+        await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+    return true;
+}
+
 function stop(pid) {
     if (pid && running(pid)) {
         spawnSync('taskkill.exe', ['/PID', String(pid), '/T', '/F'], { windowsHide: true });
@@ -80,7 +93,7 @@ test('Start-ProcessWithLogs: the caller gets its pipes back at once; the child h
     }
 });
 
-test('the trap itself: Start-Process -RedirectStandardOutput keeps a piped caller waiting until the child exits', { skip: !windows }, (t) => {
+test('the trap itself: Start-Process -RedirectStandardOutput keeps a piped caller waiting until the child exits', { skip: !windows }, async (t) => {
     // The negative control, so this file tells the two apart on the machine it runs on.
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'jfp-launch-'));
     let pid = null;
@@ -90,8 +103,10 @@ test('the trap itself: Start-Process -RedirectStandardOutput keeps a piped calle
         t.diagnostic(`spawnSync came back after ${run.seconds} s, the child ${run.alive ? 'still running' : 'gone'}`);
         assert.equal(run.r.status, 0, run.r.stderr || '');
         assert.ok(pid, run.r.stdout);
-        assert.equal(run.alive, false, `spawnSync came back after ${run.seconds} s with the child still running`);
+        // spawnSync came back when the child's end closed the pipes: it waited the child's 15 s, and the child is gone
+        // (at once, or within the moment a process that just ended may still be listed; CI once saw it still listed).
         assert.ok(run.seconds >= 14, `${run.seconds} s`);
+        assert.ok(await goneWithin(pid, 5000), `spawnSync came back after ${run.seconds} s with the child still running 5 s later`);
     } finally {
         stop(pid);
         fs.rmSync(dir, { recursive: true, force: true });

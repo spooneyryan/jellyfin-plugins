@@ -127,6 +127,18 @@ internal sealed class ValueIndexService : IScopedLookups, IDisposable
     /// <summary>Gets how many indexes have been built (for tests and diagnostics).</summary>
     public int Builds => Volatile.Read(ref _builds);
 
+    /// <summary>Gets how many builds are running now, including those no caller waits for (for tests).</summary>
+    internal int RunningBuilds
+    {
+        get
+        {
+            lock (_gate)
+            {
+                return _building.Count;
+            }
+        }
+    }
+
     /// <summary>Gets the values of a field in the libraries a user asks for (within theirs), with their counts.</summary>
     /// <param name="user">The user.</param>
     /// <param name="fieldId">One of <see cref="Fields"/>.</param>

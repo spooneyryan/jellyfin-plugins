@@ -69,6 +69,17 @@ public sealed class ValueIndexTests
         Assert.Equal(builds, index.Builds);
     }
 
+    // Waits until no build runs, those nobody waits for included.
+    private static async Task WaitForNoRunningBuilds(ValueIndexService index)
+    {
+        for (var i = 0; i < 1000 && index.RunningBuilds > 0; i++)
+        {
+            await Task.Delay(10, Ct);
+        }
+
+        Assert.Equal(0, index.RunningBuilds);
+    }
+
     // Moves the clock on until the task ends (its timer may not exist yet when the test first moves it).
     private static async Task AdvanceUntil(ManualTimeProvider clock, Task task, TimeSpan step)
     {
@@ -165,6 +176,10 @@ public sealed class ValueIndexTests
         Assert.Equal(SmartSearchRefusedException.IndexBusyMessage, problem.GetProperty("detail").GetString());
         Assert.True((await host.SendAsync("GET", "/SmartSearch/Series?prefix=he", host.Kid)).Status == HttpStatusCode.ServiceUnavailable);
 
+        // The picker's 503 can leave a build behind: one of a library's folders backs off, so it answers Busy at once,
+        // after it started the build of another whose slot wait had timed out. That build still moves the clock and backs
+        // its key off from then; let it end before the back-off is waited out.
+        await WaitForNoRunningBuilds(host.Values);
         world.Core.OnQuery = null;
         clock.Advance(ValueIndexService.BuildBackOff);
         Assert.Equal(2, (await host.OkAsync("GET", "/SmartSearch/Values/Genres", host.Kid)).GetArrayLength());

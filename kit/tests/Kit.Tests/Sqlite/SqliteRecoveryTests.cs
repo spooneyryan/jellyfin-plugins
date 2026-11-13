@@ -128,19 +128,25 @@ public sealed class SqliteRecoveryTests : IDisposable
         var parents = SqliteFixture.RootPage(database, "Parents");
         database.Dispose();
         SqliteFixture.CorruptPage(_fx.File, bulk);
-        using var reopened = new SqliteDatabase(_fx.File, SqliteFixture.V2, _fx.Logger, _fx.Snapshots, _fx.Clock) { DamageRecheckDelay = TimeSpan.FromSeconds(1) };
         using var holder = new FileStream(_fx.File, FileMode.Open, FileAccess.ReadWrite, FileShare.ReadWrite | FileShare.Delete);
 
-        // The lock comes after the first check (milliseconds) and before the second (a second later).
-        var locking = Task.Run(
-            async () =>
+        // The lock comes after the first check and before the second: taken where the open says the first one failed
+        // (RecoveryStepFault's "confirm"), not by a timer racing the pause, which a slow runner lost.
+        var locked = 0;
+        using var reopened = new SqliteDatabase(_fx.File, SqliteFixture.V2, _fx.Logger, _fx.Snapshots, _fx.Clock)
+        {
+            DamageRecheckDelay = TimeSpan.FromSeconds(1),
+            RecoveryStepFault = step =>
             {
-                await Task.Delay(300, Ct);
-                holder.Lock((parents - 1) * 4096, 4096);
-            },
-            Ct);
+                // The first open's only: the open tried again later finds the file readable.
+                if (step == "confirm" && ++locked == 1)
+                {
+                    holder.Lock((parents - 1) * 4096, 4096);
+                }
+            }
+        };
         var status = reopened.Open();
-        await locking;
+        Assert.Equal(1, locked);
         holder.Unlock((parents - 1) * 4096, 4096);
 
         Assert.Equal(SqliteDatabaseStatus.Unavailable, status);

@@ -57,12 +57,19 @@ public sealed class SqliteBusyTests : IDisposable
     }
 
     [Fact]
-    public async Task ThreeWritesAtOnce_WhileAnotherConnectionHoldsBeginImmediate_AllAnswer503Busy_WithinSevenSeconds()
+    public async Task ThreeWritesAtOnce_WhileAnotherConnectionHoldsBeginImmediate_AllAnswer503Busy_NoneQueuedBehindTheOthers()
     {
         // The writes behind the first used to wait for the writer lock without a limit, so they answered at
         // 5.6, 11.1 and 16.7 s, one after another (a client gives up at 30 s, and one member's queue held up everyone's).
+        // Now a queued write waits for the writer lock only for what is left of its 5 s. The first to take the lock
+        // keeps it for SQLite's 5 s busy wait and Microsoft.Data.Sqlite's last 150 ms retry, so a queued write that
+        // began more than 150 ms after it (a thread-pool start on a loaded runner) gets the lock just before its own 5 s
+        // run out and waits out the other connection itself: 503 after about 10 s (9.16 s on CI), not a queue, since the
+        // third's 5 s ran out long before. What is checked is that: at least one write was refused for waiting on the
+        // writer lock (none was, before), each within its 5 s, and none answered later than two waits in a row.
         var database = _fx.Open();
         SqliteFixture.AddFamilies(database, 1);
+        int waitedOut;
 
         using (Hold(_fx.File, "BEGIN IMMEDIATE; INSERT INTO Parents (Id, Name) VALUES (900, 'held');"))
         {
@@ -75,15 +82,20 @@ public sealed class SqliteBusyTests : IDisposable
             var answers = await Task.WhenAll(writes);
 
             Assert.All(answers, a => Assert.Equal((PluginErrorKind.Unavailable, SqliteMessages.Busy), (a.Error.Kind, a.Error.Message)));
-            Assert.All(answers, a => Assert.True(a.Elapsed < BusyLimit, "A queued write answered after " + a.Elapsed));
+
+            // Refused at the writer lock (no SQLite error under it), or by SQLite's busy wait once it held the lock.
+            waitedOut = answers.Count(a => a.Error.InnerException is null);
+            Assert.InRange(waitedOut, 1, 2);
+            Assert.All(answers.Where(a => a.Error.InnerException is null), a => Assert.True(a.Elapsed < BusyBudgetUnderLoad, "A write waiting for the writer lock answered after " + a.Elapsed));
+            Assert.All(answers, a => Assert.True(a.Elapsed < BusyBudgetUnderLoad + TimeSpan.FromSeconds(SqliteDatabase.CommandTimeoutSeconds), "A queued write answered after " + a.Elapsed));
         }
 
         // The two that never got the writer lock changed nothing, marked nothing, and the next write goes through at once.
         Assert.Equal(SqliteDatabaseStatus.Ok, database.Status);
         Assert.Equal(1, SqliteFixture.Count(database, "Parents"));
         await database.WriteAsync((c, t) => { SqliteFixture.Execute(c, t, "INSERT INTO Parents (Id, Name) VALUES (920, 'after');"); return 0; }, Ct);
-        Assert.Equal(2, _fx.Logger.Entries.Count(e => e.Level == LogLevel.Information && e.Message.Contains("waited 5 s for the writes before it", StringComparison.Ordinal)));
-        Assert.Single(_fx.Logger.At(LogLevel.Warning), e => e.Message.Contains("locked for more than 5 s", StringComparison.Ordinal));
+        Assert.Equal(waitedOut, _fx.Logger.Entries.Count(e => e.Level == LogLevel.Information && e.Message.Contains("waited 5 s for the writes before it", StringComparison.Ordinal)));
+        Assert.Equal(3 - waitedOut, _fx.Logger.At(LogLevel.Warning).Count(e => e.Message.Contains("locked for more than 5 s", StringComparison.Ordinal)));
     }
 
     [Fact]

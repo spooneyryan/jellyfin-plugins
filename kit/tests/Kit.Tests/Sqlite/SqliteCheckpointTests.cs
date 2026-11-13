@@ -58,19 +58,38 @@ public sealed class SqliteCheckpointTests : IDisposable
     {
         // Regression: before, CheckpointAsync held the writer lock through its 5 s busy wait for the reader, and a
         // write queued behind it was a 503 after 5 s, while every caller ignored the false it answered.
-        var database = Open(retries: [TimeSpan.FromMilliseconds(100), TimeSpan.FromMilliseconds(100)]);
+        // The round's last try (the first and its two retries) waits after it tried until the writes are done: a round
+        // that ran out while they went on would let the next of them start a second round (the pending checkpoint tried
+        // again after a write), and the round below would be Running, on a slow runner. The hook runs outside the
+        // writer lock, so the writes are never held by it.
+        using var writesDone = new ManualResetEventSlim();
+        var tries = 0;
+        var database = Open(
+            retries: [TimeSpan.FromMilliseconds(100), TimeSpan.FromMilliseconds(100)],
+            hook: step =>
+            {
+                if (step == "tried" && Interlocked.Increment(ref tries) == 3)
+                {
+                    writesDone.Wait(TimeSpan.FromSeconds(30));
+                }
+            });
         await WriteAndDeleteMarkerAsync(database);
         using var reader = HoldReader();
 
         var checkpoint = database.RequestCheckpoint();
-        var watch = Stopwatch.StartNew();
+        var slowest = TimeSpan.Zero;
         for (var i = 0; i < 5; i++)
         {
+            var watch = Stopwatch.StartNew();
             await database.WriteAsync((c, t) => { SqliteFixture.Execute(c, t, "INSERT INTO Recent (Payload) VALUES ('queued');"); return 0; }, Ct);
+            slowest = watch.Elapsed > slowest ? watch.Elapsed : slowest;
             await Task.Delay(40, Ct);
         }
 
-        Assert.True(watch.ElapsedMilliseconds < 2000, "a write waited for the checkpoint: " + watch.ElapsedMilliseconds + " ms");
+        writesDone.Set();
+
+        // None was a 503 (above), and none waited out the 5 s busy wait the regression held the writer lock through.
+        Assert.True(slowest < TimeSpan.FromSeconds(4), "a write waited for the checkpoint: " + slowest.TotalMilliseconds + " ms");
         Assert.False(await checkpoint.WaitAsync(TimeSpan.FromSeconds(10), Ct));
 
         // Pending, and said once at Warning; the -wal still holds the earlier version of the page.

@@ -362,7 +362,9 @@ internal sealed class SqliteDatabase : IDisposable
     /// <summary>
     /// Gets what tests make a recovery's later step fail with: called with <c>install</c> before the checked snapshot's
     /// copy is renamed into place of the database moved aside (at each of the three tries), and with <c>open</c> before what
-    /// took its place is opened again; whatever it throws is that step's failure. <c>null</c> outside tests.
+    /// took its place is opened again; whatever it throws is that step's failure. It is also called with <c>confirm</c>
+    /// between the open's failed quick_check and the pause before its second check, where tests change the file the second
+    /// check reads. <c>null</c> outside tests.
     /// </summary>
     internal Action<string>? RecoveryStepFault { get; init; }
 
@@ -3328,6 +3330,7 @@ internal sealed class SqliteDatabase : IDisposable
     private string? ConfirmDamage(string problem)
     {
         _logger.LogWarning("{File} failed its quick_check at open ({Problem}); it is checked again with integrity_check before anything is moved", FilePath, problem);
+        RecoveryStepFault?.Invoke("confirm");
         if (DamageRecheckDelay > TimeSpan.Zero)
         {
             Thread.Sleep(DamageRecheckDelay);

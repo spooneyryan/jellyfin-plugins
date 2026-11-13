@@ -17,6 +17,7 @@ using Jellyfin.Plugin.UserRatings.Storage;
 using Jellyfin.Plugin.UserRatings.Tests.Storage;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Moq;
 using Xunit;
 
 namespace Jellyfin.Plugin.UserRatings.Tests.Services;
@@ -197,13 +198,26 @@ public sealed partial class RatingsDataTests
         var movie = _s.AddMovie(_s.Movies, "The Matrix", "603");
         await Store.UpsertAsync(Rating(_s.Viewer.Id, movie.Id, "A fine film."), Ct);
         var file = await ExportFileAsync();
+
+        // The job is kept running where it resolves the row's member, so the upload is looked at while it runs: a job
+        // that had already ended (it takes milliseconds) deleted it before the look, on a slow runner.
+        var resolving = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        using var release = new ManualResetEventSlim();
+        _s.UserManager.Setup(m => m.GetUserById(It.IsAny<Guid>())).Returns((Guid id) =>
+        {
+            resolving.TrySetResult();
+            release.Wait(TimeSpan.FromSeconds(30));
+            return _s.Users.FirstOrDefault(u => u.Id == id);
+        });
         await using (var body = File.OpenRead(file))
         {
             await _data.StartImportAsync(null, body, body.Length, "Merge", true, "Id", null, Ct);
         }
 
+        await resolving.Task.WaitAsync(TimeSpan.FromSeconds(10), Ct);
         Assert.Single(TmpFiles(), f => Path.GetFileName(f).StartsWith("userratings-import-", StringComparison.Ordinal));
         Assert.Equal(0, _data.SweepTemp()["Deleted"]);
+        release.Set();
         await Finished();
         Assert.DoesNotContain(TmpFiles(), f => Path.GetFileName(f).StartsWith("userratings-import-", StringComparison.Ordinal));
     }

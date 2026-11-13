@@ -2457,7 +2457,9 @@ public abstract class StoreConformanceTests : IDisposable
 
     /// <summary>
     /// The cost of loading, rewriting and snapshotting a 5 MB document (the size at which a JSON store should move to
-    /// SQLite). The medians are written to the test output; the budgets only catch a pathological regression.
+    /// SQLite). The medians are written to the test output; the budgets only catch a pathological regression: 5 s each
+    /// here (a commit takes tens of milliseconds on a developer machine), 60 s on a shared CI runner (<c>CI</c> set), whose
+    /// disk once took 3.6 to 8.1 s for each 5 MB commit and 10.8 s for a snapshot while loads took 18 ms.
     /// </summary>
     /// <returns>A task.</returns>
     [Fact]
@@ -2502,10 +2504,11 @@ public abstract class StoreConformanceTests : IDisposable
         TestContext.Current.TestOutputHelper?.WriteLine(report);
         TestContext.Current.SendDiagnosticMessage(report);
 
+        var budget = string.IsNullOrEmpty(Environment.GetEnvironmentVariable("CI")) ? 5000 : 60000;
         Assert.True(size >= TimingDocumentBytes);
-        Assert.True(Median(loads) < 5000, report);
-        Assert.True(Median(commits) < 5000, report);
-        Assert.True(Median(snapshots) < 5000, report);
+        Assert.True(Median(loads) < budget, report);
+        Assert.True(Median(commits) < budget, report);
+        Assert.True(Median(snapshots) < budget, report);
     }
 
     public void Dispose()

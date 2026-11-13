@@ -9,6 +9,14 @@
     "imageUrl": "https://raw.githubusercontent.com/spooneyryan/jellyfin-plugins/main/plugins/AccessRoles/image.png",
     "versions": [
       {
+        "version": "2.0.0.0",
+        "changelog": "- For Jellyfin 12.4 and later: the same plugin as 1.0.3, built for\n  Jellyfin 12. Jellyfin 10.11 servers keep 1.0.3.",
+        "targetAbi": "12.4.0.0",
+        "sourceUrl": "https://github.com/spooneyryan/jellyfin-plugins/releases/download/accessroles%2Fv2.0.0/accessroles_2.0.0.0.zip",
+        "checksum": "5f28a78c5744fa033fd89910a6fdfd0e",
+        "timestamp": "2026-11-13T08:40:04Z"
+      },
+      {
         "version": "1.0.3.0",
         "changelog": "- First public release.\n- Roles for your Jellyfin users: lock parts of their own settings, keep them away from the Dashboard's data and from other users, and choose which libraries they can open.\n- The server enforces the roles for every client, not just the web client, and every change is previewed before it is saved.",
         "targetAbi": "10.11.5.0",
@@ -28,6 +36,14 @@
     "imageUrl": "https://raw.githubusercontent.com/spooneyryan/jellyfin-plugins/main/plugins/Bookmarks/image.png",
     "versions": [
       {
+        "version": "2.0.0.0",
+        "changelog": "- For Jellyfin 12.4 and later: the same plugin as 1.2.2, built for\n  Jellyfin 12. Jellyfin 10.11 servers keep 1.2.2.",
+        "targetAbi": "12.4.0.0",
+        "sourceUrl": "https://github.com/spooneyryan/jellyfin-plugins/releases/download/bookmarks%2Fv2.0.0/bookmarks_2.0.0.0.zip",
+        "checksum": "0bf49abb6236208047cbeaa0d968444b",
+        "timestamp": "2026-11-13T08:40:04Z"
+      },
+      {
         "version": "1.2.2.0",
         "changelog": "- First public release.\n- Each user can bookmark moments in movies and episodes while watching, name them, and find them again on the My Bookmarks page.\n- A bookmark with an end time can be cut into a clip file with ffmpeg; the My Clips page lists, previews and downloads your clips.\n- Bookmarks made in Jellyfin Enhanced can be imported.",
         "targetAbi": "10.11.5.0",
@@ -46,6 +62,14 @@
     "category": "General",
     "imageUrl": "https://raw.githubusercontent.com/spooneyryan/jellyfin-plugins/main/plugins/LibraryMaintenance/image.png",
     "versions": [
+      {
+        "version": "2.0.0.0",
+        "changelog": "- For Jellyfin 12.4 and later: the same plugin as 1.0.4, built for\n  Jellyfin 12. Jellyfin 10.11 servers keep 1.0.4.",
+        "targetAbi": "12.4.0.0",
+        "sourceUrl": "https://github.com/spooneyryan/jellyfin-plugins/releases/download/librarymaintenance%2Fv2.0.0/librarymaintenance_2.0.0.0.zip",
+        "checksum": "556239d200157f1f77e8eb00ca25de3a",
+        "timestamp": "2026-11-13T08:40:04Z"
+      },
       {
         "version": "1.0.4.0",
         "changelog": "- First public release.\n- An admin-only page that lists the movies your libraries hold more than once, with the space the extra copies take.\n- A preview of moving a movie, an episode or a music video to another folder. The plugin is read-only: it moves, deletes and changes nothing in your libraries.",
@@ -93,6 +117,14 @@
     "imageUrl": "https://raw.githubusercontent.com/spooneyryan/jellyfin-plugins/main/plugins/TagCloud/image.png",
     "versions": [
       {
+        "version": "2.0.0.0",
+        "changelog": "- For Jellyfin 12.4 and later: the same plugin as 1.0.1, built for\n  Jellyfin 12. Jellyfin 10.11 servers keep 1.0.1.",
+        "targetAbi": "12.4.0.0",
+        "sourceUrl": "https://github.com/spooneyryan/jellyfin-plugins/releases/download/tagcloud%2Fv2.0.0/tagcloud_2.0.0.0.zip",
+        "checksum": "7b93b4775866cfac069ba198374fae5b",
+        "timestamp": "2026-11-13T08:40:04Z"
+      },
+      {
         "version": "1.0.1.0",
         "changelog": "- First public release.\n- A Tag Cloud page that shows the tags, genres, actors, directors, writers or studios of your movies and shows as a word cloud; click a word to see its titles.\n- Saved clouds, private or shared, and a full-screen view. Counts only cover what the viewer may see.",
         "targetAbi": "10.11.5.0",
@@ -111,6 +143,14 @@
     "category": "General",
     "imageUrl": "https://raw.githubusercontent.com/spooneyryan/jellyfin-plugins/main/plugins/UserRatings/image.png",
     "versions": [
+      {
+        "version": "2.0.0.0",
+        "changelog": "- For Jellyfin 12.4 and later: the same plugin as 1.0.2, built for\n  Jellyfin 12. Jellyfin 10.11 servers keep 1.0.2.",
+        "targetAbi": "12.4.0.0",
+        "sourceUrl": "https://github.com/spooneyryan/jellyfin-plugins/releases/download/userratings%2Fv2.0.0/userratings_2.0.0.0.zip",
+        "checksum": "90ff4a86bbd1ed3168749828d9ae1698",
+        "timestamp": "2026-11-13T08:40:04Z"
+      },
       {
         "version": "1.0.2.0",
         "changelog": "- First public release.\n- Members rate movies, shows, episodes and more from half a star to five stars and write reviews, shared with every member of the server.\n- Admins choose who may rate, moderate reviews, and export, import and restore the ratings. Jellyfin Enhanced's reviews can be imported and exported back.",

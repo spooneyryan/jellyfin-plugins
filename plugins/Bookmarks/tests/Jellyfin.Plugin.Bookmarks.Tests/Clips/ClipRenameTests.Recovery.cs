@@ -452,7 +452,15 @@ public sealed partial class ClipRenameTests
         var loud = logger.Entries.Count(l => l.Level >= LogLevel.Information && l.Message.StartsWith("Clip file renames that weren't finished", StringComparison.Ordinal));
         using var stop = CancellationTokenSource.CreateLinkedTokenSource(Ct);
         var retry = files.RetryWaitingRenamesAsync(TimeSpan.FromMilliseconds(20), stop.Token);
-        await Task.Delay(150, Ct);
+
+        // Two of its passes, waited for (a fixed 150 ms saw none under a full test run's load).
+        static int Quiet(ListLogger log) => log.Entries.Count(l => l.Level == LogLevel.Debug && l.Message.StartsWith("Clip file renames that weren't finished", StringComparison.Ordinal));
+        for (var i = 0; i < 400 && Quiet(logger) < 2; i++)
+        {
+            await Task.Delay(25, Ct);
+        }
+
+        Assert.True(Quiet(logger) >= 2, "The retry made " + Quiet(logger) + " passes in 10 s");
         Assert.Single(JournalFiles());
         Assert.True(Pass(logger));
         Assert.Equal(loud, logger.Entries.Count(l => l.Level >= LogLevel.Information && l.Message.StartsWith("Clip file renames that weren't finished", StringComparison.Ordinal)));

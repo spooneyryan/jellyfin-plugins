@@ -1,5 +1,31 @@
 # Changelog
 
+## 1.0.5 / 2.0.1 (2026-11-16)
+
+1.0.5 for Jellyfin 10.11, 2.0.1 for Jellyfin 12.4: 1.0.4 (and 2.0.0) with a comparison of each duplicate group's copies.
+The settings file is kept as it is, and going back to 1.0.4 (or 2.0.0) keeps it too. Still read-only, and still the
+plan-only build of the move preview.
+
+**Compare copies**
+- A group's card has **Compare copies**, which opens a panel in the card with its copies side by side, one column per
+  file (an entry's versions each get their own): the file's name and folder, its size, container and runtime, the
+  resolution, video codec and profile, bit depth, dynamic range (SDR, HDR10, HDR10+, HLG, Dolby Vision), frame rate,
+  video and overall bitrate, every audio track (language, codec, channels, title, commentary, default), every subtitle
+  (language, format, forced, default, SDH, embedded or an external file), the special features (counted by kind, and by
+  where they are: beside the file, in an extras folder such as `Featurettes`, or elsewhere; commentary tracks count
+  too; theme songs and videos don't), when it was added, and how many users played it, have it in progress, and played
+  it in all (counts only, no names). **Open** on each column goes to that copy's page.
+- **Best** marks the highest value of a detail the copies differ in (resolution, size, bitrates, bit depth, HDR over
+  SDR, the number of audio and subtitle tracks, the most channels, the special features); **Differs** marks every
+  detail that isn't the same in all of them. Both are advice only, like the suggested keep.
+- **Read on request, for one group.** The groups' list costs nothing more; the panel asks
+  `GET /LibraryMaintenance/Duplicates/Groups/{groupId}/Compare` when it is opened. It reads what Jellyfin stored at its
+  last scan (never the file itself), so a copy on an unplugged drive still shows its tracks; each file is only checked
+  for being there (*File not found*, or *File not checked* when the check takes over 3 s). Administrators only, each
+  within the libraries their account can see, like the groups.
+- **Phones and TVs**: on a narrow screen each detail lists its copies one under the other, each named; long track lists
+  fold behind **Show N more**; every control is a button or a link, so the TV remote reaches them.
+
 ## 1.0.4 (2026-11-10)
 
 The first public release: 1.0.3 as it was, with the plugin's image on the Dashboard's Plugins page. No other

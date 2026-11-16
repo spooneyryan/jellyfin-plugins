@@ -101,24 +101,32 @@ public class TagCloudController : ControllerBase
         => Ok(_query.GetWords(GetCurrentUser(), source, scope, libraryIds, narrow, limit));
 
     /// <summary>
-    /// Gets a page of one word's titles over the caller's titles. A word the caller's titles don't carry gives an empty
-    /// page.
+    /// Gets a page of one word's titles over the caller's titles, filtered and sorted on the server before the page is cut.
+    /// A word the caller's titles don't carry gives an empty page.
     /// </summary>
     /// <param name="source">What the word is.</param>
     /// <param name="key">The word's key.</param>
     /// <param name="scope">Which titles.</param>
     /// <param name="libraryIds">Comma-separated library ids; none for every library the caller can open.</param>
     /// <param name="narrow">Word keys the titles must also carry.</param>
-    /// <param name="order">Name (A–Z) or Random (fixed by <paramref name="seed"/>).</param>
+    /// <param name="order">Name (A–Z) or Random (fixed by <paramref name="seed"/>; takes no <paramref name="sort"/>).</param>
     /// <param name="seed">The shuffle's seed.</param>
-    /// <param name="startIndex">How many to skip.</param>
+    /// <param name="startIndex">How many to skip, 0 or more.</param>
     /// <param name="limit">The most to return, 1–200 (50 by default).</param>
-    /// <response code="200">The page of titles.</response>
+    /// <param name="sort">Name, ReleaseDate, DateAdded or Rating; none for <paramref name="order"/>. A title without the
+    /// value sorts last.</param>
+    /// <param name="descending">Whether the sort runs the other way round.</param>
+    /// <param name="q">Text the name or the original title must hold, ignoring case and accents (at most 100 characters).</param>
+    /// <param name="minResolution">Any, P480, P720, P1080 or P4K: the least sharp movie kept (series are never left out by it).</param>
+    /// <param name="unwatched">Only the titles the caller hasn't watched (a series counts as watched when fully played).</param>
+    /// <response code="200">The page of titles; <c>Total</c> counts those the filters keep, <c>Unfiltered</c> all of them.</response>
+    /// <response code="400">A value out of range, an unknown sort or resolution, or a sort with <c>order=Random</c>.</response>
     /// <response code="403">The cloud is turned off by the server admin.</response>
     /// <response code="503">The index is being built.</response>
     /// <returns>The page.</returns>
     [HttpGet("Titles")]
     [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status503ServiceUnavailable)]
     public ActionResult<TagCloudTitlesDto> GetTagCloudTitles(
@@ -130,8 +138,28 @@ public class TagCloudController : ControllerBase
         [FromQuery] TagCloudTitleOrder order = TagCloudTitleOrder.Name,
         [FromQuery] int seed = 0,
         [FromQuery] int startIndex = 0,
-        [FromQuery] int limit = 50)
-        => Ok(_query.GetTitles(GetCurrentUser(), source, scope, libraryIds, narrow, key, order, seed, startIndex, limit));
+        [FromQuery] int limit = 50,
+        [FromQuery] TagCloudTitleSort? sort = null,
+        [FromQuery] bool descending = false,
+        [FromQuery] string? q = null,
+        [FromQuery] TagCloudMinResolution minResolution = TagCloudMinResolution.Any,
+        [FromQuery] bool unwatched = false)
+        => Ok(_query.GetTitles(
+            GetCurrentUser(),
+            source,
+            scope,
+            libraryIds,
+            narrow,
+            key,
+            order,
+            seed,
+            startIndex,
+            limit,
+            sort,
+            descending,
+            q,
+            minResolution,
+            unwatched));
 
     /// <summary>
     /// Gets the Tag Cloud web client's script: the kit's web client and Tag Cloud's page in one IIFE. The script tag that

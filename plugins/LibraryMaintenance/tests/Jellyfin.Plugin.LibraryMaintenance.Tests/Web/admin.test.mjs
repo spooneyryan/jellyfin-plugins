@@ -904,6 +904,209 @@ test('the index\'s poll leaves a notice and its button alone', { skip }, async (
     assert.equal(page.document.activeElement, action);
 });
 
+// ---------------------------------------------------------------------------------------------- the comparison
+
+const COMPARE = /^\/LibraryMaintenance\/Duplicates\/Groups\/[^/]+\/Compare$/;
+const compareLog = (page) => page.fetchLog.filter((e) => COMPARE.test(e.path));
+
+function audio(changes) {
+    return Object.assign({ Index: 1, Language: 'eng', Codec: 'truehd', Channels: 8, ChannelLayout: '7.1', Title: null, IsCommentary: false, IsDefault: true, IsExternal: false }, changes || {});
+}
+
+function copy(changes) {
+    return Object.assign({
+        ItemId: '000000000000000000000000000001a1', EntryItemId: '000000000000000000000000000001a1', Role: 'Main', Name: 'Movie 1',
+        Path: 'C:\\media\\Movies\\Heat (1995)\\Heat (1995) - 2160p.mkv', FileName: 'Heat (1995) - 2160p.mkv', Folder: 'C:\\media\\Movies\\Heat (1995)',
+        FileState: 'Present', SizeBytes: 60000000000, Container: 'mkv', VideoType: 'VideoFile', RunTimeTicks: 102000000000, TotalBitrate: 48000000, PartCount: 1,
+        Video: { Width: 3840, Height: 1600, ResolutionLabel: '2160p', Codec: 'hevc', Profile: 'Main 10', BitDepth: 10, VideoRange: 'HDR', VideoRangeType: 'HDR10', BitRate: 45000000, FrameRate: 23.976, IsInterlaced: false },
+        Audio: [audio(), audio({ Index: 2, Codec: 'eac3', Channels: 2, ChannelLayout: null, Title: 'Director\'s Commentary', IsCommentary: true, IsDefault: false })],
+        Subtitles: [
+            { Index: 3, Language: 'eng', Codec: 'PGSSUB', Title: null, IsForced: true, IsDefault: false, IsHearingImpaired: false, IsExternal: false, FileName: null },
+            { Index: 4, Language: 'fre', Codec: 'subrip', Title: null, IsForced: false, IsDefault: false, IsHearingImpaired: false, IsExternal: true, FileName: 'Heat (1995) - 2160p.fr.srt' }
+        ],
+        SpecialFeatures: {
+            Count: 3,
+            ByKind: [{ Name: 'Featurette', Folder: null, Count: 2 }, { Name: 'Commentary', Folder: null, Count: 1 }],
+            ByLocation: [{ Name: 'ExtrasFolder', Folder: 'Featurettes', Count: 2 }, { Name: 'AudioTrack', Folder: null, Count: 1 }],
+            Items: [
+                { Name: 'Heat', FileName: 'Shoot-out.mkv', Kind: 'Featurette', Location: 'ExtrasFolder', Folder: 'Featurettes', RunTimeTicks: 3000000000 },
+                { Name: 'Score', FileName: 'Score.mkv', Kind: 'Featurette', Location: 'ExtrasFolder', Folder: 'Featurettes', RunTimeTicks: null }
+            ]
+        },
+        DateCreated: '2021-03-02T10:00:00Z',
+        Played: { UsersPlayed: 1, UsersInProgress: 1, PlayCount: 4 }
+    }, changes || {});
+}
+
+// GET …/Compare's answer for group(1): its 2160p keep and a 1080p copy on a drive that's gone, with one track each and
+// nothing else.
+function comparison(changes) {
+    const other = copy({
+        ItemId: '000000000000000000000000000001b2', EntryItemId: '000000000000000000000000000001b2', Path: 'N:\\Movies\\Heat (1995)\\Heat (1995).mp4',
+        FileName: 'Heat (1995).mp4', Folder: 'N:\\Movies\\Heat (1995)', FileState: 'Missing', SizeBytes: 9000000000, Container: 'mp4', TotalBitrate: 12000000,
+        Video: { Width: 1920, Height: 800, ResolutionLabel: '1080p', Codec: 'h264', Profile: 'High', BitDepth: 8, VideoRange: 'SDR', VideoRangeType: 'SDR', BitRate: 10000000, FrameRate: 23.976, IsInterlaced: false },
+        Audio: [audio({ Codec: 'aac', Channels: 6, ChannelLayout: null })], Subtitles: [],
+        SpecialFeatures: { Count: 0, ByKind: [], ByLocation: [], Items: [] }, Played: { UsersPlayed: 0, UsersInProgress: 0, PlayCount: 0 }
+    });
+    const keep = copy();
+    const best = (field) => ({ Field: field, ItemIds: [keep.ItemId] });
+    return Object.assign({
+        GroupId: '0000000000000001', DisplayTitle: 'Movie 1', SuggestedKeepId: keep.ItemId, Copies: [keep, other], Truncated: false,
+        Best: ['Resolution', 'Size', 'Bitrate', 'VideoBitrate', 'BitDepth', 'DynamicRange', 'AudioTracks', 'AudioChannels', 'SubtitleTracks', 'SpecialFeatures'].map(best)
+    }, changes || {});
+}
+
+const rowOf = (panel, label) => panel.querySelectorAll('tr').filter((r) => r.getAttribute('data-row') === label)[0];
+const cellsOf = (row) => row.querySelectorAll('td');
+const compareToggle = (card) => button(card, 'Compare copies') || button(card, 'Hide the comparison');
+const comparePanel = (card) => card.querySelector('.jflm-page-compare');
+const shown = (node) => !node.classList.contains('hide');
+
+test('each card can compare its copies on demand: nothing is asked for the list, one group\'s copies when opened', { skip }, async () => {
+    const { page, root } = await start();
+    page.respond('GET', COMPARE, comparison());
+    assert.equal(compareLog(page).length, 0, 'the list asks for no comparison');
+    const card = cards(root)[0];
+    const toggle = compareToggle(card);
+    const panel = comparePanel(card);
+    assert.equal(toggle.getAttribute('aria-expanded'), 'false');
+    assert.equal(toggle.getAttribute('aria-controls'), panel.id);
+    assert.equal(shown(panel), false, 'closed at first');
+
+    toggle.click();
+    assert.equal(panel.querySelector('[role="status"]').textContent, 'Comparing the copies…');
+    await page.flush();
+    const asked = compareLog(page);
+    assert.equal(asked.length, 1);
+    assert.equal(asked[0].path, '/LibraryMaintenance/Duplicates/Groups/0000000000000001/Compare');
+    assert.deepEqual(asked[0].query, { mode: 'TitleAndYear', unknownYear: 'MatchUnknownOnly' }, 'the options the groups came from');
+    assert.equal(toggle.getAttribute('aria-expanded'), 'true');
+    assert.equal(toggle.textContent, 'Hide the comparison');
+    assert.ok(shown(panel));
+    assert.equal(panel.querySelector('[role="status"]').textContent, '2 copies compared.');
+
+    // A column per copy: its number, file, chips and Open.
+    const heads = panel.querySelectorAll('thead th');
+    assert.deepEqual(heads.map((h) => h.querySelector('bdi').textContent), ['Heat (1995) - 2160p.mkv', 'Heat (1995).mp4']);
+    assert.ok(heads[0].textContent.includes('Suggested keep'));
+    assert.ok(heads[1].textContent.includes('File not found'), 'an offline copy says so');
+    assert.equal(heads[1].getAttribute('title'), 'N:\\Movies\\Heat (1995)\\Heat (1995).mp4');
+    assert.match(heads[0].querySelector('a').getAttribute('href'), /^#\/details\?id=000000000000000000000000000001a1/);
+    assert.equal(heads[1].querySelector('a').getAttribute('aria-label'), 'Open copy 2, Heat (1995).mp4');
+
+    // Rows: the best marked with a word, differences too.
+    const resolution = rowOf(panel, 'Resolution');
+    assert.deepEqual(cellsOf(resolution).map((c) => c.textContent), ['Best3840 × 1600 (2160p)', '1920 × 800 (1080p)']);
+    assert.ok(resolution.querySelector('th').textContent.includes('Differs'));
+    assert.deepEqual(cellsOf(resolution).map((c) => c.getAttribute('data-copy')), ['Copy 1', 'Copy 2'], 'named for the narrow layout');
+    assert.equal(cellsOf(rowOf(panel, 'Dynamic range'))[0].textContent, 'BestHDR10');
+    assert.equal(cellsOf(rowOf(panel, 'Video'))[1].textContent, 'H264 High');
+    assert.equal(cellsOf(rowOf(panel, 'Frame rate'))[0].textContent, '23.976 fps');
+    assert.equal(rowOf(panel, 'Frame rate').querySelector('th').textContent, 'Frame rate', 'the same in both: no Differs');
+    assert.equal(rowOf(panel, 'Added').querySelector('th').textContent, 'Added');
+    const audioCells = cellsOf(rowOf(panel, 'Audio'));
+    assert.deepEqual(audioCells[0].querySelectorAll('li').map((l) => l.textContent),
+        ['eng · TRUEHD · 7.1 · default', 'eng · EAC3 · stereo · “Director\'s Commentary” · commentary']);
+    assert.ok(audioCells[0].textContent.startsWith('Best2 tracks'), audioCells[0].textContent);
+    assert.deepEqual(cellsOf(rowOf(panel, 'Subtitles'))[0].querySelectorAll('li').map((l) => l.textContent),
+        ['eng · PGS · forced · embedded', 'fre · SRT · external (Heat (1995) - 2160p.fr.srt)']);
+    assert.equal(cellsOf(rowOf(panel, 'Subtitles'))[1].textContent, 'None');
+    const features = cellsOf(rowOf(panel, 'Special features'));
+    assert.ok(features[0].textContent.includes('3: 2 featurettes, 1 commentary track'), features[0].textContent);
+    assert.ok(features[0].textContent.includes('2 in the folder Featurettes; 1 as an audio track'), features[0].textContent);
+    assert.ok(features[0].textContent.includes('Featurette: Heat (Shoot-out.mkv) · 5 min'), features[0].textContent);
+    assert.equal(features[1].textContent, 'None');
+    assert.deepEqual(cellsOf(rowOf(panel, 'Watched')).map((c) => c.textContent), ['1 user played · 1 in progress · 4 plays', 'Not played']);
+
+    // Closing hides it; opening again shows what was read, without asking again.
+    toggle.click();
+    assert.equal(shown(panel), false);
+    assert.equal(toggle.getAttribute('aria-expanded'), 'false');
+    toggle.click();
+    await page.flush();
+    assert.equal(compareLog(page).length, 1);
+    assert.equal(page.errors.length, 0, page.errors.join('\n'));
+});
+
+test('a long track list folds after six behind a button that says how many, and the comparison\'s values are text', { skip }, async () => {
+    const tracks = Array.from({ length: 9 }, (_, i) => audio({ Index: i, Language: 'l' + i, Title: i === 0 ? '<img src=x onerror=alert(1)>' : null }));
+    const { page, root } = await start();
+    page.respond('GET', COMPARE, comparison({ DisplayTitle: '<b>Movie</b>', Copies: [copy({ Audio: tracks, FileName: '<script>x</script>.mkv' }), copy({ ItemId: 'b2', Audio: [] })] }));
+    const card = cards(root)[0];
+    compareToggle(card).click();
+    await page.flush();
+    const panel = comparePanel(card);
+    const cell = cellsOf(rowOf(panel, 'Audio'))[0];
+    const lists = cell.querySelectorAll('ul');
+    assert.equal(lists[0].querySelectorAll('li').length, 6);
+    assert.equal(shown(lists[1]), false);
+    const more = button(cell, 'Show 3 more');
+    assert.equal(more.getAttribute('aria-expanded'), 'false');
+    assert.equal(more.getAttribute('aria-label'), 'Show 3 more tracks');
+    more.click();
+    assert.ok(shown(lists[1]));
+    assert.equal(more.textContent, 'Show fewer');
+    assert.equal(more.getAttribute('aria-expanded'), 'true');
+    assert.equal(panel.querySelectorAll('img').length + panel.querySelectorAll('script').length + panel.querySelectorAll('b').length, 0, 'no markup from the server');
+    assert.ok(panel.querySelector('caption').textContent.includes('<b>Movie</b>'));
+});
+
+test('a failed comparison says why with Try again, which asks again; no index yet says so', { skip }, async () => {
+    const { page, root } = await start();
+    page.respond('GET', COMPARE, { detail: 'This duplicate group is gone: its movies changed, or the options or libraries differ.' }, 404);
+    const card = cards(root)[0];
+    compareToggle(card).click();
+    await page.flush();
+    const panel = comparePanel(card);
+    assert.ok(panel.querySelector('[role="alert"]').textContent.startsWith('Couldn\'t compare the copies: This duplicate group is gone'));
+
+    page.respond('GET', COMPARE, { Rebuilding: true }, 202);
+    button(panel, 'Try again').click();
+    await page.flush();
+    assert.equal(compareLog(page).length, 2);
+    assert.ok(panel.textContent.includes('The movie index is being built; try again in a moment.'));
+
+    page.respond('GET', COMPARE, comparison());
+    button(panel, 'Try again').click();
+    await page.flush();
+    assert.equal(panel.querySelectorAll('table').length, 1);
+    assert.equal(panel.querySelectorAll('[role="alert"]').length, 0);
+});
+
+test('an open comparison stays open when a newer index makes the cards again, and asks with the chosen libraries', { skip }, async () => {
+    const chosen = '11111111111111111111111111111111';
+    const { page, root } = await start({ index: index({ Rebuilding: true, Progress: 0.5 }), storage: (s) => s.setItem(PREFS, JSON.stringify({ libraryIds: [chosen] })) });
+    page.respond('GET', COMPARE, comparison());
+    compareToggle(cards(root)[0]).click();
+    await page.flush();
+    assert.equal(compareLog(page)[0].query.libraryIds, chosen);
+
+    page.respond('GET', INDEX, index({ Version: 2 }));
+    page.respond('GET', GROUPS, groupsPage({ Index: groupsIndex({ Version: 2 }) }));
+    await page.advance(2000);
+    await page.flush();
+    const card = cards(root)[0];
+    assert.equal(compareToggle(card).getAttribute('aria-expanded'), 'true');
+    assert.equal(compareLog(page).length, 2, 'read again for the newer index');
+    assert.equal(comparePanel(card).querySelectorAll('table').length, 1);
+});
+
+test('on the TV layout the comparison\'s controls are buttons and links, none disabled, and its table can take the focus', { skip }, async () => {
+    const { page, root } = await start({ tv: true });
+    page.respond('GET', COMPARE, comparison());
+    const card = cards(root)[0];
+    compareToggle(card).focus();
+    compareToggle(card).click();
+    await page.flush();
+    const panel = comparePanel(card);
+    const controls = panel.querySelectorAll('button, a[href]');
+    assert.ok(controls.length >= 2);
+    assert.equal(controls.filter((c) => c.disabled).length, 0);
+    assert.equal(panel.querySelector('.jflm-page-compare-scroll').getAttribute('tabindex'), '0');
+    assert.equal(page.document.activeElement, compareToggle(card), 'the focus stays on the toggle');
+    assert.equal(page.errors.length, 0, page.errors.join('\n'));
+});
+
 // ---------------------------------------------------------------------------------------------- the Settings tab
 
 const byId = (page, id) => page.document.getElementById(id);

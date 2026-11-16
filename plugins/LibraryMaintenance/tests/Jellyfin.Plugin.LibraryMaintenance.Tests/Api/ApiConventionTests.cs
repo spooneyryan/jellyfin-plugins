@@ -18,6 +18,16 @@ public sealed class ApiConventionTests
     private static readonly string[] SchemaIds =
     [
         "LibraryMaintenanceCapabilitiesDto",
+        "LibraryMaintenanceDuplicateCompareAudioDto",
+        "LibraryMaintenanceDuplicateCompareBestDto",
+        "LibraryMaintenanceDuplicateCompareCopyDto",
+        "LibraryMaintenanceDuplicateCompareCountDto",
+        "LibraryMaintenanceDuplicateCompareDto",
+        "LibraryMaintenanceDuplicateCompareFeatureDto",
+        "LibraryMaintenanceDuplicateCompareFeaturesDto",
+        "LibraryMaintenanceDuplicateComparePlayedDto",
+        "LibraryMaintenanceDuplicateCompareSubtitleDto",
+        "LibraryMaintenanceDuplicateCompareVideoDto",
         "LibraryMaintenanceDuplicateGroupDto",
         "LibraryMaintenanceDuplicateGroupEntryDto",
         "LibraryMaintenanceDuplicateGroupLibraryDto",

@@ -175,6 +175,9 @@ public sealed class DuplicatesApiTests
             {
                 services.AddLogging();
                 services.AddSingleton(library.Fake.Object);
+                // The Duplicates controller also takes the comparison (1.0.5), which reads streams and watch data.
+                services.AddSingleton(new Mock<MediaBrowser.Controller.Library.IMediaSourceManager>().Object);
+                services.AddSingleton(new Mock<MediaBrowser.Controller.Library.IUserDataManager>().Object);
 
                 // The kit's library-change monitor is a hosted service, and takes the server; the controller takes
                 // the user manager, for the groups' library access (GroupsApiTests).

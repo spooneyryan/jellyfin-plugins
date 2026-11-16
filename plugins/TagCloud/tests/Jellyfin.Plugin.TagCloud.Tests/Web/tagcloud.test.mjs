@@ -2,12 +2,13 @@
 //   KIT_CLIENT_SCRIPT=<file> KIT_PREFIX=jftc node --test plugins/TagCloud/tests/Jellyfin.Plugin.TagCloud.Tests/Web/tagcloud.test.mjs
 // The layout's cases pin how words are picked, sized, shaded and ordered. The packer runs over synthetic sprites, and in full through a fake
 // canvas whose words are solid boxes, for the size mixing's measure. The script itself starts in
-// the kit's fake page.
+// the kit's fake page. The titles list's view and the picture card's place are pure (32-titles.js); the renderer's picture
+// card runs in the fake page with the kit and the cloud's own files.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
-import { createPage } from '../../../../../kit/web/tests/fake-dom.mjs';
+import { createPage, loadKit } from '../../../../../kit/web/tests/fake-dom.mjs';
 
 const file = process.env.KIT_CLIENT_SCRIPT;
 const skip = !file ? 'KIT_CLIENT_SCRIPT is not set' : false;
@@ -18,11 +19,11 @@ function loadPure(extra) {
     const read = (name) => fs.readFileSync(new URL('../../../Jellyfin.Plugin.TagCloud/Web/js/' + name, import.meta.url), 'utf8');
     const context = Object.assign({ performance, setTimeout, Math, WeakMap, Uint8Array, Uint32Array, Promise }, extra || {});
     vm.createContext(context);
-    vm.runInContext(read('30-layout.js') + '\n' + read('35-pack.js') + '\nthis.tcLayout = tcLayout; this.tcPack = tcPack;', context);
+    vm.runInContext(read('30-layout.js') + '\n' + read('32-titles.js') + '\n' + read('35-pack.js') + '\nthis.tcLayout = tcLayout; this.tcPack = tcPack; this.tcTitleView = tcTitleView;', context);
     return context;
 }
 
-const { tcLayout, tcPack } = loadPure();
+const { tcLayout, tcPack, tcTitleView } = loadPure();
 
 function word(text, weight, key) {
     return { key: key === undefined ? text : key, text: text, weight: weight };
@@ -321,4 +322,177 @@ test('the client script starts in the page without errors', { skip }, async () =
     await page.advance(100);
     assert.deepEqual(page.errors, []);
     assert.ok(page.context.__jfkit && page.context.__jfkit.jftc, 'window.__jfkit.jftc');
+});
+
+// ---- A word's titles: the list's view --------------------------------------------------------------------------------
+
+const MOVIES = { one: 'movie', many: 'movies' };
+
+test('the titles view: a stored one is checked, unknown values go back to their defaults', () => {
+    assert.deepEqual({ ...tcTitleView.normalize(null) }, { Sort: 'Name', Descending: false, MinResolution: 'Any', Unwatched: false });
+    assert.deepEqual({ ...tcTitleView.normalize({ Sort: 'Rating', Descending: true, MinResolution: 'P4K', Unwatched: true }) }, { Sort: 'Rating', Descending: true, MinResolution: 'P4K', Unwatched: true });
+    assert.deepEqual({ ...tcTitleView.normalize({ Sort: 'Popularity', Descending: 'yes', MinResolution: '8K', Unwatched: 1 }) }, { Sort: 'Name', Descending: false, MinResolution: 'Any', Unwatched: false });
+    assert.deepEqual({ ...tcTitleView.normalize('garbage') }, { ...tcTitleView.normalize(null) });
+});
+
+test('the titles view: the request leaves the defaults out, and the resolution out but for movies', () => {
+    const defaults = tcTitleView.normalize(null);
+    assert.deepEqual({ ...tcTitleView.query(defaults, '  ', 'Movies') }, { sort: null, descending: null, q: null, minResolution: null, unwatched: null });
+    const view = { Sort: 'DateAdded', Descending: true, MinResolution: 'P1080', Unwatched: true };
+    assert.deepEqual({ ...tcTitleView.query(view, ' Amélie ', 'Movies') }, { sort: 'DateAdded', descending: 'true', q: 'Amélie', minResolution: 'P1080', unwatched: 'true' });
+    assert.equal(tcTitleView.query(view, '', 'Shows').minResolution, null);
+    assert.equal(tcTitleView.query(view, '', 'Both').minResolution, null);
+    assert.equal(tcTitleView.query(defaults, 'x'.repeat(150), 'Movies').q.length, tcTitleView.MAX_QUERY);
+});
+
+test('the titles view: Reset shows only when something is changed', () => {
+    const defaults = tcTitleView.normalize(null);
+    assert.equal(tcTitleView.isDefault(defaults, '', 'Movies'), true);
+    assert.equal(tcTitleView.isDefault(defaults, 'heat', 'Movies'), false);
+    assert.equal(tcTitleView.isDefault({ ...defaults, Descending: true }, '', 'Movies'), false);
+    assert.equal(tcTitleView.isDefault({ ...defaults, MinResolution: 'P720' }, '', 'Movies'), false);
+    // The resolution doesn't apply to shows: kept for movies, it changes nothing there.
+    assert.equal(tcTitleView.isDefault({ ...defaults, MinResolution: 'P720' }, '', 'Shows'), true);
+});
+
+test('the titles view: the direction says itself for the sort, and the count says how many the filters keep', () => {
+    assert.deepEqual([tcTitleView.sortOf('Name').up, tcTitleView.sortOf('Name').down], ['A to Z', 'Z to A']);
+    assert.deepEqual([tcTitleView.sortOf('ReleaseDate').up, tcTitleView.sortOf('ReleaseDate').down], ['Oldest first', 'Newest first']);
+    assert.deepEqual([tcTitleView.sortOf('Rating').up, tcTitleView.sortOf('Rating').down], ['Lowest first', 'Highest first']);
+    assert.equal(tcTitleView.sortOf('nonsense').value, 'Name');
+    assert.equal(tcTitleView.countText(12, 12, MOVIES), '12 movies');
+    assert.equal(tcTitleView.countText(3, 12, MOVIES), '3 of 12 movies');
+    assert.equal(tcTitleView.countText(0, 1, MOVIES), '0 of 1 movie');
+    assert.equal(tcTitleView.countText(1, 1, MOVIES), '1 movie');
+});
+
+test('the picture card goes right of the pointer, left of it near the edge, and stays in the window', () => {
+    assert.deepEqual({ ...tcTitleView.peekPosition(100, 300, 170, 290, 1200, 800) }, { left: 118, top: 155 });
+    // Too near the right edge: to the left of the pointer.
+    assert.deepEqual({ ...tcTitleView.peekPosition(1100, 300, 170, 290, 1200, 800) }, { left: 912, top: 155 });
+    // Near the top and the bottom: kept 8 px inside.
+    assert.equal(tcTitleView.peekPosition(100, 20, 170, 290, 1200, 800).top, 8);
+    assert.equal(tcTitleView.peekPosition(100, 790, 170, 290, 1200, 800).top, 800 - 290 - 8);
+    // A window narrower than the card: its left edge stays in.
+    assert.equal(tcTitleView.peekPosition(50, 300, 170, 290, 150, 800).left, 8);
+});
+
+// ---- The renderer's picture card, in the kit's fake page ---------------------------------------------------------------
+
+function cloudPage() {
+    const page = createPage();
+    loadKit(page);
+    const read = (name) => fs.readFileSync(new URL('../../../Jellyfin.Plugin.TagCloud/Web/js/' + name, import.meta.url), 'utf8');
+    page.run("const kit = createKit({ prefix: 'jftc' }, '', {});\n" + ['20-api.js', '30-layout.js', '32-titles.js', '35-pack.js', '38-look.js', '40-cloud.js'].map(read).join('\n') +
+        '\nglobalThis.__tc = { createTcCloud, TC_LOOK_DEFAULTS, TC_PEEK_MS };', 'tagcloud-parts.js');
+    // The fake page has no layout: every box is the card's size, and the window 1200 by 800.
+    const proto = Object.getPrototypeOf(page.context.document.createElement('div'));
+    proto.getBoundingClientRect = () => ({ left: 0, top: 0, width: 170, height: 290 });
+    page.context.innerWidth = 1200;
+    page.context.innerHeight = 800;
+    return page;
+}
+
+function pointer(page, node, type, pointerType, x, y) {
+    const event = new page.context.Event(type, { bubbles: type !== 'pointerenter' && type !== 'pointerleave' });
+    event.pointerType = pointerType;
+    event.clientX = x;
+    event.clientY = y;
+    event.button = 0;
+    node.dispatchEvent(event);
+}
+
+async function drawnCloud(page, peek) {
+    const { createTcCloud, TC_LOOK_DEFAULTS } = page.context.__tc;
+    const view = createTcCloud({ label: 'Test' });
+    // The fake page's style is a plain object: the cloud sets its ink colour through setProperty.
+    view.element.style.setProperty = function (name, value) {
+        this[name] = value;
+    };
+    page.context.document.body.append(view.element);
+    const look = Object.assign({}, TC_LOOK_DEFAULTS, { Arrangement: 'Flow' });
+    view.update({
+        items: [{ key: 'weaver', text: 'Sigourney Weaver', weight: 2 }, { key: 'pacino', text: 'Al Pacino', weight: 1 }],
+        look: look,
+        title: (item) => item.text + ': ' + item.weight,
+        onSelect: () => {},
+        peek: peek
+    });
+    await page.advance(10);
+    return { view, words: page.context.document.querySelectorAll('.jftc-flow-word') };
+}
+
+test('resting the mouse on a word shows its picture card, without the word\'s tooltip, until it leaves', async () => {
+    const page = cloudPage();
+    const asked = [];
+    const { words } = await drawnCloud(page, (item) => {
+        asked.push(item.key);
+        return { name: item.text, detail: item.weight + ' movies', imageUrl: 'http://127.0.0.1/Items/p/Images/Primary?tag=t', icon: 'person' };
+    });
+    const doc = page.context.document;
+    const word = Array.from(words).filter((w) => w.getAttribute('data-key') === 'weaver')[0];
+    assert.equal(word.getAttribute('title'), 'Sigourney Weaver: 2');
+
+    pointer(page, word, 'pointerenter', 'mouse', 100, 300);
+    await page.advance(page.context.__tc.TC_PEEK_MS - 10);
+    assert.equal(doc.querySelector('.jftc-peek'), null, 'not before the pause');
+    await page.advance(20);
+    const card = doc.querySelector('.jftc-peek');
+    assert.ok(card, 'the card shows');
+    assert.deepEqual(asked, ['weaver']);
+    assert.equal(card.getAttribute('aria-hidden'), 'true');
+    assert.equal(card.querySelector('.jftc-peek-name').textContent, 'Sigourney Weaver');
+    assert.equal(card.querySelector('.jftc-peek-detail').textContent, '2 movies');
+    assert.equal(card.querySelector('img').getAttribute('src'), 'http://127.0.0.1/Items/p/Images/Primary?tag=t');
+    assert.equal(card.style.left, '118px');
+    assert.equal(word.getAttribute('title'), null, 'the native tooltip is set aside');
+
+    pointer(page, word, 'pointerleave', 'mouse', 400, 300);
+    assert.equal(doc.querySelector('.jftc-peek'), null, 'gone on leave');
+    assert.equal(word.getAttribute('title'), 'Sigourney Weaver: 2');
+
+    // A scroll, or a press, puts it away too.
+    pointer(page, word, 'pointerenter', 'mouse', 100, 300);
+    await page.advance(400);
+    assert.ok(doc.querySelector('.jftc-peek'));
+    page.context.dispatchEvent(new page.context.Event('scroll'));
+    assert.equal(doc.querySelector('.jftc-peek'), null, 'gone on scroll');
+    pointer(page, word, 'pointerleave', 'mouse', 400, 300);
+    pointer(page, word, 'pointerenter', 'mouse', 100, 300);
+    await page.advance(400);
+    pointer(page, word, 'pointerdown', 'mouse', 100, 300);
+    assert.equal(doc.querySelector('.jftc-peek'), null, 'gone on a press');
+    assert.equal(word.getAttribute('title'), 'Sigourney Weaver: 2');
+    assert.deepEqual(page.errors, []);
+});
+
+test('the picture card: never for touch or pen, never without peek, and an icon without a picture', async () => {
+    const page = cloudPage();
+    const { words } = await drawnCloud(page, (item) => ({ name: item.text, imageUrl: null, icon: 'person' }));
+    const doc = page.context.document;
+
+    for (const kind of ['touch', 'pen']) {
+        pointer(page, words[1], 'pointerenter', kind, 100, 300);
+        await page.advance(500);
+        assert.equal(doc.querySelector('.jftc-peek'), null, kind);
+        pointer(page, words[1], 'pointerleave', kind, 100, 300);
+    }
+
+    pointer(page, words[1], 'pointerenter', 'mouse', 100, 300);
+    // Moving on before the pause shows nothing.
+    pointer(page, words[1], 'pointerleave', 'mouse', 100, 300);
+    await page.advance(500);
+    assert.equal(doc.querySelector('.jftc-peek'), null);
+
+    pointer(page, words[1], 'pointerenter', 'mouse', 100, 300);
+    await page.advance(500);
+    const card = doc.querySelector('.jftc-peek');
+    assert.ok(card.querySelector('.jftc-peek-icon'), 'an icon in place of the picture');
+    assert.equal(card.querySelector('.jftc-peek-detail'), null);
+
+    const plain = cloudPage();
+    const drawn = await drawnCloud(plain, null);
+    pointer(plain, drawn.words[0], 'pointerenter', 'mouse', 100, 300);
+    await plain.advance(500);
+    assert.equal(plain.context.document.querySelector('.jftc-peek'), null, 'no peek, no card');
 });

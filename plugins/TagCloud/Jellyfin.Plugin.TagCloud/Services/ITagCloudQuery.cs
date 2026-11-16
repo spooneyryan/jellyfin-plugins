@@ -48,8 +48,15 @@ public interface ITagCloudQuery
     /// <param name="key">The word's key.</param>
     /// <param name="order">How to order them.</param>
     /// <param name="seed">The shuffle's seed for <see cref="TagCloudTitleOrder.Random"/>.</param>
-    /// <param name="startIndex">How many to skip.</param>
+    /// <param name="startIndex">How many to skip (0 or more).</param>
     /// <param name="limit">The most to return (1–200).</param>
+    /// <param name="sort">What to sort by before the page is cut, or null for <paramref name="order"/>; never with
+    /// <see cref="TagCloudTitleOrder.Random"/>.</param>
+    /// <param name="descending">Whether the sort runs the other way round.</param>
+    /// <param name="query">Text the name or the original title must hold, ignoring case and accents (at most 100
+    /// characters), or null.</param>
+    /// <param name="minResolution">The least sharp movie kept.</param>
+    /// <param name="unwatched">Whether only the titles the user hasn't watched are kept.</param>
     /// <returns>The page.</returns>
-    TagCloudTitlesDto GetTitles(User user, TagCloudSource source, TagCloudScope scope, IReadOnlyList<Guid>? libraryIds, IReadOnlyList<string>? narrow, string key, TagCloudTitleOrder order, int seed, int startIndex, int limit);
+    TagCloudTitlesDto GetTitles(User user, TagCloudSource source, TagCloudScope scope, IReadOnlyList<Guid>? libraryIds, IReadOnlyList<string>? narrow, string key, TagCloudTitleOrder order, int seed, int startIndex, int limit, TagCloudTitleSort? sort = null, bool descending = false, string? query = null, TagCloudMinResolution minResolution = TagCloudMinResolution.Any, bool unwatched = false);
 }

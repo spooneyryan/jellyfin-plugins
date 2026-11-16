@@ -39,7 +39,22 @@
 .jftc-narrowing-hint{font-style:italic}
 .jftc-canvas{position:relative;border-radius:.5em;padding:.8em;min-height:6em}
 .jftc-titles-title{margin:0;font-size:1.1em}
-.jftc-title-grid{display:flex;flex-wrap:wrap}
+.jftc-title-grid{display:flex;flex-wrap:wrap;align-self:stretch;box-sizing:border-box;width:100%}
+.jftc-title-filters{display:flex;flex-wrap:wrap;align-items:center;gap:.5em 1em}
+.jftc-title-search{flex:1 1 14em;max-width:24em}
+.jftc-title-search input{width:100%;box-sizing:border-box}
+.jftc-inline-field{display:inline-flex;align-items:center;gap:.5em}
+.jftc-inline-field>span{font-size:.9em;opacity:.8}
+.jftc-inline-field select{width:auto}
+.jftc-titles-count{margin-left:auto;font-size:.9em;opacity:.75;font-variant-numeric:tabular-nums}
+.jftc-titles-empty{margin:.2em 0}
+.jftc-peek{position:fixed;z-index:3000;width:10.5em;padding:.4em;box-sizing:border-box;border-radius:.6em;background:#202020;color:#fff;border:1px solid rgba(255,255,255,.18);box-shadow:0 .4em 1.4em rgba(0,0,0,.45);pointer-events:none;animation:jftc-peek-in .12s ease-out}
+.jftc-peek-picture{display:flex;align-items:center;justify-content:center;aspect-ratio:2/3;overflow:hidden;border-radius:.4em;background:rgba(255,255,255,.08)}
+.jftc-peek-picture img{width:100%;height:100%;object-fit:cover}
+.jftc-peek-icon{font-size:2.6em;opacity:.5}
+.jftc-peek-name{margin-top:.4em;font-size:.85em;font-weight:600;line-height:1.25;text-align:center;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.jftc-peek-detail{font-size:.75em;opacity:.7;text-align:center}
+@keyframes jftc-peek-in{from{opacity:0}}
 .jftc-cloud{position:relative;width:100%}
 .jftc-svg{display:block;width:100%;height:auto;max-height:var(--jftc-cloud-max-height,78vh);overflow:visible;transition:opacity .2s}
 .jftc-stale{opacity:.45}
@@ -84,5 +99,5 @@ html.jftc-showing .jftc-toasts{display:none}
 .jftc-show-exit{right:1em}
 .jftc-show-full{right:12em}
 .jftc-show-idle .jftc-show-exit,.jftc-show-idle .jftc-show-full{opacity:0;pointer-events:none}
-@media (prefers-reduced-motion:reduce){.jftc-svg,.jftc-word,.jftc-show-exit,.jftc-show-full{transition:none}}
-@media (max-width:40em){.jftc-words{width:9em}.jftc-show-full{right:auto;left:1em}}
+@media (prefers-reduced-motion:reduce){.jftc-svg,.jftc-word,.jftc-show-exit,.jftc-show-full{transition:none}.jftc-peek{animation:none}}
+@media (max-width:40em){.jftc-words{width:9em}.jftc-show-full{right:auto;left:1em}.jftc-titles-count{margin-left:0;flex-basis:100%}}

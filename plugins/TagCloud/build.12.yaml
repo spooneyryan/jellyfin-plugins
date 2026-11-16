@@ -1,7 +1,7 @@
 ---
 name: "Tag Cloud"
 guid: "e36415cf-46f1-4de6-bd61-d1fe7175c7a9"
-version: "2.1.0.0"
+version: "2.2.0.0"
 targetAbi: "12.4.0.0"
 framework: "net10.0"
 overview: "A Tag Cloud page: your library's tags, genres, people and studios as a word cloud"
@@ -18,6 +18,15 @@ owner: "NoRepine"
 artifacts:
 - "Jellyfin.Plugin.TagCloud.dll"
 changelog: |
+  2.2.0
+  - A word's titles can be filtered by name (or original title,
+    ignoring case and accents), sorted by name, release date, date
+    added or rating either way round, limited to a minimum resolution
+    (movies) or to what you haven't watched, with Reset and a count of
+    how many are left. The choices are kept per user on each device.
+  - Resting the mouse on an actor, director or writer shows their
+    photo and how many titles credit them; in a word's held-down
+    cloud, resting on a title shows its poster.
   2.1.0
   - A word's titles now show as poster cards, like a library or a
     collection, each opening the title's page.

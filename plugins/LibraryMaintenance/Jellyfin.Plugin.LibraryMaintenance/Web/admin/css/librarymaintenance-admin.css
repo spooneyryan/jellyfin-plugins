@@ -65,6 +65,40 @@ html[data-theme="light"] .jflm-page-app,html[data-theme="appletv"] .jflm-page-ap
 .jflm-page-entry-actions{flex:0 0 auto}
 .jflm-page-app a.jflm-button{text-decoration:none;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box}
 .jflm-page-more{margin:1em 0}
+/* A card's comparison (1.0.5): a column per copy, a row per detail; many copies scroll
+   sideways inside the panel (never the page). "Best" cells carry the accent and a word, "Differs" rows a word, so neither
+   rests on colour alone. Under 40em every row stacks its copies, each named by its data-copy. */
+.jflm-page-group-actions{margin:.5em 0 0;display:flex;flex-wrap:wrap;gap:.5em}
+.jflm-page-compare{margin:.6em 0 0;min-width:0}
+.jflm-page-compare-scroll{overflow-x:auto;max-width:100%}
+.jflm-page-compare-scroll:focus-visible,.layout-tv .jflm-page-compare-scroll:focus{outline:2px solid var(--jflm-accent);outline-offset:2px}
+.jflm-page-compare-table{border-collapse:collapse;width:100%;font-size:.9em}
+.jflm-page-compare-caption{text-align:left;font-size:.88em;opacity:.75;padding:0 0 .4em}
+.jflm-page-compare-table th,.jflm-page-compare-table td{text-align:left;vertical-align:top;padding:.35em .6em;border-top:1px solid var(--jflm-divider);min-width:9em;max-width:22em;overflow-wrap:anywhere}
+.jflm-page-compare-label{font-weight:500;min-width:7em!important;width:8em}
+.jflm-page-compare-corner{border-top:0!important}
+.jflm-page-compare-copy{font-weight:400}
+.jflm-page-compare-copy>*{display:block;margin:0 0 .25em}
+.jflm-page-compare-copy-number{font-size:.85em;opacity:.75}
+.jflm-page-compare-file{font-weight:600;font-family:monospace}
+.jflm-page-compare-path{font-family:monospace;font-size:.92em;opacity:.8}
+.jflm-page-compare-differs{display:block;font-size:.78em;font-weight:400;opacity:.8}
+.jflm-page-compare-differs::before{content:"≠ "}
+.jflm-page-compare-best{box-shadow:inset .25em 0 0 var(--jflm-accent);font-weight:600}
+.jflm-page-compare-best-mark{display:inline-block;font-size:.75em;line-height:1.4;padding:0 .45em;margin:0 .4em .2em 0;border:1px solid var(--jflm-accent);border-radius:1em;font-weight:600}
+.jflm-page-compare-count,.jflm-page-compare-note{display:block}
+.jflm-page-compare-note{font-size:.88em;opacity:.75}
+.jflm-page-compare-lines{margin:.2em 0;padding-left:1.1em;font-weight:400}
+.jflm-page-compare-more{margin:.2em 0}
+@media (max-width:40em){
+.jflm-page-compare-table,.jflm-page-compare-table caption,.jflm-page-compare-table thead,.jflm-page-compare-table tbody,.jflm-page-compare-table tr{display:block}
+.jflm-page-compare-table th,.jflm-page-compare-table td{display:block;max-width:none;min-width:0}
+.jflm-page-compare-corner{display:none!important}
+.jflm-page-compare-label{width:auto;padding-top:.8em}
+.jflm-page-compare-cell{border-top:0;padding-left:1em}
+.jflm-page-compare-cell::before{content:attr(data-copy);display:block;font-size:.8em;opacity:.7;font-weight:400}
+.jflm-page-compare-copy::before{content:none}
+}
 /* The Settings tab: on/off switches as the toggles show a pressed one, the groups' labels as the kit's field labels,
    a field row that wraps its button under a text area, and a seconds field as wide as its number. */
 .jflm-page-field-label{display:block;margin-bottom:.3em;font-size:.9em;opacity:.75}
@@ -91,4 +125,5 @@ html[data-theme="light"] .jflm-page-app,html[data-theme="appletv"] .jflm-page-ap
 .jflm-page-app .jflm-page-toggle[aria-pressed="true"]{outline:2px solid Highlight}
 .jflm-page-app .jflm-page-switch[aria-checked="true"]{outline:2px solid Highlight}
 .jflm-page-poster{border:1px solid CanvasText}
+.jflm-page-compare-best{outline:2px solid Highlight;outline-offset:-2px}
 }

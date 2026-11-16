@@ -1311,6 +1311,7 @@ restores what it changes:
 | `librarymaintenance-index.json` | the index's movies, status line, Rebuild, phone |
 | `librarymaintenance-tv.json` | TV-layout D-pad focus |
 | `librarymaintenance-groups.json` (+`je`, `baseurl`) | duplicate cards, modes, filter, Open, phones, TV |
+| `librarymaintenance-compare.json` | a group's copies compared against the API, Best marks, phone stacking, TV focus. Uses `LM Compare Pair` when the sandbox has it |
 | `librarymaintenance-themes.json` (+`je`, `baseurl`) | 4.5:1 contrast in four themes, via the read-only `probes/librarymaintenance-contrast-probe.js`. Needs a Conflict group and a movie with no poster |
 | `librarymaintenance-settings.json` (+`je`, `baseurl`, `scale`) | Export/Import, the preview dialog, the switches |
 | `librarymaintenance-scroll.json` (`scale`) | 250+ groups: Load more, frame times, DOM growth |

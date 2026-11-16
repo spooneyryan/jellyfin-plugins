@@ -64,12 +64,20 @@
   {
     "guid": "fd47a1d3-dd8c-4e34-aeea-4f2edd973800",
     "name": "Library Maintenance",
-    "description": "An admin-only Dashboard page that lists the movies your libraries hold more than once, matched on the title, or on the title and the year. Versions Jellyfin already groups count once, and its local alternates are never reported. From an item's menu, administrators can also preview moving a movie, an episode or a music video to another folder: a preview only. Nothing is deleted, merged, moved or written to your libraries.",
+    "description": "An admin-only Dashboard page that lists the movies your libraries hold more than once, matched on the title, or on the title and the year. Versions Jellyfin already groups count once, and its local alternates are never reported. Each group's copies can be compared side by side. From an item's menu, administrators can also preview moving a movie, an episode or a music video to another folder: a preview only. Nothing is deleted, merged, moved or written to your libraries.",
     "overview": "Find duplicate movies across your libraries, and preview moving media",
     "owner": "NoRepine",
     "category": "General",
     "imageUrl": "https://raw.githubusercontent.com/spooneyryan/jellyfin-plugins/main/plugins/LibraryMaintenance/image.png",
     "versions": [
+      {
+        "version": "2.0.1.0",
+        "changelog": "- Duplicates: Compare copies on a group's card shows its copies side by\n  side, read on request: each file's name and folder, size, container,\n  runtime, resolution, video codec, bit depth, dynamic range (SDR, HDR10,\n  Dolby Vision...), frame rate and bitrates, its audio tracks (language,\n  codec, channels, title, commentary, default) and subtitles (forced,\n  default, embedded or external), its special features by kind and by\n  where they are (beside the file, in an extras folder, elsewhere), when\n  it was added, how many users played it, and whether its file is there.\n  The best value of each detail is marked, and what differs. Works on a\n  phone and with the TV remote. Still read-only: nothing is deleted,\n  merged, moved or written.\n- The same as 1.0.5 for Jellyfin 10.11, built for Jellyfin 12.4.",
+        "targetAbi": "12.4.0.0",
+        "sourceUrl": "https://github.com/spooneyryan/jellyfin-plugins/releases/download/librarymaintenance%2Fv2.0.1/librarymaintenance_2.0.1.0.zip",
+        "checksum": "b5fc8690eba94e957b80851ff6fd17dd",
+        "timestamp": "2026-11-16T17:26:02Z"
+      },
       {
         "version": "2.0.0.0",
         "changelog": "- For Jellyfin 12.4 and later: the same plugin as 1.0.4, built for\n  Jellyfin 12. Jellyfin 10.11 servers keep 1.0.4.",
@@ -124,6 +132,14 @@
     "category": "General",
     "imageUrl": "https://raw.githubusercontent.com/spooneyryan/jellyfin-plugins/main/plugins/TagCloud/image.png",
     "versions": [
+      {
+        "version": "2.2.0.0",
+        "changelog": "- A word's titles can be filtered by name (or original title,\n  ignoring case and accents), sorted by name, release date, date\n  added or rating either way round, limited to a minimum resolution\n  (movies) or to what you haven't watched, with Reset and a count of\n  how many are left. The choices are kept per user on each device.\n- Resting the mouse on an actor, director or writer shows their\n  photo and how many titles credit them; in a word's held-down\n  cloud, resting on a title shows its poster.",
+        "targetAbi": "12.4.0.0",
+        "sourceUrl": "https://github.com/spooneyryan/jellyfin-plugins/releases/download/tagcloud%2Fv2.2.0/tagcloud_2.2.0.0.zip",
+        "checksum": "3f9f6b146e5659739618f5e2aadbe7db",
+        "timestamp": "2026-11-16T17:25:51Z"
+      },
       {
         "version": "2.1.0.0",
         "changelog": "- A word's titles now show as poster cards, like a library or a\n  collection, each opening the title's page.\n- With Mix sizes turned up, long words no longer stick out to the\n  side of the cloud: a word that comes late goes where it keeps to\n  the cloud's shape.",

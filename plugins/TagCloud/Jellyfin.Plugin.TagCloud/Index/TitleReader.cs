@@ -68,7 +68,18 @@ internal sealed class TitleReader
     {
         ArgumentNullException.ThrowIfNull(item);
         var name = item.Name ?? string.Empty;
-        return new TitleRecord(item.Id, name, string.IsNullOrEmpty(item.SortName) ? name : item.SortName, item.ProductionYear, item is Movie ? BaseItemKind.Movie : BaseItemKind.Series);
+        var movie = item is Movie;
+        return new TitleRecord(item.Id, name, string.IsNullOrEmpty(item.SortName) ? name : item.SortName, item.ProductionYear, movie ? BaseItemKind.Movie : BaseItemKind.Series)
+        {
+            OriginalTitle = string.IsNullOrWhiteSpace(item.OriginalTitle) ? null : item.OriginalTitle,
+            PremiereDate = item.PremiereDate,
+            DateCreated = item.DateCreated == default ? null : item.DateCreated,
+            CommunityRating = item.CommunityRating,
+            // A series has no picture of its own: its episodes are the videos.
+            Width = movie ? item.Width : 0,
+            Height = movie ? item.Height : 0,
+            SearchText = TitleText.Fold(name) + "\n" + TitleText.Fold(item.OriginalTitle)
+        };
     }
 
     /// <summary>

@@ -833,6 +833,9 @@ public sealed class GroupsApiTests
             {
                 services.AddLogging();
                 services.AddSingleton(library.Fake.Object);
+                // The Duplicates controller also takes the comparison (1.0.5), which reads streams and watch data.
+                services.AddSingleton(new Mock<MediaBrowser.Controller.Library.IMediaSourceManager>().Object);
+                services.AddSingleton(new Mock<MediaBrowser.Controller.Library.IUserDataManager>().Object);
                 services.AddSingleton(host.Object);
                 services.AddSingleton(users.Object);
                 foreach (var descriptor in registered.Where(d => !replaced.Contains(d.ServiceType)))

@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Jellyfin.Database.Implementations.Entities;
 using Jellyfin.Plugin.Kit.Api;
 using Jellyfin.Plugin.LibraryMaintenance.Api.Models;
+using Jellyfin.Plugin.LibraryMaintenance.Duplicates.Compare;
 using Jellyfin.Plugin.LibraryMaintenance.Duplicates.Groups;
 using Jellyfin.Plugin.LibraryMaintenance.Duplicates.Index;
 using MediaBrowser.Common.Api;
@@ -29,6 +30,7 @@ public class LibraryMaintenanceDuplicatesController : ControllerBase
     private readonly IDuplicatesIndex _index;
     private readonly IDuplicateGroups _groups;
     private readonly IUserManager _users;
+    private readonly IDuplicateComparison _comparison;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="LibraryMaintenanceDuplicatesController"/> class.
@@ -36,11 +38,13 @@ public class LibraryMaintenanceDuplicatesController : ControllerBase
     /// <param name="index">The movie index.</param>
     /// <param name="groups">The duplicate groups.</param>
     /// <param name="users">The user manager, for the caller's library access.</param>
-    public LibraryMaintenanceDuplicatesController(IDuplicatesIndex index, IDuplicateGroups groups, IUserManager users)
+    /// <param name="comparison">The comparison of a group's copies.</param>
+    public LibraryMaintenanceDuplicatesController(IDuplicatesIndex index, IDuplicateGroups groups, IUserManager users, IDuplicateComparison comparison)
     {
         _index = index;
         _groups = groups;
         _users = users;
+        _comparison = comparison;
     }
 
     /// <summary>
@@ -151,6 +155,41 @@ public class LibraryMaintenanceDuplicatesController : ControllerBase
         RequireSingleValues(nameof(mode), nameof(unknownYear), nameof(libraryIds));
         var group = await _groups.GetGroupAsync(groupId, mode, unknownYear, libraryIds, Caller(), cancellationToken).ConfigureAwait(false);
         return group is null ? Accepted(_groups.GetPending()) : Ok(group);
+    }
+
+    /// <summary>
+    /// Compares one duplicate group's copies side by side: each file's size, container, runtime, video, audio and
+    /// subtitle tracks, special features, date added and play counts, from what Jellyfin's library holds, with the best
+    /// value of each detail marked. Read on request for one group (never for the list); reads only.
+    /// </summary>
+    /// <param name="groupId">The group id.</param>
+    /// <param name="mode">The match mode, as for the group.</param>
+    /// <param name="unknownYear">The unknown-year policy.</param>
+    /// <param name="libraryIds">The libraries.</param>
+    /// <param name="cancellationToken">The request's token.</param>
+    /// <response code="200">The comparison.</response>
+    /// <response code="202">The server has no index yet; the first build runs.</response>
+    /// <response code="400">An option is not valid, or given more than once.</response>
+    /// <response code="404">No such group is left, or Duplicates is turned off in the settings.</response>
+    /// <response code="503">The server has no index because the last build failed, and none runs.</response>
+    /// <returns>The comparison, or the first build's state.</returns>
+    [HttpGet("Groups/{groupId}/Compare")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(LibraryMaintenanceDuplicateGroupsPendingDto), StatusCodes.Status202Accepted)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status503ServiceUnavailable)]
+    public async Task<ActionResult<LibraryMaintenanceDuplicateCompareDto>> GetLibraryMaintenanceDuplicateComparison(
+        [FromRoute] string groupId,
+        [FromQuery] string? mode,
+        [FromQuery] string? unknownYear,
+        [FromQuery] string? libraryIds,
+        CancellationToken cancellationToken)
+    {
+        RequireEnabled();
+        RequireSingleValues(nameof(mode), nameof(unknownYear), nameof(libraryIds));
+        var compared = await _comparison.CompareAsync(groupId, mode, unknownYear, libraryIds, Caller(), cancellationToken).ConfigureAwait(false);
+        return compared is null ? Accepted(_groups.GetPending()) : Ok(compared);
     }
 
     // A query option given twice (`?mode=Title&mode=Title`) is a 400, not the first one silently; names

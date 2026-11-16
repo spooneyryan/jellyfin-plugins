@@ -101,9 +101,11 @@ function tcWords(cloud, limit) {
     });
 }
 
+// A page of a word's titles. opts: order ('Name' or 'Random'), seed, startIndex, limit, and the list's filters as
+// tcTitleView.query gives them (sort, descending, q, minResolution, unwatched; null ones are left out).
 function tcTitles(cloud, key, opts) {
     opts = opts || {};
-    return tcApi('GET', 'Titles', undefined, {
+    return tcApi('GET', 'Titles', undefined, Object.assign({
         source: cloud.source,
         scope: cloud.scope,
         libraryIds: cloud.libraries.length ? cloud.libraries.join(',') : null,
@@ -113,7 +115,7 @@ function tcTitles(cloud, key, opts) {
         seed: opts.seed,
         startIndex: opts.startIndex || 0,
         limit: opts.limit || 50
-    });
+    }, opts.filters || {}));
 }
 
 function tcListClouds() {

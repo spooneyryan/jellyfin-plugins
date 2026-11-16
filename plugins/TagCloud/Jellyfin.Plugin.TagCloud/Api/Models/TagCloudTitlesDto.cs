@@ -10,6 +10,9 @@ public sealed class TagCloudTitlesDto
     /// <summary>Gets or sets the titles of this page.</summary>
     public IReadOnlyList<TagCloudTitleDto> Items { get; set; } = [];
 
-    /// <summary>Gets or sets how many titles carry the word in all.</summary>
+    /// <summary>Gets or sets how many titles carry the word and pass the filters: what the pages run through.</summary>
     public int Total { get; set; }
+
+    /// <summary>Gets or sets how many titles carry the word before the filters (the M of "N of M titles").</summary>
+    public int Unfiltered { get; set; }
 }

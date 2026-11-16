@@ -67,8 +67,23 @@ full screen.
 - `38-look.js`, `50-settings.js`: the look's choices and defaults (the server holds a saved look to the same ranges in
   `CloudLook`) and the settings panel. The look is kept per device in `localStorage`.
 - `40-cloud.js`: the renderer (Cloud as SVG, Rows as markup), click, hold (450 ms), right-click and keyboard.
-- `60-page-cloud.js`: the toolbar, saved clouds, the summary and narrowing chips, the titles card, the held word's cloud
-  and the full-screen view.
+- `32-titles.js`: the titles list's view (sort, direction, minimum resolution, Unwatched only; kept per user on the
+  device as `jftc:titles:<user id>`), what it asks the server for, its count, and where the picture card goes (pure).
+- `60-page-cloud.js`: the toolbar, saved clouds, the summary and narrowing chips, the titles card with its filters, the
+  held word's cloud and the full-screen view.
+
+**Filtering a word's titles** runs on the server, over the index: each title's record holds what the list sorts and
+filters by (sort name, original title folded for the name filter, premiere date, date added, community rating, a
+movie's picture size), columns of its own row read at a full build and at every patch, so a filtered page costs no
+library reads but its posters, and an edit to a title (a new rating, a re-probe) follows with the patch. Played state is
+the user's and changes with every play, so **Unwatched only** asks `IUserDataManager` at the request, for the titles
+still in after the other filters (a movie's own played flag; a series' `UserItemDataDto.Played`, core's folder rule).
+
+**The picture card** (`40-cloud.js`, `tcPeek`): a mouse (`pointerType` `mouse`) resting 300 ms on a word with a
+`peek(item)` shows a card on `document.body` beside the pointer, while the word's `<title>` (or Rows' `title`) is set
+aside; leaving the word, scrolling, a press or a new layout puts it away. The people clouds' photos come from the
+words' `PersonId` and `ImageTag` (looked up by name with `ILibraryManager.GetPerson`, cached per index generation), the
+held word's titles' posters from their `ImageTag`, through the kit's `imageUrl`.
 
 ## Settings
 
@@ -98,8 +113,8 @@ still answer.
 | --- | --- | --- |
 | GET | `/TagCloud/Capabilities` | The sources turned on, the words slider's range, the TV layout's starting count, whether sharing is allowed, `IsAdmin`. |
 | GET | `/TagCloud/Libraries?scope=` | The caller's libraries holding titles in the scope, by name, with their title counts. 503 during the first build. |
-| GET | `/TagCloud/Words?source=&scope=&libraryIds=&narrow=&limit=` | The words, heaviest first, with the totals. `narrow` repeated, at most 10; `limit` 25 to `MaxWordsLimit`. 403 `feature-disabled` for a source turned off; 503 while building. |
-| GET | `/TagCloud/Titles?source=&key=&scope=&libraryIds=&narrow=&order=&seed=&startIndex=&limit=` | A page of one word's titles: `Name` (A–Z) or `Random` (fixed by `seed`); `limit` 1 to 200. A word the caller's titles don't carry gives an empty page. |
+| GET | `/TagCloud/Words?source=&scope=&libraryIds=&narrow=&limit=` | The words, heaviest first, with the totals. `narrow` repeated, at most 10; `limit` 25 to `MaxWordsLimit`. A word of Actors, Directors or Writers carries `PersonId` and `ImageTag` (the person's photo) when the library has that person. 403 `feature-disabled` for a source turned off; 503 while building. |
+| GET | `/TagCloud/Titles?source=&key=&scope=&libraryIds=&narrow=&order=&seed=&startIndex=&limit=&sort=&descending=&q=&minResolution=&unwatched=` | A page of one word's titles, filtered and sorted before the page is cut: `order` `Name` (A–Z) or `Random` (fixed by `seed`), or `sort` `Name`, `ReleaseDate`, `DateAdded`, `Rating` (`descending=true` the other way; a title without the value last both ways); `q` in the name or original title, ignoring case and accents (at most 100 characters); `minResolution` `Any`, `P480`, `P720`, `P1080`, `P4K` (movies only; a movie of unknown size is left out); `unwatched=true` (the caller's played state now; a series is watched once fully played). `Total` counts what the filters keep, `Unfiltered` all of the word's titles. `startIndex` 0 or more, `limit` 1 to 200; anything else, or a `sort` with `order=Random`, is 400. A word the caller's titles don't carry gives an empty page. |
 | GET, POST | `/TagCloud/Clouds` | The caller's clouds, then the shared ones by name; a new cloud (400 name or limits, 403 a shared one while sharing is off, 409 name taken). |
 | GET, PUT, DELETE | `/TagCloud/Clouds/{id}` | One cloud (404 if the caller may not open it); a save (403 another's, or turning sharing on while it is off: a cloud already shared may be saved as it is or stop being shared; 409 newer or name taken); a delete (the owner's, or an admin's of a shared one). |
 | POST | `/TagCloud/Clouds/{id}/Duplicate` | A private copy, "… (copy)". |
@@ -141,7 +156,7 @@ dotnet test plugins/TagCloud/tests/Jellyfin.Plugin.TagCloud.Tests
 | --- | --- |
 | Kit conventions | `Api/ApiConventionTests` (schema prefix, controller names and routes, the one anonymous action), `Api/PublicBoundaryTests`, `Storage/SavedCloudStoreConformanceTests` (the kit's store suite). |
 | The index | `Index/IndexTests`: what it holds, keys and casing, a full build and a patch, on the kit's fake library. |
-| Counts | `Services/QueryServiceTests`: only the user's titles and libraries, narrowing, a word's titles. |
+| Counts | `Services/QueryServiceTests`: only the user's titles and libraries, narrowing, a word's titles. `Services/TitleFilterTests`: each sort both ways, the name filter with accents, the minimum resolution, unwatched per user, paging with filters, visibility, refused values, and the people words' photos. `Api/TitlesApiTests`: the same on the wire, with the 400s. |
 | Saved clouds | `Services/CloudServiceTests`: owners, sharing, names, conflicts, deletes, a deleted user's clouds. |
 | The web client | `Web/ClientScriptTests` (the built script, embedded files) and `Web/tagcloud.test.mjs` (layout, packer, look and the page in the kit's fake page), which it runs with node; `Web/SettingsTests` (every setting on the page, the dashboard module). |
 

@@ -110,7 +110,8 @@ public class PluginServiceRegistrator : IPluginServiceRegistrator
             services.GetRequiredService<LibraryAccess>(),
             services.GetRequiredService<ILibraryManager>(),
             services.GetRequiredService<IPluginConfigurationProvider>(),
-            services.GetService<IImageProcessor>()));
+            services.GetService<IImageProcessor>(),
+            services.GetService<IUserDataManager>()));
         serviceCollection.AddSingleton<ITagCloudClouds>(services => new TagCloudCloudService(
             services.GetRequiredService<SavedCloudOwner>(),
             services.GetRequiredService<IUserManager>(),

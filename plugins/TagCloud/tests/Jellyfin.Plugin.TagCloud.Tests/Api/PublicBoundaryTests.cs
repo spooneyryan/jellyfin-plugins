@@ -50,7 +50,7 @@ public sealed class PublicBoundaryTests
             [
                 typeof(TagCloudCapabilitiesDto), typeof(TagCloudLibraryDto), typeof(TagCloudLookDto), typeof(TagCloudSaveRequest), typeof(TagCloudSavedCloudDto),
                 typeof(TagCloudScope), typeof(TagCloudSource), typeof(TagCloudStatusDto), typeof(TagCloudTitleDto), typeof(TagCloudTitleOrder),
-                typeof(TagCloudTitlesDto), typeof(TagCloudWordDto), typeof(TagCloudWordsDto)
+                typeof(TagCloudTitlesDto), typeof(TagCloudWordDto), typeof(TagCloudWordsDto), typeof(TagCloudTitleSort), typeof(TagCloudMinResolution)
             ],
             surface.OfRole(PublicRole.Dto));
         Assert.Empty(surface.OfRole(PublicRole.Facade));
@@ -65,7 +65,7 @@ public sealed class PublicBoundaryTests
         Type[] internals =
         [
             typeof(TagCloudKit), typeof(IPluginConfigurationProvider), typeof(PluginConfigurationProvider), typeof(TagCloudIndex), typeof(TagCloudIndexSnapshot),
-            typeof(IndexState), typeof(IndexedWord), typeof(TitleRecord), typeof(TitleReader), typeof(PeopleReader), typeof(TagCloudIndexWorker),
+            typeof(IndexState), typeof(IndexedWord), typeof(TitleRecord), typeof(TitleText), typeof(TagCloudTitleFilter), typeof(TitleReader), typeof(PeopleReader), typeof(TagCloudIndexWorker),
             typeof(TagCloudLibraryConsumer), typeof(SavedCloudOwner), typeof(SavedCloudDocument), typeof(SavedCloudRecord), typeof(CloudLook),
             typeof(TagCloudQueryService), typeof(TagCloudCloudService), typeof(TagCloudAdminService), typeof(TagCloudMaintenanceSteps),
             typeof(LibraryAccess), typeof(ILibraryChangeConsumer)

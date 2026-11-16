@@ -10,8 +10,13 @@ count covers only the titles the viewer may see.
 - **The Tag Cloud page**, under **Library tools** in the menu. Pick what to count (**Tags**, **Genres**, **Actors**,
   **Directors**, **Writers**, **Studios**), which titles (**Movies**, **TV shows**, **Both**), any of your libraries, and
   how many words (25 to 1,000, in steps of 25).
-- **Click a word** to list its titles under the cloud. **Hold it** for a cloud of up to 200 of its titles, each one
-  opening its page. **Right-click it** (or press the menu key) to add it to the filters: the cloud then keeps only the
+- **Click a word** to list its titles under the cloud, as poster cards. Filter them by name (the title or the original
+  title, ignoring case and accents), sort them by name, release date, date added or rating either way round, keep only
+  movies of a minimum resolution (720p, 1080p, 4K…) or only what you haven't watched; **Reset** goes back to A to Z, and
+  a count says how many of the titles are left. Each user's choices are kept on the device. **Hold a word** for a cloud
+  of up to 200 of its titles, each one opening its page.
+- **Pictures on the way**: rest the mouse on an actor, director or writer for a moment to see their photo and how many
+  titles credit them; in the cloud of a word's titles, rest it on a title to see its poster. **Right-click it** (or press the menu key) to add it to the filters: the cloud then keeps only the
   words that share titles with every filter.
 - **Settings** change the look live: **Cloud** (packed) or **Rows**, the shape, how freely sizes mix, word and line
   spacing, letter case, font, the largest and smallest sizes, the size scale, eleven palettes, colour by word or by size,
@@ -58,7 +63,16 @@ script.
 ## Using it
 
 **Find titles.** Click a word: its titles are listed below the cloud, by name. The selection is part of the page's
-address, so Back and a copied link return to it.
+address, so Back and a copied link return to it. Above the titles, type in **Filter these movies** to find one by name,
+change **Sort by** and its direction, pick a minimum **Resolution** (movies only: a show's episodes are its videos), or
+tick **Unwatched only** (a show counts as watched once every episode is). The count shows how many of the word's titles
+the filters keep, and **Reset** clears them. The sort and filters are remembered for you on this device; the text typed
+is for that word only.
+
+**See who it is.** With a mouse, rest the pointer on a name in the **Actors**, **Directors** or **Writers** cloud: a
+card shows their photo, their name and how many of your titles credit them. In a word's held-down cloud of titles, the
+card shows the title's poster. Moving away, scrolling or clicking puts it away; touch screens and TV remotes don't show
+it.
 
 **Narrow the cloud.** Right-click a word to add it as a filter; each filter shows as a chip above the cloud. **Show all**
 removes them. A filter only ever matches the titles you can see.

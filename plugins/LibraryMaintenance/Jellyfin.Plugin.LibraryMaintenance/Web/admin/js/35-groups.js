@@ -248,8 +248,9 @@ function lmEntryRow(group, entry) {
 }
 
 // One group's card: the title, the years, the confidence, the reasons and the flags, the space the
-// other copies take, and the entries with the suggested keep first (the server's order).
-function lmGroupCard(group) {
+// other copies take, the entries with the suggested keep first (the server's order), and "Compare copies" with its panel
+// (36-compare.js; compare is its options).
+function lmGroupCard(group, compare) {
     const libraries = {};
     (group.Entries || []).forEach(function (entry) {
         (entry.Libraries || []).forEach(function (l) {
@@ -272,6 +273,7 @@ function lmGroupCard(group) {
     });
     const entries = group.Entries || [];
     const years = (group.Years || []).length ? group.Years.join(' · ') : 'No year';
+    const comparison = lmCompareSection(group, compare);
     return lmEl('article', { class: lmClass('group'), 'data-group-id': String(group.GroupId || ''), 'aria-label': String(group.DisplayTitle || '') + ', ' + years }, [
         lmEl('div', { class: lmClass('group-header') }, [
             lmEl('h4', { class: lmClass('group-title') }, [
@@ -283,7 +285,9 @@ function lmGroupCard(group) {
         ]),
         lmEl('ul', { class: lmClass('entries') }, entries.map(function (entry) {
             return lmEntryRow(group, entry);
-        }))
+        })),
+        lmEl('div', { class: lmClass('group-actions') }, comparison.toggle),
+        comparison.panel
     ]);
 }
 
@@ -334,6 +338,28 @@ function lmGroupsView(ctx, host) {
     let generation = 0;
     let timer = null;
     let stateKey = null;
+    // The groups whose comparison is open, so a card made again (a newer index) opens it again.
+    const compareOpen = {};
+    const compare = {
+        open: compareOpen,
+        // The options the shown groups came from: their ids depend on them.
+        query: function () {
+            const q = {};
+            if (result && result.Mode) {
+                q.mode = result.Mode;
+            }
+
+            if (result && result.UnknownYear) {
+                q.unknownYear = result.UnknownYear;
+            }
+
+            if (prefs.libraryIds) {
+                q.libraryIds = prefs.libraryIds.join(',');
+            }
+
+            return q;
+        }
+    };
 
     const summary = lmEl('p', { id: 'LibraryMaintenanceGroupsSummary', class: lmClass('status'), role: 'status' });
     const stateArea = lmEl('div', { id: 'LibraryMaintenanceGroupsState' });
@@ -716,7 +742,7 @@ function lmGroupsView(ctx, host) {
             }
 
             (extended ? want.slice(shown.length) : want || []).forEach(function (group) {
-                list.append(lmGroupCard(group));
+                list.append(lmGroupCard(group, compare));
             });
             shown = want;
         }

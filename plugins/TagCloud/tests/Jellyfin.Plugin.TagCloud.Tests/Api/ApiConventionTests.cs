@@ -17,6 +17,7 @@ public sealed class ApiConventionTests
         "TagCloudCapabilitiesDto",
         "TagCloudLibraryDto",
         "TagCloudLookDto",
+        "TagCloudMinResolution",
         "TagCloudSaveRequest",
         "TagCloudSavedCloudDto",
         "TagCloudScope",
@@ -24,6 +25,7 @@ public sealed class ApiConventionTests
         "TagCloudStatusDto",
         "TagCloudTitleDto",
         "TagCloudTitleOrder",
+        "TagCloudTitleSort",
         "TagCloudTitlesDto",
         "TagCloudWordDto",
         "TagCloudWordsDto"

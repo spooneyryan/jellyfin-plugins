@@ -1,7 +1,7 @@
 ---
 name: "Library Maintenance"
 guid: "fd47a1d3-dd8c-4e34-aeea-4f2edd973800"
-version: "1.0.4.0"
+version: "1.0.5.0"
 targetAbi: "10.11.5.0"
 framework: "net9.0"
 overview: "Find duplicate movies across your libraries, and preview moving media"
@@ -9,7 +9,8 @@ description: >
   An admin-only Dashboard page that lists the movies your libraries hold more
   than once, matched on the title, or on the title and the year. Versions
   Jellyfin already groups count once, and its local alternates are never
-  reported. From an item's menu, administrators can also preview moving a
+  reported. Each group's copies can be compared side by side. From an
+  item's menu, administrators can also preview moving a
   movie, an episode or a music video to another folder: a preview only.
   Nothing is deleted, merged, moved or written to your libraries.
 category: "General"
@@ -17,6 +18,18 @@ owner: "NoRepine"
 artifacts:
 - "Jellyfin.Plugin.LibraryMaintenance.dll"
 changelog: |
+  1.0.5
+  - Duplicates: Compare copies on a group's card shows its copies side by
+    side, read on request: each file's name and folder, size, container,
+    runtime, resolution, video codec, bit depth, dynamic range (SDR, HDR10,
+    Dolby Vision...), frame rate and bitrates, its audio tracks (language,
+    codec, channels, title, commentary, default) and subtitles (forced,
+    default, embedded or external), its special features by kind and by
+    where they are (beside the file, in an extras folder, elsewhere), when
+    it was added, how many users played it, and whether its file is there.
+    The best value of each detail is marked, and what differs. Works on a
+    phone and with the TV remote. Still read-only: nothing is deleted,
+    merged, moved or written.
   1.0.4
   - First public release.
   - An admin-only page that lists the movies your libraries hold more than once, with the space the extra copies take.

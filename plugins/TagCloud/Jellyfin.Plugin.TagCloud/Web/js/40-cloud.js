@@ -1,12 +1,139 @@
 // The cloud's renderer: Cloud (packed, an SVG laid out by
 // tcPack) or Rows (flowing lines of plain markup), each word sized and shaded by tcLayout. Words can be clicked (select),
 // held (onHold) and right-clicked (onNarrow), and reached with the keyboard; their tooltip is a <title>. A new layout
-// keeps the old one up, dimmed, until it arrives, and the same words in the same look are never laid out again.
+// keeps the old one up, dimmed, until it arrives, and the same words in the same look are never laid out again. With
+// peek(item), a mouse resting on a word (TC_PEEK_MS) shows a small card by the pointer with a picture (a person's photo, a
+// title's poster), the name and a detail, while the word's own tooltip is left out; leaving the word, scrolling, a press
+// or a new layout puts it away. Touch, pen and the TV's remote never show it.
 
 const TC_SVG_NS = 'http://www.w3.org/2000/svg';
 
 // Hold a word down this long for its titles' cloud; a shorter press is a click.
 const TC_HOLD_MS = 450;
+
+// Rest the mouse on a word this long for its picture card.
+const TC_PEEK_MS = 300;
+
+// The picture card: one for the page, on document.body (above the cloud's own stacking), never taking the pointer.
+const tcPeek = (function () {
+    let card = null;
+    let timer = null;
+    let shown = null;
+
+    function onScroll() {
+        hide();
+    }
+
+    // The word's own tooltip (an SVG <title>, or a title attribute in Rows) is set aside while the card shows.
+    function muteTooltip(node) {
+        const title = node.querySelector && node.querySelector('title');
+        if (title) {
+            const text = title.textContent;
+            title.textContent = '';
+            return function () {
+                title.textContent = text;
+            };
+        }
+
+        const attribute = node.getAttribute('title');
+        if (attribute !== null) {
+            node.removeAttribute('title');
+            return function () {
+                node.setAttribute('title', attribute);
+            };
+        }
+
+        return function () {};
+    }
+
+    function build(peek) {
+        const picture = h('div', { class: 'jftc-peek-picture' });
+        const icon = function () {
+            picture.textContent = '';
+            picture.append(kit.icon(peek.icon || 'image', 'jftc-peek-icon'));
+        };
+        if (peek.imageUrl) {
+            const img = h('img', { src: peek.imageUrl, alt: '' });
+            img.addEventListener('error', icon);
+            picture.append(img);
+        } else {
+            icon();
+        }
+
+        return h('div', { class: 'jftc-peek', 'aria-hidden': 'true' }, [
+            picture,
+            h('div', { class: 'jftc-peek-name', text: peek.name || '' }),
+            peek.detail ? h('div', { class: 'jftc-peek-detail', text: peek.detail }) : null
+        ]);
+    }
+
+    function show(node, peek, x, y) {
+        hide();
+        if (!peek || !node.isConnected) {
+            return;
+        }
+
+        card = build(peek);
+        card.style.visibility = 'hidden';
+        document.body.append(card);
+        const box = card.getBoundingClientRect();
+        const at = tcTitleView.peekPosition(x, y, box.width || 170, box.height || 290, window.innerWidth, window.innerHeight);
+        card.style.left = at.left + 'px';
+        card.style.top = at.top + 'px';
+        card.style.visibility = '';
+        shown = { node: node, restore: muteTooltip(node) };
+        window.addEventListener('scroll', onScroll, true);
+    }
+
+    function cancel() {
+        if (timer) {
+            clearTimeout(timer);
+            timer = null;
+        }
+    }
+
+    function hide() {
+        cancel();
+        if (card) {
+            card.remove();
+            card = null;
+        }
+
+        if (shown) {
+            shown.restore();
+            shown = null;
+            window.removeEventListener('scroll', onScroll, true);
+        }
+    }
+
+    return {
+        // After TC_PEEK_MS without leaving, show peek() (an object, or null for none) where the pointer is then.
+        schedule: function (node, peek, event) {
+            hide();
+            let x = event.clientX;
+            let y = event.clientY;
+            const follow = function (move) {
+                x = move.clientX;
+                y = move.clientY;
+            };
+            node.addEventListener('pointermove', follow);
+            timer = setTimeout(function () {
+                timer = null;
+                node.removeEventListener('pointermove', follow);
+                show(node, peek(), x, y);
+            }, TC_PEEK_MS);
+            const stop = function () {
+                node.removeEventListener('pointermove', follow);
+                node.removeEventListener('pointerleave', stop);
+            };
+            node.addEventListener('pointerleave', stop);
+        },
+        hide: hide,
+        isShown: function () {
+            return !!card;
+        }
+    };
+})();
 
 function tcSvg(tag, attrs, children) {
     const node = document.createElementNS(TC_SVG_NS, tag);
@@ -29,8 +156,8 @@ function tcNum(value) {
 }
 
 // options: { label, emptyText, arrangingText }. update(model) draws; model: { items: [{ key, text, weight }], look,
-// title(item), selectedKey, spotlitKey, onSelect(key), onHold(item), onNarrow(item) } (handlers optional: without
-// onSelect the words aren't buttons).
+// title(item), selectedKey, spotlitKey, onSelect(key), onHold(item), onNarrow(item), peek(item) } (handlers optional:
+// without onSelect the words aren't buttons; peek(item) answers { name, detail, imageUrl, icon } or null for no card).
 function createTcCloud(options) {
     options = options || {};
     const root = h('div', { class: 'jftc-cloud', role: 'list', 'aria-label': options.label || 'Word cloud' });
@@ -71,7 +198,17 @@ function createTcCloud(options) {
     }
 
     function wire(node, item) {
+        node.addEventListener('pointerenter', function (event) {
+            if (event.pointerType === 'mouse' && model && model.peek) {
+                const peekOf = model.peek;
+                tcPeek.schedule(node, function () {
+                    return peekOf(item);
+                }, event);
+            }
+        });
+        node.addEventListener('pointerleave', tcPeek.hide);
         node.addEventListener('click', function (event) {
+            tcPeek.hide();
             if (held) {
                 held = false;
                 event.preventDefault();
@@ -99,6 +236,7 @@ function createTcCloud(options) {
             }
         });
         node.addEventListener('pointerdown', function (event) {
+            tcPeek.hide();
             held = false;
             clearHold();
             if (!model || !model.onHold || (event.pointerType === 'mouse' && event.button !== 0)) {
@@ -225,6 +363,7 @@ function createTcCloud(options) {
 
     function show(node, signature) {
         if (drawn) {
+            tcPeek.hide();
             drawn.remove();
         }
 
@@ -344,6 +483,7 @@ function createTcCloud(options) {
         },
         destroy: function () {
             clearHold();
+            tcPeek.hide();
             pendingSignature = null;
             root.remove();
         }

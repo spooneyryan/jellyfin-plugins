@@ -92,7 +92,7 @@ public sealed class WebTests
 
         Assert.NotNull(script);
         Assert.Equal(
-            ["Web.admin.js.10-common.js", "Web.admin.js.20-api.js", "Web.admin.js.30-duplicates.js", "Web.admin.js.35-groups.js", "Web.admin.js.70-settings.js", "Web.admin.js.80-diagnostics.js", "Web.admin.js.90-mount.js"],
+            ["Web.admin.js.10-common.js", "Web.admin.js.20-api.js", "Web.admin.js.30-duplicates.js", "Web.admin.js.35-groups.js", "Web.admin.js.36-compare.js", "Web.admin.js.70-settings.js", "Web.admin.js.80-diagnostics.js", "Web.admin.js.90-mount.js"],
             EmbeddedScript.ResourceNames(assembly, EmbeddedScript.AdminScriptFolder, ".js"));
         Assert.Equal(["Web.admin.css.librarymaintenance-admin.css"], EmbeddedScript.ResourceNames(assembly, EmbeddedScript.AdminCssFolder, ".css"));
         Assert.Contains("const KIT_BUILD = {\"plugin\":\"Library Maintenance\",\"prefix\":\"jflm\",\"route\":\"LibraryMaintenance\",\"version\":\"" + BuildVersion + "\"", script, StringComparison.Ordinal);

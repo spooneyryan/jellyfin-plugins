@@ -1,0 +1,180 @@
+{
+  "description": "Library Maintenance's comparison of a duplicate group's copies, as admin, on the desktop (1366 px), on a phone (375 px) and on jellyfin-web's TV layout. The group is 'LM Compare Pair' when the sandbox has it (two differing copies, one with special features), else the first group. What the open comparison shows is what GET /LibraryMaintenance/Duplicates/Groups/{id}/Compare gives: a column per copy with its file name, the audio and subtitle track counts, the special features, and 'Best' on the copies the server names for each detail; the toggle says aria-expanded and aria-controls; nothing scrolls sideways on a phone (the table's rows stack); on the TV, OK on 'Compare copies' opens it and Down moves into it. Reads only; this browser's kept choices and layout are removed at the end.",
+  "timeout": 30000,
+  "steps": [
+    {
+      "name": "sign in as admin",
+      "login": "admin"
+    },
+    {
+      "name": "the web client is ready",
+      "waitFor": "!!window.ApiClient && !!ApiClient.getCurrentUserId()"
+    },
+    {
+      "name": "no kept choices in this browser",
+      "eval": "(localStorage.removeItem('jflm:duplicates.view'), localStorage.removeItem('layout'), true)"
+    },
+    {
+      "name": "the probe's helpers",
+      "script": "window.__lmc = {\n  page: () => document.querySelector('#LibraryMaintenanceConfigPage:not(.hide)'),\n  q: (s) => (__lmc.page() || document).querySelector(s),\n  qa: (s) => [...(__lmc.page() || document).querySelectorAll(s)],\n  card: () => __lmc.q('#LibraryMaintenanceGroupsList article[data-group-id=\"' + __vars.server.id + '\"]'),\n  mark: () => { const c = __lmc.card(); if (c) { c.setAttribute('data-lmc-target', 'true'); } return !!c; },\n  api: async (path) => { const r = await fetch(ApiClient.getUrl(path), { headers: { Authorization: 'MediaBrowser Token=\"' + ApiClient.accessToken() + '\"', Accept: 'application/json' } }); return { status: r.status, body: r.status === 204 ? null : await r.json() }; },\n  hidden: (e) => !e || !!e.closest('.hide')\n};\nreturn true;"
+    },
+    {
+      "name": "an index to show: built once if the server has none yet",
+      "eval": "(async () => { let index = (await __lmc.api('LibraryMaintenance/Duplicates/Index')).body; if (!index.Version) { await fetch(ApiClient.getUrl('LibraryMaintenance/Duplicates/Index/Rebuild'), { method: 'POST', headers: { Authorization: 'MediaBrowser Token=\"' + ApiClient.accessToken() + '\"' } }); for (let i = 0; i < 300 && (!index.Version || index.Rebuilding); i++) { await new Promise(r => setTimeout(r, 100)); index = (await __lmc.api('LibraryMaintenance/Duplicates/Index')).body; } } return { version: index.Version, movies: index.Movies }; })()",
+      "save": "index",
+      "full": true
+    },
+    {
+      "name": "an index",
+      "assert": "__vars.index.version >= 1 && __vars.index.movies > 0"
+    },
+    {
+      "name": "the server's group and its comparison",
+      "eval": "(async () => { const groups = (await __lmc.api('LibraryMaintenance/Duplicates/Groups?limit=200')).body; const g = groups.Items.find(x => x.DisplayTitle === 'LM Compare Pair') || groups.Items[0]; if (!g) { return null; } const r = await __lmc.api('LibraryMaintenance/Duplicates/Groups/' + g.GroupId + '/Compare'); const c = r.body; const guid = (x) => String(x).replace(/-/g, '').toLowerCase(); return { id: g.GroupId, title: g.DisplayTitle, onFirstPage: groups.Items.indexOf(g) < 50, status: r.status, copies: c.Copies.map(x => ({ id: guid(x.ItemId), file: x.FileName || x.Name, audio: x.Audio.length, subtitles: x.Subtitles.length, features: x.SpecialFeatures.Count })), best: c.Best.map(b => ({ field: b.Field, copies: b.ItemIds.map(i => c.Copies.findIndex(x => guid(x.ItemId) === guid(i)) + 1) })) }; })()",
+      "save": "server",
+      "full": true
+    },
+    {
+      "name": "a group on the first page, compared: 200, every copy, best values named",
+      "assert": "!!__vars.server && __vars.server.status === 200 && __vars.server.onFirstPage && __vars.server.copies.length >= 2 && __vars.server.best.every(b => b.copies.every(n => n >= 1))"
+    },
+    {
+      "name": "the page",
+      "goto": "/web/index.html#/configurationpage?name=LibraryMaintenance"
+    },
+    {
+      "name": "the group's card, its comparison closed",
+      "waitFor": "!!__lmc.card() && __lmc.mark() && __lmc.card().querySelector('.jflm-page-compare-toggle').getAttribute('aria-expanded') === 'false' && __lmc.hidden(__lmc.card().querySelector('.jflm-page-compare'))",
+      "timeout": 20000
+    },
+    {
+      "name": "Compare copies",
+      "click": "#LibraryMaintenanceConfigPage:not(.hide) article[data-lmc-target] .jflm-page-compare-toggle",
+      "js": true
+    },
+    {
+      "name": "the comparison shown",
+      "waitFor": "!!__lmc.card() && !!__lmc.card().querySelector('.jflm-page-compare table')",
+      "timeout": 15000
+    },
+    {
+      "name": "what the comparison shows",
+      "eval": "(() => { const card = __lmc.card(); const toggle = card.querySelector('.jflm-page-compare-toggle'); const panel = card.querySelector('.jflm-page-compare'); const table = panel.querySelector('table'); const rows = [...table.querySelectorAll('tbody tr')]; const row = (name) => rows.find(r => r.getAttribute('data-row') === name); const cells = (name) => row(name) ? [...row(name).querySelectorAll('td')] : []; const count = (td) => { const m = /^(\\d+)[ :]/.exec((td.querySelector('.jflm-page-compare-count') || {}).textContent || ''); return m ? Number(m[1]) : 0; }; const best = {}; rows.forEach(r => { const n = [...r.querySelectorAll('td')].map((td, i) => td.classList.contains('jflm-page-compare-best') ? i + 1 : 0).filter(Boolean); if (n.length) { best[r.getAttribute('data-row')] = n; } }); return { expanded: toggle.getAttribute('aria-expanded'), controls: toggle.getAttribute('aria-controls') === panel.id, region: panel.getAttribute('role'), shown: !__lmc.hidden(panel), files: [...table.querySelectorAll('thead .jflm-page-compare-file')].map(x => x.textContent), audio: cells('Audio').map(count), subtitles: cells('Subtitles').map(count), features: cells('Special features').map(count), best, differs: rows.filter(r => r.querySelector('.jflm-page-compare-differs')).map(r => r.getAttribute('data-row')), opens: [...table.querySelectorAll('thead a.jflm-page-open')].map(a => a.getAttribute('aria-label')), requests: performance.getEntriesByType('resource').filter(e => e.name.indexOf('/Compare') >= 0).length }; })()",
+      "save": "shown",
+      "full": true
+    },
+    {
+      "name": "the server's comparison: a column per copy with its file, the track and feature counts, Best where the server says",
+      "assert": "(() => { const s = __vars.server, w = __vars.shown; const rowOf = { Resolution: 'Resolution', Size: 'Size', Bitrate: 'Bitrate', VideoBitrate: 'Video bitrate', BitDepth: 'Bit depth', DynamicRange: 'Dynamic range', AudioTracks: 'Audio', AudioChannels: 'Most channels', SubtitleTracks: 'Subtitles', SpecialFeatures: 'Special features' }; return w.expanded === 'true' && w.controls && w.region === 'region' && w.shown && w.files.join('|') === s.copies.map(c => c.file).join('|') && w.audio.join() === s.copies.map(c => c.audio).join() && w.subtitles.join() === s.copies.map(c => c.subtitles).join() && w.features.join() === s.copies.map(c => c.features).join() && s.best.every(b => (w.best[rowOf[b.field]] || []).join() === b.copies.join()) && Object.keys(w.best).length === s.best.length && w.opens.length === s.copies.length && w.requests >= 1; })()",
+      "message": "the comparison shown is not the server's"
+    },
+    {
+      "name": "the comparison in view",
+      "script": "__lmc.card().querySelector('.jflm-page-compare').scrollIntoView({ block: 'start' }); window.scrollBy(0, -80); return true;"
+    },
+    {
+      "sleep": 300
+    },
+    {
+      "screenshot": "librarymaintenance-compare-desktop.png"
+    },
+    {
+      "name": "a phone (375 px)",
+      "emulate": { "width": 375, "height": 812 }
+    },
+    {
+      "sleep": 600
+    },
+    {
+      "name": "no sideways scrolling at 375 px, the rows stacked",
+      "eval": "(() => { const card = __lmc.card(); const w = document.documentElement.clientWidth; const right = (e) => Math.round(e.getBoundingClientRect().right); const inside = [...card.querySelectorAll('*')].filter(e => e.getBoundingClientRect().width > 0); const td = card.querySelector('.jflm-page-compare td.jflm-page-compare-cell'); const cap = card.querySelector('.jflm-page-compare caption'); return { scrollWidth: document.documentElement.scrollWidth, clientWidth: w, card: Math.max(...inside.map(right)), stacked: !!td && getComputedStyle(td).display === 'block', label: td ? getComputedStyle(td, '::before').content : null, caption: cap ? Math.round(cap.getBoundingClientRect().width) : 0 }; })()",
+      "save": "phone",
+      "full": true
+    },
+    {
+      "name": "the page and the comparison fit 375 px; each cell says its copy",
+      "assert": "__vars.phone.scrollWidth <= __vars.phone.clientWidth + 1 && __vars.phone.card <= __vars.phone.clientWidth + 1 && __vars.phone.stacked && /Copy 1/.test(__vars.phone.label) && __vars.phone.caption >= 250"
+    },
+    {
+      "name": "the comparison in view (phone)",
+      "script": "__lmc.card().querySelector('.jflm-page-compare').scrollIntoView({ block: 'start' }); return true;"
+    },
+    {
+      "sleep": 300
+    },
+    {
+      "screenshot": "librarymaintenance-compare-phone.png"
+    },
+    {
+      "name": "the desktop again",
+      "emulate": "desktop"
+    },
+    {
+      "name": "TV layout for this browser",
+      "eval": "(localStorage.setItem('layout', 'tv'), true)"
+    },
+    {
+      "name": "reload (TV)",
+      "reload": true
+    },
+    {
+      "name": "TV layout applied",
+      "waitFor": "document.documentElement.classList.contains('layout-tv') && !!window.ApiClient && !!ApiClient.getCurrentUserId()"
+    },
+    {
+      "name": "the page (TV)",
+      "goto": "/web/index.html#/configurationpage?name=LibraryMaintenance"
+    },
+    {
+      "name": "the probe's helpers (TV)",
+      "script": "window.__lmc = {\n  page: () => document.querySelector('#LibraryMaintenanceConfigPage:not(.hide)'),\n  q: (s) => (__lmc.page() || document).querySelector(s),\n  card: () => __lmc.q('#LibraryMaintenanceGroupsList article[data-group-id=\"' + __vars.server.id + '\"]'),\n  where: () => { const a = document.activeElement; const card = a && a.closest ? a.closest('article') : null; return { tag: a ? a.tagName : null, text: a ? (a.textContent || '').trim().slice(0, 40) : null, body: !a || a === document.body, card: card ? card.getAttribute('data-group-id') : null, inCompare: !!(a && a.closest && a.closest('.jflm-page-compare')), toggle: !!(a && a.classList && a.classList.contains('jflm-page-compare-toggle')) }; }\n};\nreturn true;"
+    },
+    {
+      "name": "the card on the TV",
+      "waitFor": "!!__lmc.card()",
+      "timeout": 20000
+    },
+    {
+      "name": "TV: focus on Compare copies",
+      "script": "const t = __lmc.card().querySelector('.jflm-page-compare-toggle'); t.scrollIntoView({ block: 'center' }); t.focus(); return document.activeElement === t;"
+    },
+    {
+      "name": "TV: OK (Enter)",
+      "key": "Enter"
+    },
+    {
+      "name": "the comparison open (TV)",
+      "waitFor": "__lmc.card().querySelector('.jflm-page-compare-toggle').getAttribute('aria-expanded') === 'true' && !!__lmc.card().querySelector('.jflm-page-compare table')",
+      "timeout": 15000
+    },
+    {
+      "name": "TV: Down",
+      "key": "ArrowDown"
+    },
+    {
+      "sleep": 300
+    },
+    {
+      "name": "where the focus is after Down",
+      "eval": "__lmc.where()",
+      "save": "tv",
+      "full": true
+    },
+    {
+      "name": "Down moved into the comparison of the same card",
+      "assert": "!__vars.tv.body && __vars.tv.card === __vars.server.id && __vars.tv.inCompare"
+    },
+    {
+      "screenshot": "librarymaintenance-compare-tv.png"
+    },
+    {
+      "name": "this browser back to the automatic layout, no kept choices",
+      "eval": "(localStorage.removeItem('layout'), localStorage.removeItem('jflm:duplicates.view'), true)"
+    },
+    {
+      "name": "no uncaught exception of ours",
+      "noExceptions": true,
+      "ignore": "/CustomRatings/script|^Error: player cannot be null|^TypeError: t\\.value\\.pause is not a function"
+    }
+  ]
+}

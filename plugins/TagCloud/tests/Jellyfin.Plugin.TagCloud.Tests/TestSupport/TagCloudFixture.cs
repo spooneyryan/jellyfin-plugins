@@ -9,9 +9,12 @@ using Jellyfin.Plugin.TagCloud.Configuration;
 using Jellyfin.Plugin.TagCloud.Index;
 using Jellyfin.Plugin.TagCloud.Services;
 using MediaBrowser.Controller.Drawing;
+using MediaBrowser.Controller.Dto;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.Movies;
 using MediaBrowser.Controller.Entities.TV;
+using MediaBrowser.Controller.Library;
+using MediaBrowser.Model.Dto;
 using MediaBrowser.Model.Entities;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
@@ -21,7 +24,9 @@ namespace Jellyfin.Plugin.TagCloud.Tests.TestSupport;
 /// <summary>
 /// A small library for the index and the counts: Movies (Alien, Aliens, Heat, and a hidden-from-the-kid Scarface), Shows
 /// (The Wire, and an episode the index never counts), an owned extra and a virtual movie that it never counts either, and
-/// two users: the admin, who sees both libraries, and the kid, who sees Movies only and not Scarface.
+/// two users: the admin, who sees both libraries, and the kid, who sees Movies only and not Scarface. The people named
+/// in <see cref="Persons"/> are the library's Person items (Sigourney Weaver with a photo, Al Pacino without), and
+/// <see cref="Played"/> is what each user has watched.
 /// </summary>
 internal sealed class TagCloudFixture
 {
@@ -69,8 +74,34 @@ internal sealed class TagCloudFixture
         Heat.ImageInfos = [new ItemImageInfo { Type = ImageType.Primary, Path = "C:/posters/heat.jpg", DateModified = new DateTime(2026, 1, 2, 0, 0, 0, DateTimeKind.Utc) }];
         Images.Setup(i => i.GetImageCacheTag(It.IsAny<BaseItem>(), It.IsAny<ItemImageInfo>()))
             .Returns((BaseItem item, ItemImageInfo image) => "tag-" + item.Name + "-" + image.Type);
-        Query = new TagCloudQueryService(Index, Access, Library.Object, ConfigurationProvider, Images.Object);
+        foreach (var (name, photo) in new[] { ("Sigourney Weaver", true), ("Al Pacino", false) })
+        {
+            var person = new Person { Name = name, Id = Guid.NewGuid() };
+            if (photo)
+            {
+                person.ImageInfos = [new ItemImageInfo { Type = ImageType.Primary, Path = "C:/people/" + name + ".jpg", DateModified = new DateTime(2026, 1, 3, 0, 0, 0, DateTimeKind.Utc) }];
+            }
+
+            Persons[name] = person;
+        }
+
+        Library.Mock.Setup(l => l.GetPerson(It.IsAny<string>())).Returns((string name) => Persons.TryGetValue(name, out var person) ? person : null);
+        UserData.Setup(u => u.GetUserData(It.IsAny<User>(), It.IsAny<BaseItem>()))
+            .Returns((User user, BaseItem item) => new UserItemData { Key = item.Id.ToString("N"), Played = Played.Contains((user.Id, item.Id)) });
+        UserData.Setup(u => u.GetUserDataDto(It.IsAny<BaseItem>(), It.IsAny<BaseItemDto?>(), It.IsAny<User>(), It.IsAny<DtoOptions>()))
+            .Returns((BaseItem item, BaseItemDto? _, User user, DtoOptions _) => new UserItemDataDto { ItemId = item.Id, Key = item.Id.ToString("N"), Played = Played.Contains((user.Id, item.Id)) });
+        Query = new TagCloudQueryService(Index, Access, Library.Object, ConfigurationProvider, Images.Object, UserData.Object);
     }
+
+    /// <summary>Gets the library's Person items by name (GetPerson answers from it).</summary>
+    public Dictionary<string, Person> Persons { get; } = new(StringComparer.Ordinal);
+
+    /// <summary>Gets what each user has watched, by user and item id: a movie played, a series fully played (as core's
+    /// UserItemDataDto.Played says it for a folder).</summary>
+    public HashSet<(Guid User, Guid Item)> Played { get; } = [];
+
+    /// <summary>Gets the user data manager.</summary>
+    public Mock<IUserDataManager> UserData { get; } = new();
 
     /// <summary>Gets the image processor: a title's poster tag is "tag-" + its name + "-Primary" (only Heat has one).</summary>
     public Mock<IImageProcessor> Images { get; } = new();

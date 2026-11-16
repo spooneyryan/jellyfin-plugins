@@ -29,7 +29,7 @@ public sealed class ClientScriptTests
         var assembly = typeof(Plugin).Assembly;
 
         Assert.Equal(
-            ["Web.js.20-api.js", "Web.js.30-layout.js", "Web.js.35-pack.js", "Web.js.38-look.js", "Web.js.40-cloud.js", "Web.js.50-settings.js", "Web.js.60-page-cloud.js", "Web.js.90-main.js"],
+            ["Web.js.20-api.js", "Web.js.30-layout.js", "Web.js.32-titles.js", "Web.js.35-pack.js", "Web.js.38-look.js", "Web.js.40-cloud.js", "Web.js.50-settings.js", "Web.js.60-page-cloud.js", "Web.js.90-main.js"],
             EmbeddedScript.ResourceNames(assembly, EmbeddedScript.ScriptFolder, ".js"));
         Assert.Equal(["Web.css.tagcloud.css"], EmbeddedScript.ResourceNames(assembly, EmbeddedScript.CssFolder, ".css"));
         Assert.Equal(

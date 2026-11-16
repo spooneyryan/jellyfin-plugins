@@ -1,18 +1,20 @@
 # Library Maintenance
 
-A Jellyfin plugin with an admin-only Dashboard page that lists the movies your libraries hold more than once, and a
-**preview** of moving an item's media to another place. This is its technical documentation; the user guide is
+A Jellyfin plugin with an admin-only Dashboard page that lists the movies your libraries hold more than once and
+compares their copies, and a **preview** of moving an item's media to another place. This is its technical documentation; the user guide is
 [README.md](README.md), the release history [CHANGELOG.md](CHANGELOG.md).
 
-Version **1.0.4** (release tag `librarymaintenance/v1.0.4`), for Jellyfin **10.11.5** (`net9.0`).
+Version **1.0.5** (release tag `librarymaintenance/v1.0.5`), for Jellyfin **10.11.5** (`net9.0`); **2.0.1** is the same
+code for Jellyfin **12.4** (`net10.0`, `build.12.yaml`, `-p:JellyfinTarget=12`).
 
 - **Duplicates** (since 1.0.0): the Dashboard page's Duplicates tab groups the movies by title (and year), with a
   confidence, a suggested copy to keep and the space the others take. Read-only.
+- **Compare copies** (since 1.0.5): a group's copies side by side, read on request ("The comparison"). Read-only.
 - **Move media, preview only** (since 1.0.2): an administrator's item menu has **Move media to new location**, whose
   dialog plans a move and shows what would happen. **Nothing is moved**: the release is built plan-only
   (`MovePreviewOnly`), with no route or call that moves, renames, makes or deletes a file or folder. Moving itself is
   planned for 1.1 and is not in this code ("Move media: the preview").
-- Not in 1.0.3: marking a group as not a duplicate, comparing copies, CSV, merging versions, the Repair view, deleting a
+- Not in 1.0.5: marking a group as not a duplicate, CSV, merging versions, the Repair view, deleting a
   copy, and moving.
 
 **What it changes on a server**: one script tag added to the web client's `index.html` as the server sends it (for the
@@ -53,6 +55,40 @@ the TV layout the remote's Down from a tab reaches its panel.
   and offers **Try Title only (N groups)** when that finds some; filters that keep none offer **Clear the filters**; no
   library left that the administrator can open says so. Cards are redrawn only when what they show changes, so the 2 s
   poll never takes the focus.
+
+### The comparison
+
+Plan 06's compare panel (1.0.x), modelled on an earlier duplicate remover's comparison, without its delete. Each card has **Compare
+copies** (`aria-expanded`, `aria-controls`), which opens a region inside the card and asks
+`GET …/Duplicates/Groups/{groupId}/Compare` with the options the shown groups came from (`mode`, `unknownYear` from the
+page's answer, `libraryIds` as chosen). Nothing is asked for the list; a panel reads its group once and shows it again
+when reopened; a card made again (a newer index) with its panel open opens it again and reads it anew. Failures say why
+with **Try again**; a 202 says the index is being built.
+
+- **The server** (`Duplicates/Compare/DuplicateComparison`) finds the group through `IDuplicateGroups.GetGroupAsync`, so
+  the caller's libraries, parental limits and 404s are the groups' own. The copies: each entry's main version, its
+  other versions in scope (`LinkedVersionIds`), its local alternates (10.11: `GetNewItemId` of each
+  `LocalAlternateVersions` path; 12: `ILibraryManager.GetLocalAlternateVersionIds`), once each, at most 24 (`Truncated`);
+  an item gone from the library is left out.
+- **What is read**: the item (size, container, runtime, bitrate, parts, date added), its streams as stored at the last
+  scan (`IMediaSourceManager.GetMediaStreams(id)`, the database: never `GetStaticMediaSources`, which resolves links on
+  disk), its extras (10.11 `ExtraIds`; 12 the items it owns with an `ExtraType`; theme songs and videos left out) and
+  every user's `GetUserData` (counts: played, in progress, plays; `Played` null above 1,000 users). A commentary is an
+  audio track whose title or comment says so. An extra is `BesideFile` (in the
+  copy's folder; a disc's own folder for a DVD or Blu-ray folder), `ExtrasFolder` (a folder in it, named) or
+  `Elsewhere`.
+- **The file check**: `File.Exists` (`Directory.Exists` for a disc folder) on each copy's path, all at once within 3 s:
+  `Present`, `Missing`, `Unknown` (no answer in time, or a device path, never checked), `NotAFile` (an address). Nothing
+  is opened.
+- **Best** (server-side): for resolution (width × height), size, overall and video bitrate, bit depth, dynamic range (HDR
+  over SDR), audio tracks, most channels, subtitle tracks and special features, the copies with the highest value when
+  at least two known values differ; a copy with no stream data at all takes no part in the track counts. **Differs**
+  (the page): a row whose text isn't the same in every column.
+- **The page** (`Web/admin/js/36-compare.js`): a table with a caption, a column heading per copy (number, file name in a
+  `<bdi>`, *Suggested keep*, *Version* or *Local version*, *File not found* or *File not checked*, and **Open**), a row
+  heading per detail with "Differs", and "Best" as a word in the cell (and the accent; an outline in forced colours).
+  Track and extras lists show six, then **Show N more** (`aria-expanded`). Under 40em each row stacks its copies, each
+  named from `data-copy`; wider, many copies scroll sideways inside the panel, which takes the focus for the keyboard.
 
 ### The Settings tab
 
@@ -336,6 +372,7 @@ Every route but `AdminScript`, `ClientScript`, `Capabilities` and `ClientHealth`
 | POST | `/LibraryMaintenance/Duplicates/Index/Rebuild` | 202 with the same body. Single-flight; during a scan with an index built, waits for the scan's build. |
 | GET | `/LibraryMaintenance/Duplicates/Groups` | A page of groups. Options: `mode` (`Title`, `TitleAndYear`), `unknownYear` (`MatchUnknownOnly`, `MatchAny`), `libraryIds`, `confidence`, `search` (up to 200 characters: the title key contains the text's key, or an entry's name contains the text), `sort` (`Confidence`, `Title`, `Reclaimable`, `Size`, `Newest`), `startIndex`, `limit` (1 to 200, 50). Body: `Index` (with `Stale`), the options used, `OptionsHash` (16 hex digits of SHA-256 over the options and title rules), the totals, `AlternateModeGroupCount`, `ReclaimableBytes`, the page, and `Items` (a card's fields, `Entries` with the keep first). 400 an unreadable option; 202 (`Rebuilding`, `Progress`, `ScanInProgress`, `LastError`) with no index after the wait; 503 when its build failed and none runs. |
 | GET | `/LibraryMaintenance/Duplicates/Groups/{groupId}` | One group with `mode`, `unknownYear`, `libraryIds`; 404 "This duplicate group is gone…"; 400, 202, 503 as above. |
+| GET | `/LibraryMaintenance/Duplicates/Groups/{groupId}/Compare` | Since 1.0.5, the group as above compared ("The comparison"): `GroupId`, `DisplayTitle`, `SuggestedKeepId`, `Truncated`, `Copies[]` (`ItemId`, `EntryItemId`, `Role`, `Name`, `Path`, `FileName`, `Folder`, `FileState`, `SizeBytes`, `Container`, `VideoType`, `RunTimeTicks`, `TotalBitrate`, `PartCount`, `Video`, `Audio[]`, `Subtitles[]`, `SpecialFeatures` with `Count`, `ByKind[]`, `ByLocation[]`, `Items[]`, `DateCreated`, `Played`) and `Best[{Field, ItemIds}]`. 404, 400, 202, 503 as for the group. |
 | GET | `/LibraryMaintenance/Move/Eligibility?ids=` | 1 to 100 ids: `[{ItemId, Eligible, Code, Reason, UnitKind, OwnerItemId}]` in order; `Code` `move.not-eligible`, `move.item-busy`, `move.reparse-point` or `move.not-found`. |
 | GET | `/LibraryMaintenance/Move/Source?itemId=` | `Item`, `Library`, `LocationPath`, `Unit` (`Kind`, `Root`, `Files[{Rel, Bytes}]`, `Dirs`, `TotalBytes`, `Versions`, `Parts`, `Extras`), `Retargeted` (for a version or part); 404; 409 with the code. |
 | GET | `/LibraryMaintenance/Move/Destinations?itemId=` | The item type's libraries the caller can open, its own first (only its own with `AllowCrossLibraryMoves` off): `LibraryId`, `Name`, `CollectionType`, `IsSource`, `Locations[{Index, Path, Label, Reachable, FreeBytes, SameVolumeAsSource, Selectable, Reason}]` (`cross-volume-later`, `network-location`, `device-path`, `not-a-local-path`, `unreachable`, `reparse-point`, `ignored`). |
@@ -346,7 +383,7 @@ Every route but `AdminScript`, `ClientScript`, `Capabilities` and `ClientHealth`
 
 The user README has the short version. Nothing here runs by itself. Paths are Jellyfin's Windows defaults
 (`C:\ProgramData\Jellyfin\Server`). The plugin folder is `Library Maintenance_<version>` (for example
-`Library Maintenance_1.0.4.0`). 1.0.4 upgrades 1.0.0 to 1.0.3 alike and keeps their settings file (from 1.0.0 or 1.0.1,
+`Library Maintenance_1.0.5.0`). 1.0.5 upgrades 1.0.0 to 1.0.4 alike and keeps their settings file (from 1.0.0 or 1.0.1,
 the web client and Move switches start on).
 
 1. **Stop Jellyfin** (it locks plugin DLLs). For an upgrade, copy the settings file first:
@@ -360,8 +397,8 @@ the web client and Move switches start on).
    release tag with a backup of its own, first as a dry run, then with the same `-Version`:
 
    ```powershell
-   <repo>\scripts\Install-RealServer.ps1 -Plugin LibraryMaintenance -Version 1.0.4 -WhatIf
-   <repo>\scripts\Install-RealServer.ps1 -Plugin LibraryMaintenance -Version 1.0.4
+   <repo>\scripts\Install-RealServer.ps1 -Plugin LibraryMaintenance -Version 1.0.5 -WhatIf
+   <repo>\scripts\Install-RealServer.ps1 -Plugin LibraryMaintenance -Version 1.0.5
    ```
 
    It builds the tag (the plan-only build) in a temporary worktree, takes a cold backup to
@@ -386,7 +423,7 @@ previous version back (to remove the plugin instead, delete rather than copy bac
 says). By hand:
 
 1. Stop Jellyfin.
-2. Delete `plugins\Library Maintenance_1.0.4.0`; to go back, copy the earlier version's folder back (from the backup or
+2. Delete `plugins\Library Maintenance_1.0.5.0`; to go back, copy the earlier version's folder back (from the backup or
    its release zip).
 3. Put the settings file you copied back into `plugins\configurations` (going back past 1.0.2, its switches go with it);
    to remove the plugin, delete `plugins\configurations\Jellyfin.Plugin.LibraryMaintenance.xml` instead.
@@ -416,6 +453,7 @@ What the tests cover:
 | Settings API | `Api/SettingsApiTests`: administrators only, dry run and version, every refusal, a newer build's values kept, the preview and a limited administrator's, export and import round trip, concurrent saves. |
 | The index | `Duplicates/MovieIndexBuilderTests`, `MovieIndexServiceTests`, `Api/DuplicatesApiTests` on a fake library; `Duplicates/MovieIndexFreshnessTests` on a manual clock (the warm and scan rules, the cold build, the request wait, the monitor end to end). |
 | Grouping | `Duplicates/DuplicateGrouperTests` (modes, policies, every confidence step, flags, the keep, reclaimable bytes, the group id, scope); `Api/GroupsApiTests` (access, two administrators and the cache, parental limits, API keys, options, filters, paging, 202 and 503); `Duplicates/GroupsQueryTests` (10,000 synthetic movies under a second), `GroupResultCacheTests`, `ItemVisibilityTests`. |
+| The comparison | `Duplicates/DuplicateComparisonTests` (streams, embedded and external subtitles, commentaries, extras by kind and place, a disc folder, missing data, an offline, slow, device-path or streamed file, versions and local alternates, play counts, 24 copies, reads only); `Api/CompareApiTests` (anonymous 401, a user 403, a limited administrator's 404, 400, Duplicates off); `Web/admin.test.mjs` (the toggle, the table, Best and Differs, folding, text only, failures, a card made again, the TV layout). |
 | Move | `Move/` (the gate on every route by reflection; path rules, volumes, real junctions, links and ACL denies; the planner on temp trees with Jellyfin's id rule; lock probes with real handles; sessions; eligibility; the plan service, hash and 15 minutes; the routes over HTTP; a whole plan watched for writes; `PreviewOnlyBuildTests`), `Operations/` (the operation gate), `Web/move.test.mjs` (the entry and dialog, run by `ClientScriptTests`). |
 
 In a sandbox ([scripts/README.md](../../scripts/README.md#library-maintenance-checks), "Library Maintenance checks"):

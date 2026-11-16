@@ -40,7 +40,7 @@ public sealed class PublicBoundaryTests
         AssertTypes([typeof(LibraryMaintenanceAdminController), typeof(LibraryMaintenanceController), typeof(LibraryMaintenanceDiagnosticsController), typeof(LibraryMaintenanceDuplicatesController), typeof(LibraryMaintenanceMoveController)], surface.OfRole(PublicRole.Controller));
         AssertTypes([typeof(Plugin), typeof(PluginServiceRegistrator), typeof(Library.LibraryMaintenancePostScanTask)], surface.OfRole(PublicRole.JellyfinPart));
         AssertTypes([typeof(PluginConfiguration)], surface.OfRole(PublicRole.Configuration));
-        AssertTypes([typeof(IDuplicatesIndex), typeof(LibraryMaintenance.Duplicates.Groups.IDuplicateGroups), typeof(LibraryMaintenance.Settings.ILibraryMaintenanceSettings), typeof(LibraryMaintenance.Move.IMoveMedia)], surface.OfRole(PublicRole.ServiceInterface));
+        AssertTypes([typeof(IDuplicatesIndex), typeof(LibraryMaintenance.Duplicates.Groups.IDuplicateGroups), typeof(LibraryMaintenance.Duplicates.Compare.IDuplicateComparison), typeof(LibraryMaintenance.Settings.ILibraryMaintenanceSettings), typeof(LibraryMaintenance.Move.IMoveMedia)], surface.OfRole(PublicRole.ServiceInterface));
         AssertTypes(
             [
                 typeof(LibraryMaintenanceDuplicateIndexDto), typeof(LibraryMaintenanceDuplicateIndexLibraryDto), typeof(LibraryMaintenanceDuplicateIndexStatesDto),
@@ -56,6 +56,10 @@ public sealed class PublicBoundaryTests
                 typeof(LibraryMaintenanceMovePlanDto), typeof(LibraryMaintenanceMovePlanItemDto), typeof(LibraryMaintenanceMovePlanRequestDto),
                 typeof(LibraryMaintenanceMovePlanUnitDto), typeof(LibraryMaintenanceMovePlanVolumeDto), typeof(LibraryMaintenanceMovePreservedDto),
                 typeof(LibraryMaintenanceMoveSourceDto), typeof(LibraryMaintenanceMoveSourceUnitDto),
+                typeof(LibraryMaintenanceDuplicateCompareDto), typeof(LibraryMaintenanceDuplicateCompareBestDto), typeof(LibraryMaintenanceDuplicateCompareCopyDto),
+                typeof(LibraryMaintenanceDuplicateCompareVideoDto), typeof(LibraryMaintenanceDuplicateCompareAudioDto), typeof(LibraryMaintenanceDuplicateCompareSubtitleDto),
+                typeof(LibraryMaintenanceDuplicateCompareFeaturesDto), typeof(LibraryMaintenanceDuplicateCompareFeatureDto), typeof(LibraryMaintenanceDuplicateCompareCountDto),
+                typeof(LibraryMaintenanceDuplicateComparePlayedDto),
             ],
             surface.OfRole(PublicRole.Dto));
         AssertTypes([], surface.OfRole(PublicRole.Facade));

@@ -5,6 +5,7 @@ using Jellyfin.Plugin.Kit.Hosting;
 using Jellyfin.Plugin.Kit.Library;
 using Jellyfin.Plugin.Kit.Web;
 using Jellyfin.Plugin.LibraryMaintenance.Configuration;
+using Jellyfin.Plugin.LibraryMaintenance.Duplicates.Compare;
 using Jellyfin.Plugin.LibraryMaintenance.Duplicates.Groups;
 using Jellyfin.Plugin.LibraryMaintenance.Duplicates.Index;
 using Jellyfin.Plugin.LibraryMaintenance.Move;
@@ -71,6 +72,10 @@ public class PluginServiceRegistrator : IPluginServiceRegistrator
         serviceCollection.AddSingleton<DuplicateGroupsService>();
         serviceCollection.AddSingleton<IDuplicateGroups>(static provider => provider.GetRequiredService<DuplicateGroupsService>());
         serviceCollection.AddKitDiagnosticsSource("DuplicateGroups", static provider => provider.GetRequiredService<DuplicateGroupsService>().Describe());
+
+        // The comparison of one group's copies (since 1.0.5): read on request from the library's items, their stored
+        // streams, extras and watch data; it writes nothing.
+        serviceCollection.AddSingleton<IDuplicateComparison, DuplicateComparison>();
 
         // The settings: the Settings tab's data, a save previewed when it changes the index's scope, and the
         // settings' export and import in the kit's envelope.

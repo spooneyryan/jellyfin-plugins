@@ -1,8 +1,8 @@
 # Library Maintenance
 
-Library Maintenance helps a Jellyfin administrator tidy up a media collection. Version 1.0.4 does two things: an
-admin-only Dashboard page that lists the movies your libraries hold more than once, and a **preview** of moving a
-movie, an episode or a music video to another folder. It is read-only: it deletes, merges, moves and writes nothing in
+Library Maintenance helps a Jellyfin administrator tidy up a media collection. Version 1.0.5 does two things: an
+admin-only Dashboard page that lists the movies your libraries hold more than once and compares their copies side by
+side, and a **preview** of moving a movie, an episode or a music video to another folder. It is read-only: it deletes, merges, moves and writes nothing in
 your libraries. It is for home-server admins who want to find duplicate copies and see what a move would involve
 before any tool touches their files.
 
@@ -16,6 +16,13 @@ before any tool touches their files.
 - Every copy is listed with its poster, edition, year, libraries, resolution, size, bitrate, runtime and path, the
   suggested copy to keep first, and **Open** to go to its page. The suggestion is advice only.
 - Filter by library, confidence and title; five sort orders; 50 groups at a time with **Load more**.
+- **Compare copies** on a group shows its copies side by side, one column per file: name and folder, size, container,
+  runtime, resolution, video codec, bit depth, dynamic range (SDR, HDR10, Dolby Vision…), frame rate, bitrates, the
+  audio tracks (language, codec, channels, title, commentary, default), the subtitles (forced, default, embedded or
+  external), the special features (how many of each kind, and whether they sit beside the file, in an extras folder or
+  elsewhere), when it was added, how many users played it, and whether its file is there. The best value of each detail
+  is marked **Best** and the details that aren't the same are marked **Differs**: advice only. It reads what Jellyfin
+  learned at its last scan, so a copy on a drive that is unplugged still shows its tracks, marked *File not found*.
 
 **Move preview** (administrators only, preview only)
 - **Move media to new location** in the item menu ("⋮") of a movie, an episode or a music video.
@@ -50,7 +57,7 @@ administrators only.
 
 **Manually**
 1. Download the zip from the GitHub Releases page: <https://github.com/spooneyryan/jellyfin-plugins/releases>.
-2. Extract it into the `plugins/Library Maintenance_1.0.4.0` folder inside Jellyfin's data folder.
+2. Extract it into the `plugins/Library Maintenance_1.0.5.0` folder inside Jellyfin's data folder.
 3. Restart the server.
 
 **After installing**, reload the web client with **Ctrl+F5** so your browser picks up the plugin's script (needed for
@@ -128,7 +135,7 @@ Settings tab (its full path as the server sees it). A clip folder outside every 
 ## Uninstalling
 
 1. Go to **Dashboard -> Plugins**, select **Library Maintenance** and choose **Uninstall** (not Disable), then restart
-   the server. Or stop the server and delete the `plugins/Library Maintenance_1.0.4.0` folder in Jellyfin's data
+   the server. Or stop the server and delete the `plugins/Library Maintenance_1.0.5.0` folder in Jellyfin's data
    folder.
 2. To remove the settings too, delete `<data>/plugins/configurations/Jellyfin.Plugin.LibraryMaintenance.xml`.
 3. Start the server and reload the web client with Ctrl+F5. The item menus no longer have the Move entry.

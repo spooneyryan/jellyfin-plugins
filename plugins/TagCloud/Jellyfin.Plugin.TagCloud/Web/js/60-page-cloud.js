@@ -2,12 +2,16 @@
 // clouds, the cloud with its summary and narrowing, the selected word's titles, the held word's cloud of titles, and the
 // read-only full-screen view (show=1). What the cloud counts lives in the hash (source, scope, libs, narrow, sel, cloud),
 // so a reload, a deep link and Back show the same cloud; its look lives on this device (jftc:look) and in saved clouds.
+// The titles list's sort and filters live on this device per user (jftc:titles:<user id>), the text typed in its
+// filter box only as long as the list.
 
 const TC_TITLES_PAGE = 50;
 const TC_SPOTLIGHT_MAX = 200;
 const TC_SHOW_IDLE_MS = 2500;
 const TC_RETRY_MS = 3000;
 const TC_WORDS_DEBOUNCE_MS = 250;
+const TC_PEEK_WIDTH = 320;
+const TC_PEOPLE = Object.freeze(['Actors', 'Directors', 'Writers']);
 
 // The full-screen view open now, if any (it lives on document.body, above jellyfin-web's header and drawer).
 let tcShowView = null;
@@ -240,6 +244,8 @@ function tcPage(body, params, context, caps) {
                 cloud.selected = null;
                 cloud.savedId = null;
                 pushParams(false);
+                // The buttons again, so the one pressed is the new source and the old one can be picked again.
+                renderToolbar();
                 reload();
             }),
             tcSegmented('Which titles', scopes, cloud.scope, function (v) {
@@ -564,7 +570,7 @@ function tcPage(body, params, context, caps) {
         // The narrowing the server applied: words the titles no longer carry drop out.
         cloud.narrow = result.Narrow || [];
         items = result.Words.map(function (w) {
-            return { key: w.Key, text: w.Text, weight: w.Count };
+            return { key: w.Key, text: w.Text, weight: w.Count, personId: w.PersonId || null, imageTag: w.ImageTag || null };
         });
         if (cloud.selected && !items.some(function (i) { return i.key === cloud.selected; })) {
             cloud.selected = null;
@@ -592,8 +598,19 @@ function tcPage(body, params, context, caps) {
             spotlitKey: spotlight ? spotlight.key : null,
             onSelect: select,
             onHold: openSpotlight,
-            onNarrow: narrow
+            onNarrow: narrow,
+            peek: TC_PEOPLE.indexOf(cloud.source) >= 0 ? peekPerson : null
         });
+    }
+
+    // The card when the mouse rests on a person: their photo, name and how many of the titles credit them.
+    function peekPerson(item) {
+        return {
+            name: item.text,
+            detail: tcCount(item.weight, scope()),
+            imageUrl: item.personId && item.imageTag ? kit.imageUrl(item.personId, item.imageTag, { maxWidth: TC_PEEK_WIDTH }) : null,
+            icon: 'person'
+        };
     }
 
     function renderSummary() {
@@ -722,6 +739,14 @@ function tcPage(body, params, context, caps) {
         return cloud.selected || (cloud.narrow.length >= 2 ? cloud.narrow[0] : null);
     }
 
+    function titleViewName() {
+        return 'titles:' + (kit.user.id() || 'anyone');
+    }
+
+    // The word's titles as the library shows them: poster cards in a wrapping grid, each opening the title's details page,
+    // with a filter box, a sort and its direction, a minimum resolution (movies), Unwatched only, Reset and a count above
+    // them. The server filters, sorts and pages them (GET /TagCloud/Titles); the controls are built once, so the focus of a
+    // remote or keyboard stays where it is while the list reloads.
     function renderTitles() {
         titlesBox.textContent = '';
         const key = listedKey();
@@ -736,29 +761,143 @@ function tcPage(body, params, context, caps) {
             return k !== key;
         }).map(textOf);
         const heading = h('h3', { class: 'jftc-titles-title', text: (word ? word.text : textOf(key)) + (word ? ' · ' + tcCount(word.weight, scope()) : '') + (others.length ? ' with ' + others.join(', ') : '') });
-        // The titles as the library shows them: poster cards in a wrapping grid, each opening the title's details page.
-        const list = kit.grid([], { className: 'jftc-title-grid' });
+        const unit = scope();
+        let view = tcTitleView.normalize(kit.storage.get(titleViewName(), null));
+        let text = '';
         let loaded = 0;
+        let version = 0;
+
+        const list = kit.grid([], { className: 'jftc-title-grid' });
+        const count = h('span', { class: 'jftc-titles-count', role: 'status' });
+        const empty = h('p', { class: 'jftc-note jftc-titles-empty', role: 'status' });
+        kit.setHidden(empty, true);
+        const search = kit.searchBox({
+            placeholder: 'Filter these ' + unit.many,
+            label: 'Filter these ' + unit.many + ' by name',
+            maxLength: tcTitleView.MAX_QUERY,
+            onSearch: function (value) {
+                text = value;
+                changed(false);
+            }
+        });
+        const sortSelect = kit.select({ 'aria-label': 'Sort by', class: 'jftc-title-sort' }, tcTitleView.SORTS.map(function (s) {
+            return { value: s.value, text: s.text };
+        }));
+        sortSelect.addEventListener('change', function () {
+            view.Sort = sortSelect.value;
+            changed(true);
+        });
+        const up = h('button', { type: 'button', class: 'jftc-seg-button' });
+        const down = h('button', { type: 'button', class: 'jftc-seg-button' });
+        up.addEventListener('click', function () {
+            if (view.Descending) {
+                view.Descending = false;
+                changed(true);
+            }
+        });
+        down.addEventListener('click', function () {
+            if (!view.Descending) {
+                view.Descending = true;
+                changed(true);
+            }
+        });
+        const direction = h('div', { class: 'jftc-seg jftc-title-direction', role: 'group', 'aria-label': 'Direction' }, [up, down]);
+        const resolution = kit.select({ 'aria-label': 'Resolution', class: 'jftc-title-resolution' }, tcTitleView.RESOLUTIONS.map(function (r) {
+            return { value: r.value, text: r.text };
+        }));
+        resolution.addEventListener('change', function () {
+            view.MinResolution = resolution.value;
+            changed(true);
+        });
+        const unwatched = h('input', { type: 'checkbox', class: 'jftc-title-unwatched' });
+        unwatched.addEventListener('change', function () {
+            view.Unwatched = unwatched.checked;
+            changed(true);
+        });
+        const reset = kit.button('Reset', {
+            className: 'jftc-title-reset',
+            title: 'Back to A to Z, with nothing filtered out',
+            onClick: function () {
+                view = tcTitleView.normalize(null);
+                text = '';
+                search.setSearch('');
+                changed(true);
+                search.focus();
+            }
+        });
+        const controls = h('div', { class: 'jftc-title-filters', role: 'group', 'aria-label': 'Filter and sort these ' + unit.many }, [
+            h('div', { class: 'jftc-title-search' }, search),
+            h('label', { class: 'jftc-inline-field' }, [h('span', { text: 'Sort by' }), sortSelect]),
+            direction,
+            tcTitleView.resolutionApplies(cloud.scope) ? h('label', { class: 'jftc-inline-field' }, [h('span', { text: 'Resolution' }), resolution]) : null,
+            h('label', { class: 'jftc-check jftc-title-check' }, [unwatched, h('span', { text: 'Unwatched only' })]),
+            reset,
+            count
+        ]);
         const pager = kit.pager({
             onMore: function () {
                 more();
             }
         });
-        const more = async function () {
+
+        // The controls as the view says them: the direction's words follow the sort ("Oldest first" for dates).
+        function sync() {
+            const sort = tcTitleView.sortOf(view.Sort);
+            sortSelect.value = view.Sort;
+            resolution.value = view.MinResolution;
+            unwatched.checked = view.Unwatched;
+            up.textContent = sort.up;
+            down.textContent = sort.down;
+            [[up, !view.Descending], [down, view.Descending]].forEach(function (pair) {
+                pair[0].classList.toggle('jftc-seg-on', pair[1]);
+                pair[0].setAttribute('aria-pressed', String(pair[1]));
+            });
+            kit.setHidden(reset, tcTitleView.isDefault(view, text, cloud.scope));
+        }
+
+        function changed(persist) {
+            if (persist) {
+                kit.storage.set(titleViewName(), view);
+            }
+
+            sync();
+            version++;
+            loaded = 0;
+            list.textContent = '';
+            kit.setHidden(empty, true);
+            pager.update({ busy: false, hasMore: false });
+            more();
+        }
+
+        async function more() {
+            const asked = version;
             pager.update({ busy: true });
             try {
-                const result = await tcTitles(cloud, key, { startIndex: loaded, limit: TC_TITLES_PAGE });
+                const result = await tcTitles(cloud, key, { startIndex: loaded, limit: TC_TITLES_PAGE, filters: tcTitleView.query(view, text, cloud.scope) });
+                if (asked !== version || !titlesBox.contains(list)) {
+                    return;
+                }
+
                 result.Items.forEach(function (t) {
                     list.append(kit.card({ Id: t.Id, Name: t.Name, ProductionYear: t.Year, Type: t.Kind, ImageTags: t.ImageTag ? { Primary: t.ImageTag } : null }, { icon: t.Kind === 'Series' ? 'tv' : 'movie', className: 'jftc-title-card' }));
                 });
                 loaded += result.Items.length;
+                count.textContent = tcTitleView.countText(result.Total, result.Unfiltered, unit);
+                empty.textContent = result.Unfiltered === 0 ? 'None of these ' + unit.many + ' are there any more.' : 'None of these ' + unit.many + ' match the filters.';
+                kit.setHidden(empty, result.Total > 0);
                 pager.update({ busy: false, hasMore: loaded < result.Total });
             } catch (e) {
+                if (asked !== version) {
+                    return;
+                }
+
                 pager.update({ busy: false, hasMore: false });
                 titlesBox.append(kit.notice({ kind: 'error', text: e.message }));
             }
-        };
-        kit.append(titlesBox, h('div', { class: 'jftc-card' }, [heading, list, pager.element]));
+        }
+
+        kit.append(titlesBox, h('div', { class: 'jftc-card' }, [heading, controls, empty, list, pager.element]));
+        sync();
         more();
     }
 
@@ -787,7 +926,7 @@ function tcPage(body, params, context, caps) {
             const random = tcPack.mulberry32(seed);
             view.update({
                 items: result.Items.map(function (t) {
-                    return { key: t.Id, text: t.Name, weight: 1 + Math.floor(random() * 9) };
+                    return { key: t.Id, text: t.Name, weight: 1 + Math.floor(random() * 9), imageTag: t.ImageTag || null, kind: t.Kind };
                 }),
                 look: tcNormalizeLook(Object.assign({}, TC_LOOK_DEFAULTS, { MaxWords: TC_SPOTLIGHT_MAX, Palette: 'Rainbow', MinFontSize: 0.7, MaxFontSize: 2.2, Scale: 'Linear', Seed: seed, Font: look.Font, TextCase: look.TextCase, Shape: look.Shape }), caps.MaxWordsLimit),
                 title: function (t) {
@@ -797,6 +936,14 @@ function tcPage(body, params, context, caps) {
                     if (id) {
                         window.location.hash = kit.itemHref(id).replace(/^#/, '');
                     }
+                },
+                // Resting the mouse on a title shows its poster.
+                peek: function (t) {
+                    return {
+                        name: t.text,
+                        imageUrl: t.imageTag ? kit.imageUrl(t.key, t.imageTag, { maxWidth: TC_PEEK_WIDTH }) : null,
+                        icon: t.kind === 'Series' ? 'tv' : 'movie'
+                    };
                 }
             });
             if (result.Total > result.Items.length) {

@@ -1,3 +1,5 @@
+using System;
+
 namespace Jellyfin.Plugin.TagCloud.Api.Models;
 
 /// <summary>
@@ -16,4 +18,13 @@ public sealed class TagCloudWordDto
 
     /// <summary>Gets or sets how many titles carry it.</summary>
     public int Count { get; set; }
+
+    /// <summary>
+    /// Gets or sets the person's item id, for a word of Actors, Directors or Writers whose person the library has; null
+    /// otherwise. The web client shows their photo when the pointer rests on the word.
+    /// </summary>
+    public Guid? PersonId { get; set; }
+
+    /// <summary>Gets or sets the tag of the person's primary image (their photo), or null when there is none.</summary>
+    public string? ImageTag { get; set; }
 }

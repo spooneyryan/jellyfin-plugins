@@ -392,6 +392,8 @@ public sealed class LibraryDemoTests : IDisposable
             .AddSingleton(_library.Object)
             .AddSingleton(_users.Object)
             .AddSingleton(Mock.Of<IUserDataManager>())
+            .AddSingleton(Mock.Of<MediaBrowser.Controller.Providers.IProviderManager>())
+            .AddSingleton(Mock.Of<MediaBrowser.Model.IO.IFileSystem>())
             .AddSingleton(TestData.ConfigurationProvider(new PluginConfiguration()))
             .AddSingleton<ILoggerFactory>(NullLoggerFactory.Instance)
             .AddSingleton(typeof(ILogger<>), typeof(NullLogger<>));
@@ -403,7 +405,7 @@ public sealed class LibraryDemoTests : IDisposable
         var steps = (IEnumerable<IDictionary<string, object?>>)run["Steps"]!;
         Assert.True(Equals(0, run["Failed"]), string.Join("; ", steps.Select(s => string.Join(", ", s.Select(e => $"{e.Key}={e.Value}")))));
         Assert.Equal(
-            new[] { "Snapshots", "Archive", "Users", "VerifySweep", "ResolveDetached", "Reattach", "ClipFiles", "MissingClips" },
+            new[] { "Snapshots", "Archive", "Users", "VerifySweep", "ResolveDetached", "Reattach", "ClipFiles", "MissingClips", "ClipArtwork" },
             ((IEnumerable<IDictionary<string, object?>>)run["Steps"]!).Select(s => (string)s["Name"]!));
 
         // The missing-clip sweep, the last step, ran on the registrator's services, and Diagnostics' ClipSweep entry has

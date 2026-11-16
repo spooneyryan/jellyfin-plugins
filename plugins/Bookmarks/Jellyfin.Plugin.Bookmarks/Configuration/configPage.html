@@ -308,6 +308,15 @@
                             </label>
                         </div>
 
+                        <!-- Since 1.3.0 / 2.1.0: <clip>-poster, -fanart (and an episode's -thumb) beside each clip file. -->
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label class="emby-checkbox-label">
+                                <input id="GiveClipsVideoArtwork" name="GiveClipsVideoArtwork" type="checkbox" is="emby-checkbox" />
+                                <span>Give clips their video's artwork</span>
+                            </label>
+                            <div class="fieldDescription checkboxFieldDescription">For a clip folder that is a Home Videos and Photos library: each clip gets the film's poster and backdrop (an episode's, its series' poster) as image files beside it, so the library shows those instead of a frame from the clip.</div>
+                        </div>
+
                         <div class="selectContainer">
                             <label class="selectLabel" for="DefaultClipMode">Default clip mode</label>
                             <select is="emby-select" id="DefaultClipMode" name="DefaultClipMode" class="emby-select-withcolor emby-select">
@@ -541,7 +550,7 @@
                 var page = document.querySelector('#BookmarksConfigPage');
                 var form = document.querySelector('#BookmarksConfigForm');
                 var checkboxes = ['EnableWebUi', 'ReportWebAnchorProblems', 'EnableBookmarksPage', 'EnableClipsPage', 'RegisterPluginPages', 'ShowFallbackNav', 'ShowPlayerButtons',
-                    'AskForNameDefault', 'SuggestChapterNames', 'ShowJellyfinEnhancedBanner', 'EnableClips', 'AdminsCanManageAllClips', 'OrganizeClipsByUser', 'CleanUpPartialFilesOnStartup'];
+                    'AskForNameDefault', 'SuggestChapterNames', 'ShowJellyfinEnhancedBanner', 'EnableClips', 'AdminsCanManageAllClips', 'OrganizeClipsByUser', 'GiveClipsVideoArtwork', 'CleanUpPartialFilesOnStartup'];
                 var textFields = ['BookmarkNowShortcut', 'ClipOutputPath'];
                 var selectFields = ['PageHostMode', 'DeletedUserPolicy', 'DefaultClipMode', 'VideoPreset'];
                 var numberFields = ['DetachedRetentionDays', 'SnapshotsToKeep', 'MinFreeSpaceMegabytes', 'MaxClipDurationSeconds', 'MaxConcurrentClips', 'MissingClipRetentionDays',

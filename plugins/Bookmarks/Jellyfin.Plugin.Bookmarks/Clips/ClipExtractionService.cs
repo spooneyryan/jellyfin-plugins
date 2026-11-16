@@ -865,6 +865,7 @@ internal sealed class ClipExtractionService : KitBackgroundService, IClipExtract
                 bookmarkId,
                 size);
             _logger.LogDebug("Clip for bookmark {BookmarkId} written to {Path}, the file its deleted bookmark keeps", bookmarkId, outputPath);
+            await _files.ArtworkForClipAsync(bookmarkId).ConfigureAwait(false);
             return;
         }
 
@@ -874,6 +875,7 @@ internal sealed class ClipExtractionService : KitBackgroundService, IClipExtract
             // (a tombstone, which keeps that one); don't leave an orphaned file behind (later, if something opened it).
             await _files.DeleteOrQueueAsync(outputPath, bookmarkId, BackgroundWriter.ClipWorker, CancellationToken.None).ConfigureAwait(false);
             _logger.LogInformation("Clip for bookmark {BookmarkId} was discarded: the bookmark or its clip was deleted while it was made", bookmarkId);
+            await _files.ArtworkAfterLetGoAsync([outputPath]).ConfigureAwait(false);
             return;
         }
 
@@ -886,6 +888,14 @@ internal sealed class ClipExtractionService : KitBackgroundService, IClipExtract
 
         _logger.LogInformation("Clip for bookmark {BookmarkId} written ({Size} bytes)", bookmarkId, size);
         _logger.LogDebug("Clip for bookmark {BookmarkId} written to {Path}", bookmarkId, outputPath);
+
+        // Since 1.3.0: the video's artwork beside the clip, once it is in place and recorded (never failing the clip), and
+        // the artwork of a remake's previous file once that file is gone.
+        await _files.ArtworkForClipAsync(bookmarkId).ConfigureAwait(false);
+        if (replaced is not null && !ClipPlanner.PathsEqual(replaced, outputPath))
+        {
+            await _files.ArtworkAfterLetGoAsync([replaced]).ConfigureAwait(false);
+        }
     }
 
     private async Task TrySetOutcomeAsync(Guid bookmarkId, BookmarkClipStatus status, string? error)

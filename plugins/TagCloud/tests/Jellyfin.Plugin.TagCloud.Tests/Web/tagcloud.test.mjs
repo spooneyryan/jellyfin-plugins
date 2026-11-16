@@ -289,6 +289,28 @@ test('size mixing: 0 keeps the heaviest in the middle, mixing moves them out', a
     }
 });
 
+// Fully mixed, long names come late and find the middle full. Taking the first free spot put many out to the side on
+// their own, and the cloud came out a good deal wider than its shape; they now go where they stick out of the oval least.
+test('size mixing: long late words keep to the cloud\'s shape, not out to the side', async () => {
+    const pack = loadPure({
+        document: { createElement: () => ({ width: 0, height: 0, getContext: () => fakeCanvasContext() }) },
+        getComputedStyle: (el) => ({ fontStyle: 'normal', fontWeight: '700', fontSize: el.size + 'px', fontFamily: 'sans-serif' })
+    }).tcPack;
+    const first = ['JOHN', 'MARY', 'GEORGE', 'LINNEA', 'CAMERON', 'DICK', 'WILLIAM', 'MICHELLE', 'ROBERT', 'KAREN'];
+    const last = ['SMITH', 'MILLER', 'CARRADINE', 'QUIGLEY', 'MITCHELL', 'WILLIAMSON', 'HAUSER', 'BAUER', 'ROUNDTREE', 'KENNEDY'];
+    const words = Array.from({ length: 200 }, (_, i) => ({ key: 'k' + i, text: first[(i * 7) % 10] + ' ' + last[(i * 3 + 1) % 10], size: 7 + Math.round(48 * Math.pow((200 - i) / 200, 2.2)) }));
+    const ratio = 2.4;
+    const shapes = [];
+    for (const seed of [1, 2, 3, 4]) {
+        const result = await pack.layout(fakeSvg(words), { padX: 2, padY: 1, aspectRatio: ratio, seed: seed, mix: 1 });
+        assert.equal(result.words.length, words.length);
+        shapes.push(result.width / result.height);
+    }
+
+    const mean = shapes.reduce((s, x) => s + x, 0) / shapes.length;
+    assert.ok(mean < ratio * 1.04, 'fully mixed clouds came out ' + shapes.map((x) => x.toFixed(2)).join(', ') + ' wide for a shape of ' + ratio);
+});
+
 // ---- The script in the page -------------------------------------------------------------------------------------------
 
 test('the client script starts in the page without errors', { skip }, async () => {

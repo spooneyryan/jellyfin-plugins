@@ -1,5 +1,5 @@
 {
-  "comment": "The Tag Cloud page end to end, after scripts/tagcloud-probe.mjs seeded the sandbox: the Library tools link, the packed cloud, a word's titles, narrowing, the words slider, the settings panel (Rows and back), a saved cloud, the full-screen view and Esc. It deletes the cloud it saved and leaves the look as it found it.",
+  "comment": "The Tag Cloud page end to end, after scripts/tagcloud-probe.mjs seeded the sandbox: the Library tools link, the packed cloud, a word's titles as library cards, narrowing, the words slider, the settings panel (Rows and back), a saved cloud, the full-screen view and Esc. It deletes the cloud it saved and leaves the look as it found it.",
   "steps": [
     { "name": "sign in as viewer", "login": "viewer" },
     { "goto": "/web/index.html#/home" },
@@ -17,8 +17,16 @@
     { "assert": "__vars.drawn.sources.join(',') === 'Tags,Genres,Actors,Directors,Writers,Studios'", "message": "the six sources, in the toolbar's order" },
     { "assert": "/across your movies/.test(__vars.drawn.summary)", "message": "the summary counts the movies" },
     { "name": "click a word", "script": "var t = document.querySelector('.jftc-page-body .jftc-svg text.jftc-word[role=button]'); window.__clicked = t.getAttribute('data-key'); t.dispatchEvent(new MouseEvent('click', { bubbles: true })); return window.__clicked;" },
-    { "name": "its titles are listed", "waitFor": "document.querySelectorAll('.jftc-titles [role=listitem]').length > 0", "timeout": 15000 },
+    { "name": "its titles are shown as library cards", "waitFor": "document.querySelectorAll('.jftc-titles .itemsContainer.vertical-wrap .card.portraitCard').length > 0", "timeout": 15000 },
+    {
+      "name": "the title cards",
+      "script": "var cards = Array.prototype.slice.call(document.querySelectorAll('.jftc-titles .card.portraitCard')); return { cards: cards.length, linked: cards.filter(function (c) { var a = c.querySelector('a.cardImageContainer'); return a && (a.getAttribute('href') || '').indexOf('#/details?id=') === 0; }).length, named: cards.filter(function (c) { return c.querySelector('.cardText-first').textContent.length > 0; }).length, list: document.querySelectorAll('.jftc-titles [role=listitem]').length };",
+      "save": "cards"
+    },
+    { "assert": "__vars.cards.linked === __vars.cards.cards && __vars.cards.named === __vars.cards.cards && __vars.cards.list === 0", "message": "every card opens its title's details page and shows its name; no list rows" },
     { "assert": "/#\\/jftc-cloud\\?.*sel=/.test(location.hash)", "message": "the selection is in the hash" },
+    { "name": "scroll to the titles", "script": "document.querySelector('.jftc-titles').scrollIntoView({ block: 'start' }); return true;" },
+    { "name": "the posters are drawn", "waitFor": "Array.prototype.some.call(document.querySelectorAll('.jftc-titles .card img'), function (i) { return i.complete && i.naturalWidth > 0; }) || !document.querySelector('.jftc-titles .card img')", "timeout": 15000 },
     { "screenshot": "tagcloud-titles.png" },
     { "name": "right-click a word narrows the cloud", "script": "var t = document.querySelector('.jftc-page-body .jftc-svg text.jftc-word[role=button]'); t.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true })); return t.getAttribute('data-key');", "save": "narrowed" },
     { "name": "the narrowing chip shows", "waitFor": "document.querySelectorAll('.jftc-narrowing .jftc-chip-accent').length === 1 && /narrow=/.test(location.hash)", "timeout": 15000 },

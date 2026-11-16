@@ -90,8 +90,26 @@ public class PluginServiceRegistrator : IPluginServiceRegistrator
             services.GetRequiredService<ClipStateCache>(),
             services.GetRequiredService<BookmarkPaths>(),
             services.GetRequiredService<ILogger<ClipFileOps>>(),
-            BookmarksKit.Options.Clock(services)));
+            BookmarksKit.Options.Clock(services))
+        {
+            Artwork = () => services.GetRequiredService<ClipArtwork>()
+        });
         serviceCollection.AddSingleton<PartialFileJanitor>();
+
+        // A clip's video's artwork beside its file (since 1.3.0 / 2.1.0, GiveClipsVideoArtwork): written when a clip is made
+        // or renamed and daily, the orphaned files deleted after a delete and daily. ClipFileOps' hooks resolve it when first
+        // used, since it takes ClipFileOps itself.
+        serviceCollection.AddSingleton<IClipArtworkSource>(services => new LibraryClipArtworkSource(
+            services.GetRequiredService<ILibraryManager>(),
+            services.GetRequiredService<MediaBrowser.Controller.Providers.IProviderManager>(),
+            services.GetRequiredService<MediaBrowser.Model.IO.IFileSystem>(),
+            services.GetRequiredService<ILogger<ClipArtwork>>()));
+        serviceCollection.AddSingleton(services => new ClipArtwork(
+            services.GetRequiredService<IBookmarkStore>(),
+            services.GetRequiredService<ClipFileOps>(),
+            services.GetRequiredService<IClipArtworkSource>(),
+            services.GetRequiredService<IPluginConfigurationProvider>(),
+            services.GetRequiredService<ILogger<ClipArtwork>>()));
 
         // The free-space guard: the probe (GetDiskFreeSpaceExW on the nearest existing folder), the checks when a clip is
         // asked for and when it starts, the watchdog, the disk-full wording, and Diagnostics' ClipStorage entry for the

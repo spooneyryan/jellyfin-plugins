@@ -736,7 +736,8 @@ function tcPage(body, params, context, caps) {
             return k !== key;
         }).map(textOf);
         const heading = h('h3', { class: 'jftc-titles-title', text: (word ? word.text : textOf(key)) + (word ? ' · ' + tcCount(word.weight, scope()) : '') + (others.length ? ' with ' + others.join(', ') : '') });
-        const list = kit.list([]);
+        // The titles as the library shows them: poster cards in a wrapping grid, each opening the title's details page.
+        const list = kit.grid([], { className: 'jftc-title-grid' });
         let loaded = 0;
         const pager = kit.pager({
             onMore: function () {
@@ -748,7 +749,7 @@ function tcPage(body, params, context, caps) {
             try {
                 const result = await tcTitles(cloud, key, { startIndex: loaded, limit: TC_TITLES_PAGE });
                 result.Items.forEach(function (t) {
-                    list.append(kit.listItem({ Id: t.Id, Name: t.Name, ProductionYear: t.Year, Type: t.Kind }, { icon: t.Kind === 'Series' ? 'tv' : 'movie' }));
+                    list.append(kit.card({ Id: t.Id, Name: t.Name, ProductionYear: t.Year, Type: t.Kind, ImageTags: t.ImageTag ? { Primary: t.ImageTag } : null }, { icon: t.Kind === 'Series' ? 'tv' : 'movie', className: 'jftc-title-card' }));
                 });
                 loaded += result.Items.length;
                 pager.update({ busy: false, hasMore: loaded < result.Total });

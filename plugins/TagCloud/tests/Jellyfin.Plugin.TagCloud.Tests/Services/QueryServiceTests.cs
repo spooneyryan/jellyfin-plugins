@@ -8,6 +8,7 @@ using Jellyfin.Plugin.Kit.Api;
 using Jellyfin.Plugin.TagCloud.Api.Models;
 using Jellyfin.Plugin.TagCloud.Services;
 using Jellyfin.Plugin.TagCloud.Tests.TestSupport;
+using Moq;
 using Xunit;
 
 namespace Jellyfin.Plugin.TagCloud.Tests.Services;
@@ -92,6 +93,8 @@ public sealed class QueryServiceTests
         Assert.Equal(2, heist.Total);
         Assert.Equal(["Heat", "Scarface"], heist.Items.Select(t => t.Name));
         Assert.Equal("Movie", heist.Items[0].Kind);
+        Assert.Equal("tag-Heat-Primary", heist.Items[0].ImageTag);
+        Assert.Null(heist.Items[1].ImageTag);
 
         Assert.Equal(["Heat"], fixture.Query.GetTitles(fixture.Kid, TagCloudSource.Tags, TagCloudScope.Both, null, null, "heist", TagCloudTitleOrder.Name, 0, 0, 50).Items.Select(t => t.Name));
         Assert.Empty(fixture.Query.GetTitles(fixture.Kid, TagCloudSource.Tags, TagCloudScope.Both, null, null, "gangster", TagCloudTitleOrder.Name, 0, 0, 50).Items);
@@ -219,6 +222,19 @@ public sealed class QueryServiceTests
         user.SetPreference(PreferenceKind.BlockedTags, ["a", "b", " "]);
         Assert.NotEqual(folders, TagCloudQueryService.AccessKey(user));
         Assert.NotEqual(padded, TagCloudQueryService.AccessKey(user));
+    }
+
+    [Fact]
+    public async Task Titles_APosterThatCantBeRead_LeavesTheTitleWithoutOne_AndTheOthersListed()
+    {
+        var fixture = await BuiltAsync();
+        fixture.Images.Setup(i => i.GetImageCacheTag(It.IsAny<MediaBrowser.Controller.Entities.BaseItem>(), It.IsAny<MediaBrowser.Controller.Entities.ItemImageInfo>()))
+            .Throws(new System.IO.IOException("the poster's drive is gone"));
+
+        var heist = fixture.Query.GetTitles(fixture.Admin, TagCloudSource.Tags, TagCloudScope.Both, null, null, "heist", TagCloudTitleOrder.Name, 0, 0, 50);
+
+        Assert.Equal(["Heat", "Scarface"], heist.Items.Select(t => t.Name));
+        Assert.All(heist.Items, t => Assert.Null(t.ImageTag));
     }
 
     private static async Task<TagCloudFixture> BuiltAsync()

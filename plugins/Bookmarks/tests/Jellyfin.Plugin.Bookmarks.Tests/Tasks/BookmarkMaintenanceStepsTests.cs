@@ -127,14 +127,14 @@ public sealed class BookmarkMaintenanceStepsTests : IDisposable
     }
 
     [Fact]
-    public void TheSteps_AreAddedInTheirPlaces_TheMissingClipSweepLast()
+    public void TheSteps_AreAddedInTheirPlaces_TheClipArtworkLast()
     {
         var services = new ServiceCollection().AddBookmarkMaintenanceSteps();
 
         var steps = services.Select(d => d.ImplementationInstance).OfType<KitComponent<IKitMaintenanceStep>>().ToList();
-        Assert.Equal([BookmarkMaintenanceSteps.SnapshotsStep, BookmarkMaintenanceSteps.ClipFilesStep, BookmarkMaintenanceSteps.MissingClipsStep], steps.Select(s => s.Name));
+        Assert.Equal([BookmarkMaintenanceSteps.SnapshotsStep, BookmarkMaintenanceSteps.ClipFilesStep, BookmarkMaintenanceSteps.MissingClipsStep, BookmarkMaintenanceSteps.ClipArtworkStep], steps.Select(s => s.Name));
         using var provider = services.BuildServiceProvider();
-        Assert.Equal([KitMaintenanceOrder.Snapshots, KitMaintenanceOrder.Plugin, KitMaintenanceOrder.Plugin + 10], steps.Select(s => s.Create(provider).Order));
+        Assert.Equal([KitMaintenanceOrder.Snapshots, KitMaintenanceOrder.Plugin, KitMaintenanceOrder.Plugin + 10, KitMaintenanceOrder.Plugin + 20], steps.Select(s => s.Create(provider).Order));
 
         // The sweep runs after every kit step (the reattach is 510) and the clip-file retries, so the day's snapshot, the first step,
         // holds the records before anything is archived.
@@ -177,6 +177,30 @@ public sealed class BookmarkMaintenanceStepsTests : IDisposable
 
         Assert.Equal((1, 1, 1), ((int)result["Checked"]!, (int)result["Missing"]!, (int)result["Marked"]!));
         Assert.NotNull(store.Get(record.Id)!.Clip!.MissingSinceUtc);
+    }
+
+    [Fact]
+    public async Task ClipArtwork_AnswersItsRun_AndAFailureNeverFailsTheTask()
+    {
+        var store = BookmarkStore.Create(Path.Combine(Root, "bookmarks.json"), NullLogger.Instance);
+        await using (var services = new ServiceCollection()
+            .AddSingleton<IBookmarkStore>(store)
+            .AddSingleton(TestData.ConfigurationProvider(_configuration))
+            .AddSingleton(ClipFileSupport.Ops(store))
+            .AddSingleton<IClipArtworkSource>(new FakeClipArtworkSource())
+            .AddSingleton(sp => new ClipArtwork(store, sp.GetRequiredService<ClipFileOps>(), sp.GetRequiredService<IClipArtworkSource>(), TestData.ConfigurationProvider(_configuration), NullLogger.Instance))
+            .AddSingleton(typeof(Microsoft.Extensions.Logging.ILogger<>), typeof(NullLogger<>))
+            .BuildServiceProvider())
+        {
+            var result = (await BookmarkMaintenanceSteps.SyncClipArtworkAsync(services, Ct))!;
+            Assert.Equal((0, 0, null), ((int)result["Written"]!, (int)result["Deleted"]!, result["Skipped"]));
+        }
+
+        // Without its services (a registration that can't be resolved): logged, and the step still answers.
+        await using var broken = new ServiceCollection().AddSingleton(typeof(Microsoft.Extensions.Logging.ILogger<>), typeof(NullLogger<>)).BuildServiceProvider();
+        var failed = (await BookmarkMaintenanceSteps.SyncClipArtworkAsync(broken, Ct))!;
+        Assert.Equal(nameof(InvalidOperationException), failed["Error"]);
+        store.Dispose();
     }
 
     private ServiceProvider Services(IBookmarkStore store)

@@ -41,6 +41,16 @@ internal interface IClipFileSystem : IClipPathProbe
     void ReplaceFile(string source, string destination);
 
     /// <summary>
+    /// Copies a file to a new one, never over an existing one, and gives the copy the source's last write time (since 1.3.0:
+    /// a clip's artwork, <see cref="ClipArtwork"/>, which then tells a copy that is up to date by its size and time).
+    /// </summary>
+    /// <param name="source">The file's full path.</param>
+    /// <param name="destination">The copy's full path, which must not exist.</param>
+    /// <exception cref="IOException">The destination exists, or the copy failed for another reason.</exception>
+    /// <exception cref="System.UnauthorizedAccessException">The server may not read or write it.</exception>
+    void CopyFile(string source, string destination) => PhysicalClipFileSystem.CopyKeepingTime(source, destination);
+
+    /// <summary>
     /// Lists the files in a clip folder and in the folders directly inside it (the per-user folders), with their last write
     /// times, for the <c>.partial</c> janitor: no deeper, never into a junction, symbolic link or mount point below the
     /// folder, and past folders the server may not read. The folder itself may be a link. The list is read as it is

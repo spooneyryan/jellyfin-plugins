@@ -1,7 +1,7 @@
 ---
 name: "Bookmarks"
 guid: "d0ee1b2a-7f71-4654-8ff2-163a81441b03"
-version: "2.0.0.0"
+version: "2.1.0.0"
 targetAbi: "12.4.0.0"
 framework: "net10.0"
 overview: "Named per-user bookmarks, My Bookmarks and My Clips pages, and ffmpeg clip extraction"
@@ -17,6 +17,14 @@ owner: "NoRepine"
 artifacts:
 - "Jellyfin.Plugin.Bookmarks.dll"
 changelog: |
+  2.1.0
+  - Clips get their video's artwork: for a clip folder that is a Home
+    Videos and Photos library, each clip gets the film's poster and
+    backdrop (an episode's series poster and its own image) as image files
+    beside it, so the library shows those instead of a frame from the
+    clip. Made with the clip, kept with it when it is renamed, and deleted
+    with it; the daily maintenance gives clips made before theirs. A new
+    setting (Clips), on by default, turns it off.
   2.0.0
   - For Jellyfin 12.4 and later: the same plugin as 1.2.2, built for
     Jellyfin 12. Jellyfin 10.11 servers keep 1.2.2.

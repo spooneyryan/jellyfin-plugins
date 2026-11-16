@@ -8,6 +8,7 @@ using Jellyfin.Plugin.Kit.TestSupport.Library;
 using Jellyfin.Plugin.TagCloud.Configuration;
 using Jellyfin.Plugin.TagCloud.Index;
 using Jellyfin.Plugin.TagCloud.Services;
+using MediaBrowser.Controller.Drawing;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.Movies;
 using MediaBrowser.Controller.Entities.TV;
@@ -65,8 +66,14 @@ internal sealed class TagCloudFixture
         Titles = new TitleReader(Library.Object);
         PeopleReader = new PeopleReader(Library.Object, () => null, NullLogger.Instance);
         Index = new TagCloudIndex(Titles, PeopleReader, ConfigurationProvider, NullLogger.Instance);
-        Query = new TagCloudQueryService(Index, Access, Library.Object, ConfigurationProvider);
+        Heat.ImageInfos = [new ItemImageInfo { Type = ImageType.Primary, Path = "C:/posters/heat.jpg", DateModified = new DateTime(2026, 1, 2, 0, 0, 0, DateTimeKind.Utc) }];
+        Images.Setup(i => i.GetImageCacheTag(It.IsAny<BaseItem>(), It.IsAny<ItemImageInfo>()))
+            .Returns((BaseItem item, ItemImageInfo image) => "tag-" + item.Name + "-" + image.Type);
+        Query = new TagCloudQueryService(Index, Access, Library.Object, ConfigurationProvider, Images.Object);
     }
+
+    /// <summary>Gets the image processor: a title's poster tag is "tag-" + its name + "-Primary" (only Heat has one).</summary>
+    public Mock<IImageProcessor> Images { get; } = new();
 
     public FakeLibrary Library { get; }
 

@@ -307,6 +307,7 @@ internal sealed class ClipFileRenamer
                 {
                     // Written after all (the failure came after the write): the rename is made.
                     _files.FinishRename(moved);
+                    await _files.ArtworkAfterRenameAsync(bookmarkId, moved.From, moved.To).ConfigureAwait(false);
                     return stored;
                 }
 
@@ -332,6 +333,9 @@ internal sealed class ClipFileRenamer
                 }
 
                 _logger.LogDebug("Renamed {From} to {To} for bookmark {BookmarkId}", moved.From, moved.To, bookmarkId);
+
+                // Since 1.3.0: the clip's artwork follows its file's new name (never failing the rename).
+                await _files.ArtworkAfterRenameAsync(bookmarkId, moved.From, moved.To).ConfigureAwait(false);
                 return written!;
             }
 

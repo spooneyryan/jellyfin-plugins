@@ -287,10 +287,16 @@ const tcPack = (function () {
             const startY = i === 0 ? cy : cy + (random() - 0.5) * ideal.h * 0.5;
             const turn = random() < 0.5 ? 1 : -1;
 
+            // The first free spot is taken when the word lies inside the cloud's oval there. One that doesn't (a long word
+            // that comes late, as size mixing makes some, finding the middle full) keeps going round a little further,
+            // as far as its own half-length, and takes the free spot it sticks out of the oval least at: above or below
+            // the others rather than out to the side on its own.
             let spot = null;
+            let spotOut = 0;
+            let until = maxRadius;
             for (let t = 0; ; t++) {
                 const r = t * 0.1;
-                if (r > maxRadius) {
+                if (r > until) {
                     break;
                 }
 
@@ -298,8 +304,19 @@ const tcPack = (function () {
                 const x = Math.round(startX + stretch * r * Math.cos(a) - s.w / 2);
                 const y = Math.round(startY + r * Math.sin(a) - s.h / 2);
                 if (x >= 0 && y >= 0 && x + s.w <= w && y + s.h <= h2 && !collides(board, rowWords, s, x, y)) {
-                    spot = [x, y];
-                    break;
+                    const out = outside(s, x, y, cx, cy, ideal);
+                    if (spot === null) {
+                        spot = [x, y];
+                        spotOut = out;
+                        if (out <= 1) {
+                            break;
+                        }
+
+                        until = Math.min(maxRadius, r + Math.max(s.w / (2 * stretch), s.h / 2));
+                    } else if (out < spotOut) {
+                        spot = [x, y];
+                        spotOut = out;
+                    }
                 }
 
                 if ((t & 1023) === 0 && performance.now() - slice > SLICE_MS) {
@@ -330,6 +347,18 @@ const tcPack = (function () {
         }
 
         return { placed: placed, dropped: dropped };
+    }
+
+    // How far a sprite at (x, y) reaches out of the cloud's oval (the ideal size, round the board's middle): its furthest
+    // corner's squared distance, 1 on the oval. A word inside the oval is under 1.
+    function outside(s, x, y, cx, cy, ideal) {
+        const rx = ideal.w / 2;
+        const ry = ideal.h / 2;
+        const left = (x - cx) / rx;
+        const right = (x + s.w - cx) / rx;
+        const top = (y - cy) / ry;
+        const bottom = (y + s.h - cy) / ry;
+        return Math.max(left * left, right * right) + Math.max(top * top, bottom * bottom);
     }
 
     // Whether a sprite at (x, y) overlaps anything on the board. Bits run most-significant first.

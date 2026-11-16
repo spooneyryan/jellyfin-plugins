@@ -13,7 +13,10 @@ using Jellyfin.Plugin.Kit.Library;
 using Jellyfin.Plugin.TagCloud.Api.Models;
 using Jellyfin.Plugin.TagCloud.Configuration;
 using Jellyfin.Plugin.TagCloud.Index;
+using MediaBrowser.Controller.Drawing;
+using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Library;
+using MediaBrowser.Model.Entities;
 
 namespace Jellyfin.Plugin.TagCloud.Services;
 
@@ -48,6 +51,7 @@ internal sealed class TagCloudQueryService : ITagCloudQuery
     private readonly LibraryAccess _access;
     private readonly ILibraryManager _library;
     private readonly IPluginConfigurationProvider _configuration;
+    private readonly IImageProcessor? _images;
     private readonly ConcurrentDictionary<string, CachedMask> _masks = new(StringComparer.Ordinal);
     private long _uses;
 
@@ -58,8 +62,10 @@ internal sealed class TagCloudQueryService : ITagCloudQuery
     /// <param name="access">The kit's library access.</param>
     /// <param name="library">The library manager.</param>
     /// <param name="configuration">The settings.</param>
-    public TagCloudQueryService(TagCloudIndex index, LibraryAccess access, ILibraryManager library, IPluginConfigurationProvider configuration)
+    /// <param name="images">The image processor that gives a title's poster its tag; null leaves the titles without one.</param>
+    public TagCloudQueryService(TagCloudIndex index, LibraryAccess access, ILibraryManager library, IPluginConfigurationProvider configuration, IImageProcessor? images = null)
     {
+        _images = images;
         _index = index;
         _access = access;
         _library = library;
@@ -144,9 +150,33 @@ internal sealed class TagCloudQueryService : ITagCloudQuery
         {
             Total = all.Count,
             Items = all.Skip(Math.Max(0, startIndex)).Take(Math.Clamp(limit, 1, MaxTitlesPerPage))
-                .Select(t => new TagCloudTitleDto { Id = t.Id, Name = t.Name, Year = t.Year, Kind = t.Kind.ToString() })
+                .Select(t => new TagCloudTitleDto { Id = t.Id, Name = t.Name, Year = t.Year, Kind = t.Kind.ToString(), ImageTag = PrimaryImageTag(t.Id) })
                 .ToList()
         };
+    }
+
+    // The tag of the title's poster, as core's DtoService gives it in ImageTags.Primary, so the client's image URL is the one
+    // the library's own cards use (and cached alike). Only for the page asked for, from titles the mask already let through;
+    // a title gone from the library since the index was built, or one whose image can't be read, gets none (an icon card).
+    private string? PrimaryImageTag(Guid id)
+    {
+        if (_images is null)
+        {
+            return null;
+        }
+
+        try
+        {
+            var item = _library.GetItemById(id);
+            var image = item?.GetImageInfo(ImageType.Primary, 0);
+            return item is null || image is null ? null : _images.GetImageCacheTag(item, image);
+        }
+#pragma warning disable CA1031 // A poster is decoration: no failure to read one may fail the titles.
+        catch (Exception)
+#pragma warning restore CA1031
+        {
+            return null;
+        }
     }
 
     private static int WordsLimit(PluginConfiguration configuration)

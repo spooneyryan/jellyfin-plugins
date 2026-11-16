@@ -3,7 +3,7 @@
 A Jellyfin plugin that lets each user bookmark moments in movies and episodes, name them, find them again on a page of
 their own, and cut a bookmarked range into a clip file with ffmpeg.
 
-Version **1.2.2**, for Jellyfin **10.11.5** (`net9.0`). This is the technical reference for developers and for admins who
+Version **1.3.0**, for Jellyfin **10.11.5** (`net9.0`; 2.1.0 for Jellyfin 12.4). This is the technical reference for developers and for admins who
 want more than the user [README.md](README.md) gives. Release history: [CHANGELOG.md](CHANGELOG.md).
 
 - **Bookmarks** belong to one user: a position, an optional end time, a **name** (one line, at most 100 characters) and
@@ -299,6 +299,7 @@ stored users that don't match the server, JE's bookmarks still on.
 | `ClipOutputPath` | empty: `<data dir>/data/bookmarks/clips`. Free space shows under the field, with `LowFreeSpace` (under the reserve + 1 GB), `FolderUnavailable`, `FreeSpaceUnknown`; a folder in a Movies or TV library is warned of as typed. |
 | `MinFreeSpaceMegabytes` | 2048: the reserve ("Free space"); 0 none. |
 | `OrganizeClipsByUser` | on: a sub-folder per user. |
+| `GiveClipsVideoArtwork` | on: each clip gets its video's artwork beside it ("Clip artwork"). Off: none written; orphaned artwork still deleted. |
 | `DefaultClipMode` | Accurate. |
 | `MaxClipDurationSeconds` | 600 (0: no limit). |
 | `MaxConcurrentClips` | 1 (after a restart). |
@@ -419,7 +420,8 @@ banner names, put a readable `bookmarks.json` back, or install the version that 
   it, then replacing it). If the old file is in use or its name is taken, the new clip gets ` (2)` and the old file goes
   once the bookmark points at the new one. A failed remake leaves the old file.
 - **Only clip files in the clip folders are touched**: `.mp4` or `.mkv` strictly inside a recorded folder, no junction,
-  link or mount point on the way. A failing path can't be downloaded or deleted (404). A folder that isn't there is
+  link or mount point on the way, and since 1.3.0 their artwork files ("Clip artwork"): nothing else in a clip folder is
+  ever written, deleted, moved or served. A failing path can't be downloaded or deleted (404). A folder that isn't there is
   never taken for files that are gone: deletes there are 503 and change nothing.
 - **Files in use**: a delete removes the file first (three tries 0.2 s apart), then the record; still in use, 409 "The
   clip file is in use (being played or downloaded); try again shortly." and nothing changes. Files nobody waits for go to
@@ -435,6 +437,39 @@ recorded clip folder that is there and one level below (never through a junction
 Bookmarks gives a clip being written (`<name> [hh.mm.ss-hh.mm.ss].mp4.partial` or `.mkv.partial`, with ` (n)`, or the
 32-hex-digit fallback) last written before this start. A file in use waits; a missing folder is left alone. One log line
 of counts (`Jellyfin.Plugin.Bookmarks.Clips.PartialFileJanitor`).
+
+#### Clip artwork
+
+Since 1.3.0 / 2.1.0 (`GiveClipsVideoArtwork`, `Clips/ClipArtwork`): for a clip folder that is a Home Videos and Photos
+library, a clip `<clip>.mp4` gets `<clip>-poster.<ext>` (Primary) and `<clip>-fanart.<ext>` (Backdrop), the names
+Jellyfin's `LocalImageProvider` takes for a video in a mixed folder (only prefixed names count there; its
+`PhotoResolver` doesn't list an image whose name starts with a video's as a photo). From the video's Primary and first
+Backdrop; for an episode the series' Primary (else the episode's), the episode's Primary as `<clip>-thumb.<ext>`, and the
+episode's Backdrop or else the series'.
+
+- **Written** for a `Completed` clip whose file is there (the guard's `Exists`: no link, no rename under way) in a
+  recorded clip folder or one level below, named as Bookmarks names clips (`ClipNamePattern`), whose video resolves
+  (`HasLibraryItem`, `GetItemById`). Only images whose `ItemImageInfo` is a local file that is there, `.jpg`, `.jpeg`,
+  `.png` or `.webp` (the source's own, in lower case). Copied to `<name>.<32 hex>.tmp` with the source's last write time,
+  then moved over `<name>`: the only file ever replaced. A copy of the same size and time is left (up to date). The same
+  kind in another format goes. Then, if the clip is a library item (`FindByPath`), `IProviderManager.QueueRefresh`
+  (default metadata and image refresh); otherwise the next scan takes the files.
+- **When:** after a clip is in place and recorded (`ClipExtractionService`); after a rename's record is written (the
+  artwork is moved to the new name, never over a file, then synced); after a single or bulk delete or Forget lets go of a
+  file (`ClipFileSingleDelete`, `ClipFileBatchDelete`: that clip's artwork goes once orphaned); daily, the last
+  maintenance step (`ClipArtwork`, after `MissingClips`): every clip synced, then every recorded clip folder cleaned up.
+  Each hook catches everything (a Warning, ids only); the step answers its counts (`Written`, `Clips`, `UpToDate`,
+  `Failed`, `Refreshed`, `Deleted`, `NotDeleted`, `FoldersLeftOut`, `Skipped`) and never fails the task. Other deletes
+  (a deleted user's `Delete` policy, the pending-delete retries) are left to the daily clean-up.
+- **Deleted** only when orphaned: a name `ClipArtworkNames` reads (`<clip>-poster|fanart|thumb.<jpg|jpeg|png|webp>`,
+  case-sensitive and checked against the name on disk, where `<clip>.mp4` is a name `ClipNamePattern` gives), in a recorded
+  clip folder that is there and recognised by its marker (`IsRecognisedRoot`) or a folder directly inside it (the
+  janitor's listing: no junction, link or mount point), when neither `<clip>.mp4` nor `<clip>.mkv` is there and no record
+  names either; a stale `.tmp` of ours always. A folder offline or not recognised is left out whole.
+- One lock serialises every artwork operation; nothing while the data is read-only. Nothing else that looks at clip
+  folders counts files: the sweep, `ClipFolderLeftOut`, the marker checks, the rename recovery, the free-space guard and
+  Diagnostics work from the records (and the janitor from `.partial` names), so the image files change none of them. The
+  guard's estimates leave the artwork out (a few hundred KB a clip).
 
 #### Free space
 
@@ -465,7 +500,7 @@ record names; else the clip reads failed and the file is left alone).
 
 #### Missing clip files
 
-The daily maintenance's last step (`MissingClips`) marks a clip whose file is gone from its own clip folder
+The daily maintenance's `MissingClips` step (the last but the clip artwork) marks a clip whose file is gone from its own clip folder
 (`MissingSinceUtc`), and clears the mark when the file is back.
 
 - **Its own clip folder** is proved by its **marker**, `.jfbm-clip-root` (`RootId=`, 12 hex characters of the SHA-256 of
@@ -761,8 +796,8 @@ and `viewer2`, passwords in `.sandbox\<name>\credentials.json`. The `bookmarks-i
   scan's changes over as one full pass (Jellyfin's own post-scan changes follow in one more batch). The clip worker runs
   on the kit's background-service base: it starts after startup and restarts 30 s after a failure.
 - **"Bookmarks: Maintenance"** (`Tasks/BookmarksMaintenanceTask`, daily 03:10): the snapshot, the kit's retention, user
-  reconciliation, verify sweep, re-resolution and reattach, waiting deletes and renames (`ClipFiles`), and the
-  missing-clip sweep. The verify sweep also runs after each start and after folder removals. A **Debug** build moves the
+  reconciliation, verify sweep, re-resolution and reattach, waiting deletes and renames (`ClipFiles`), the
+  missing-clip sweep, and, last, the clip artwork (`ClipArtwork`, since 1.3.0). The verify sweep also runs after each start and after folder removals. A **Debug** build moves the
   lifecycle clock on by `DeveloperClockOffsetDays`.
 - **Developer demos** (off; never on a server in use; their probes turn them on and off; "Kit and web hosting checks" in
   [scripts/README.md](../../scripts/README.md#kit-and-web-hosting-checks)): `EnablePageDemo` (+ `EnableDemoPageB`; pages

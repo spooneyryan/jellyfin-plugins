@@ -216,6 +216,12 @@ internal static class ClipFileBatchDelete
             }
         }
 
+        // Since 1.3.0: the artwork of the clip files the records let go of, once nothing names them (never failing the delete).
+        if (changed.Count > 0)
+        {
+            await files.ArtworkAfterLetGoAsync(changed.Values.Select(b => b.Clip?.FilePath)).ConfigureAwait(false);
+        }
+
         return new ClipFileBatchOutcome(changed, refused, inProgress) { FilesKept = kept };
     }
 }

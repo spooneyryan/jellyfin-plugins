@@ -88,6 +88,9 @@ internal sealed class PhysicalClipFileSystem : IClipFileSystem
     public void ReplaceFile(string source, string destination) => File.Move(source, destination, overwrite: true);
 
     /// <inheritdoc />
+    public void CopyFile(string source, string destination) => CopyKeepingTime(source, destination);
+
+    /// <inheritdoc />
     public IEnumerable<ClipFolderFile> ListClipFolder(string folder)
         => new DirectoryInfo(folder).EnumerateFiles("*", ClipFolderListing).Select(file => new ClipFolderFile(file.FullName, file.LastWriteTimeUtc));
 
@@ -203,6 +206,17 @@ internal sealed class PhysicalClipFileSystem : IClipFileSystem
 
             throw;
         }
+    }
+
+    /// <summary>
+    /// Copies a file (<see cref="IClipFileSystem.CopyFile"/>), never over another, with the source's last write time.
+    /// </summary>
+    /// <param name="source">The file's full path.</param>
+    /// <param name="destination">The copy's full path.</param>
+    internal static void CopyKeepingTime(string source, string destination)
+    {
+        File.Copy(source, destination, overwrite: false);
+        File.SetLastWriteTimeUtc(destination, File.GetLastWriteTimeUtc(source));
     }
 
     /// <summary>

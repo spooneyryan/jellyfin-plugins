@@ -1,7 +1,7 @@
 ---
 name: "Tag Cloud"
 guid: "e36415cf-46f1-4de6-bd61-d1fe7175c7a9"
-version: "1.0.1.0"
+version: "1.1.0.0"
 targetAbi: "10.11.5.0"
 framework: "net9.0"
 overview: "A Tag Cloud page: your library's tags, genres, people and studios as a word cloud"
@@ -18,6 +18,12 @@ owner: "NoRepine"
 artifacts:
 - "Jellyfin.Plugin.TagCloud.dll"
 changelog: |
+  1.1.0
+  - A word's titles now show as poster cards, like a library or a
+    collection, each opening the title's page.
+  - With Mix sizes turned up, long words no longer stick out to the
+    side of the cloud: a word that comes late goes where it keeps to
+    the cloud's shape.
   1.0.1
   - First public release.
   - A Tag Cloud page that shows the tags, genres, actors, directors, writers or studios of your movies and shows as a word cloud; click a word to see its titles.

@@ -191,6 +191,13 @@ internal static class ClipFileSingleDelete
             if (failed is null)
             {
                 fileOutcome?.Invoke(deleted);
+
+                // Since 1.3.0: the artwork of a clip file the record let go of, once nothing names it (never failing the delete).
+                if (written.Before?.Clip?.FilePath is { Length: > 0 } before && !string.Equals(before, written.After?.Clip?.FilePath, StringComparison.Ordinal))
+                {
+                    await files.ArtworkAfterLetGoAsync([before]).ConfigureAwait(false);
+                }
+
                 return written;
             }
 

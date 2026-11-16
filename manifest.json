@@ -36,6 +36,14 @@
     "imageUrl": "https://raw.githubusercontent.com/spooneyryan/jellyfin-plugins/main/plugins/Bookmarks/image.png",
     "versions": [
       {
+        "version": "2.1.0.0",
+        "changelog": "- Clips get their video's artwork: for a clip folder that is a Home\n  Videos and Photos library, each clip gets the film's poster and\n  backdrop (an episode's series poster and its own image) as image files\n  beside it, so the library shows those instead of a frame from the\n  clip. Made with the clip, kept with it when it is renamed, and deleted\n  with it; the daily maintenance gives clips made before theirs. A new\n  setting (Clips), on by default, turns it off.",
+        "targetAbi": "12.4.0.0",
+        "sourceUrl": "https://github.com/spooneyryan/jellyfin-plugins/releases/download/bookmarks%2Fv2.1.0/bookmarks_2.1.0.0.zip",
+        "checksum": "ca96df69ebcb0cca72894b9472ea478e",
+        "timestamp": "2026-11-16T00:10:09Z"
+      },
+      {
         "version": "2.0.0.0",
         "changelog": "- For Jellyfin 12.4 and later: the same plugin as 1.2.2, built for\n  Jellyfin 12. Jellyfin 10.11 servers keep 1.2.2.",
         "targetAbi": "12.4.0.0",
@@ -116,6 +124,14 @@
     "category": "General",
     "imageUrl": "https://raw.githubusercontent.com/spooneyryan/jellyfin-plugins/main/plugins/TagCloud/image.png",
     "versions": [
+      {
+        "version": "2.1.0.0",
+        "changelog": "- A word's titles now show as poster cards, like a library or a\n  collection, each opening the title's page.\n- With Mix sizes turned up, long words no longer stick out to the\n  side of the cloud: a word that comes late goes where it keeps to\n  the cloud's shape.",
+        "targetAbi": "12.4.0.0",
+        "sourceUrl": "https://github.com/spooneyryan/jellyfin-plugins/releases/download/tagcloud%2Fv2.1.0/tagcloud_2.1.0.0.zip",
+        "checksum": "448f74aa553d3583d846d4251b0b62aa",
+        "timestamp": "2026-11-16T00:09:56Z"
+      },
       {
         "version": "2.0.0.0",
         "changelog": "- For Jellyfin 12.4 and later: the same plugin as 1.0.1, built for\n  Jellyfin 12. Jellyfin 10.11 servers keep 1.0.1.",

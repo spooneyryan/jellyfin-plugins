@@ -110,7 +110,7 @@ public sealed class PluginServiceRegistratorTests
         Assert.DoesNotContain(services, d => d.ServiceType == typeof(Kit.Library.IAttachedRecordOwner) || d.ServiceType == typeof(Kit.Library.IDetachedRecordOwner) || d.ServiceType == typeof(IKitMaintenanceStep));
         Assert.Single(services, d => d.ServiceType == typeof(IBookmarkLibraryDemo));
         Assert.Equal(
-            ["Archive", "ClipFiles", "MissingClips", "Reattach", "ResolveDetached", "Snapshots", "Users", "VerifySweep"],
+            ["Archive", "ClipArtwork", "ClipFiles", "MissingClips", "Reattach", "ResolveDetached", "Snapshots", "Users", "VerifySweep"],
             services.Where(d => d.ServiceType == typeof(KitComponent<IKitMaintenanceStep>)).Select(d => ((KitComponent<IKitMaintenanceStep>)d.ImplementationInstance!).Name).Order(StringComparer.Ordinal));
         Assert.False(new Configuration.PluginConfiguration().EnableLibraryDemo);
         Assert.Equal(0, new Configuration.PluginConfiguration().DetachedRetentionDays);

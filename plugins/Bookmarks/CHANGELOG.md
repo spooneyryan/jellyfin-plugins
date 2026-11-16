@@ -1,5 +1,32 @@
 # Changelog
 
+## 1.3.0 / 2.1.0 (2026-11-15)
+
+1.3.0 for Jellyfin 10.11, 2.1.0 for Jellyfin 12.4. The bookmark data stays at schema 2 and nothing in it changes, so the
+upgrade keeps every bookmark and clip as it is, and going back to 1.2.2 (or 2.0.0) reads it as it is. The artwork files
+it wrote stay beside their clips then, and are no longer deleted with them.
+
+**In short**
+- **Clips get their video's artwork.** When the clip folder is a Home Videos and Photos library, Jellyfin showed a clip
+  with a frame from it. Now each clip gets its video's images as files beside it, named as Jellyfin reads them for a
+  video in a folder of many: `<clip>-poster` from the film's poster (Primary) and `<clip>-fanart` from its first backdrop;
+  for an episode, its series' poster, its own image as `<clip>-thumb`, and its backdrop or else the series'. Only images
+  stored as files on the server are copied (never one Jellyfin links to on the internet), in their own format (JPEG, PNG
+  or WebP). A clip that is in the library already gets its images refreshed at once; otherwise the next scan finds them.
+- **When:** as soon as a clip is made; when a clip file is renamed (the artwork takes the new name); when clips are
+  deleted or forgotten (their artwork goes); and in the daily **Bookmarks: Maintenance** task, which also gives clips made
+  before this version theirs and deletes artwork whose clip is gone. A failure is logged as a Warning and never fails
+  the clip, the rename, the delete or the task.
+- **A new setting**, **Give clips their video's artwork** (Clips), on by default. Off, no new artwork is written; artwork
+  whose clip is gone is still deleted.
+- **What it touches:** besides `.mp4` and `.mkv` clip files, only files named `<clip>-poster`, `<clip>-fanart` or
+  `<clip>-thumb` with `.jpg`, `.jpeg`, `.png` or `.webp`, where `<clip>` is a name Bookmarks gives a clip (it ends with
+  the range, `[01.52.10-01.55.00]`, and maybe ` (2)`), in the recorded clip folders and the folders directly inside them,
+  never through a junction or link. An artwork file is deleted only when neither `<clip>.mp4` nor `<clip>.mkv` is there
+  and no clip names it, and only in a clip folder that is there and recognised by its marker file; a file of that name
+  is the only one ever replaced. Your own images (`Holiday-poster.jpg`) are never touched. Clips whose file name isn't
+  one Bookmarks gives (some made before 1.2.0) get no artwork until their file is renamed on My Clips.
+
 ## 1.2.2 (2026-11-10)
 
 The first public release: 1.2.1 as it was, with the plugin's image on the Dashboard's Plugins page. No other

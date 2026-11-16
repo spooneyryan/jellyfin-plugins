@@ -18,4 +18,8 @@ public sealed class TagCloudTitleDto
 
     /// <summary>Gets or sets the title's kind: <c>Movie</c> or <c>Series</c>.</summary>
     public string Kind { get; set; } = string.Empty;
+
+    /// <summary>Gets or sets the tag of the title's primary image (its poster), or null when it has none: the titles card
+    /// shows it as a library card would.</summary>
+    public string? ImageTag { get; set; }
 }

@@ -7,15 +7,16 @@ using Jellyfin.Plugin.Bookmarks.Configuration;
 using Jellyfin.Plugin.Bookmarks.Storage;
 using Jellyfin.Plugin.Kit.Hosting;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace Jellyfin.Plugin.Bookmarks.Tasks;
 
 /// <summary>
 /// Bookmarks' own steps of its daily "Bookmarks: Maintenance", around the kit's (the
 /// retention archive step, the user reconciliation, the verify sweep, re-resolution and the reattach): the daily snapshot
-/// of <c>bookmarks.json</c> first, then, last, the retries of the clip files an automatic delete couldn't delete and, since
-/// 1.2.0, the missing-clip sweep (missing clip files marked, offline clip folders skipped, the retention into the
-/// archive).
+/// of <c>bookmarks.json</c> first, then, last, the retries of the clip files an automatic delete couldn't delete, since
+/// 1.2.0 the missing-clip sweep (missing clip files marked, offline clip folders skipped, the retention into the
+/// archive) and, since 1.3.0, the clip artwork (<see cref="ClipArtwork"/>).
 /// </summary>
 internal static class BookmarkMaintenanceSteps
 {
@@ -29,10 +30,18 @@ internal static class BookmarkMaintenanceSteps
     public const string MissingClipsStep = "MissingClips";
 
     /// <summary>
-    /// The missing-clip sweep's place: after the clip-file retries, the last step, so the day's snapshot (first) holds the
-    /// records before anything is archived.
+    /// The missing-clip sweep's place: after the clip-file retries (and before the clip artwork, the last step), so the day's
+    /// snapshot (first) holds the records before anything is archived.
     /// </summary>
     public const int MissingClipsOrder = KitMaintenanceOrder.Plugin + 10;
+
+    /// <summary>The clip artwork's step name (since 1.3.0 / 2.1.0).</summary>
+    public const string ClipArtworkStep = "ClipArtwork";
+
+    /// <summary>
+    /// The clip artwork's place: after the missing-clip sweep, the last step, so it works on the clips the day's sweep left.
+    /// </summary>
+    public const int ClipArtworkOrder = MissingClipsOrder + 10;
 
     /// <summary>
     /// Adds Bookmarks' steps to the kit's maintenance.
@@ -45,6 +54,7 @@ internal static class BookmarkMaintenanceSteps
         services.AddKitMaintenanceStep(SnapshotsStep, KitMaintenanceOrder.Snapshots, SnapshotAsync);
         services.AddKitMaintenanceStep(ClipFilesStep, KitMaintenanceOrder.Plugin, RetryClipFilesAsync);
         services.AddKitMaintenanceStep(MissingClipsStep, MissingClipsOrder, SweepMissingClipsAsync);
+        services.AddKitMaintenanceStep(ClipArtworkStep, ClipArtworkOrder, SyncClipArtworkAsync);
         return services;
     }
 
@@ -137,5 +147,28 @@ internal static class BookmarkMaintenanceSteps
         ArgumentNullException.ThrowIfNull(services);
         var result = await services.GetRequiredService<MissingClipSweep>().RunAsync(cancellationToken).ConfigureAwait(false);
         return result.ToDictionary();
+    }
+
+    /// <summary>
+    /// The clip artwork (<see cref="ClipArtwork.SyncAllAsync"/>, since 1.3.0 / 2.1.0): every clip given its video's artwork,
+    /// the clips made before included, then the orphaned artwork files in the clip folders deleted; nothing while the store is
+    /// read-only. A failure is logged and never fails the task.
+    /// </summary>
+    /// <param name="services">The server's service provider.</param>
+    /// <param name="cancellationToken">Cancels between clips and files.</param>
+    /// <returns>What was done, for Diagnostics <c>Maintenance</c>.</returns>
+    public static async Task<IDictionary<string, object?>?> SyncClipArtworkAsync(IServiceProvider services, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(services);
+        try
+        {
+            var run = await services.GetRequiredService<ClipArtwork>().SyncAllAsync(cancellationToken).ConfigureAwait(false);
+            return run.ToDictionary();
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            services.GetRequiredService<ILogger<ClipArtwork>>().LogWarning(ex, "Could not give the clips their videos' artwork; the next maintenance tries again");
+            return new Dictionary<string, object?>(StringComparer.Ordinal) { ["Error"] = ex.GetType().Name };
+        }
     }
 }

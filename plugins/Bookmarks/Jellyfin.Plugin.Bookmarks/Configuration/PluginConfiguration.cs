@@ -217,6 +217,15 @@ public class PluginConfiguration : BasePluginConfiguration
     public bool OrganizeClipsByUser { get; set; } = true;
 
     /// <summary>
+    /// Gets or sets a value indicating whether each clip gets its video's artwork beside its file (since 1.3.0 / 2.1.0,
+    /// <c>Clips/ClipArtwork</c>): <c>&lt;clip&gt;-poster</c> and <c>&lt;clip&gt;-fanart</c> from the film's (for an episode, the
+    /// series' poster and the episode's image as <c>&lt;clip&gt;-thumb</c>), so a clip folder that is a Home Videos and Photos
+    /// library shows them instead of a frame. Written when a clip is made or renamed, and daily for every clip; off, nothing new
+    /// is written, while artwork whose clip is gone is still deleted. Read at every use. On the settings page ("Clips").
+    /// </summary>
+    public bool GiveClipsVideoArtwork { get; set; } = true;
+
+    /// <summary>
     /// Gets or sets the mode used when a clip request doesn't specify one.
     /// </summary>
     public BookmarkClipMode DefaultClipMode { get; set; } = BookmarkClipMode.Accurate;

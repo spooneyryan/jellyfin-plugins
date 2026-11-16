@@ -6,7 +6,7 @@ guide and its `DEVELOPMENT.md` the developer documentation (design, data, API an
 | Plugin | Folder | Version | What it does |
 | --- | --- | --- | --- |
 | Access Roles | `plugins/AccessRoles` | **1.0.3** | Roles that keep non-admin users out of settings, the Dashboard's data and libraries they may not open ([README](plugins/AccessRoles/README.md), [DEVELOPMENT](plugins/AccessRoles/DEVELOPMENT.md)) |
-| Bookmarks | `plugins/Bookmarks` | **1.2.2** | Named per-user bookmarks, the My Bookmarks and My Clips pages, and ffmpeg clip extraction ([README](plugins/Bookmarks/README.md), [DEVELOPMENT](plugins/Bookmarks/DEVELOPMENT.md), [CHANGELOG](plugins/Bookmarks/CHANGELOG.md)) |
+| Bookmarks | `plugins/Bookmarks` | **1.3.0** | Named per-user bookmarks, the My Bookmarks and My Clips pages, and ffmpeg clip extraction ([README](plugins/Bookmarks/README.md), [DEVELOPMENT](plugins/Bookmarks/DEVELOPMENT.md), [CHANGELOG](plugins/Bookmarks/CHANGELOG.md)) |
 | Library Maintenance | `plugins/LibraryMaintenance` | **1.0.4** | Find duplicate movies across your libraries, and preview moving media ([README](plugins/LibraryMaintenance/README.md), [DEVELOPMENT](plugins/LibraryMaintenance/DEVELOPMENT.md), [CHANGELOG](plugins/LibraryMaintenance/CHANGELOG.md)) |
 | Smart Search | `plugins/SmartSearch` | **1.1.2** | An Advanced Search page with rules over title, year, library and more, saved queries, and auto-collections ([README](plugins/SmartSearch/README.md), [DEVELOPMENT](plugins/SmartSearch/DEVELOPMENT.md)) |
 | Tag Cloud | `plugins/TagCloud` | **1.0.1** | A word cloud of the library's tags, genres, people and studios, counted for each viewer, with saved clouds and a full-screen view ([README](plugins/TagCloud/README.md), [DEVELOPMENT](plugins/TagCloud/DEVELOPMENT.md)) |

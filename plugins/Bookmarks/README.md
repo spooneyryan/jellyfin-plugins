@@ -111,11 +111,16 @@ bookmarks people already made in Jellyfin Enhanced.
   clip folder isn't recognised". Use the same Diagnostics button, but only if it really is the clip folder.
 - **Clips kept inside a library are visible to everyone** who can open that library. The default clip folder is outside
   every library. If you want clips browsable in Jellyfin, use a separate **Home Videos and Photos** library for the clip
-  folder, never a Movies or TV library.
+  folder, never a Movies or TV library. There each clip shows its video's poster and backdrop (an episode's, its series'
+  poster) instead of a frame: Bookmarks puts them beside the clip as image files (`<clip>-poster.jpg`,
+  `<clip>-fanart.jpg`, and `<clip>-thumb.jpg` for an episode), keeps them with the clip when it is renamed, and deletes
+  them with it. Only those files, named after a Bookmarks clip, are ever written or deleted; your own images are never
+  touched. **Give clips their video's artwork** on the settings page turns it off.
 - **Clip limits:** clips can only be made from regular video files, not from disc folders, ISOs or remote streams. A clip
   includes the video and the audio track that was playing, without subtitles. Clips are made one at a time by default.
 - **Maintenance never deletes clip files.** The daily **Bookmarks: Maintenance** task (Dashboard -> Scheduled Tasks)
-  marks clips whose file is gone. After 30 days it archives a kept clip of a deleted bookmark.
+  marks clips whose file is gone. After 30 days it archives a kept clip of a deleted bookmark. It also gives every clip
+  its video's artwork and deletes artwork whose clip is gone.
 - **Going back to 1.1.x:** before you downgrade, check that the Diagnostics tab says "Clip file renames not finished:
   none." Version 1.1 would read a clip whose rename is still waiting as having no file.
 - **Admins only:** the settings page, the Jellyfin Enhanced import, export, import, restore and the All users view all

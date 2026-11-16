@@ -12,6 +12,7 @@ using Jellyfin.Plugin.TagCloud.Index;
 using Jellyfin.Plugin.TagCloud.Services;
 using Jellyfin.Plugin.TagCloud.Tasks;
 using MediaBrowser.Controller;
+using MediaBrowser.Controller.Drawing;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Plugins;
 using Microsoft.EntityFrameworkCore;
@@ -108,7 +109,8 @@ public class PluginServiceRegistrator : IPluginServiceRegistrator
             services.GetRequiredService<TagCloudIndex>(),
             services.GetRequiredService<LibraryAccess>(),
             services.GetRequiredService<ILibraryManager>(),
-            services.GetRequiredService<IPluginConfigurationProvider>()));
+            services.GetRequiredService<IPluginConfigurationProvider>(),
+            services.GetService<IImageProcessor>()));
         serviceCollection.AddSingleton<ITagCloudClouds>(services => new TagCloudCloudService(
             services.GetRequiredService<SavedCloudOwner>(),
             services.GetRequiredService<IUserManager>(),

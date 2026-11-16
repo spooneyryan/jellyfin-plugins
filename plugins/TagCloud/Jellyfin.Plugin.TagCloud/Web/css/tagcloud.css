@@ -39,6 +39,7 @@
 .jftc-narrowing-hint{font-style:italic}
 .jftc-canvas{position:relative;border-radius:.5em;padding:.8em;min-height:6em}
 .jftc-titles-title{margin:0;font-size:1.1em}
+.jftc-title-grid{display:flex;flex-wrap:wrap}
 .jftc-cloud{position:relative;width:100%}
 .jftc-svg{display:block;width:100%;height:auto;max-height:var(--jftc-cloud-max-height,78vh);overflow:visible;transition:opacity .2s}
 .jftc-stale{opacity:.45}

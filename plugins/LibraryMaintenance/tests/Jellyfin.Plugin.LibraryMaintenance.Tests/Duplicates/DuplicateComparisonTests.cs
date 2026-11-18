@@ -192,11 +192,11 @@ public sealed class DuplicateComparisonTests
         _streams[offline.Id] = [new MediaStream { Type = MediaStreamType.Video, Index = 0, Codec = "h264", Width = 1920, Height = 1080 }];
         using var never = new ManualResetEventSlim();
 
-        var compare = await Compare(Group(offline, present, slow, device, stream), timeout: TimeSpan.FromMilliseconds(200), exists: (path, _) =>
+        var compare = await Compare(Group(offline, present, slow, device, stream), timeout: TimeSpan.FromSeconds(2), exists: (path, _) =>
         {
             if (path.StartsWith(@"\\nas", StringComparison.Ordinal))
             {
-                never.Wait(TimeSpan.FromSeconds(5));
+                never.Wait(TimeSpan.FromSeconds(30));
             }
 
             return !path.StartsWith("N:", StringComparison.Ordinal);

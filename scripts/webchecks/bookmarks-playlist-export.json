@@ -1,0 +1,108 @@
+{
+  "name": "Bookmarks' playlist export (1.5.0 / 2.3.0): a playlist's Export to clips folder button, opened with the keyboard; the dialog's facts (videos, left-out items with their reasons, running time, size and frame rate, estimate, file name) at desktop width and as a phone bottom sheet with touch-sized buttons; Export, the progress in the dialog and on My Clips under Playlist exports, Cancel there (the export ends Cancelled); and a short export's Export ready toast. Makes two playlists named 'Export webcheck ...' of the sandbox's Export test videos (Movies/Export Small, Silent and Large, and Gone when it is there) and Long Test Movie; deletes earlier ones first (sandbox data only).",
+  "failOnException": false,
+  "timeout": 30000,
+  "steps": [
+    { "name": "sign in as admin", "login": "admin" },
+    { "name": "the Bookmarks script ran", "waitFor": "document.querySelectorAll('#jfbm-styles').length === 1" },
+    {
+      "name": "make the two playlists (earlier ones deleted)",
+      "script": "const uid = ApiClient.getCurrentUserId(); const url = (p, q) => ApiClient.getUrl(p, q); const old = await ApiClient.getItems(uid, { IncludeItemTypes: 'Playlist', Recursive: true, SearchTerm: 'Export webcheck' }); for (const p of old.Items) { await ApiClient.ajax({ type: 'DELETE', url: url('Items/' + p.Id) }); } const movies = (await ApiClient.getItems(uid, { IncludeItemTypes: 'Movie', Recursive: true, Limit: 500 })).Items; const id = (n) => (movies.find(m => m.Name.startsWith(n)) || {}).Id; const make = async (name, ids) => (await ApiClient.ajax({ type: 'POST', url: url('Playlists'), data: JSON.stringify({ Name: name, Ids: ids.filter(Boolean), UserId: uid, MediaType: 'Video', IsPublic: false }), contentType: 'application/json', dataType: 'json' })).Id; const long = id('Long Test Movie'); return { short: await make('Export webcheck [road trip]', [id('Export Small'), id('Export Silent'), id('Export Gone'), id('Export Large')]), long: await make('Export webcheck long', [id('Versions Movie'), long, long, long, long, long]) };",
+      "save": "playlists",
+      "full": true
+    },
+    { "name": "both made", "assert": "!!__vars.playlists.short && !!__vars.playlists.long", "message": "the playlists weren't made (are the Export test videos in Movies?)" },
+    { "name": "the short one's id", "eval": "__vars.playlists.short", "save": "shortId" },
+    { "name": "the long one's id", "eval": "__vars.playlists.long", "save": "longId" },
+
+    { "name": "open the short playlist's page", "goto": "/web/index.html#/details?id=${shortId}" },
+    { "name": "Export to clips folder is on the page", "waitFor": "!!document.querySelector('#itemDetailPage:not(.hide) .jfbm-export-playlist')", "timeout": 30000 },
+    { "name": "focus it", "script": "const b = document.querySelector('#itemDetailPage:not(.hide) .jfbm-export-playlist'); b.focus(); return { title: b.title, focused: document.activeElement === b };", "save": "button", "full": true },
+    { "name": "keyboard: Enter opens the dialog", "key": "Enter" },
+    {
+      "name": "the dialog with its facts",
+      "waitFor": "(() => { const p = document.querySelector('.jfbm-backdrop .jfbm-panel'); return !!p && !!p.querySelector('.jfbm-export-facts'); })()"
+    },
+    {
+      "name": "what the dialog says",
+      "script": "const p = document.querySelector('.jfbm-backdrop .jfbm-panel'); const facts = Object.fromEntries([...p.querySelectorAll('.jfbm-export-fact')].map(f => [f.querySelector('.jfbm-export-fact-label').textContent, f.querySelector('.jfbm-export-fact-value').textContent])); const skipped = [...p.querySelectorAll('.jfbm-export-skipped li')].map(li => li.textContent); const start = p.querySelector('.jfbm-export-start'); const m = { title: p.querySelector('h3').textContent, facts, skipped, startEnabled: !start.disabled, focusInDialog: p.contains(document.activeElement) }; m.ok = m.title === 'Export to clips folder' && Object.keys(facts).length >= 5 && /^Export webcheck \\(road trip\\)( \\(\\d+\\))?\\.mp4$/.test(Object.values(facts).find(v => /\\.mp4$/.test(v)) || '') && skipped.every(s => / – /.test(s)) && m.startEnabled && m.focusInDialog; return m;",
+      "save": "dialog",
+      "full": true
+    },
+    { "name": "the dialog as expected", "assert": "__vars.dialog.ok", "message": "the export dialog lacks its facts, its file name, a reason or the focus" },
+    { "sleep": 300 },
+    { "screenshot": "bookmarks-export-dialog-desktop.png" },
+    { "name": "Escape closes it", "key": "Escape" },
+    { "name": "closed, focus back on the button", "waitFor": "!document.querySelector('.jfbm-backdrop') && document.activeElement && document.activeElement.classList.contains('jfbm-export-playlist')" },
+
+    { "name": "a phone: 390x844, touch", "emulate": { "width": 390, "height": 844, "deviceScaleFactor": 1, "mobile": true, "touch": true } },
+    { "name": "reload at phone width", "reload": true },
+    { "name": "the button again", "waitFor": "!!document.querySelector('#itemDetailPage:not(.hide) .jfbm-export-playlist')", "timeout": 30000 },
+    { "name": "the page's own width at phone size, before the dialog", "eval": "({ scrollWidth: document.documentElement.scrollWidth, wide: [...document.querySelectorAll('body *')].filter(e => e.getBoundingClientRect().right > innerWidth + 1 && e.offsetParent !== null).slice(0, 3).map(e => e.className.toString().slice(0, 60)) })", "save": "pageWidth", "full": true },
+    { "name": "tap it", "click": "#itemDetailPage:not(.hide) .jfbm-export-playlist", "js": true },
+    { "name": "the dialog with its facts (phone)", "waitFor": "(() => { const p = document.querySelector('.jfbm-backdrop .jfbm-panel'); return !!p && !!p.querySelector('.jfbm-export-facts'); })()" },
+    { "sleep": 300 },
+    {
+      "name": "a bottom sheet, one column of facts, touch-sized buttons, nothing wider than the screen",
+      "script": "const b = document.querySelector('.jfbm-backdrop'); const p = b.querySelector('.jfbm-panel'); const r = p.getBoundingClientRect(); const buttons = [...p.querySelectorAll('.jfbm-export-cancel, .jfbm-export-start')].map(x => { const q = x.getBoundingClientRect(); return [x.textContent, Math.round(q.width), Math.round(q.height)]; }); const m = { panel: [Math.round(r.left), Math.round(r.right), Math.round(r.bottom)], viewport: [innerWidth, innerHeight], columns: getComputedStyle(p.querySelector('.jfbm-export-facts')).gridTemplateColumns, buttons, scrollWidth: document.documentElement.scrollWidth }; m.ok = m.panel[0] === 0 && m.panel[1] === innerWidth && Math.abs(m.panel[2] - innerHeight) <= 1 && m.columns.split(' ').length === 1 && buttons.length === 2 && buttons.every(([, , h]) => h >= 40) && m.scrollWidth <= Math.max(innerWidth, __vars.pageWidth.scrollWidth) && [...p.querySelectorAll('*')].every(e => e.getBoundingClientRect().right <= innerWidth + 0.5); return m;",
+      "save": "phone",
+      "full": true
+    },
+    { "name": "the phone dialog as expected", "assert": "__vars.phone.ok", "message": "the export dialog is not a full-width bottom sheet with one column and 40 px buttons" },
+    { "screenshot": "bookmarks-export-dialog-phone.png" },
+    { "name": "Cancel closes it", "click": ".jfbm-backdrop .jfbm-export-cancel", "js": true },
+    { "name": "closed (phone)", "waitFor": "!document.querySelector('.jfbm-backdrop')" },
+    { "name": "back to desktop width", "emulate": { "width": 1280, "height": 800, "deviceScaleFactor": 1, "mobile": false, "touch": false } },
+
+    { "name": "open the long playlist's page", "goto": "/web/index.html#/details?id=${longId}" },
+    { "name": "its button", "waitFor": "!!document.querySelector('#itemDetailPage:not(.hide) .jfbm-export-playlist')", "timeout": 30000 },
+    { "name": "open the dialog", "script": "for (let i = 0; i < 100; i++) { await new Promise(r => setTimeout(r, 200)); const b = document.querySelector('#itemDetailPage:not(.hide) .jfbm-export-playlist'); if (b && b.isConnected && !document.querySelector('.jfbm-backdrop')) { b.click(); return true; } } return false;", "save": "opened0" },
+    { "name": "Export is offered", "waitFor": "(() => { const s = document.querySelector('.jfbm-backdrop .jfbm-export-start'); return !!s && !s.disabled && !!document.querySelector('.jfbm-backdrop .jfbm-export-facts'); })()" },
+    { "name": "Export", "click": ".jfbm-backdrop .jfbm-export-start", "js": true },
+    {
+      "name": "the dialog shows the progress",
+      "waitFor": "(() => { const p = document.querySelector('.jfbm-backdrop .jfbm-panel'); const bar = p && p.querySelector('.jfbm-export-progress'); return !!bar && Number(bar.getAttribute('aria-valuenow') || 0) > 0 && !!p.querySelector('.jfbm-export-stop'); })()",
+      "timeout": 60000
+    },
+    { "screenshot": "bookmarks-export-progress-dialog.png" },
+    { "name": "Close: the export goes on", "click": ".jfbm-backdrop .jfbm-export-close", "js": true },
+    { "name": "closed (progress)", "waitFor": "!document.querySelector('.jfbm-backdrop')" },
+
+    { "name": "My Clips", "goto": "/web/index.html#/jfbm-clips" },
+    {
+      "name": "Playlist exports lists it with its progress and Cancel",
+      "waitFor": "(() => { const row = [...document.querySelectorAll('.jfbm-exports .jfbm-export-row')].find(r => r.textContent.includes('Export webcheck long')); return !!row && !!row.querySelector('.jfbm-export-row-cancel') && Number((row.querySelector('.jfbm-export-progress') || { getAttribute: () => 0 }).getAttribute('aria-valuenow') || 0) > 0; })()",
+      "timeout": 30000
+    },
+    { "name": "scroll the exports into view", "script": "document.querySelector('.jfbm-exports').scrollIntoView({ block: 'start' }); return true;" },
+    { "sleep": 300 },
+    { "screenshot": "bookmarks-export-progress-clips.png" },
+    { "name": "Cancel it on My Clips", "click": ".jfbm-exports .jfbm-export-row-cancel", "js": true },
+    {
+      "name": "it ends Cancelled",
+      "waitFor": "(() => { const row = [...document.querySelectorAll('.jfbm-exports .jfbm-export-row')].find(r => r.textContent.includes('Export webcheck long')); return !!row && /Cancelled/.test(row.textContent) && !row.querySelector('.jfbm-export-row-cancel'); })()",
+      "timeout": 30000
+    },
+    {
+      "name": "the server says Cancelled",
+      "script": "const jobs = await ApiClient.getJSON(ApiClient.getUrl('Bookmarks/Exports')); const job = jobs.find(j => j.PlaylistId === __vars.playlists.long); return { state: job && job.State, ok: !!job && job.State === 'Cancelled' && !job.FileSize };",
+      "save": "cancelled",
+      "full": true
+    },
+    { "name": "cancelled as expected", "assert": "__vars.cancelled.ok", "message": "the long export didn't end Cancelled" },
+
+    { "name": "the short playlist's page again", "goto": "/web/index.html#/details?id=${shortId}" },
+    { "name": "its button (again)", "waitFor": "!!document.querySelector('#itemDetailPage:not(.hide) .jfbm-export-playlist')", "timeout": 30000 },
+    { "name": "open the dialog (again)", "script": "for (let i = 0; i < 100; i++) { await new Promise(r => setTimeout(r, 200)); const b = document.querySelector('#itemDetailPage:not(.hide) .jfbm-export-playlist'); if (b && b.isConnected && !document.querySelector('.jfbm-backdrop')) { b.click(); return true; } } return false;", "save": "opened1" },
+    { "name": "Export is offered (again)", "waitFor": "(() => { const s = document.querySelector('.jfbm-backdrop .jfbm-export-start'); return !!s && !s.disabled && !!document.querySelector('.jfbm-backdrop .jfbm-export-facts'); })()" },
+    { "name": "Export the short one", "click": ".jfbm-backdrop .jfbm-export-start", "js": true },
+    { "name": "Close the dialog", "waitFor": "!!document.querySelector('.jfbm-backdrop .jfbm-export-close')" },
+    { "name": "close", "click": ".jfbm-backdrop .jfbm-export-close", "js": true },
+    {
+      "name": "the Export ready toast, with View in My Clips",
+      "waitFor": "[...document.querySelectorAll('.jfbm-toast')].some(t => /^Export ready: Export webcheck \\(road trip\\)( \\(\\d+\\))?\\.mp4/.test(t.textContent) && /View in My Clips/.test(t.textContent))",
+      "timeout": 60000
+    },
+    { "screenshot": "bookmarks-export-toast.png" }
+  ]
+}

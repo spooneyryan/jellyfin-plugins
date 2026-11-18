@@ -1,5 +1,37 @@
 # Changelog
 
+## 1.5.0 / 2.3.0 (2026-11-18)
+
+1.5.0 for Jellyfin 10.11, 2.3.0 for Jellyfin 12.4. The bookmark data stays at schema 2 and nothing in it changes, so the
+upgrade keeps every bookmark and clip as it is, and going back to 1.4.0 (or 2.2.0) reads it as it is. Exported files stay
+in the clip folder then, as any other file there.
+
+**In short**
+- **Export a playlist to the clip folder.** A playlist's page has **Export to clips folder** (for a user who may make
+  clips). Every video in the playlist (films, episodes, home videos, Bookmarks clips: any video) is joined end to end,
+  in playlist order and each one whole, into one MP4 named after the playlist (`Road trip.mp4`, `Road trip (2).mp4` when
+  the name is taken), in the clip folder (your own folder in it when clips are organised by user). The playlist's poster
+  (else its first video's) goes beside it as `<name>-poster`, when clips get artwork.
+- **Before it starts** a dialog shows how many videos are joined, which are left out and why (music, photos and other
+  non-videos; videos that are offline, missing, a disc, an ISO, a stream or a `.strm`; videos you may not download; an
+  entry you may not see is counted without its name), the running time, the picture size and frame rate, the estimated
+  size and time, and the file name, with a warning over 3 hours or 20 GB. **Export** or **Cancel**.
+- **The file:** H.264 video and AAC sound with the clip quality settings (preset, quality, sound bitrate, mono or
+  stereo, maximum height). One picture size for all: the largest video's, at most 1920x1080 (or the clip setting's
+  maximum height), every video fitted in with its shape kept and black bars as needed. One frame rate: the one most of
+  the running time has, at most 60. Sound at 48 kHz: Jellyfin's default track (your language preference, else the
+  file's default); silence for a video without sound, so picture and sound stay together. No subtitles are burned in.
+  HDR videos are tone-mapped as clips are.
+- **While it is made:** one export at a time (three waiting at most per user), its progress and **Cancel** on the My
+  Clips page under **Playlist exports**, and a message when it is done (with a link to My Clips), failed or cancelled.
+  A cancel, a failure or a server stop deletes the unfinished file. The same safety rules as clips: the free-space
+  check (exports count with the clip jobs), the clip folder's marker, a folder that can't be reached, never over a file.
+- **Not a clip:** an export has no bookmark, isn't listed among the clips, and the clip maintenance (the artwork
+  clean-up, the unfinished-file clean-up, the missing-clip check, renames) leaves it and its poster alone.
+- **API:** `GET` and `POST /Bookmarks/Playlists/{playlistId}/Export` (the estimate, the start), `GET /Bookmarks/Exports`,
+  `GET /Bookmarks/Exports/{exportId}` and `POST /Bookmarks/Exports/{exportId}/Cancel`. The exports since the server
+  started are kept in memory, ten finished ones a user.
+
 ## 1.4.0 / 2.2.0 (2026-11-17)
 
 1.4.0 for Jellyfin 10.11, 2.2.0 for Jellyfin 12.4. Only the web player changes: the bookmark data stays at schema 2 and

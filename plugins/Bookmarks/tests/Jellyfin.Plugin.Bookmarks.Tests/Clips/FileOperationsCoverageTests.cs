@@ -35,7 +35,9 @@ public sealed class FileOperationsCoverageTests
             .Order(StringComparer.Ordinal)
             .ToList();
 
-        Assert.Equal([typeof(PhysicalClipFileSystem).FullName], callers);
+        // Besides it, only the playlist export's filter graph file (since 1.5.0 / 2.3.0), which deletes itself: its own file
+        // in the system's temp folder, never a clip file.
+        Assert.Equal([typeof(FfmpegFilterScriptFile).FullName, typeof(PhysicalClipFileSystem).FullName], callers);
     }
 
     [Fact]

@@ -28,6 +28,9 @@ bookmarks people already made in Jellyfin Enhanced.
 - **Clips** are made in the background in one of two modes. **Accurate** re-encodes to an H.264/AAC MP4 that is frame
   exact and plays anywhere (HDR is tone-mapped to SDR). **Fast** copies the original streams into an MKV, which is nearly
   instant but starts on the keyframe at or before your start time.
+- **Export a playlist** to the clip folder: a playlist's page has **Export to clips folder**. Its videos are joined end
+  to end, in playlist order, into one MP4 named after the playlist, beside your clips. You see what will be joined,
+  what is left out and why, and the estimated size and time before it starts; its progress is on My Clips.
 - **For admins:** a settings page with a Data tab (export, import, snapshots, restore, the Jellyfin Enhanced import) and
   a Diagnostics tab. Admins can also switch My Clips to **All users** to see and manage every user's clips of the videos
   they can open. This view never shows notes.
@@ -87,6 +90,13 @@ bookmarks people already made in Jellyfin Enhanced.
 - **Make a clip:** give the bookmark an end time (the scissors button, **Set end time**, or the editor's End field). Then
   use **Save & make clip** in the editor, or the scissors on a bookmark row. A message appears when the clip is ready,
   with a download link and **View in My Clips**.
+- **Export a playlist:** open the playlist and choose **Export to clips folder**. The dialog shows how many videos are
+  joined, which are left out and why (music and photos, offline or missing files, discs and streams, videos you may not
+  download), the running time, the picture size, the estimated size and time and the file name, with a warning over 3
+  hours or 20 GB. **Export** starts it; its progress and **Cancel** are on My Clips under **Playlist exports**, and a
+  message says when it is ready. Every video is re-encoded with the clip quality settings into one size (the largest
+  video's, at most 1920x1080, black bars as needed) and one frame rate; a video without sound gets silence. It needs the
+  same permission as clips. The file isn't a clip: it isn't listed among them and the clip clean-ups leave it alone.
 - **Delete a bookmark:** its clip is kept and stays on My Clips, unless you tick **Also delete its clip**.
 - **Import from Jellyfin Enhanced** (one time, admins): open **Data -> Import from Jellyfin Enhanced** on the settings
   page. Run a **Dry run** first, which changes nothing and shows what would happen. Then run **Import**. Running it again

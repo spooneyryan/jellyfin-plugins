@@ -606,7 +606,7 @@ internal sealed class ClipExtractionService : KitBackgroundService, IClipExtract
         {
             var plan = _planner.Plan(bookmark, mode);
             reserved.Plan = plan;
-            await CheckRecordedClipFoldersAsync(plan, bookmark.Id, cancellationToken).ConfigureAwait(false);
+            await CheckRecordedClipFoldersAsync(plan.OutputFolder, bookmark.Id, cancellationToken).ConfigureAwait(false);
 
             var space = await _guard.CheckAtClaimAsync(plan.OutputFolder, plan.EstimatedBytes, bookmark.Id, cancellationToken).ConfigureAwait(false);
             if (space.Refused)
@@ -626,7 +626,7 @@ internal sealed class ClipExtractionService : KitBackgroundService, IClipExtract
                 throw new ClipExtractionException(ex.Message, ex);
             }
 
-            var marked = await EnsureRootMarkerAsync(plan, bookmark.Id, cancellationToken).ConfigureAwait(false);
+            var marked = await EnsureRootMarkerAsync(plan.Root, bookmark.Id, cancellationToken).ConfigureAwait(false);
 
             // Create the temporary file now so jobs planned after this one pick a different name.
             ReserveOutput(plan);
@@ -656,9 +656,9 @@ internal sealed class ClipExtractionService : KitBackgroundService, IClipExtract
     // would mark them. A marker written before markers carried a token gets its token (adopted). The default clip folder
     // deleted is made again with its marker, its clips marked missing, as the sweep does. A folder without recorded clips
     // (a new one) passes, and is given its marker by EnsureRootMarkerAsync.
-    private async Task CheckRecordedClipFoldersAsync(ClipPlan plan, Guid bookmarkId, CancellationToken cancellationToken)
+    private async Task CheckRecordedClipFoldersAsync(string outputFolder, Guid bookmarkId, CancellationToken cancellationToken)
     {
-        if (!ClipRootPaths.TryNormalize(plan.OutputFolder, out var output))
+        if (!ClipRootPaths.TryNormalize(outputFolder, out var output))
         {
             return;
         }
@@ -708,15 +708,42 @@ internal sealed class ClipExtractionService : KitBackgroundService, IClipExtract
         }
     }
 
+    /// <summary>
+    /// The clip folder rules a clip job follows before it writes, for another job that writes into the clip folder (a
+    /// playlist export, <see cref="PlaylistExportService"/>): the recorded clip folders the output folder lies in must be
+    /// there and be their clips' own (else <see cref="ClipExtractionException"/> with the clip job's wording), the clip folder is
+    /// recorded in <c>ClipRoots</c>, and it gets its marker file when it has none. Call it under
+    /// <see cref="ClipFileOps.NameGate"/>, after the free-space check.
+    /// </summary>
+    /// <param name="root">The clip folder, as the planner records it.</param>
+    /// <param name="outputFolder">The folder the file goes to (the user's folder in it, or the clip folder itself).</param>
+    /// <param name="jobId">The job, named in the log.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>Whether the clip folder carries its marker file now.</returns>
+    internal async Task<bool> PrepareClipFolderAsync(string root, string outputFolder, Guid jobId, CancellationToken cancellationToken)
+    {
+        await CheckRecordedClipFoldersAsync(outputFolder, jobId, cancellationToken).ConfigureAwait(false);
+        try
+        {
+            await _store.AddClipRootAsync(root, CancellationToken.None).ConfigureAwait(false);
+        }
+        catch (PluginException ex)
+        {
+            throw new ClipExtractionException(ex.Message, ex);
+        }
+
+        return await EnsureRootMarkerAsync(root, jobId, cancellationToken).ConfigureAwait(false);
+    }
+
     // The job's own clip folder carries its marker file from its first clip on: created with the folder when
     // it is new, written into a folder there without one that holds no recorded clip. One that holds clips was proven or
     // refused by CheckRecordedClipFoldersAsync; one gone since then is refused now if it holds clips (an unplugged drive),
     // made again with its clips marked missing if it is the deleted default folder, and made otherwise. Returns whether the
     // folder is marked now: a marker that can't be written is a Warning (ClipFileOps), and the clip is made all the same,
     // since no clip in that folder could be taken for gone.
-    private async Task<bool> EnsureRootMarkerAsync(ClipPlan plan, Guid bookmarkId, CancellationToken cancellationToken)
+    private async Task<bool> EnsureRootMarkerAsync(string clipRoot, Guid bookmarkId, CancellationToken cancellationToken)
     {
-        if (!ClipRootPaths.TryNormalize(plan.Root, out var root))
+        if (!ClipRootPaths.TryNormalize(clipRoot, out var root))
         {
             return false;
         }

@@ -73,6 +73,33 @@ internal sealed record FfmpegTools(string Ffmpeg, string Ffprobe)
                 : null;
     }
 
+    /// <summary>
+    /// Reads a file's streams as ffprobe shows them (<c>-show_entries stream=...</c>), one dictionary of entries a stream.
+    /// </summary>
+    public async Task<IReadOnlyList<Dictionary<string, string>>> ProbeStreamsAsync(string path, CancellationToken cancellationToken)
+    {
+        var (exitCode, output, error) = await ExecuteAsync(
+            Ffprobe,
+            ["-v", "error", "-show_entries", "stream=index,codec_type,codec_name,width,height,r_frame_rate,avg_frame_rate,channels,sample_rate,sample_aspect_ratio,duration", "-of", "json", path],
+            cancellationToken);
+        Assert.True(exitCode == 0, $"ffprobe failed: {error}");
+
+        using var json = JsonDocument.Parse(output);
+        return json.RootElement.GetProperty("streams").EnumerateArray()
+            .Select(s => s.EnumerateObject().ToDictionary(p => p.Name, p => p.Value.ValueKind == JsonValueKind.String ? p.Value.GetString()! : p.Value.GetRawText()))
+            .ToList();
+    }
+
+    /// <summary>
+    /// Decodes a whole file (<c>ffmpeg -v error -i file -f null -</c>) and returns what ffmpeg reported: nothing for a
+    /// clean file.
+    /// </summary>
+    public async Task<string> DecodeErrorsAsync(string path, CancellationToken cancellationToken)
+    {
+        var (exitCode, _, error) = await ExecuteAsync(Ffmpeg, ["-hide_banner", "-nostdin", "-v", "error", "-i", path, "-f", "null", "-"], cancellationToken);
+        return exitCode == 0 ? error.Trim() : $"exit code {exitCode}: {error.Trim()}";
+    }
+
     private static FfmpegTools? Find()
     {
         var executable = OperatingSystem.IsWindows() ? "ffmpeg.exe" : "ffmpeg";

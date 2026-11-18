@@ -1,7 +1,7 @@
 ---
 name: "Bookmarks"
 guid: "d0ee1b2a-7f71-4654-8ff2-163a81441b03"
-version: "1.4.0.0"
+version: "1.5.0.0"
 targetAbi: "10.11.5.0"
 framework: "net9.0"
 overview: "Named per-user bookmarks, My Bookmarks and My Clips pages, and ffmpeg clip extraction"
@@ -17,6 +17,16 @@ owner: "NoRepine"
 artifacts:
 - "Jellyfin.Plugin.Bookmarks.dll"
 changelog: |
+  1.5.0
+  - Export a playlist to the clip folder: a playlist's page has Export
+    to clips folder. Its videos (films, episodes, clips, any video) are
+    joined end to end, in playlist order, into one MP4 named after the
+    playlist, beside your clips. Before it starts you see how many videos,
+    which are left out and why, the running time, the picture size, and
+    about how big it will be and how long it takes (with a warning over 3
+    hours or 20 GB). Made with the clip quality settings, one at a time;
+    its progress, and a Cancel, are on the My Clips page. The same
+    permission as clips.
   1.4.0
   - Frame by frame in the web player: Back one frame and Forward one
     frame buttons, and the , and . keys (as on YouTube). A step pauses

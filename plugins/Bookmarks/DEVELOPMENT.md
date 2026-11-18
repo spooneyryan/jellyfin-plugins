@@ -3,7 +3,7 @@
 A Jellyfin plugin that lets each user bookmark moments in movies and episodes, name them, find them again on a page of
 their own, and cut a bookmarked range into a clip file with ffmpeg.
 
-Version **1.4.0**, for Jellyfin **10.11.5** (`net9.0`; 2.2.0 for Jellyfin 12.4). This is the technical reference for developers and for admins who
+Version **1.5.0**, for Jellyfin **10.11.5** (`net9.0`; 2.3.0 for Jellyfin 12.4). This is the technical reference for developers and for admins who
 want more than the user [README.md](README.md) gives. Release history: [CHANGELOG.md](CHANGELOG.md).
 
 - **Bookmarks** belong to one user: a position, an optional end time, a **name** (one line, at most 100 characters) and
@@ -234,6 +234,15 @@ adds an **Owner** select, each row's owner ("Deleted user (id)") and full path (
 Actions: Preview, Download (`/Bookmarks/Admin/Clips/{id}/File`, the admin's download permission), Play, Cancel, Delete,
 Forget, Dismiss, bulk delete; no rename, remake or edit. The server runs the owner's delete code and logs the admin. A
 403 meanwhile returns the page to **My clips**.
+
+#### Playlist exports
+
+Since 1.5.0 / 2.3.0 (`Web/js/72-playlist-export.js`). A playlist's page has **Export to clips folder** for a user who
+may make clips (`CanCreateClips`). The dialog reads `GET /Bookmarks/Playlists/{id}/Export` (videos, left-out entries and
+why, running time, size and frame rate, estimated bytes and seconds, file name, `IsLarge` over 3 h or 20 GiB, `Problem`);
+**Export** posts to it and the page polls the export every 2 s for a toast when done (**View in My Clips**). My Clips
+shows **Playlist exports** above the clips (`GET /Bookmarks/Exports`), with progress and **Cancel**, polling every 2 s
+while one waits or runs. Dialog and rows work with a mouse, the keyboard, a TV remote and a phone.
 
 ### Names
 
@@ -510,6 +519,39 @@ episode's Backdrop or else the series'.
   denied, a share silent for 10 s): the guard is off for it, with one Warning. Logged by
   `Jellyfin.Plugin.Bookmarks.Clips.ClipStorageGuard`, never a path or name.
 
+#### Playlist export files
+
+`PlaylistExportService` (one worker, started with the first export; three waiting or running a user; the newest ten
+finished a user, in memory only). `PlaylistExportPlanner` picks the entries in playlist order: a video the user may see
+(`IsVisibleStandalone`) and download, its own version's media source a regular file that is there (`Protocol` File, not
+an ISO, a disc, a shortcut or a `.strm`) with a video stream and a known length; each other entry is listed with its
+reason (an entry the user may not see without its name). At most 100 videos. The audio stream is Jellyfin's default for
+the user (`DefaultAudioStreamIndex`, set from their audio language preference), else the file's default, else the first.
+
+- **Format** (`PlaylistExportFormat`): the largest video's size fitted into 1920x1080, or into the clip setting's
+  maximum height at 16:9, even; the frame rate the most running time has (ties: the higher), snapped to 23.976, 29.97,
+  59.94 or whole numbers, at most 60, else 30.
+- **Command** (`FfmpegJoinCommandBuilder`): one `-t <length> -i file:<path>` per video and one `filter_complex` read
+  from a file in the temp folder (`-/filter_complex`, ffmpeg 7 and later; deleted after): for each video
+  `setpts`, `bwdif` when interlaced, square pixels, `scale` to fit (`force_original_aspect_ratio=decrease`), tone
+  mapping as clips (`tonemapx` or `zscale`), `format=yuv420p`, `pad` centred in black, `setsar=1`, `fps`, `tpad` to hold
+  the last frame and `trim` to exactly the length; its audio `aresample=48000`, `aformat` fltp stereo (mono with the
+  mono setting), `apad` and `atrim` to the same length, or `anullsrc` for a video without sound; then `concat`.
+  libx264 with the clip preset and CRF, AAC at the clip bitrate, `+faststart`, no subtitles, chapters or metadata but the
+  playlist's name as the title.
+- **Estimate** (`PlaylistExportEstimator`): per video the Accurate clip budget at the export's height (at most 1.2 x
+  the source's bitrate when it isn't upscaled) plus audio, x length, + 10 %; time at 12, 6, 3 or 1.2 x real time for up
+  to 576, 720, 1080 lines or more, scaled by the preset (ultrafast 3, superfast 2, veryfast 1, faster 0.7 ... veryslow
+  0.06), half for tone-mapped videos, + 10 %.
+- **Files**: as a clip job: the free-space guard before queuing and at the start (the exports' estimates count with the
+  clip jobs'), the watchdog, the clip folder's checks and marker, the name gate. Written to
+  `<name> [00.00.00-hh.mm.ss] (<export id>).mp4.partial`, a clip's `.partial` name so the janitor deletes one a crash
+  left; moved to `<playlist name>.mp4` (brackets become parentheses, " (2)" when taken, never over a file). The poster
+  (the playlist's Primary image, else its first video's; local files only) is copied as `<name>-poster.<ext>` when
+  `GiveClipsVideoArtwork` is on.
+- **Not a clip**: no record, so the clip lists, the missing-clip sweep, renames and pending deletes never see it; its
+  name never matches the clip name pattern, so the artwork clean-up and the janitor leave it and its poster alone.
+
 #### Clip file renames
 
 The file moves first, the data second. Just before the move a note `clip-rename-<id>.json` (paths, size, times, file id,
@@ -724,6 +766,19 @@ The caller's own (tombstones' too).
   no clip, file gone, outside the folders; 409 being made, stale, in use, another record's file; 503 read-only, folder
   offline or unrecognised, a failed write (the file is put back), an unfinished rename. Nothing changes in any of them.
 
+### Playlist exports
+
+Since 1.5.0 / 2.3.0, `BookmarksPlaylistExportController`. Clips on and **Allow media downloading** (else 403); only
+playlists the caller may open (else 404) and only their own exports.
+
+| Method | Route | Notes |
+| --- | --- | --- |
+| GET | `/Bookmarks/Playlists/{playlistId}/Export` | The estimate: `{PlaylistId, PlaylistName, VideoCount, Skipped: [{Name, Reason}], DurationTicks, Width, Height, FrameRate, EstimatedBytes, EstimatedSeconds, FileName, IsLarge, CanExport, Problem}`. 400 no ffmpeg or clip folder setting; 503 folder unreachable. |
+| POST | `/Bookmarks/Playlists/{playlistId}/Export` | 202 with the export. 400 no video or over 100; 409 the playlist being exported or three waiting; 503 space, folder, read-only. |
+| GET | `/Bookmarks/Exports` | The caller's exports since the server started, newest first. |
+| GET | `/Bookmarks/Exports/{exportId}` | `{Id, PlaylistId, PlaylistName, State (Queued, Running, Completed, Failed, Cancelled), Progress (percent while running), Error, FileName, FileSize, VideoCount, DurationTicks, EstimatedBytes, RequestedAt, CompletedAt}`. |
+| POST | `/Bookmarks/Exports/{exportId}/Cancel` | A waiting one is cancelled at once; a running one stops and its `.partial` is deleted. |
+
 ### Admin
 
 | Method | Route | Notes |
@@ -812,7 +867,9 @@ node scripts/webcheck.mjs --sandbox default --steps bookmarks-details.json
 Your installed `jellyfin.exe` with its own folders under `.sandbox\<name>`, on 127.0.0.1 only. `dev-server.ps1 -Name
 default -Background` rebuilds and redeploys (stop the sandbox first). Users `admin`, `viewer` (no download permission)
 and `viewer2`, passwords in `.sandbox\<name>\credentials.json`. The `bookmarks-injection.json`, `bookmarks-ui.json` and
-`bookmarks-phone.json` webchecks check the whole UI.
+`bookmarks-phone.json` webchecks check the whole UI; `bookmarks-playlist-export.json` the playlist export (it needs the
+`Export Small`, `Export Silent` and `Export Large` test videos in Movies, and an `Export Gone` one whose file was moved
+away for a left-out entry).
 
 ### Background work and developer demos
 

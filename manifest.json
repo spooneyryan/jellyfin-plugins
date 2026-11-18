@@ -36,6 +36,14 @@
     "imageUrl": "https://raw.githubusercontent.com/spooneyryan/jellyfin-plugins/main/plugins/Bookmarks/image.png",
     "versions": [
       {
+        "version": "2.3.0.0",
+        "changelog": "- Export a playlist to the clip folder: a playlist's page has Export\n  to clips folder. Its videos (films, episodes, clips, any video) are\n  joined end to end, in playlist order, into one MP4 named after the\n  playlist, beside your clips. Before it starts you see how many videos,\n  which are left out and why, the running time, the picture size, and\n  about how big it will be and how long it takes (with a warning over 3\n  hours or 20 GB). Made with the clip quality settings, one at a time;\n  its progress, and a Cancel, are on the My Clips page. The same\n  permission as clips.",
+        "targetAbi": "12.4.0.0",
+        "sourceUrl": "https://github.com/spooneyryan/jellyfin-plugins/releases/download/bookmarks%2Fv2.3.0/bookmarks_2.3.0.0.zip",
+        "checksum": "0a59bf965674c7742a7750c30aa67f8a",
+        "timestamp": "2026-11-18T10:22:36Z"
+      },
+      {
         "version": "2.2.0.0",
         "changelog": "- Frame by frame in the web player: Back one frame and Forward one\n  frame buttons, and the , and . keys (as on YouTube). A step pauses\n  the video and shows exactly the frame before or after; hold a key to\n  keep stepping. It works when the video is transcoded too, a little\n  slower.\n- Adjust a bookmark frame by frame: in the player's Bookmarks list,\n  Adjust shows the bookmark's start on a small bar over the video. Step\n  to the right frame, choose Set start here (or Set end here for a\n  range) and Save. Cancel leaves it as it was. A bookmark with a clip\n  keeps it, as when its times are edited: make the clip again for the\n  new range.",
         "targetAbi": "12.4.0.0",

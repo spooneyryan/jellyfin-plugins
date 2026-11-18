@@ -63,7 +63,7 @@ public sealed class PublicBoundaryTests
             [
                 typeof(BookmarksAdminClipsController), typeof(BookmarksAdminController), typeof(BookmarksClipsController), typeof(BookmarksController), typeof(BookmarksDiagnosticsController),
                 typeof(BookmarksIdentityDemoController), typeof(BookmarksLibraryChangeDemoController), typeof(BookmarksLibraryDemoController), typeof(BookmarksPagesController),
-                typeof(BookmarksUserDataDemoController)
+                typeof(BookmarksPlaylistExportController), typeof(BookmarksUserDataDemoController)
             ],
             surface.OfRole(PublicRole.Controller));
         AssertTypes([typeof(BookmarksPostScanTask), typeof(BookmarksMaintenanceTask), typeof(Plugin), typeof(PluginServiceRegistrator)], surface.OfRole(PublicRole.JellyfinPart));
@@ -72,7 +72,7 @@ public sealed class PublicBoundaryTests
             [
                 typeof(IBookmarkIdentityDemo), typeof(IBookmarkLibraryChangeDemo), typeof(IBookmarkLibraryDemo), typeof(IBookmarkManager), typeof(IBookmarkPreferences),
                 typeof(IBookmarkQuery), typeof(IBookmarkRecordsAdmin), typeof(IBookmarkUserDataDemo), typeof(Jellyfin.Plugin.Bookmarks.Import.IBookmarkJeImport),
-                typeof(IBookmarkAdminTools), typeof(IBookmarkClips), typeof(IBookmarkAdminClips)
+                typeof(IBookmarkAdminTools), typeof(IBookmarkClips), typeof(IBookmarkAdminClips), typeof(IBookmarkPlaylistExport)
             ],
             surface.OfRole(PublicRole.ServiceInterface));
         AssertTypes(
@@ -86,7 +86,9 @@ public sealed class PublicBoundaryTests
                 typeof(BookmarkClipItemDto), typeof(BookmarkClipQueryFilter), typeof(BookmarkClipSortBy), typeof(BookmarkClipState), typeof(BookmarkClipSummaryDto),
                 typeof(BookmarkClipStatusDto), typeof(BookmarkClipBulkDeleteRequest), typeof(BookmarkClipBulkDeleteResultDto),
                 typeof(BookmarkClipRenameRequest), typeof(BookmarkClipRenameFileRequest), typeof(BookmarkClipFolderCheckRequest),
-                typeof(BookmarkAdminClipItemDto), typeof(BookmarkAdminClipSummaryDto), typeof(BookmarkAdminClipUserDto)
+                typeof(BookmarkAdminClipItemDto), typeof(BookmarkAdminClipSummaryDto), typeof(BookmarkAdminClipUserDto),
+                typeof(BookmarkPlaylistExportEstimateDto), typeof(BookmarkPlaylistExportJobDto), typeof(BookmarkPlaylistExportSkippedDto),
+                typeof(BookmarkPlaylistExportState)
             ],
             surface.OfRole(PublicRole.Dto));
         // The facades: 1.1.0's move hook, and 1.2.0's clip folders for Library Maintenance's Duplicates.
@@ -207,6 +209,22 @@ public sealed class PublicBoundaryTests
         Assert.All(
             ControllerDiscovery.FindActions(typeof(BookmarksAdminClipsController)),
             action => Assert.Empty(action.GetCustomAttributes(typeof(Microsoft.AspNetCore.Authorization.AllowAnonymousAttribute), inherit: true)));
+    }
+
+    [Fact]
+    public void BookmarksPlaylistExportController_TakesOnlyPublicInterfaces_AndItsActionsAnswerWithDtos()
+    {
+        // Since 1.5.0 / 2.3.0: the playlist exports' controller receives DTOs from IBookmarkPlaylistExport.
+        var constructor = Assert.Single(typeof(BookmarksPlaylistExportController).GetConstructors());
+        Assert.Equal([typeof(IBookmarkPlaylistExport), typeof(MediaBrowser.Controller.Library.IUserManager)], constructor.GetParameters().Select(p => p.ParameterType));
+
+        var answered = ControllerDiscovery.FindActions(typeof(BookmarksPlaylistExportController))
+            .SelectMany(action => MethodBodyReferences.Expand(action.ReturnType))
+            .Where(type => type.Assembly == Assembly)
+            .Distinct()
+            .OrderBy(type => type.Name, StringComparer.Ordinal)
+            .ToList();
+        Assert.Equal([typeof(BookmarkPlaylistExportEstimateDto), typeof(BookmarkPlaylistExportJobDto)], answered);
     }
 
     [Fact]

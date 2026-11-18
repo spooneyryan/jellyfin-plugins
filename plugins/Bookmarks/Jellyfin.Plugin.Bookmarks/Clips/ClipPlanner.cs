@@ -165,6 +165,31 @@ internal sealed class ClipPlanner : IClipPlanner
     }
 
     /// <summary>
+    /// Chooses an HDR video's tone mapping to SDR (none for SDR): <c>tonemapx</c> when ffmpeg has it, else <c>zscale</c>
+    /// (not for Dolby Vision), else none. A playlist export chooses as clips do.
+    /// </summary>
+    /// <param name="video">The video stream.</param>
+    /// <param name="mediaEncoder">Jellyfin's ffmpeg, asked for its filters.</param>
+    /// <returns>The tone mapping.</returns>
+    internal static TonemapMode SelectTonemap(MediaStream? video, IMediaEncoder mediaEncoder)
+    {
+        ArgumentNullException.ThrowIfNull(mediaEncoder);
+        if (video is null || video.VideoRange != VideoRange.HDR)
+        {
+            return TonemapMode.None;
+        }
+
+        if (mediaEncoder.SupportsFilter("tonemapx"))
+        {
+            return TonemapMode.TonemapX;
+        }
+
+        return video.VideoRangeType != VideoRangeType.DOVI && mediaEncoder.SupportsFilter("zscale")
+            ? TonemapMode.ZScale
+            : TonemapMode.None;
+    }
+
+    /// <summary>
     /// Compares two paths using the platform's file system case rules.
     /// </summary>
     /// <param name="first">The first path.</param>
@@ -176,8 +201,16 @@ internal sealed class ClipPlanner : IClipPlanner
             second,
             OperatingSystem.IsWindows() || OperatingSystem.IsMacOS() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal);
 
-    private static MediaStream? SelectAudioStream(MediaSourceInfo source, int? preferredIndex)
+    /// <summary>
+    /// Chooses the audio stream a clip (or a playlist export) takes: the preferred one, else the one Jellyfin plays by
+    /// default for the user (<see cref="MediaSourceInfo.DefaultAudioStreamIndex"/>), else the file's default, else the first.
+    /// </summary>
+    /// <param name="source">The media source.</param>
+    /// <param name="preferredIndex">The stream asked for, if any.</param>
+    /// <returns>The stream, or <c>null</c> for a video without audio.</returns>
+    internal static MediaStream? SelectAudioStream(MediaSourceInfo source, int? preferredIndex)
     {
+        ArgumentNullException.ThrowIfNull(source);
         var audioStreams = source.MediaStreams
             .Where(s => s.Type == MediaStreamType.Audio && !s.IsExternal)
             .ToList();
@@ -193,7 +226,13 @@ internal sealed class ClipPlanner : IClipPlanner
             ?? audioStreams[0];
     }
 
-    private static int? GetInputIndex(MediaSourceInfo source, MediaStream? stream)
+    /// <summary>
+    /// Gets a stream's index for ffmpeg (<c>0:N</c>): its position among the streams of the same file, as Jellyfin maps them.
+    /// </summary>
+    /// <param name="source">The media source.</param>
+    /// <param name="stream">The stream.</param>
+    /// <returns>The index, or <c>null</c> without a stream.</returns>
+    internal static int? GetInputIndex(MediaSourceInfo source, MediaStream? stream)
     {
         if (stream is null)
         {
@@ -254,22 +293,7 @@ internal sealed class ClipPlanner : IClipPlanner
         return source;
     }
 
-    private TonemapMode SelectTonemap(MediaStream? video)
-    {
-        if (video is null || video.VideoRange != VideoRange.HDR)
-        {
-            return TonemapMode.None;
-        }
-
-        if (_mediaEncoder.SupportsFilter("tonemapx"))
-        {
-            return TonemapMode.TonemapX;
-        }
-
-        return video.VideoRangeType != VideoRangeType.DOVI && _mediaEncoder.SupportsFilter("zscale")
-            ? TonemapMode.ZScale
-            : TonemapMode.None;
-    }
+    private TonemapMode SelectTonemap(MediaStream? video) => SelectTonemap(video, _mediaEncoder);
 
     // The configured clip folder, or the default one, as ClipRoots records it: absolute and without a trailing separator,
     // so every clip file path the worker stores is absolute and lies under a recorded folder.

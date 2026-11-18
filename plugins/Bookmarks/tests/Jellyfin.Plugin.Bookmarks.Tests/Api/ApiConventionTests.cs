@@ -66,6 +66,10 @@ public sealed class ApiConventionTests
         "BookmarkJeImportUserDto",
         "BookmarkOrigin",
         "BookmarkPagesDto",
+        "BookmarkPlaylistExportEstimateDto",
+        "BookmarkPlaylistExportJobDto",
+        "BookmarkPlaylistExportSkippedDto",
+        "BookmarkPlaylistExportState",
         "BookmarkPreferencesDto",
         "BookmarkRenameRequest",
         "BookmarkShortcutsDto",
@@ -145,7 +149,7 @@ public sealed class ApiConventionTests
         // Guards the checks above against passing vacuously: the API, the admin Diagnostics and the ClientHealth reports,
         // the page shells, the developer identity demo, the developer user data demo and the My Clips page's clips.
         Assert.Equal(
-            [typeof(Bookmarks.Api.BookmarksAdminClipsController), typeof(Bookmarks.Api.BookmarksAdminController), typeof(Bookmarks.Api.BookmarksClipsController), typeof(Bookmarks.Api.BookmarksController), typeof(Bookmarks.Api.BookmarksDiagnosticsController), typeof(Bookmarks.Api.BookmarksIdentityDemoController), typeof(Bookmarks.Api.BookmarksLibraryChangeDemoController), typeof(Bookmarks.Api.BookmarksLibraryDemoController), typeof(Bookmarks.Api.BookmarksPagesController), typeof(Bookmarks.Api.BookmarksUserDataDemoController)],
+            [typeof(Bookmarks.Api.BookmarksAdminClipsController), typeof(Bookmarks.Api.BookmarksAdminController), typeof(Bookmarks.Api.BookmarksClipsController), typeof(Bookmarks.Api.BookmarksController), typeof(Bookmarks.Api.BookmarksDiagnosticsController), typeof(Bookmarks.Api.BookmarksIdentityDemoController), typeof(Bookmarks.Api.BookmarksLibraryChangeDemoController), typeof(Bookmarks.Api.BookmarksLibraryDemoController), typeof(Bookmarks.Api.BookmarksPagesController), typeof(Bookmarks.Api.BookmarksPlaylistExportController), typeof(Bookmarks.Api.BookmarksUserDataDemoController)],
             ControllerDiscovery.FindControllers(typeof(Plugin).Assembly).OrderBy(t => t.Name, System.StringComparer.Ordinal));
     }
 

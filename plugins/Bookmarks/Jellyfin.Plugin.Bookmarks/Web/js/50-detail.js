@@ -11,7 +11,7 @@ function isBookmarkable(item) {
 }
 
 function removeDetailUi(page) {
-    page.querySelectorAll('.jfbm-section, .btnBookmarkItem').forEach(function (node) {
+    page.querySelectorAll('.jfbm-section, .btnBookmarkItem, .jfbm-export-playlist').forEach(function (node) {
         node.remove();
     });
     state.lists.forEach(function (list) {
@@ -32,32 +32,42 @@ async function syncDetailPage() {
 
     const known = state.detailPages.get(page);
     if (known && known.itemId === itemId) {
-        if (!known.loading && known.item) {
+        if (!known.loading && (known.item || known.playlist)) {
             ensureDetailUi(page, known);
         }
 
         return;
     }
 
-    const entry = { itemId: itemId, loading: true, item: null, list: null };
+    const entry = { itemId: itemId, loading: true, item: null, list: null, playlist: null };
     state.detailPages.set(page, entry);
     removeDetailUi(page);
     try {
         const client = kit.client();
         const item = await client.getItem(kit.user.id(), itemId);
         entry.item = isBookmarkable(item) ? item : null;
+        // A playlist's page gets "Export to clips folder" (72-playlist-export.js) for a user who may make clips.
+        if (isExportablePlaylist(item)) {
+            const capabilities = await getCapabilities();
+            entry.playlist = capabilities && capabilities.CanCreateClips === true ? item : null;
+        }
     } catch (e) {
         report(e);
     } finally {
         entry.loading = false;
     }
 
-    if (state.detailPages.get(page) === entry && entry.item) {
+    if (state.detailPages.get(page) === entry && (entry.item || entry.playlist)) {
         ensureDetailUi(page, entry);
     }
 }
 
 function ensureDetailUi(page, entry) {
+    if (entry.playlist) {
+        addPlaylistExportButton(page, entry.playlist);
+        return;
+    }
+
     if (!page.querySelector('.btnBookmarkItem')) {
         addDetailButton(page, entry.item);
     }

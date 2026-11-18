@@ -137,6 +137,21 @@ public class PluginServiceRegistrator : IPluginServiceRegistrator
         serviceCollection.AddSingleton<IClipExtractionService>(services => services.GetRequiredService<ClipExtractionService>());
         serviceCollection.AddHostedService(services => services.GetRequiredService<ClipExtractionService>());
 
+        // Playlist exports (since 1.5.0 / 2.3.0): a playlist's videos joined into one MP4 in the clip folder, one at a time,
+        // under the clip jobs' rules (the clip worker's folder checks, the free-space guard, the clip file guard). Its worker
+        // starts with the first export and stops when the server disposes it.
+        serviceCollection.AddSingleton<IPlaylistExportLibrary>(services => new LibraryPlaylistExportLibrary(
+            services.GetRequiredService<ILibraryManager>(),
+            services.GetRequiredService<MediaBrowser.Controller.Library.IMediaSourceManager>()));
+        serviceCollection.AddSingleton(services => new PlaylistExportPlanner(
+            services.GetRequiredService<IPlaylistExportLibrary>(),
+            services.GetRequiredService<MediaBrowser.Controller.MediaEncoding.IMediaEncoder>(),
+            services.GetRequiredService<IPluginConfigurationProvider>(),
+            services.GetRequiredService<BookmarkPaths>(),
+            services.GetRequiredService<ClipFileOps>()));
+        serviceCollection.AddSingleton<PlaylistExportService>();
+        serviceCollection.AddSingleton<IBookmarkPlaylistExport>(services => services.GetRequiredService<PlaylistExportService>());
+
         serviceCollection.AddSingleton<IBookmarkManager, BookmarkManager>();
 
         // The My Bookmarks page's lists (filtered and ordered in memory, the library asked only for the page's

@@ -164,6 +164,12 @@ internal sealed class ClipStorageGuard
     public TimeSpan WatchdogInterval { get; }
 
     /// <summary>
+    /// Gets or sets the estimates of the jobs that aren't bookmarks' clip jobs (the playlist exports, since 1.5.0 / 2.3.0)
+    /// that wait or run, but the one with the given id: counted with the clip jobs' estimates by every check.
+    /// </summary>
+    internal Func<Guid, long>? OtherReservations { get; set; }
+
+    /// <summary>
     /// Gets the space that must stay free, in bytes: <c>MinFreeSpaceMegabytes</c>, 0 for a negative value.
     /// </summary>
     /// <param name="configuration">The settings.</param>
@@ -536,7 +542,9 @@ internal sealed class ClipStorageGuard
     // check, waiting. A tombstone never has a job.
     private long EstimatedBytesOfOtherJobs(Guid bookmarkId, bool includeQueued)
     {
-        var total = 0L;
+        // The playlist exports waiting or running (since 1.5.0 / 2.3.0) count as clip jobs do; an export's own id isn't
+        // counted twice.
+        var total = OtherReservations?.Invoke(bookmarkId) ?? 0L;
         foreach (var record in _store.GetAll())
         {
             if (!record.Id.Equals(bookmarkId)

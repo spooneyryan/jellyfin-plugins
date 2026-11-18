@@ -38,7 +38,7 @@ public sealed class ClientScriptTests
         var assembly = typeof(Plugin).Assembly;
 
         Assert.Equal(
-            ["Web.js.10-selectors.js", "Web.js.20-api.js", "Web.js.30-editor.js", "Web.js.35-lists.js", "Web.js.36-name-dialog.js", "Web.js.40-player.js", "Web.js.41-timeline.js", "Web.js.42-frames.js", "Web.js.50-detail.js", "Web.js.60-page-bookmarks.js", "Web.js.60-pagedemo.js", "Web.js.70-page-clips.js", "Web.js.75-page-clips-admin.js", "Web.js.90-main.js"],
+            ["Web.js.10-selectors.js", "Web.js.20-api.js", "Web.js.30-editor.js", "Web.js.35-lists.js", "Web.js.36-name-dialog.js", "Web.js.40-player.js", "Web.js.41-timeline.js", "Web.js.42-frames.js", "Web.js.50-detail.js", "Web.js.60-page-bookmarks.js", "Web.js.60-pagedemo.js", "Web.js.70-page-clips.js", "Web.js.72-playlist-export.js", "Web.js.75-page-clips-admin.js", "Web.js.90-main.js"],
             EmbeddedScript.ResourceNames(assembly, EmbeddedScript.ScriptFolder, ".js"));
         Assert.Equal(["Web.css.bookmarks.css"], EmbeddedScript.ResourceNames(assembly, EmbeddedScript.CssFolder, ".css"));
 

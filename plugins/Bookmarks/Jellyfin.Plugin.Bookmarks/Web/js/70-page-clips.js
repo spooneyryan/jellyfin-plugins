@@ -284,6 +284,8 @@ function renderClipsPage(body, params, context) {
         // The admins' scope switch and Owner select, in a line of their own above the toolbar (75-page-clips-admin.js).
         page.scopeBar = buildClipsScope(page);
         page.summaryLine = h('p', { class: 'jfbm-clips-summary', role: 'status' });
+        // The playlist exports under way or finished since the server started, with their progress (72-playlist-export.js).
+        page.exports = buildClipsExportsPanel();
         page.content = h('div', { class: 'jfbm-clips-content' });
         page.pager = kit.pager({
             onMore: function () {
@@ -304,7 +306,7 @@ function renderClipsPage(body, params, context) {
                 confirmClipsBulkDelete(page);
             }
         });
-        kit.append(body, page.header, page.notices, page.scopeBar, page.toolbar, page.summaryLine, page.content, page.pager.element, page.bulkBar);
+        kit.append(body, page.header, page.notices, page.exports, page.scopeBar, page.toolbar, page.summaryLine, page.content, page.pager.element, page.bulkBar);
         syncClipsToolbar(page);
         return loadClipsContent(page);
     });

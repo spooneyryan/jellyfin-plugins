@@ -484,6 +484,7 @@ retried. Each plugin needs a path under `/<Route>`, and its own schemas must car
 | --- | --- |
 | `bookmarks-ui.json` | Bookmarks' web UI end to end (resets the admin's bookmarks on Long Test Movie, sandbox data only), with DOM snapshots (`probes/dom-snapshot.js`) |
 | `bookmarks-phone.json` | a 390x844 touch screen (`bookmarks-phone-*.png`): bottom sheets, touch-size buttons, `forced-colors` |
+| `bookmarks-playlist-export.json` | the playlist export (`bookmarks-export-*.png`): the button by keyboard, the dialog's facts at desktop and phone width, Export, the progress in the dialog and on My Clips, Cancel, the Export ready toast (makes two `Export webcheck` playlists, sandbox data only) |
 | `kit-boot.json` | `ApiClient` seen within 50 ms, no plugin request before the user (`probes/kit-boot-probe.js`) |
 | `bookmarks-theme.json` | four themes' native colours and accent (`probes/kit-theme-probe.js`) |
 

@@ -1,5 +1,39 @@
 # Changelog
 
+## 1.6.0 / 2.4.0 (2026-11-18)
+
+1.6.0 for Jellyfin 10.11, 2.4.0 for Jellyfin 12.4. Only the video page changes: the bookmark data stays at schema 2 and
+nothing in it changes, so the upgrade keeps every bookmark and clip as it is, and going back to 1.5.0 (or 2.3.0) reads it
+as it is.
+
+**In short**
+- **Bookmarks and Clips rows on a video's page,** in place of the "My bookmarks" section. They look like the page's own
+  Scenes and Special Features rows (the same heading, cards, sizes, hover buttons and side scrolling) and sit right after
+  Scenes. A row is hidden while it is empty; the **Add bookmark** button stays where it was.
+- **Bookmarks:** one card per bookmark of yours, in time order. Its picture is the video's trickplay frame at the
+  bookmark's start (else the last chapter image before it, else the video's backdrop or poster). Under it: the name, the
+  time, a name's note's first line, and what to know ("Relinked, check position", the clip being made, failed or older
+  than the range, "Not in library"); a scissors in the corner when it has a clip file. Click it (or Enter) to play from
+  there. **Manage** next to the title opens My Bookmarks for this video (See all before).
+- **Clips:** one card per clip of yours made from this video that has a file, in time order. Its picture is the clip's
+  own artwork (its thumb, fanart or poster), else the frame at its start. Under it: the name, the length and the range;
+  "Outdated: the range changed" when the bookmark's range moved since. Click it to play the clip: in Jellyfin's player
+  when the clip is a library item (a library over the clip folder), else in the preview (else from the video at the
+  clip's start), as on My Clips. **My Clips** next to the title opens the page.
+- **The ⋮ menu** of a bookmark card has everything the section's row had: Play from here, Name it, Looks right, Make a
+  clip (or again), Edit, Delete, Cancel the clip, Preview, Download and Delete the clip, and View in My Clips. A clip
+  card's menu has Play the clip, then My Clips' actions for that clip (Preview, Download, Play the video at the clip's
+  start, Edit bookmark, Rename clip, Rename file, Make the clip again, Cancel the clip, Delete clip), and View in My
+  Clips. A right click or long press opens it too.
+- **Mouse, keyboard, TV remote and phone:** the cards are focusable buttons (Enter or Space plays); on the TV layout the
+  card itself takes the focus, OK plays and the remote's menu key opens the menu; on a phone the ⋮ sits in the card's
+  corner as on Jellyfin's mobile cards. Touch screens get 40 px buttons.
+- **The rows follow changes** (a bookmark added, edited or deleted, a clip finished, renamed or deleted, here, in the
+  player or on another page) without reloading the page, and keep the focus on the same card.
+- **API:** `GET /Bookmarks/Clips/Media?ids=` (for the caller's clips: the library item a clip file is, when the caller
+  may open it, and which artwork it has) and `GET /Bookmarks/Clips/{bookmarkId}/Artwork/{kind}` (`Thumb`, `Fanart` or
+  `Poster`: the caller's clip's artwork file). Both answer only the caller's own clips, as the other clip routes.
+
 ## 1.5.0 / 2.3.0 (2026-11-18)
 
 1.5.0 for Jellyfin 10.11, 2.3.0 for Jellyfin 12.4. The bookmark data stays at schema 2 and nothing in it changes, so the

@@ -53,6 +53,28 @@ public interface IBookmarkClips
     IReadOnlyList<BookmarkClipStatusDto> GetStatus(User user, IReadOnlyList<Guid>? ids);
 
     /// <summary>
+    /// Gets what a video's page needs to show some of the caller's clips as cards (<c>GET /Bookmarks/Clips/Media</c>, since
+    /// 1.6.0 / 2.4.0), in the order asked: for a clip file that is there, the library item that file is when the caller can
+    /// open it (Jellyfin's own check as the caller), and its artwork files. Ids that are no clip of the caller are left out.
+    /// </summary>
+    /// <param name="user">The caller.</param>
+    /// <param name="ids">The clips' ids: 1 to 200; an id given twice is answered once.</param>
+    /// <returns>Each clip's library item and artwork.</returns>
+    /// <exception cref="Kit.Api.PluginException">400 for no ids or more than 200.</exception>
+    IReadOnlyList<BookmarkClipMediaDto> GetMedia(User user, IReadOnlyList<Guid>? ids);
+
+    /// <summary>
+    /// Gets the full path of one of the caller's clip's artwork files (<c>GET /Bookmarks/Clips/{id}/Artwork/{kind}</c>, since
+    /// 1.6.0 / 2.4.0): beside a clip file that is there, in the server's clip folders.
+    /// </summary>
+    /// <param name="user">The caller.</param>
+    /// <param name="clipId">The clip's id.</param>
+    /// <param name="kind">Which artwork.</param>
+    /// <returns>The image file's full path.</returns>
+    /// <exception cref="Kit.Api.PluginException">404 no clip of the caller's, no clip file, or no such artwork.</exception>
+    string GetArtworkPath(User user, Guid clipId, BookmarkClipArtworkKind kind);
+
+    /// <summary>
     /// Deletes several of the caller's clips (<c>POST /Bookmarks/Clips/BulkDelete</c>), each finished one as
     /// <c>DELETE /Bookmarks/{id}/Clip</c> would: the file first, a file in use tried again up to three times 200 ms apart;
     /// then a live bookmark keeps no clip and a deleted bookmark's record goes. A clip being made (a job waiting

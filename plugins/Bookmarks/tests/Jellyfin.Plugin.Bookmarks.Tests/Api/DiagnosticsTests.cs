@@ -62,9 +62,11 @@ public sealed class DiagnosticsTests : IDisposable
         Assert.Empty(catalog.Problems);
         Assert.Empty(WebCouplingChecks.CheckAnchors(assembly));
         Assert.Equal(
-            ["detailPage", "detailContent", "detailButtons", "detailButtonsBefore", "playerPage", "osdButtons", "osdInsertBefore", "osdPositionSlider", "videoElement"],
+            ["detailPage", "detailContent", "detailScenes", "detailButtons", "detailButtonsBefore", "playerPage", "osdButtons", "osdInsertBefore", "osdPositionSlider", "videoElement"],
             catalog.Anchors.Where(a => !a.Name.StartsWith(WebAnchorCatalog.KitNamePrefix, StringComparison.Ordinal)).Select(a => a.Name));
         Assert.Equal([".videoOsdBottom .buttons"], catalog.Find("osdButtons")!.Css);
+        Assert.Equal(["#scenesCollapsible"], catalog.Find("detailScenes")!.Css);
+        Assert.False(catalog.Find("detailScenes")!.Required);
         Assert.Equal([".btnSubtitles", ".btnAudio", ".btnVideoOsdSettings"], catalog.Find("osdInsertBefore")!.Css);
         Assert.Equal([".videoPlayerContainer video", "video.htmlvideoplayer"], catalog.Find("videoElement")!.Css);
         Assert.All(catalog.Anchors.Where(a => a.Views.Contains("details")), a => Assert.Equal(["details"], a.Views));

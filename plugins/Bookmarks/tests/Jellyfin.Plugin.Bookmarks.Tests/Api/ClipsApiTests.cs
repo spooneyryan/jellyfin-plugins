@@ -232,6 +232,56 @@ public sealed class ClipsApiTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task MediaAndArtwork_OnTheWire_OnlyTheCallersClips_AndTheImageAsAFile()
+    {
+        await using var host = await StartAsync();
+        var ready = await CreateWithClipAsync(host, AliceId, 60, "Bank job");
+        var bobs = await CreateWithClipAsync(host, BobId, 60, "Bob's");
+        var store = host.Services.GetRequiredService<IBookmarkStore>();
+        foreach (var id in new[] { ready, bobs })
+        {
+            var path = store.Get(id)!.Clip!.FilePath!;
+            await File.WriteAllBytesAsync(Path.Combine(Path.GetDirectoryName(path)!, Path.GetFileNameWithoutExtension(path) + "-thumb.jpg"), [0xFF, 0xD8, 0xFF], Ct);
+        }
+
+        var (status, body) = await SendAsync(host, "GET", $"/Bookmarks/Clips/Media?ids={ready:N},{bobs:N}", AliceId);
+        Assert.Equal(HttpStatusCode.OK, status);
+        var media = Assert.Single(body.EnumerateArray());
+        Assert.Equal(ready, Id(media.GetProperty("Id")));
+        Assert.False(media.TryGetProperty("LibraryItemId", out var libraryItem) && libraryItem.ValueKind != JsonValueKind.Null, "no library: no item");
+        var artwork = Assert.Single(media.GetProperty("Artwork").EnumerateArray());
+        Assert.Equal("Thumb", artwork.GetProperty("Kind").GetString());
+        Assert.False(string.IsNullOrEmpty(artwork.GetProperty("Tag").GetString()));
+        Assert.DoesNotContain(ClipFolder, body.GetRawText(), StringComparison.OrdinalIgnoreCase);
+
+        using (var image = await SendRawAsync(host, "GET", $"/Bookmarks/Clips/{ready:N}/Artwork/Thumb?tag=1", AliceId))
+        {
+            Assert.Equal(HttpStatusCode.OK, image.StatusCode);
+            Assert.Equal("image/jpeg", image.Content.Headers.ContentType?.MediaType);
+            Assert.Equal([0xFF, 0xD8, 0xFF], await image.Content.ReadAsByteArrayAsync(Ct));
+            Assert.True(image.Headers.CacheControl?.Private);
+        }
+
+        foreach (var path in new[] { $"/Bookmarks/Clips/{ready:N}/Artwork/Poster", $"/Bookmarks/Clips/{bobs:N}/Artwork/Thumb", $"/Bookmarks/Clips/{Guid.NewGuid():N}/Artwork/Thumb" })
+        {
+            using var response = await SendRawAsync(host, "GET", path, AliceId);
+            Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+            Assert.Equal($$"""{"title":"Not Found","status":404,"detail":"{{ClipService.NoArtworkMessage}}"}""", await response.Content.ReadAsStringAsync(Ct));
+        }
+
+        using (var response = await SendRawAsync(host, "GET", "/Bookmarks/Clips/Media", AliceId))
+        {
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+            Assert.Equal($$"""{"title":"Bad Request","status":400,"detail":"{{ClipService.StatusNoIdsMessage}}"}""", await response.Content.ReadAsStringAsync(Ct));
+        }
+
+        using (var banner = await SendRawAsync(host, "GET", $"/Bookmarks/Clips/{ready:N}/Artwork/Banner", AliceId))
+        {
+            Assert.Equal(HttpStatusCode.BadRequest, banner.StatusCode);
+        }
+    }
+
+    [Fact]
     public async Task BulkDelete_AnswersForEachId_TheFileFirst_AndAnotherUsersClipIsNotFound()
     {
         await using var host = await StartAsync();
@@ -354,6 +404,8 @@ public sealed class ClipsApiTests : IAsyncLifetime
     [InlineData("GET", "/Bookmarks/Clips", null)]
     [InlineData("GET", "/Bookmarks/Clips/Summary", null)]
     [InlineData("GET", "/Bookmarks/Clips/Status?ids=9fa5c6778cf74a94bff0c82a60581ccf", null)]
+    [InlineData("GET", "/Bookmarks/Clips/Media?ids=9fa5c6778cf74a94bff0c82a60581ccf", null)]
+    [InlineData("GET", "/Bookmarks/Clips/9fa5c6778cf74a94bff0c82a60581ccf/Artwork/Thumb", null)]
     [InlineData("POST", "/Bookmarks/Clips/BulkDelete", """{"Ids":["9fa5c677-8cf7-4a94-bff0-c82a60581ccf"]}""")]
     [InlineData("POST", "/Bookmarks/Clips/9fa5c6778cf74a94bff0c82a60581ccf/Name", """{"Name":"x","RenameFile":true}""")]
     [InlineData("POST", "/Bookmarks/Clips/9fa5c6778cf74a94bff0c82a60581ccf/RenameFile", null)]
@@ -398,6 +450,12 @@ public sealed class ClipsApiTests : IAsyncLifetime
         Assert.Equal(("ids", BindingSource.Query, typeof(IReadOnlyList<Guid>)), (statusIds.Name, statusIds.Source, statusIds.Type));
         Assert.Contains(Find("GET", "Bookmarks/Clips/Status").SupportedResponseTypes, r => r.StatusCode == 200 && r.Type == typeof(IReadOnlyList<BookmarkClipStatusDto>));
         Assert.Contains(Find("GET", "Bookmarks/Clips/Summary").SupportedResponseTypes, r => r.StatusCode == 200 && r.Type == typeof(BookmarkClipSummaryDto));
+        var mediaIds = Assert.Single(Find("GET", "Bookmarks/Clips/Media").ParameterDescriptions);
+        Assert.Equal(("ids", BindingSource.Query, typeof(IReadOnlyList<Guid>)), (mediaIds.Name, mediaIds.Source, mediaIds.Type));
+        Assert.Contains(Find("GET", "Bookmarks/Clips/Media").SupportedResponseTypes, r => r.StatusCode == 200 && r.Type == typeof(IReadOnlyList<BookmarkClipMediaDto>));
+        var artwork = Find("GET", "Bookmarks/Clips/{bookmarkId}/Artwork/{kind}");
+        Assert.Equal(typeof(BookmarkClipArtworkKind), artwork.ParameterDescriptions.Single(p => p.Name == "kind").Type);
+        Assert.Equal([200, 400, 404], artwork.SupportedResponseTypes.Select(r => r.StatusCode).Distinct().Order());
         var bulk = Find("POST", "Bookmarks/Clips/BulkDelete");
         Assert.Equal(typeof(BookmarkClipBulkDeleteRequest), Assert.Single(bulk.ParameterDescriptions, p => p.Source == BindingSource.Body).Type);
         Assert.Contains(bulk.SupportedResponseTypes, r => r.StatusCode == 200 && r.Type == typeof(BookmarkClipBulkDeleteResultDto));

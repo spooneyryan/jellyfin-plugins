@@ -153,6 +153,141 @@ test('osdButton, detailButton and section give Bookmarks 1.0 its native markup',
     assert.equal(parts.section.className, 'verticalSection detailVerticalSection jfkt-section');
 });
 
+test('cardRow: a native details row (plain h2 with the title and a links span); setCards puts a fresh scroller in (but keeps one made in this frame) and hides it when empty', async () => {
+    const { kit, page } = setup();
+    const row = kit.cardRow({ title: 'Things', className: 'jfkt-row', attrs: { 'data-item-id': 'abc' } });
+    assert.equal(row.section.className, 'verticalSection detailVerticalSection verticalSection-extrabottompadding jfkt-row hide', 'hidden until it has cards');
+    assert.equal(row.section.getAttribute('data-item-id'), 'abc');
+    assert.equal(row.heading.tagName, 'H2');
+    assert.equal(row.heading.className, 'sectionTitle sectionTitle-cards padded-right');
+    assert.equal(row.title.textContent, 'Things');
+    assert.equal(row.links.className, 'jfkt-row-links');
+    assert.equal(row.links.parentNode, row.heading, 'links sit in the heading, after the title');
+    page.document.body.append(row.section);
+    const first = row.setCards([kit.h('div', { text: 'a' }), null, kit.h('div', { text: 'b' })]);
+    const scroller = row.heading.nextSibling;
+    assert.equal(scroller.getAttribute('is'), 'emby-scroller');
+    assert.equal(scroller.className, 'padded-top-focusscale padded-bottom-focusscale no-padding');
+    assert.equal(scroller.getAttribute('data-centerfocus'), 'true');
+    assert.equal(first.parentNode, scroller);
+    assert.equal(first.className, 'scrollSlider focuscontainer-x itemsContainer jfkt-row-slider');
+    assert.equal(first.hasAttribute('is'), false, 'never an emby-itemscontainer: its clicks stay ours');
+    assert.equal(first.children.length, 2);
+    assert.equal(kit.isHidden(row.section), false);
+    // In the frame it was made in, the scroller stays (jellyfin-web's scroll buttons measure it in the next frame and
+    // throw if it is gone by then): only the slider's cards change.
+    const same = row.setCards([kit.h('div', { text: 'x' })]);
+    assert.equal(same, first, 'the young scroller keeps its slider');
+    assert.equal(row.heading.nextSibling, scroller);
+    assert.deepEqual(same.children.map((c) => c.textContent), ['x']);
+    await page.advance(20);
+    const second = row.setCards([kit.h('div', { text: 'c' })]);
+    assert.notEqual(second, first, 'a frame later, a fresh slider each time');
+    assert.notEqual(row.heading.nextSibling, scroller);
+    assert.equal(row.section.children.length, 2, 'the old scroller (and the arrows jellyfin-web put beside it) are gone');
+    assert.equal(row.slider, second);
+    row.setCards([]);
+    assert.equal(kit.isHidden(row.section), true);
+    row.setTitle('Other');
+    assert.equal(row.title.textContent, 'Other');
+});
+
+test('rowCard on the desktop: an overflowBackdrop card with the hover overlay; the image and the play button play, the more button opens the menu', () => {
+    const { kit, page } = setup();
+    let plays = 0;
+    const menus = [];
+    const card = kit.rowCard({
+        title: 'Name', lines: ['0:12', null, 'Other'], label: 'Name at 0:12', indicator: 'content_cut', className: 'jfkt-x',
+        image: { url: 'http://h/a.jpg?x="1"', size: '1000% 100%', position: '22.2% 0%' },
+        onPlay: () => plays++, onMenu: (anchor) => menus.push(anchor)
+    });
+    page.document.body.append(card);
+    assert.equal(card.className, 'card overflowBackdropCard card-hoverable jfkt-rowcard jfkt-x');
+    assert.equal(card.hasAttribute('data-id'), false);
+    const image = card.querySelector('.cardImageContainer');
+    assert.equal(image.className, 'cardImageContainer coveredImage cardContent jfkt-rowcard-image focusable');
+    assert.equal(image.style.backgroundImage, 'url("http://h/a.jpg?x=%221%22")', 'quotes in the url are escaped');
+    assert.equal(image.style.backgroundSize, '1000% 100%');
+    assert.equal(image.style.backgroundPosition, '22.2% 0%');
+    assert.equal(image.getAttribute('role'), 'button');
+    assert.equal(image.getAttribute('aria-label'), 'Name at 0:12');
+    assert.equal(image.getAttribute('tabindex'), '0');
+    assert.equal(card.querySelector('.indicatorIcon').className, 'material-icons indicatorIcon content_cut');
+    const texts = card.querySelectorAll('.cardText');
+    assert.deepEqual(texts.map((t) => t.className), ['cardText cardTextCentered cardText-first', 'cardText cardTextCentered cardText-secondary', 'cardText cardTextCentered cardText-secondary']);
+    assert.deepEqual(texts.map((t) => t.textContent), ['Name', '0:12', 'Other']);
+    const overlay = card.querySelector('.cardOverlayContainer');
+    const fab = overlay.querySelector('.cardOverlayFab-primary');
+    assert.equal(fab.className, 'cardOverlayButton cardOverlayButton-hover paper-icon-button-light cardOverlayFab-primary jfkt-rowcard-play');
+    assert.equal(fab.getAttribute('aria-label'), 'Play: Name at 0:12');
+    fab.click();
+    assert.equal(plays, 1);
+    image.click();
+    assert.equal(plays, 2);
+    page.key(image, 'Enter');
+    assert.equal(plays, 3);
+    const more = overlay.querySelector('.cardOverlayButton-br button');
+    assert.equal(more.className, 'cardOverlayButton cardOverlayButton-hover paper-icon-button-light jfkt-rowcard-more');
+    assert.equal(more.getAttribute('title'), 'More');
+    more.click();
+    assert.deepEqual(menus, [more]);
+    assert.equal(plays, 3, 'the more button never plays');
+    page.dispatch(card, 'contextmenu');
+    page.dispatch(texts[0], 'command', { detail: { command: 'menu' } });
+    page.dispatch(texts[0], 'command', { detail: { command: 'play' } });
+    assert.deepEqual(menus, [more, card, card]);
+    assert.equal(card.querySelectorAll('.cardScalable > button').length, 0, 'the desktop more button is in the overlay');
+    assert.equal(card.querySelector('.jfkt-rowcard-frame'), null, 'no aspect: the image box is painted');
+    const wide = kit.rowCard({ title: 'W', image: { url: 'u', size: '1000% 100%', position: '0% 0%', aspect: 2.4 }, onPlay: () => {} });
+    const wideBox = wide.querySelector('.cardImageContainer');
+    const frame = wideBox.firstChild;
+    assert.equal(frame.className, 'jfkt-rowcard-frame', 'a 2.4:1 tile sits whole in a box of its own shape');
+    assert.equal(wideBox.className, 'cardImageContainer coveredImage cardContent jfkt-rowcard-image jfkt-rowcard-letterbox focusable');
+    assert.equal(wideBox.style.backgroundImage, undefined);
+    assert.equal(frame.style.backgroundImage, 'url("u")');
+    assert.equal(frame.style.backgroundSize, '1000% 100%');
+    assert.equal(frame.style.aspectRatio, '2.4');
+    assert.equal(frame.style.width, '100%');
+    const tall = kit.rowCard({ title: 'T', image: { url: 'u', aspect: 4 / 3 }, onPlay: () => {} }).querySelector('.jfkt-rowcard-frame');
+    assert.equal(tall.style.height, '100%');
+    const same = kit.rowCard({ title: 'S', image: { url: 'u', aspect: 320 / 180 }, onPlay: () => {} });
+    assert.equal(same.querySelector('.jfkt-rowcard-frame'), null, 'a 16:9 tile paints the box itself');
+});
+
+test('rowCard on TV: the card is the focus stop (show-focus) with no buttons; on mobile the more button alone in the corner of the image', () => {
+    const { kit, page } = setup();
+    page.document.documentElement.classList.add('layout-tv');
+    let plays = 0;
+    let menus = 0;
+    const tv = kit.rowCard({ title: 'T', onPlay: () => plays++, onMenu: () => menus++ });
+    page.document.body.append(tv);
+    assert.equal(tv.className, 'card overflowBackdropCard show-focus jfkt-rowcard focusable');
+    assert.equal(tv.getAttribute('role'), 'button');
+    assert.equal(tv.getAttribute('aria-label'), 'T');
+    assert.equal(tv.querySelectorAll('button').length, 0);
+    assert.equal(tv.querySelector('.cardImageContainer').className, 'cardImageContainer coveredImage cardContent defaultCardBackground jfkt-rowcard-image', 'no image: the default background and an icon');
+    assert.equal(tv.querySelector('.cardImageIcon').className, 'material-icons cardImageIcon movie');
+    page.key(tv, 'Enter');
+    tv.querySelector('.cardText').click();
+    assert.equal(plays, 2);
+    page.dispatch(tv, 'command', { detail: { command: 'menu' } });
+    assert.equal(menus, 1);
+    page.document.documentElement.classList.remove('layout-tv');
+    page.document.documentElement.classList.add('layout-mobile');
+    const phone = kit.rowCard({ title: 'P', lines: ['L'], onPlay: () => plays++, onMenu: () => menus++ });
+    assert.equal(phone.className, 'card overflowBackdropCard jfkt-rowcard');
+    assert.equal(phone.querySelector('.cardOverlayContainer'), null);
+    const more = phone.querySelector('.cardScalable > button');
+    assert.equal(more.className, 'cardOverlayButton cardOverlayButton-br paper-icon-button-light jfkt-rowcard-more', 'the mobile more button of jellyfin-web, in the corner of the image');
+    assert.equal(more.querySelector('span').className, 'material-icons cardOverlayButtonIcon more_vert');
+    assert.equal(((box) => box.children[box.children.length - 1].className)(phone.querySelector('.cardBox')), 'cardText cardTextCentered cardText-secondary', 'the texts below the image, as on the desktop');
+    more.click();
+    assert.equal(menus, 2);
+    assert.equal(plays, 2, 'the more button never plays');
+    const plain = kit.rowCard({ title: 'N', onPlay: () => plays++ });
+    assert.equal(plain.querySelector('button'), null, 'no menu, no more button');
+});
+
 test('makeFocusable: a tab stop with the class jellyfin-web\'s TV focus manager looks for, keeping a tabindex it has', () => {
     const { kit } = setup();
     const slider = kit.h('div', { class: 'jfkt-slider', role: 'slider' });

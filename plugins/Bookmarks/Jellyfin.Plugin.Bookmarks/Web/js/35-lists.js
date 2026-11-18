@@ -6,7 +6,13 @@ function registerList(list) {
     return refreshList(list);
 }
 
-async function refreshList(list) {
+// A list with a refresh of its own (the details page's Clips row, 52-detail-rows.js) reads itself; detail is
+// notifyChanged's.
+async function refreshList(list, detail) {
+    if (list.refresh) {
+        return list.refresh(detail || null);
+    }
+
     try {
         const results = await Promise.all([
             api('GET', 'Bookmarks', undefined, { itemId: list.itemId }),
@@ -34,7 +40,7 @@ function notifyChanged(itemId, detail) {
         if (!list.container.isConnected) {
             state.lists.delete(list);
         } else if (list.itemId === itemId) {
-            refreshList(list);
+            refreshList(list, detail);
         }
     });
     state.changeListeners.forEach(function (listener) {
@@ -47,8 +53,13 @@ function notifyChanged(itemId, detail) {
 }
 
 // The rows into the list's container, which is a list (role="list") while it has rows; the empty text alone
-// isn't one.
+// isn't one. A list that draws itself (list.render: the details page's Bookmarks row of cards) does.
 function renderList(list) {
+    if (list.render) {
+        list.render(list);
+        return;
+    }
+
     const rows = list.bookmarks.map(function (bookmark) {
         return renderRow(bookmark, list);
     });

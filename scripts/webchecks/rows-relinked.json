@@ -1,5 +1,5 @@
 {
-  "name": "The Relinked row badge, as viewer: a bookmark the identity service moved onto another copy of its film by a provider-id match (Strong) shows 'Relinked, check position' with 'Looks right' in the My bookmarks section of the copy's details page; Looks right (the rename with the unchanged name) clears the mark, the name and the video stay. Run by bookmarks-rows-probe.mjs after it made the relink: viewer's bookmark named 'rows-probe Moved' on Same Id Remake (1999), the 1999 copy held out and scanned, put back and scanned.",
+  "name": "The Relinked mark, as viewer: a bookmark the identity service moved onto another copy of its film by a provider-id match (Strong) shows 'Relinked, check position' on its card in the Bookmarks row of the copy's details page, with 'Looks right' in the card's menu (the My bookmarks section's row before 1.6.0 / 2.4.0); Looks right (the rename with the unchanged name) clears the mark, the name and the video stay. Run by bookmarks-rows-probe.mjs after it made the relink: viewer's bookmark named 'rows-probe Moved' on Same Id Remake (1999), the 1999 copy held out and scanned, put back and scanned.",
   "failOnException": false,
   "timeout": 30000,
   "steps": [
@@ -18,15 +18,38 @@
     { "name": "there is one", "assert": "!!__vars.copyId && !!__vars.bookmarkId", "message": "no relinked bookmark named 'rows-probe Moved' on the 2005 copy; run bookmarks-rows-probe.mjs" },
     { "name": "open the copy's details page", "goto": "/web/index.html#/details?id=${copyId}" },
     {
-      "name": "its row: the badge 'Relinked, check position' with Looks right; still playable",
-      "waitFor": "((r) => !!r && r.querySelector('.jfbm-row-title').textContent === 'rows-probe Moved' && [...r.querySelectorAll('.jfbm-badge')].map(b => b.textContent).join('|') === 'Relinked, check position' && !!r.querySelector('.jfbm-badge-relinked') && r.querySelector('.jfbm-looks-right').textContent === 'Looks right' && r.querySelector('.jfbm-time-button').disabled === false && !r.classList.contains('jfbm-row-detached'))(document.querySelector('#itemDetailPage:not(.hide) .jfbm-row[data-id=\"' + __vars.bookmarkId + '\"]'))",
+      "name": "its card: the line 'Relinked, check position' under its time",
+      "waitFor": "((c) => !!c && ((c) => c.querySelector('.cardText-first').textContent)(c) === 'rows-probe Moved' && c.classList.contains('jfbm-bookmark-card-relinked') && [...c.querySelectorAll('.jfbm-card-warning')].map(b => b.textContent).join('|') === 'Relinked, check position')(document.querySelector('#itemDetailPage:not(.hide) .jfbm-bookmark-card[data-jfbm-card=\"' + __vars.bookmarkId + '\"]'))",
       "timeout": 20000
     },
-    { "name": "the badge's colour (the kit's warning colour) and tooltip", "eval": "((b) => ({ color: getComputedStyle(b).color, title: b.getAttribute('title') }))(document.querySelector('#itemDetailPage:not(.hide) .jfbm-row[data-id=\"' + __vars.bookmarkId + '\"] .jfbm-badge-relinked'))", "save": "badge", "full": true },
+    {
+      "name": "the menu of the card",
+      "script": "const c = document.querySelector('#itemDetailPage:not(.hide) .jfbm-bookmark-card[data-jfbm-card=\"' + __vars.bookmarkId + '\"]'); if (!c) throw new Error('no such card'); const more = c.querySelector('.cardOverlayButton-br button, button.cardOverlayButton-br'); if (more) { more.click(); } else { c.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true })); } return [...document.querySelectorAll('.jfbm-backdrop .jfbm-row-menu-item')].map((x) => x.lastElementChild.textContent + (x.disabled ? ' (disabled)' : ''));",
+      "save": "menuBefore",
+      "full": true
+    },
+    {
+      "name": "close it",
+      "key": "Escape"
+    },
+    {
+      "name": "closed",
+      "waitFor": "!document.querySelector('.jfbm-backdrop')"
+    },
+    {
+      "name": "Looks right in it; still playable (Play from here first and enabled)",
+      "assert": "__vars.menuBefore[0] === 'Play from here' && __vars.menuBefore.indexOf('Looks right') !== -1"
+    },
+    { "name": "the badge's colour (the kit's warning colour) and tooltip", "eval": "((b) => ({ color: getComputedStyle(b).color, title: b.getAttribute('title') }))(document.querySelector('#itemDetailPage:not(.hide) .jfbm-bookmark-card[data-jfbm-card=\"' + __vars.bookmarkId + '\"]').querySelector('.jfbm-card-warning'))", "save": "badge", "full": true },
+    { "name": "the warning colour and the tooltip", "assert": "__vars.badge.title === 'This bookmark moved to another copy of the video. Check that its position is still right.' && __vars.badge.color !== getComputedStyle(document.querySelector('#itemDetailPage:not(.hide) .jfbm-bookmark-card[data-jfbm-card=\"' + __vars.bookmarkId + '\"]').querySelector('.cardText-first')).color" },
     { "sleep": 300 },
     { "screenshot": "rows-relinked.png" },
-    { "name": "Looks right", "click": "#itemDetailPage:not(.hide) .jfbm-row[data-id=\"${bookmarkId}\"] .jfbm-looks-right" },
-    { "name": "the badge and Looks right are gone", "waitFor": "((r) => !!r && r.querySelectorAll('.jfbm-badge').length === 0 && !r.querySelector('.jfbm-looks-right') && r.querySelector('.jfbm-row-title').textContent === 'rows-probe Moved')(document.querySelector('#itemDetailPage:not(.hide) .jfbm-row[data-id=\"' + __vars.bookmarkId + '\"]'))" },
+    { "name": "Looks right, from the card's menu", "script": "const c = document.querySelector('#itemDetailPage:not(.hide) .jfbm-bookmark-card[data-jfbm-card=\"' + __vars.bookmarkId + '\"]'); if (!c) throw new Error('no such card'); const more = c.querySelector('.cardOverlayButton-br button, button.cardOverlayButton-br'); if (more) { more.click(); } else { c.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true })); } const items = [...document.querySelectorAll('.jfbm-backdrop .jfbm-row-menu-item')]; const b = items.find((x) => x.lastElementChild.textContent === 'Looks right'); if (!b) throw new Error('no Looks right in the card menu: ' + items.map((x) => x.lastElementChild.textContent).join(', ')); if (b.disabled) throw new Error('Looks right is disabled'); b.click(); return true;" },
+    { "name": "the line is gone, the same title", "waitFor": "((c) => !!c && !c.querySelector('.jfbm-card-warning') && !c.classList.contains('jfbm-bookmark-card-relinked') && ((c) => c.querySelector('.cardText-first').textContent)(c) === 'rows-probe Moved')(document.querySelector('#itemDetailPage:not(.hide) .jfbm-bookmark-card[data-jfbm-card=\"' + __vars.bookmarkId + '\"]'))" },
+    { "name": "the menu of the card, confirmed", "script": "const c = document.querySelector('#itemDetailPage:not(.hide) .jfbm-bookmark-card[data-jfbm-card=\"' + __vars.bookmarkId + '\"]'); if (!c) throw new Error('no such card'); const more = c.querySelector('.cardOverlayButton-br button, button.cardOverlayButton-br'); if (more) { more.click(); } else { c.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true })); } return [...document.querySelectorAll('.jfbm-backdrop .jfbm-row-menu-item')].map((x) => x.lastElementChild.textContent + (x.disabled ? ' (disabled)' : ''));", "save": "menuAfter", "full": true },
+    { "name": "close it", "key": "Escape" },
+    { "name": "closed", "waitFor": "!document.querySelector('.jfbm-backdrop')" },
+    { "name": "no Looks right any more", "assert": "__vars.menuAfter[0] === 'Play from here' && __vars.menuAfter.indexOf('Looks right') === -1" },
     { "name": "the server: not relinked any more, the same name and video", "assert": "((b) => b.Relinked === false && b.Name === 'rows-probe Moved' && b.ItemId.replace(/-/g, '') === __vars.copyId.replace(/-/g, ''))(await ApiClient.getJSON(ApiClient.getUrl('Bookmarks/' + __vars.bookmarkId)))" },
     { "screenshot": "rows-relinked-confirmed.png" },
     { "name": "no uncaught exceptions (the stale CustomRatings tag excepted)", "noExceptions": true, "ignore": "/CustomRatings/script" }

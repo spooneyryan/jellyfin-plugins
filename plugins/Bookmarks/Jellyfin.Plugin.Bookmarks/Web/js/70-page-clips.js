@@ -1150,6 +1150,12 @@ function clipRowFocusTarget(row) {
 // (title), else its first; the row gone, the next row's (in the order shown when the dialog opened), else the previous
 // one's, else the page's fallback.
 function clipRowReturnFocus(page, key, title) {
+    if (page.detail) {
+        return function () {
+            return page.detail.focusTarget(key);
+        };
+    }
+
     const order = Array.prototype.slice.call(page.content.querySelectorAll('.jfbm-clips-row')).map(function (row) {
         return row.getAttribute('data-jfbm-clip');
     });
@@ -1544,7 +1550,14 @@ function notifyFromPage(page, itemId) {
 
 // Some shown clips read again (refreshClipRows) and drawn in place, then the summary, the selection and the poll (a clip
 // made again is being made now).
+// A details page's Clips row (52-detail-rows.js) gives these actions a page whose detail answers for its rows: there the
+// row is read again whole, and the focus goes back to a card.
 async function refreshClipKeys(page, keys) {
+    if (page.detail) {
+        await page.detail.refresh();
+        return;
+    }
+
     if (page.loading || !page.context.isShown()) {
         return;
     }
@@ -1562,6 +1575,11 @@ async function refreshClipKeys(page, keys) {
 // A clip deleted, forgotten or dismissed from here: its row out of the list and the selection, one more move for Load more,
 // the other lists told, then the summary (and the empty state when it was the last).
 function clipGone(page, clip) {
+    if (page.detail) {
+        notifyChanged(clip.ItemId);
+        return;
+    }
+
     removeClipRow(page, pageItemKey(clip.Id));
     page.overlap++;
     notifyFromPage(page, clip.ItemId);
@@ -1696,6 +1714,11 @@ function clipChangedElsewhereText(latest, action) {
 // The row drawn from the clip the server answered with (a rename's), then its video's rows read again under the page's
 // filters (the new name may no longer match the search, or sort elsewhere), the other lists told.
 function clipRenamed(page, clip, updated) {
+    if (page.detail) {
+        notifyChanged(clip.ItemId);
+        return;
+    }
+
     const key = pageItemKey(clip.Id);
     if (updated && updated.Id) {
         replaceClipRow(page, key, updated);

@@ -157,13 +157,17 @@
     { "screenshot": "page-clips-filtered.png" },
     { "name": "the movie's page", "goto": "/web/index.html#/details?id=${movieId}" },
     {
-      "name": "the section's links: See all and My Clips (Pages.Clips); Kilo's range with its scissors",
-      "waitFor": "(() => { const s = document.querySelector('#itemDetailPage:not(.hide) .jfbm-section'); if (!s || s.classList.contains('hide')) return false; const kilo = s.querySelector('.jfbm-row[data-id=\"' + __vars.kiloId + '\"] button[title=\"Make a clip\"]'); if (!kilo) return false; return { links: [...s.querySelectorAll('.jfbm-section-links a[data-jfbm-link]')].map(a => [a.textContent.trim(), a.getAttribute('href')]) }; })()",
+      "name": "the rows' links: Manage in the Bookmarks row, My Clips in the Clips row (Pages.Clips); Kilo's range card",
+      "waitFor": "(() => { const s = document.querySelector('#itemDetailPage:not(.hide) .jfbm-detail-bookmarks'); if (!s || s.classList.contains('hide') || !document.querySelector('#itemDetailPage:not(.hide) .jfbm-bookmark-card[data-jfbm-card=\"' + __vars.kiloId + '\"]')) return false; return { links: [...((s) => s ? s.querySelectorAll('h2 .jfbm-row-links a[data-jfbm-link]') : [])(document.querySelector('#itemDetailPage:not(.hide) .jfbm-detail-bookmarks'))].concat([...((s) => s ? s.querySelectorAll('h2 .jfbm-row-links a[data-jfbm-link]') : [])(document.querySelector('#itemDetailPage:not(.hide) .jfbm-detail-clips'))]).map(a => [a.textContent.trim(), a.getAttribute('href')]) }; })()",
       "timeout": 20000,
       "save": "section"
     },
-    { "name": "as expected", "assert": "JSON.stringify(__vars.section.links) === JSON.stringify([['See all', '#/jfbm-bookmarks?item=' + __vars.movieId], ['My Clips', '#/jfbm-clips']])" },
-    { "name": "Delete on Alpha's row", "click": "#itemDetailPage:not(.hide) .jfbm-row[data-id=\"${alphaId}\"] button[title=\"Delete\"]" },
+    { "name": "as expected", "assert": "JSON.stringify(__vars.section.links) === JSON.stringify([['Manage', '#/jfbm-bookmarks?item=' + __vars.movieId], ['My Clips', '#/jfbm-clips']])" },
+    { "name": "the menu of Kilo's card", "script": "const c = document.querySelector('#itemDetailPage:not(.hide) .jfbm-bookmark-card[data-jfbm-card=\"' + __vars.kiloId + '\"]'); if (!c) throw new Error('no such card'); const more = c.querySelector('.cardOverlayButton-br button, button.cardOverlayButton-br'); if (more) { more.click(); } else { c.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true })); } return [...document.querySelectorAll('.jfbm-backdrop .jfbm-row-menu-item')].map((x) => x.lastElementChild.textContent);", "save": "kiloMenu", "full": true },
+    { "name": "close it", "key": "Escape" },
+    { "name": "closed", "waitFor": "!document.querySelector('.jfbm-backdrop')" },
+    { "name": "Make a clip in Kilo's menu (a range without a clip)", "assert": "__vars.kiloMenu.indexOf('Make a clip') !== -1" },
+    { "name": "Delete on Alpha's card, from its menu", "script": "const c = document.querySelector('#itemDetailPage:not(.hide) .jfbm-bookmark-card[data-jfbm-card=\"' + __vars.alphaId + '\"]'); if (!c) throw new Error('no such card'); const more = c.querySelector('.cardOverlayButton-br button, button.cardOverlayButton-br'); if (more) { more.click(); } else { c.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true })); } const items = [...document.querySelectorAll('.jfbm-backdrop .jfbm-row-menu-item')]; const b = items.find((x) => x.lastElementChild.textContent === 'Delete'); if (!b) throw new Error('no Delete in the card menu: ' + items.map((x) => x.lastElementChild.textContent).join(', ')); if (b.disabled) throw new Error('Delete is disabled'); b.click(); return true;" },
     {
       "name": "the delete confirmation keeps the clip by default now that My Clips lists it",
       "waitFor": "(() => { const p = document.querySelector('.jfbm-backdrop .jfbm-panel'); if (!p || p.querySelector('h3').textContent !== 'Delete bookmark?') return false; const box = p.querySelector('.jfbm-delete-clip input'); const hint = p.querySelector('.jfbm-delete-hint'); return !!box && { label: p.querySelector('.jfbm-delete-clip .jfbm-checkbox span').textContent, checked: box.checked, hint: hint.textContent, hintShown: hint.getClientRects().length > 0 && !hint.classList.contains('hide') }; })()",
@@ -175,8 +179,8 @@
     },
     { "screenshot": "page-clips-delete-default.png" },
     { "name": "Cancel", "script": "[...document.querySelectorAll('.jfbm-backdrop .jfbm-panel .jfbm-actions button')].find(b => b.textContent === 'Cancel').click(); return true;" },
-    { "name": "the dialog closed, nothing deleted", "waitFor": "!document.querySelector('.jfbm-backdrop') && !!document.querySelector('#itemDetailPage:not(.hide) .jfbm-row[data-id=\"' + __vars.alphaId + '\"]')" },
-    { "name": "Kilo's scissors: the clip made from the details page (watched for the toast)", "click": "#itemDetailPage:not(.hide) .jfbm-row[data-id=\"${kiloId}\"] button[title=\"Make a clip\"]" },
+    { "name": "the dialog closed, nothing deleted", "waitFor": "!document.querySelector('.jfbm-backdrop') && !!document.querySelector('#itemDetailPage:not(.hide) .jfbm-bookmark-card[data-jfbm-card=\"' + __vars.alphaId + '\"]')" },
+    { "name": "Kilo's Make a clip, from its card's menu: the clip made from the details page (watched for the toast)", "script": "const c = document.querySelector('#itemDetailPage:not(.hide) .jfbm-bookmark-card[data-jfbm-card=\"' + __vars.kiloId + '\"]'); if (!c) throw new Error('no such card'); const more = c.querySelector('.cardOverlayButton-br button, button.cardOverlayButton-br'); if (more) { more.click(); } else { c.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true })); } const items = [...document.querySelectorAll('.jfbm-backdrop .jfbm-row-menu-item')]; const b = items.find((x) => x.lastElementChild.textContent === 'Make a clip'); if (!b) throw new Error('no Make a clip in the card menu: ' + items.map((x) => x.lastElementChild.textContent).join(', ')); if (b.disabled) throw new Error('Make a clip is disabled'); b.click(); return true;" },
     { "name": "the clip is being made", "waitFor": "[...document.querySelectorAll('.jfbm-toast')].some(t => t.textContent === 'Making the clip.')" },
     {
       "name": "the clip-ready toast: Download and View in My Clips",

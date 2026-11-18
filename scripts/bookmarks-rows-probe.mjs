@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Bookmarks' editor, rows, details section and delete confirmation in a running sandbox, in the
+// Bookmarks' editor, the details page's Bookmarks row (cards and their menus) and delete confirmation in a running sandbox, in the
 // web client: the webchecks editor-rows.json (as admin) and rows-relinked.json (as viewer, on a bookmark this probe has the
 // identity service relink for real), with the server's side of what they show: the capabilities, the clip folder and
 // bookmarks.json (read only), and the server log. Node 22 built-ins only. Loopback only,
@@ -14,8 +14,9 @@
 // or deploys anything.
 //
 // Checks:
-//   1. the capabilities (admin): My Bookmarks (Pages.Bookmarks true) and My Clips (Pages.Clips true), so the section links See all and My Clips;
-//   2. editor-rows.json (admin, Long Test Movie): "My bookmarks (n)", display titles, a name's note under it, Name it and the
+//   1. the capabilities (admin): My Bookmarks (Pages.Bookmarks true) and My Clips (Pages.Clips true), so the rows link Manage and My Clips;
+//   2. editor-rows.json (admin, Long Test Movie): the Bookmarks row's cards ("My bookmarks (n)" before 1.6.0 / 2.4.0),
+//      display titles, a name's note under it, Name it in the menus of unnamed ones and the
 //      editor with Name focused (Name, Start, End, Note textarea), Enter saving; the delete confirmation's "Also delete its
 //      clip" unticked with the hint that the clip stays in My Clips (once My Clips is there), the clip
 //      kept (a tombstone) when unticked and deleted when ticked; a confirmation opened without the box (no clip file yet)
@@ -24,7 +25,7 @@
 //   3. the clip folder: the webcheck's named clip, kept clip and race clip gone from admin's clip folder after their deletes;
 //   4. a real relink (unless --skip-relink): viewer's bookmark "rows-probe Moved" on Same Id Remake (1999); the 1999 copy
 //      held out and scanned: the bookmark goes to the 2005 copy (Strong), put back and scanned: it stays there, relinked;
-//   5. rows-relinked.json (viewer): the row's "Relinked, check position" badge and "Looks right", which clears the mark;
+//   5. rows-relinked.json (viewer): the card's "Relinked, check position" line and "Looks right" in its menu, which clears the mark;
 //      the API and bookmarks.json agree (no RelinkedUtc), the name and video unchanged;
 //   6. no Error of Bookmarks or the kit in the server log, no line of theirs at Information or above naming a bookmark;
 //      clean-up (no media change left, the bookmarks and clip files deleted).
@@ -295,20 +296,20 @@ async function run() {
     // ---- 1. the capabilities of this build
     const capabilities = await call('admin', 'GET', '/Bookmarks/Capabilities');
     evidence.capabilities = capabilities.json && { Pages: capabilities.json.Pages, MaxNameLength: capabilities.json.MaxNameLength, MaxNoteLength: capabilities.json.MaxNoteLength };
-    check('1. the capabilities offer My Bookmarks (Pages.Bookmarks true) and My Clips (Pages.Clips true), so the section links See all and My Clips',
+    check('1. the capabilities offer My Bookmarks (Pages.Bookmarks true) and My Clips (Pages.Clips true), so the rows link Manage and My Clips',
         capabilities.status === 200 && capabilities.json.Pages && capabilities.json.Pages.Bookmarks === true && capabilities.json.Pages.Clips === true,
         evidence.capabilities);
 
-    // ---- 2. and 3. the editor, rows, section and delete confirmation as admin
+    // ---- 2. and 3. the editor, the Bookmarks row's cards and the delete confirmation as admin
     const rows = webcheck('editor-rows');
     const namedClip = rows.value('the named clip completes, its file named after the name');
     const keptClip = rows.value('a Fast clip of the range, through the API');
     const raceClip = rows.value('while the confirmation is open, an Accurate clip of the range is made through the API and completes');
     evidence.editorRows = { ok: rows.ok, exit: rows.exit, seconds: rows.seconds, steps: rows.steps, failed: rows.failed, failedRequests: rows.failedRequests, closed: rows.closed,
-        rows: rows.value('the section is \'My bookmarks (n)\' with the rows\' display titles'), namedClip, keptClip, raceClip,
+        rows: rows.value('the Bookmarks row with the cards\' display titles, times and notes, the range\'s clip ready (the scissors, no clip line)'), namedClip, keptClip, raceClip,
         keptClipEvidence: rows.value('unticked, the clip was kept: the bookmark is 404, its clip file still downloads, then DELETE /Bookmarks/{id}/Clip removes it (204)'),
         raceEvidence: rows.value('without the box the box\'s default applies: the clip that finished meanwhile is kept (since My Clips; 1.1.0 deleted it), the bookmark is 404, its clip file still downloads, then DELETE /Bookmarks/{id}/Clip removes it (204)') };
-    check('2. editor-rows.json (admin): "My bookmarks (n)" with See all and My Clips, display titles with a name\'s note under it and Name it, the editor with Name focused (Name, Start, End, Note textarea) saving on Enter, "Also delete its clip" unticked with the hint that the clip stays in My Clips, the clip kept when unticked and deleted when ticked, a clip that finished while a confirmation without the box was open kept as the box would have, the range flow with Name focused and the clip named after the name',
+    check('2. editor-rows.json (admin): the Bookmarks row with Manage (and the Clips row with My Clips), cards by display title with a name\'s note under it and Name it in the unnamed ones\' menus, the editor with Name focused (Name, Start, End, Note textarea) saving on Enter, "Also delete its clip" unticked with the hint that the clip stays in My Clips, the clip kept when unticked and deleted when ticked, a clip that finished while a confirmation without the box was open kept as the box would have, the range flow with Name focused and the clip named after the name',
         rows.ok, { exit: rows.exit, failed: rows.failed });
     const namedFile = namedClip && typeof namedClip === 'object' ? namedClip.fileName : null;
     check('3. the clip folder: the named clip (Long Test Movie (<year>) - rows-probe Bank job [<range>]), the kept clip and the race\'s clip (rows-probe race, kept, then deleted by the webcheck) are gone from admin\'s clip folder after their deletes',
@@ -359,7 +360,7 @@ async function run() {
     evidence.rowsRelinked = { ok: badge.ok, exit: badge.exit, seconds: badge.seconds, steps: badge.steps, failed: badge.failed, failedRequests: badge.failedRequests, closed: badge.closed,
         badge: badge.value('the badge\'s colour (the kit\'s warning colour) and tooltip'),
         after: after && { ItemId: guid(after.ItemId), Relinked: after.Relinked, Name: after.Name }, storedRelinkedUtc: afterStored ? afterStored.RelinkedUtc || null : 'gone' };
-    check('5. rows-relinked.json (viewer): the row shows "Relinked, check position" with Looks right, which clears the mark (API and bookmarks.json), the name and video unchanged',
+    check('5. rows-relinked.json (viewer): the card shows "Relinked, check position", its menu Looks right, which clears the mark (API and bookmarks.json), the name and video unchanged',
         badge.ok && after && after.Relinked === false && after.Name === `${PROBE} Moved` && guid(after.ItemId) === guid(remake2005.Id) && afterStored && !afterStored.RelinkedUtc,
         { exit: badge.exit, failed: badge.failed, after: evidence.rowsRelinked.after, storedRelinkedUtc: evidence.rowsRelinked.storedRelinkedUtc });
 }

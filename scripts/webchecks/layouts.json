@@ -1,5 +1,5 @@
 {
-  "name": "The kit's UI in the TV, mobile and experimental layouts, as admin on Long Test Movie. TV layout (localStorage 'layout' = 'tv', what Settings > Display stores; html.layout-tv): the details page's Add bookmark button and section, the editor, the player's three buttons and its bookmarks list. Mobile layout at 375x812 touch ('mobile'; html.layout-mobile): the same, with the editor and the list as full-width bottom sheets and touch-sized icon buttons. Experimental layout ('experimental'): with the page demo on, the fallback routes #/jfbm-demo-a and #/jfbm-demo-b render, and no 'Library tools' nav appears (the kit adds it to jellyfin-web's legacy drawer, which this layout keeps hidden); what Bookmarks' details UI does there is recorded. Adds a range bookmark and removes it at the end, and turns the page demo on and back as it was, through the API (sandbox data only); the layout is stored per browser, and each run has a fresh profile.",
+  "name": "The kit's UI in the TV, mobile and experimental layouts, as admin on Long Test Movie. TV layout (localStorage 'layout' = 'tv', what Settings > Display stores; html.layout-tv): the details page's Add bookmark button and Bookmarks row (cards since 1.6.0 / 2.4.0), the editor, the player's three buttons and its bookmarks list. Mobile layout at 375x812 touch ('mobile'; html.layout-mobile): the same, with the editor and the list as full-width bottom sheets and touch-sized icon buttons. Experimental layout ('experimental'): with the page demo on, the fallback routes #/jfbm-demo-a and #/jfbm-demo-b render, and no 'Library tools' nav appears (the kit adds it to jellyfin-web's legacy drawer, which this layout keeps hidden); what Bookmarks' details UI does there is recorded. Adds a range bookmark and removes it at the end, and turns the page demo on and back as it was, through the API (sandbox data only); the layout is stored per browser, and each run has a fresh profile.",
   "failOnException": false,
   "timeout": 30000,
   "steps": [
@@ -21,12 +21,13 @@
     { "name": "TV layout applied", "waitFor": "document.documentElement.classList.contains('layout-tv') && !!window.__jfkit && !!window.__jfkit.jfbm" },
     { "name": "open the details page (TV)", "goto": "/web/index.html#/details?id=${movieId}" },
     {
-      "name": "TV: the Add bookmark button and the section with the range",
-      "waitFor": "(() => { const b = document.querySelector('#itemDetailPage:not(.hide) .mainDetailButtons .btnBookmarkItem'); const s = document.querySelector('#itemDetailPage:not(.hide) .jfbm-section'); if (!b || !s || s.classList.contains('hide')) return false; const row = [...s.querySelectorAll('.jfbm-row')].find(r => r.textContent.includes('webcheck-layouts')); const r = b.getBoundingClientRect(); return !!row && r.width > 0 && r.height > 0 && { layout: document.documentElement.className, kitLayout: __jfkit.jfbm.instance.layout.isTv(), rows: s.querySelectorAll('.jfbm-row').length, button: [r.width, r.height] }; })()",
+      "name": "TV: the Add bookmark button and the Bookmarks row with the range's card (a TV card: the card itself the focus stop)",
+      "waitFor": "(() => { const b = document.querySelector('#itemDetailPage:not(.hide) .mainDetailButtons .btnBookmarkItem'); const s = document.querySelector('#itemDetailPage:not(.hide) .jfbm-detail-bookmarks'); if (!b || !s || s.classList.contains('hide')) return false; const card = [...document.querySelectorAll('#itemDetailPage:not(.hide) .jfbm-detail-bookmarks .jfbm-bookmark-card')].find((c) => c.textContent.indexOf('webcheck-layouts') !== -1); const r = b.getBoundingClientRect(); return !!card && r.width > 0 && r.height > 0 && { layout: document.documentElement.className, kitLayout: __jfkit.jfbm.instance.layout.isTv(), rows: [...document.querySelectorAll('#itemDetailPage:not(.hide) .jfbm-detail-bookmarks .jfbm-bookmark-card')].length, button: [r.width, r.height], tvCard: card.classList.contains('show-focus') && card.getAttribute('tabindex') === '0' && card.querySelectorAll('button').length === 0 }; })()",
       "timeout": 20000,
       "save": "tvDetails"
     },
     { "name": "TV: the kit sees the TV layout", "assert": "__vars.tvDetails.kitLayout === true" },
+    { "name": "TV: the range's card is a TV card (show-focus, a tab stop, no buttons: OK plays, the menu key opens its menu)", "assert": "__vars.tvDetails.tvCard === true" },
     { "screenshot": "layouts-tv-details.png" },
     { "name": "TV: open the editor", "click": "#itemDetailPage:not(.hide) .mainDetailButtons .btnBookmarkItem", "js": true },
     { "name": "TV: the editor, with focus in the Name field (the start field before 1.1)", "waitFor": "(() => { const p = document.querySelector('.jfbm-backdrop .jfbm-panel'); return !!p && p.querySelector('h3').textContent === 'New bookmark' && document.activeElement === p.querySelector('input[maxlength=\"100\"]'); })()" },
@@ -50,13 +51,13 @@
     { "name": "reload (mobile)", "reload": true },
     { "name": "mobile layout applied at 375 px", "waitFor": "document.documentElement.classList.contains('layout-mobile') && innerWidth === 375 && matchMedia('(pointer: coarse)').matches && !!window.__jfkit && !!window.__jfkit.jfbm" },
     {
-      "name": "mobile: the Add bookmark button and the section with the range, inside the screen",
-      "waitFor": "(() => { const b = document.querySelector('#itemDetailPage:not(.hide) .mainDetailButtons .btnBookmarkItem'); const s = document.querySelector('#itemDetailPage:not(.hide) .jfbm-section'); if (!b || !s || s.classList.contains('hide')) return false; const row = [...s.querySelectorAll('.jfbm-row')].find(r => r.textContent.includes('webcheck-layouts')); if (!row) return false; const rr = row.getBoundingClientRect(); const icons = [...row.querySelectorAll('.jfbm-icon-button')].map(i => { const r = i.getBoundingClientRect(); return [Math.round(r.width), Math.round(r.height)]; }); return { kitLayout: __jfkit.jfbm.instance.layout.isMobile(), rowLeft: Math.round(rr.left), rowRight: Math.round(rr.right), scrollWidth: document.documentElement.scrollWidth, icons }; })()",
+      "name": "mobile: the Add bookmark button and the Bookmarks row with the range's card, inside the screen",
+      "waitFor": "(() => { const b = document.querySelector('#itemDetailPage:not(.hide) .mainDetailButtons .btnBookmarkItem'); const s = document.querySelector('#itemDetailPage:not(.hide) .jfbm-detail-bookmarks'); if (!b || !s || s.classList.contains('hide')) return false; const card = [...document.querySelectorAll('#itemDetailPage:not(.hide) .jfbm-detail-bookmarks .jfbm-bookmark-card')].find((c) => c.textContent.indexOf('webcheck-layouts') !== -1); if (!card) return false; const rr = s.getBoundingClientRect(); const icons = [...card.querySelectorAll('button')].map(i => { const r = i.getBoundingClientRect(); return [Math.round(r.width), Math.round(r.height)]; }); return { kitLayout: __jfkit.jfbm.instance.layout.isMobile(), rowLeft: Math.round(rr.left), rowRight: Math.round(rr.right), cardWidth: Math.round(card.getBoundingClientRect().width), scrollWidth: document.documentElement.scrollWidth, icons }; })()",
       "timeout": 20000,
       "save": "mobileDetails"
     },
-    { "name": "mobile: the kit sees the mobile layout; the row fits in 375 px; its icon buttons are at least 40 px", "assert": "__vars.mobileDetails.kitLayout === true && __vars.mobileDetails.rowLeft >= 0 && __vars.mobileDetails.rowRight <= 375 && __vars.mobileDetails.icons.length > 0 && __vars.mobileDetails.icons.every(s => s[0] >= 40 && s[1] >= 40)" },
-    { "name": "mobile: scroll the section into view", "script": "document.querySelector('#itemDetailPage:not(.hide) .jfbm-section').scrollIntoView({ block: 'start' }); return true;" },
+    { "name": "mobile: the kit sees the mobile layout; the row fits in 375 px (the page never scrolls sideways, a card is narrower than the screen); the card's more button is at least 40 px", "assert": "__vars.mobileDetails.kitLayout === true && __vars.mobileDetails.rowLeft >= 0 && __vars.mobileDetails.rowRight <= 375 && __vars.mobileDetails.scrollWidth <= 375 && __vars.mobileDetails.cardWidth < 375 && __vars.mobileDetails.icons.length > 0 && __vars.mobileDetails.icons.every(s => s[0] >= 40 && s[1] >= 40)" },
+    { "name": "mobile: scroll the row into view", "script": "document.querySelector('#itemDetailPage:not(.hide) .jfbm-detail-bookmarks').scrollIntoView({ block: 'start' }); return true;" },
     { "sleep": 300 },
     { "screenshot": "layouts-mobile-details.png" },
     { "name": "mobile: open the editor", "click": "#itemDetailPage:not(.hide) .mainDetailButtons .btnBookmarkItem", "js": true },
@@ -125,7 +126,7 @@
     { "sleep": 4000 },
     {
       "name": "experimental: what Bookmarks' details UI does here (recorded)",
-      "eval": "({ addButton: !!document.querySelector('#itemDetailPage:not(.hide) .mainDetailButtons .btnBookmarkItem'), section: (s => !!s && !s.classList.contains('hide') && s.querySelectorAll('.jfbm-row').length)(document.querySelector('#itemDetailPage:not(.hide) .jfbm-section')), missing: __jfkit.jfbm.health.missing() })",
+      "eval": "({ addButton: !!document.querySelector('#itemDetailPage:not(.hide) .mainDetailButtons .btnBookmarkItem'), section: (s => !!s && !s.classList.contains('hide') && [...document.querySelectorAll('#itemDetailPage:not(.hide) .jfbm-detail-bookmarks .jfbm-bookmark-card')].length)(document.querySelector('#itemDetailPage:not(.hide) .jfbm-detail-bookmarks')), missing: __jfkit.jfbm.health.missing() })",
       "save": "experimentalDetails",
       "full": true
     },

@@ -304,8 +304,8 @@ public sealed class PageHostingTests
     /// <summary>
     /// detail-tv.test.mjs: the details page's hook of the kit's Jellyfin Enhanced TV mitigation (kit.je.tvSectionJump,
     /// for Jellyfin Enhanced 12.14's TV trap) in a fake page: on the TV layout, with JE's closed
-    /// Reviews section and "My bookmarks" shown, a Bookmarks button after Add bookmark and before More whose OK focuses the
-    /// section's first control; nothing on the desktop layout or while the video has no bookmarks.
+    /// Reviews section and the Bookmarks or Clips row shown, a Bookmarks button after Add bookmark and before More whose OK
+    /// focuses the row's first control; nothing on the desktop layout or while both rows are hidden.
     /// </summary>
     /// <returns>A task.</returns>
     [Fact]
@@ -313,6 +313,24 @@ public sealed class PageHostingTests
     {
         var script = new EmbeddedScript(BookmarksKit.Options, NullLoggerFactory.Instance).ClientScriptText;
         var run = await KitScriptChecks.RunTestFileAsync(Path.Combine(WebTests, "detail-tv.test.mjs"), script, BookmarksKit.Options.Prefix, TestContext.Current.CancellationToken);
+        Assert.SkipWhen(run is null, "Node.js is not on the PATH.");
+
+        Assert.True(run!.ExitCode == 0, run.Output);
+        Assert.Contains("# fail 0", run.StandardOutput, StringComparison.Ordinal);
+        Assert.DoesNotContain("# pass 0", run.StandardOutput, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// detail-rows.test.mjs: the details page's Bookmarks and Clips rows (since 1.6.0 / 2.4.0) in a fake page: the cards
+    /// in time order, their frame images (the trickplay tile, the chapter image, the artwork), a clip's own artwork, the
+    /// rows hidden while empty, a click that plays, and the menus' actions wired to the list's and My Clips' handlers.
+    /// </summary>
+    /// <returns>A task.</returns>
+    [Fact]
+    public async Task TheDetailsPagesRows_PassTheirTests_InAFakePage()
+    {
+        var script = new EmbeddedScript(BookmarksKit.Options, NullLoggerFactory.Instance).ClientScriptText;
+        var run = await KitScriptChecks.RunTestFileAsync(Path.Combine(WebTests, "detail-rows.test.mjs"), script, BookmarksKit.Options.Prefix, TestContext.Current.CancellationToken);
         Assert.SkipWhen(run is null, "Node.js is not on the PATH.");
 
         Assert.True(run!.ExitCode == 0, run.Output);

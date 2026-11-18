@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -57,6 +58,11 @@ internal sealed class ClipService : IBookmarkClips
     /// The 400 message of a bulk delete of more than <see cref="MaxIds"/> ids.
     /// </summary>
     public const string BulkDeleteTooManyMessage = "At most 200 clips can be deleted at once.";
+
+    /// <summary>
+    /// The 404 message of an artwork request that names no artwork of the caller's clips.
+    /// </summary>
+    public const string NoArtworkMessage = "This clip has no such image.";
 
     private readonly IBookmarkStore _store;
     private readonly ClipQueryService _query;
@@ -139,6 +145,61 @@ internal sealed class ClipService : IBookmarkClips
             .Where(record => record is { Clip: not null } && record.UserId.Equals(user.Id))
             .Select(record => record!));
         return rows.Select(row => BookmarkDtoMapper.ToClipStatusDto(row.Record, row.State, _clips.GetProgress(row.Record.Id))).ToList();
+    }
+
+    /// <inheritdoc />
+    public IReadOnlyList<BookmarkClipMediaDto> GetMedia(User user, IReadOnlyList<Guid>? ids)
+    {
+        ArgumentNullException.ThrowIfNull(user);
+        if (ids is not { Count: > 0 })
+        {
+            throw BookmarkException.Invalid(StatusNoIdsMessage);
+        }
+
+        if (ids.Count > MaxIds)
+        {
+            throw BookmarkException.Invalid(StatusTooManyMessage);
+        }
+
+        // The caller's own clips only, as the status; the file system is asked only for a clip whose file is there (the list's
+        // own judgement, ClipStateCache), and the library only as the caller.
+        var rows = _query.Rows(ids.Distinct()
+            .Select(_store.Get)
+            .Where(record => record is { Clip: not null } && record.UserId.Equals(user.Id))
+            .Select(record => record!));
+        var media = new List<BookmarkClipMediaDto>(rows.Count);
+        foreach (var row in rows)
+        {
+            var dto = new BookmarkClipMediaDto { Id = row.Record.Id };
+            var path = row.HasFile && row.Facts.FileExists ? _files.FindServable(row.Clip.FilePath, row.Record.Id) : null;
+            if (path is not null)
+            {
+                dto.LibraryItemId = _locations.Find(path) is null ? null : LibraryItemOf(path, user);
+                dto.Artwork = _files.FindArtwork(path)
+                    .Select(found => new BookmarkClipArtworkDto { Kind = ArtworkKind(found.Kind), Tag = found.LastWriteUtc.Ticks.ToString(CultureInfo.InvariantCulture) })
+                    .ToList();
+            }
+
+            media.Add(dto);
+        }
+
+        return media;
+    }
+
+    /// <inheritdoc />
+    public string GetArtworkPath(User user, Guid clipId, BookmarkClipArtworkKind kind)
+    {
+        ArgumentNullException.ThrowIfNull(user);
+        var record = _store.Get(clipId);
+        if (record is not { Clip: not null } || !record.UserId.Equals(user.Id))
+        {
+            throw BookmarkException.NotFound(NoArtworkMessage);
+        }
+
+        var path = _files.FindServable(record.Clip.FilePath, record.Id) ?? throw BookmarkException.NotFound(NoArtworkMessage);
+        var name = ArtworkName(kind);
+        return _files.FindArtwork(path).Where(found => found.Kind == name).Select(found => found.Path).FirstOrDefault()
+            ?? throw BookmarkException.NotFound(NoArtworkMessage);
     }
 
     /// <inheritdoc />
@@ -247,6 +308,36 @@ internal sealed class ClipService : IBookmarkClips
             Failed = ids.Where(id => Refused(id, r => !InUse(r) && !Offline(r))).ToList(),
             NotFound = ids.Where(id => !outcome.Changed.ContainsKey(id) && !outcome.Refused.ContainsKey(id) && !outcome.InProgress.Contains(id)).ToList()
         };
+    }
+
+    private static BookmarkClipArtworkKind ArtworkKind(string name) => name switch
+    {
+        ClipArtworkNames.Fanart => BookmarkClipArtworkKind.Fanart,
+        ClipArtworkNames.Thumb => BookmarkClipArtworkKind.Thumb,
+        _ => BookmarkClipArtworkKind.Poster
+    };
+
+    private static string ArtworkName(BookmarkClipArtworkKind kind) => kind switch
+    {
+        BookmarkClipArtworkKind.Fanart => ClipArtworkNames.Fanart,
+        BookmarkClipArtworkKind.Thumb => ClipArtworkNames.Thumb,
+        _ => ClipArtworkNames.Poster
+    };
+
+    // The library item whose file the clip file is, when the caller can open it (Jellyfin's own check as the caller); a
+    // failed lookup is none.
+    private Guid? LibraryItemOf(string path, User user)
+    {
+        try
+        {
+            var item = _library.FindByPath(path, false);
+            return item is not null && !item.Id.Equals(Guid.Empty) && _library.GetItemById<BaseItem>(item.Id, user) is not null ? item.Id : null;
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.LogDebug(ex, "Could not look up the library item of a clip file for user {UserId}", user.Id);
+            return null;
+        }
     }
 
     private BookmarkClipItemDto ToItemDto(ClipRow row, ClipViewer viewer)

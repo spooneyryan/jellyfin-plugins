@@ -484,6 +484,7 @@ retried. Each plugin needs a path under `/<Route>`, and its own schemas must car
 | --- | --- |
 | `bookmarks-ui.json` | Bookmarks' web UI end to end (resets the admin's bookmarks on Long Test Movie, sandbox data only), with DOM snapshots (`probes/dom-snapshot.js`) |
 | `bookmarks-phone.json` | a 390x844 touch screen (`bookmarks-phone-*.png`): bottom sheets, touch-size buttons, `forced-colors` |
+| `bookmarks-detail-rows.json` | a video's Bookmarks and Clips rows (1.6.0 / 2.4.0) on Chaptered Movie, beside Jellyfin's Scenes and Special Features: right after Scenes, the same markup, card and image sizes as the native rows, the trickplay tile at each bookmark's start, the clips' artwork or frame, Manage and My Clips, a card's ⋮ menu and Edit through it, Enter playing from a bookmark, a clip card playing (Jellyfin's player when a library covers the clip folder, else the preview), the phone's mobile layout with Delete from a card menu (`bookmarks-detail-rows-{desktop,menu,phone}.png`; makes its `detail-rows` bookmarks and clips, deleted at the end, sandbox data only) |
 | `bookmarks-playlist-export.json` | the playlist export (`bookmarks-export-*.png`): the button by keyboard, the dialog's facts at desktop and phone width, Export, the progress in the dialog and on My Clips, Cancel, the Export ready toast (makes two `Export webcheck` playlists, sandbox data only) |
 | `kit-boot.json` | `ApiClient` seen within 50 ms, no plugin request before the user (`probes/kit-boot-probe.js`) |
 | `bookmarks-theme.json` | four themes' native colours and accent (`probes/kit-theme-probe.js`) |
@@ -751,7 +752,8 @@ node scripts/bookmarks-query-probe.mjs --sandbox default [--timeout 300] [--out 
 
 ### bookmarks-rows-probe.mjs
 
-The editor, rows, "My bookmarks" section and delete confirmation in the web client ("Using it").
+The editor, the details page's Bookmarks row (its cards and their menus; the "My bookmarks" section before 1.6.0 / 2.4.0)
+and delete confirmation in the web client ("Using it").
 
 ```powershell
 node scripts/bookmarks-rows-probe.mjs --sandbox default [--skip-relink] [--timeout 300] [--out <file>]

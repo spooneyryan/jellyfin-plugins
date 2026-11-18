@@ -8,6 +8,7 @@ using Jellyfin.Plugin.Bookmarks.Api.Models;
 using Jellyfin.Plugin.Bookmarks.Clips;
 using Jellyfin.Plugin.Kit.Api;
 using MediaBrowser.Controller.Library;
+using MediaBrowser.Model.Net;
 using MediaBrowser.Model.Querying;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -91,6 +92,44 @@ public class BookmarksClipsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public ActionResult<IReadOnlyList<BookmarkClipStatusDto>> GetClipStatus([FromQuery, CommaSeparatedQuery] IReadOnlyList<Guid>? ids)
         => Ok(_clips.GetStatus(GetCurrentUser(), ids));
+
+    /// <summary>
+    /// Gets what a video's page needs to show some of the current user's clips as cards (since 1.6.0 / 2.4.0): for each clip
+    /// whose file is there, the Jellyfin library item that file is (a clip folder that is a library), when the user can open
+    /// it, and the clip's artwork files. Ids that are no clip of the user are left out.
+    /// </summary>
+    /// <param name="ids">The clips' ids (their bookmarks' ids), comma-separated or repeated: 1 to 200.</param>
+    /// <response code="200">Each clip's library item and artwork, in the order asked.</response>
+    /// <response code="400">No ids, more than 200, or a value that isn't a GUID.</response>
+    /// <returns>The clips' library items and artwork.</returns>
+    [HttpGet("Media")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public ActionResult<IReadOnlyList<BookmarkClipMediaDto>> GetClipMedia([FromQuery, CommaSeparatedQuery] IReadOnlyList<Guid>? ids)
+        => Ok(_clips.GetMedia(GetCurrentUser(), ids));
+
+    /// <summary>
+    /// Gets one of the current user's clip's artwork images (since 1.6.0 / 2.4.0): the video's images Bookmarks puts beside a
+    /// clip in a Home Videos library (<c>&lt;clip&gt;-poster</c>, <c>-fanart</c>, <c>-thumb</c>). Kept by the browser for a day;
+    /// the URL carries the tag GET /Bookmarks/Clips/Media gave, which changes with the file.
+    /// </summary>
+    /// <param name="bookmarkId">The clip's id (its bookmark's).</param>
+    /// <param name="kind">Which image: Poster, Fanart or Thumb.</param>
+    /// <response code="200">The image.</response>
+    /// <response code="400">The kind isn't one of these.</response>
+    /// <response code="404">No clip of the user's, its file isn't there, or it has no such image.</response>
+    /// <returns>The image file.</returns>
+    [HttpGet("{bookmarkId:guid}/Artwork/{kind}")]
+    [Produces("image/jpeg", "image/png", "image/webp")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public ActionResult GetClipArtwork([FromRoute, Required] Guid bookmarkId, [FromRoute, Required] BookmarkClipArtworkKind kind)
+    {
+        var path = _clips.GetArtworkPath(GetCurrentUser(), bookmarkId, kind);
+        Response.Headers.CacheControl = "private, max-age=86400";
+        return PhysicalFile(path, MimeTypes.GetMimeType(path));
+    }
 
     /// <summary>
     /// Deletes several of the current user's clips, each finished one as DELETE /Bookmarks/{id}/Clip would: the file first;

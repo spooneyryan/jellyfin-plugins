@@ -1,5 +1,5 @@
 {
-  "name": "The bookmark editor and the details page's rows, as admin on Long Test Movie: the details page's 'My bookmarks (n)' section with its two page links, See all and My Clips (the capabilities offer My Bookmarks and My Clips), rows by their display title (the name, else the note's first line, else 'Bookmark at 0:15') with a name's note as a second line and 'Name it' on unnamed rows; Name it opens the editor with Name focused (fields Name, Start, End, Note as a textarea), Enter saves the name; the delete confirmation's 'Also delete its clip' unticked with the hint that the clip stays in My Clips (since My Clips lists kept clips; ticked with a next-update hint in 1.1.0), the clip kept when unticked (a tombstone) and deleted with the bookmark when ticked, and, when the confirmation opened without the box (no clip file yet), a clip that finished while it was open kept as well (the default without the box follows the box's); the player's range flow opens the editor with Name focused and Save & make clip names the clip file after the name. Run by bookmarks-rows-probe.mjs, which checks the clip folder afterwards. Every name and note starts with 'rows-probe'; the bookmarks it makes are deleted at the end (and at the start of the next run).",
+  "name": "The bookmark editor and the details page's rows, as admin on Long Test Movie: the details page's Bookmarks row of cards (since 1.6.0 / 2.4.0; the 'My bookmarks (n)' section before) with its Manage link (My Bookmarks filtered to the video) and the Clips row's My Clips link (the capabilities offer My Bookmarks and My Clips; See all and My Clips in the section before), cards by their display title (the name, else the note's first line, else 'Bookmark at 0:15') with their time and a name's note's first line under it, and 'Name it' in the menu of unnamed ones; Name it opens the editor with Name focused (fields Name, Start, End, Note as a textarea), Enter saves the name; the delete confirmation's 'Also delete its clip' unticked with the hint that the clip stays in My Clips (since My Clips lists kept clips; ticked with a next-update hint in 1.1.0), the clip kept when unticked (a tombstone) and deleted with the bookmark when ticked, and, when the confirmation opened without the box (no clip file yet), a clip that finished while it was open kept as well (the default without the box follows the box's); the player's range flow opens the editor with Name focused and Save & make clip names the clip file after the name. Run by bookmarks-rows-probe.mjs, which checks the clip folder afterwards. Every name and note starts with 'rows-probe'; the bookmarks it makes are deleted at the end (and at the start of the next run).",
   "failOnException": false,
   "timeout": 30000,
   "steps": [
@@ -30,25 +30,71 @@
     },
     { "name": "open the details page", "goto": "/web/index.html#/details?id=${movieId}" },
     {
-      "name": "the section is 'My bookmarks (n)' with the rows' display titles",
-      "waitFor": "(() => { const s = document.querySelector('#itemDetailPage:not(.hide) .jfbm-section'); if (!s || s.classList.contains('hide') || !/^My bookmarks \\(\\d+\\)$/.test(s.querySelector('h2').textContent)) return false; const row = (id) => s.querySelector('.jfbm-row[data-id=\"' + id + '\"]'); const a = row(__vars.ids.a), b = row(__vars.ids.b), c = row(__vars.ids.c); if (!a || !b || !c || !c.querySelector('.jfbm-clip-ready')) return false; return { a: [a.querySelector('.jfbm-row-title').textContent, !!a.querySelector('.jfbm-name-it'), !!a.querySelector('.jfbm-row-subtitle')], b: [b.querySelector('.jfbm-row-title').textContent, !!b.querySelector('.jfbm-name-it'), b.querySelector('.jfbm-row-subtitle').textContent], c: [c.querySelector('.jfbm-row-title').textContent, !!c.querySelector('.jfbm-name-it')] }; })()",
+      "name": "the Bookmarks row with the cards' display titles, times and notes, the range's clip ready (the scissors, no clip line)",
+      "waitFor": "(() => { const s = document.querySelector('#itemDetailPage:not(.hide) .jfbm-detail-bookmarks'); if (!s || s.classList.contains('hide') || s.querySelector('h2 > span').textContent !== 'Bookmarks') return false; const t = (c) => c.querySelector('.cardText-first').textContent; const l = (c) => [...c.querySelectorAll('.cardText-secondary')].map((t) => t.textContent); const clip = (c) => !!c.querySelector('.cardIndicators .content_cut'); const a = document.querySelector('#itemDetailPage:not(.hide) .jfbm-bookmark-card[data-jfbm-card=\"' + __vars.ids.a + '\"]'), b = document.querySelector('#itemDetailPage:not(.hide) .jfbm-bookmark-card[data-jfbm-card=\"' + __vars.ids.b + '\"]'), c = document.querySelector('#itemDetailPage:not(.hide) .jfbm-bookmark-card[data-jfbm-card=\"' + __vars.ids.c + '\"]'); if (!a || !b || !c || !clip(c)) return false; return { a: [t(a), l(a), clip(a)], b: [t(b), l(b)], c: [t(c), l(c)] }; })()",
       "timeout": 20000,
       "save": "rows",
       "full": true
     },
     {
-      "name": "unnamed without a note: 'Bookmark at 0:15' with Name it; named: its name, its note's first line under it, no Name it; the range: its note, with Name it",
-      "assert": "JSON.stringify(__vars.rows) === JSON.stringify({ a: ['Bookmark at 0:15', true, false], b: ['rows-probe named', false, 'rows-probe first line'], c: ['rows-probe clip kept', true] })"
+      "name": "unnamed without a note: 'Bookmark at 0:15'; named: its name, its time and its note's first line under it; the range: its note and its range, no line about its clip (ready)",
+      "assert": "JSON.stringify(__vars.rows) === JSON.stringify({ a: ['Bookmark at 0:15', ['0:15'], false], b: ['rows-probe named', ['0:20', 'rows-probe first line']], c: ['rows-probe clip kept', ['0:30–0:34']] })"
     },
     {
-      "name": "the section's page links: See all (My Bookmarks filtered to this video), then My Clips",
-      "assert": "(() => { const l = document.querySelector('#itemDetailPage:not(.hide) .jfbm-section .jfbm-section-links'); const links = l ? Array.from(l.querySelectorAll('a[data-jfbm-link]')) : []; return !!l && !l.classList.contains('hide') && links.length === 2 && links[0].getAttribute('data-jfbm-link') === 'bookmarks' && links[0].textContent.trim() === 'See all' && links[0].getAttribute('href') === '#/jfbm-bookmarks?item=' + __vars.movieId && links[1].getAttribute('data-jfbm-link') === 'clips' && links[1].textContent.trim() === 'My Clips' && links[1].getAttribute('href') === '#/jfbm-clips'; })()"
+      "name": "the menu of the unnamed card",
+      "script": "const c = document.querySelector('#itemDetailPage:not(.hide) .jfbm-bookmark-card[data-jfbm-card=\"' + __vars.ids.a + '\"]'); if (!c) throw new Error('no such card'); const more = c.querySelector('.cardOverlayButton-br button, button.cardOverlayButton-br'); if (more) { more.click(); } else { c.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true })); } return [...document.querySelectorAll('.jfbm-backdrop .jfbm-row-menu-item')].map((x) => x.lastElementChild.textContent);",
+      "save": "menuA",
+      "full": true
     },
-    { "name": "no badge on these rows (attached and available)", "assert": "document.querySelectorAll('#itemDetailPage:not(.hide) .jfbm-section .jfbm-badge').length === 0" },
+    {
+      "name": "close it",
+      "key": "Escape"
+    },
+    {
+      "name": "closed",
+      "waitFor": "!document.querySelector('.jfbm-backdrop')"
+    },
+    {
+      "name": "the menu of the named card",
+      "script": "const c = document.querySelector('#itemDetailPage:not(.hide) .jfbm-bookmark-card[data-jfbm-card=\"' + __vars.ids.b + '\"]'); if (!c) throw new Error('no such card'); const more = c.querySelector('.cardOverlayButton-br button, button.cardOverlayButton-br'); if (more) { more.click(); } else { c.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true })); } return [...document.querySelectorAll('.jfbm-backdrop .jfbm-row-menu-item')].map((x) => x.lastElementChild.textContent);",
+      "save": "menuB",
+      "full": true
+    },
+    {
+      "name": "close it",
+      "key": "Escape"
+    },
+    {
+      "name": "closed",
+      "waitFor": "!document.querySelector('.jfbm-backdrop')"
+    },
+    {
+      "name": "the menu of the range's card",
+      "script": "const c = document.querySelector('#itemDetailPage:not(.hide) .jfbm-bookmark-card[data-jfbm-card=\"' + __vars.ids.c + '\"]'); if (!c) throw new Error('no such card'); const more = c.querySelector('.cardOverlayButton-br button, button.cardOverlayButton-br'); if (more) { more.click(); } else { c.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true })); } return [...document.querySelectorAll('.jfbm-backdrop .jfbm-row-menu-item')].map((x) => x.lastElementChild.textContent);",
+      "save": "menuC",
+      "full": true
+    },
+    {
+      "name": "close it",
+      "key": "Escape"
+    },
+    {
+      "name": "closed",
+      "waitFor": "!document.querySelector('.jfbm-backdrop')"
+    },
+    {
+      "name": "Name it in the menus of the unnamed ones (the range has only a note), not the named one's; Play from here first",
+      "assert": "[__vars.menuA, __vars.menuB, __vars.menuC].every((m) => m[0] === 'Play from here') && __vars.menuA.indexOf('Name it') !== -1 && __vars.menuB.indexOf('Name it') === -1 && __vars.menuC.indexOf('Name it') !== -1"
+    },
+    {
+      "name": "the rows' page links: Manage in the Bookmarks row's heading (My Bookmarks filtered to this video), My Clips in the Clips row's (the range's clip there)",
+      "assert": "(() => { const links = (s) => s ? [...s.querySelectorAll('h2 .jfbm-row-links a[data-jfbm-link]')] : []; const b = links(document.querySelector('#itemDetailPage:not(.hide) .jfbm-detail-bookmarks')); const c = links(document.querySelector('#itemDetailPage:not(.hide) .jfbm-detail-clips')); return b.length === 1 && b[0].getAttribute('data-jfbm-link') === 'bookmarks' && b[0].textContent.trim() === 'Manage' && b[0].getAttribute('href') === '#/jfbm-bookmarks?item=' + __vars.movieId && c.length === 1 && c[0].getAttribute('data-jfbm-link') === 'clips' && c[0].textContent.trim() === 'My Clips' && c[0].getAttribute('href') === '#/jfbm-clips' && !document.querySelector('#itemDetailPage:not(.hide) .jfbm-detail-clips').classList.contains('hide'); })()"
+    },
+    { "name": "no badge on these cards (attached and available)", "assert": "[...document.querySelectorAll('#itemDetailPage:not(.hide) .jfbm-detail-bookmarks .jfbm-bookmark-card')].every((c) => !/^(Not in library|Unavailable)$/.test(c.textContent) && ![...c.querySelectorAll('.cardText-secondary')].some((t) => /^(Not in library|Unavailable)$/.test(t.textContent)))" },
     { "sleep": 300 },
     { "screenshot": "editor-rows-section.png" },
 
-    { "name": "Name it on the unnamed bookmark", "click": "#itemDetailPage:not(.hide) .jfbm-row[data-id=\"${idA}\"] .jfbm-name-it" },
+    { "name": "Name it on the unnamed bookmark, from its card's menu", "script": "const c = document.querySelector('#itemDetailPage:not(.hide) .jfbm-bookmark-card[data-jfbm-card=\"' + __vars.idA + '\"]'); if (!c) throw new Error('no such card'); const more = c.querySelector('.cardOverlayButton-br button, button.cardOverlayButton-br'); if (more) { more.click(); } else { c.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true })); } const items = [...document.querySelectorAll('.jfbm-backdrop .jfbm-row-menu-item')]; const b = items.find((x) => x.lastElementChild.textContent === 'Name it'); if (!b) throw new Error('no Name it in the card menu: ' + items.map((x) => x.lastElementChild.textContent).join(', ')); if (b.disabled) throw new Error('Name it is disabled'); b.click(); return true;" },
     {
       "name": "the editor: Name, Start, End, Note (a textarea), with the focus in the empty Name field",
       "waitFor": "(() => { const p = document.querySelector('.jfbm-backdrop .jfbm-panel'); if (!p || p.querySelector('h3').textContent !== 'Edit bookmark') return false; const labels = [...p.querySelectorAll('.jfbm-field > label')].map(l => l.textContent).join(','); const name = p.querySelector('input[maxlength=\"100\"]'); return labels === 'Name,Start,End,Note' && document.activeElement === name && name.value === '' && p.querySelector('textarea[maxlength=\"500\"]').value === '' && p.querySelectorAll('input[type=text]')[1].value === '0:15.0'; })()"
@@ -56,10 +102,14 @@
     { "screenshot": "editor-rows-editor.png" },
     { "name": "type a name into the focused field", "type": "rows-probe Vault" },
     { "name": "Enter saves", "key": "Enter" },
-    { "name": "saved, and the row shows the name without Name it", "waitFor": "!document.querySelector('.jfbm-backdrop') && [...document.querySelectorAll('.jfbm-toast')].some(t => t.textContent === 'Bookmark saved.') && ((r) => !!r && r.querySelector('.jfbm-row-title').textContent === 'rows-probe Vault' && !r.querySelector('.jfbm-name-it'))(document.querySelector('#itemDetailPage:not(.hide) .jfbm-row[data-id=\"' + __vars.ids.a + '\"]'))" },
+    { "name": "saved, and the card shows the name", "waitFor": "!document.querySelector('.jfbm-backdrop') && [...document.querySelectorAll('.jfbm-toast')].some(t => t.textContent === 'Bookmark saved.') && ((c) => !!c && ((c) => c.querySelector('.cardText-first').textContent)(c) === 'rows-probe Vault')(document.querySelector('#itemDetailPage:not(.hide) .jfbm-bookmark-card[data-jfbm-card=\"' + __vars.ids.a + '\"]'))" },
     { "name": "the server has the name, the time unchanged", "assert": "((b) => b.Name === 'rows-probe Vault' && b.StartTicks === 150000000 && !b.Note)(await ApiClient.getJSON(ApiClient.getUrl('Bookmarks/' + __vars.ids.a)))" },
+    { "name": "the menu of the bookmark just named", "script": "const c = document.querySelector('#itemDetailPage:not(.hide) .jfbm-bookmark-card[data-jfbm-card=\"' + __vars.ids.a + '\"]'); if (!c) throw new Error('no such card'); const more = c.querySelector('.cardOverlayButton-br button, button.cardOverlayButton-br'); if (more) { more.click(); } else { c.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true })); } return [...document.querySelectorAll('.jfbm-backdrop .jfbm-row-menu-item')].map((x) => x.lastElementChild.textContent);", "save": "namedAMenu", "full": true },
+    { "name": "close it", "key": "Escape" },
+    { "name": "closed", "waitFor": "!document.querySelector('.jfbm-backdrop')" },
+    { "name": "named now: no Name it in its menu", "assert": "__vars.namedAMenu[0] === 'Play from here' && __vars.namedAMenu.indexOf('Name it') === -1 && __vars.namedAMenu.indexOf('Edit') !== -1" },
 
-    { "name": "Delete on the range with the clip", "click": "#itemDetailPage:not(.hide) .jfbm-row[data-id=\"${idC}\"] button[title=\"Delete\"]" },
+    { "name": "Delete on the range with the clip, from its card's menu", "script": "const c = document.querySelector('#itemDetailPage:not(.hide) .jfbm-bookmark-card[data-jfbm-card=\"' + __vars.idC + '\"]'); if (!c) throw new Error('no such card'); const more = c.querySelector('.cardOverlayButton-br button, button.cardOverlayButton-br'); if (more) { more.click(); } else { c.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true })); } const items = [...document.querySelectorAll('.jfbm-backdrop .jfbm-row-menu-item')]; const b = items.find((x) => x.lastElementChild.textContent === 'Delete'); if (!b) throw new Error('no Delete in the card menu: ' + items.map((x) => x.lastElementChild.textContent).join(', ')); if (b.disabled) throw new Error('Delete is disabled'); b.click(); return true;" },
     {
       "name": "the confirmation: its title, 'Also delete its clip (<file>)' unticked, with the hint that the clip stays in My Clips (since My Clips lists kept clips)",
       "waitFor": "(() => { const p = document.querySelector('.jfbm-backdrop .jfbm-panel'); if (!p || p.querySelector('h3').textContent !== 'Delete bookmark?') return false; const box = p.querySelector('.jfbm-checkbox input'); return p.querySelector('p').textContent === '\"rows-probe clip kept\" at 0:30 will be deleted.' && p.querySelector('.jfbm-checkbox span').textContent === 'Also delete its clip (' + __vars.keptClip + ')' && box.checked === false && ((hint) => !hint.classList.contains('hide') && hint.getClientRects().length > 0 && hint.textContent === 'The clip stays in My Clips.')(p.querySelector('.jfbm-delete-hint')); })()"
@@ -74,7 +124,7 @@
       "waitFor": "(() => { const p = document.querySelector('.jfbm-backdrop .jfbm-panel'); const hint = p.querySelector('.jfbm-delete-hint'); return p.querySelector('.jfbm-checkbox input').checked === false && !hint.classList.contains('hide') && hint.getClientRects().length > 0 && hint.textContent === 'The clip stays in My Clips.'; })()"
     },
     { "name": "Delete", "script": "[...document.querySelectorAll('.jfbm-backdrop .jfbm-panel .jfbm-actions button')].find(b => b.textContent === 'Delete').click(); return true;" },
-    { "name": "deleted, the row gone", "waitFor": "!document.querySelector('.jfbm-backdrop') && [...document.querySelectorAll('.jfbm-toast')].some(t => t.textContent === 'Bookmark deleted.') && !document.querySelector('#itemDetailPage:not(.hide) .jfbm-row[data-id=\"' + __vars.ids.c + '\"]')" },
+    { "name": "deleted, the card gone", "waitFor": "!document.querySelector('.jfbm-backdrop') && [...document.querySelectorAll('.jfbm-toast')].some(t => t.textContent === 'Bookmark deleted.') && !document.querySelector('#itemDetailPage:not(.hide) .jfbm-bookmark-card[data-jfbm-card=\"' + __vars.ids.c + '\"]')" },
     {
       "name": "unticked, the clip was kept: the bookmark is 404, its clip file still downloads, then DELETE /Bookmarks/{id}/Clip removes it (204)",
       "script": "const status = async (method, p, q) => (await fetch(ApiClient.getUrl(p, q), { method, headers: { Authorization: 'MediaBrowser Token=\"' + ApiClient.accessToken() + '\"' } })).status; const bookmark = await status('GET', 'Bookmarks/' + __vars.ids.c); const file = await fetch(ApiClient.getUrl('Bookmarks/' + __vars.ids.c + '/Clip/File', { ApiKey: ApiClient.accessToken(), download: 'false' })); const bytes = file.ok ? (await file.arrayBuffer()).byteLength : 0; const removed = await status('DELETE', 'Bookmarks/' + __vars.ids.c + '/Clip'); const again = await status('DELETE', 'Bookmarks/' + __vars.ids.c + '/Clip'); if (bookmark !== 404 || file.status !== 200 || bytes <= 0 || removed !== 204 || again !== 404) throw new Error(JSON.stringify({ bookmark, file: file.status, bytes, removed, again })); return { bookmark, file: file.status, bytes, removed, again };",
@@ -112,20 +162,24 @@
       "save": "raceId"
     },
     { "name": "leave the player", "goto": "/web/index.html#/details?id=${movieId}" },
-    { "name": "the named range's row with its clip", "waitFor": "((r) => !!r && r.querySelector('.jfbm-row-title').textContent === 'rows-probe Bank job' && !r.querySelector('.jfbm-name-it') && !!r.querySelector('.jfbm-clip-ready'))(document.querySelector('#itemDetailPage:not(.hide) .jfbm-row[data-id=\"' + __vars.namedClip.id + '\"]'))", "timeout": 20000 },
-    { "name": "Delete on it", "click": "#itemDetailPage:not(.hide) .jfbm-row[data-id=\"${namedId}\"] button[title=\"Delete\"]" },
+    { "name": "the named range's card with its clip", "waitFor": "((c) => !!c && ((c) => c.querySelector('.cardText-first').textContent)(c) === 'rows-probe Bank job' && ((c) => !!c.querySelector('.cardIndicators .content_cut'))(c))(document.querySelector('#itemDetailPage:not(.hide) .jfbm-bookmark-card[data-jfbm-card=\"' + __vars.namedClip.id + '\"]'))", "timeout": 20000 },
+    { "name": "the menu of the named range's card", "script": "const c = document.querySelector('#itemDetailPage:not(.hide) .jfbm-bookmark-card[data-jfbm-card=\"' + __vars.namedClip.id + '\"]'); if (!c) throw new Error('no such card'); const more = c.querySelector('.cardOverlayButton-br button, button.cardOverlayButton-br'); if (more) { more.click(); } else { c.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true })); } return [...document.querySelectorAll('.jfbm-backdrop .jfbm-row-menu-item')].map((x) => x.lastElementChild.textContent);", "save": "namedMenu", "full": true },
+    { "name": "close it", "key": "Escape" },
+    { "name": "closed", "waitFor": "!document.querySelector('.jfbm-backdrop')" },
+    { "name": "named: no Name it; its clip's actions there", "assert": "__vars.namedMenu.indexOf('Name it') === -1 && ['Edit', 'Delete', 'Preview the clip', 'Download the clip', 'Delete clip'].every((x) => __vars.namedMenu.indexOf(x) !== -1)" },
+    { "name": "Delete on it, from its card's menu", "script": "const c = document.querySelector('#itemDetailPage:not(.hide) .jfbm-bookmark-card[data-jfbm-card=\"' + __vars.namedId + '\"]'); if (!c) throw new Error('no such card'); const more = c.querySelector('.cardOverlayButton-br button, button.cardOverlayButton-br'); if (more) { more.click(); } else { c.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true })); } const items = [...document.querySelectorAll('.jfbm-backdrop .jfbm-row-menu-item')]; const b = items.find((x) => x.lastElementChild.textContent === 'Delete'); if (!b) throw new Error('no Delete in the card menu: ' + items.map((x) => x.lastElementChild.textContent).join(', ')); if (b.disabled) throw new Error('Delete is disabled'); b.click(); return true;" },
     { "name": "the confirmation, unticked by default (since My Clips; ticked in 1.1.0)", "waitFor": "(() => { const p = document.querySelector('.jfbm-backdrop .jfbm-panel'); return !!p && p.querySelector('h3').textContent === 'Delete bookmark?' && p.querySelector('p').textContent.indexOf('\"rows-probe Bank job\" at ') === 0 && p.querySelector('.jfbm-checkbox input').checked === false; })()" },
     { "name": "tick it", "click": ".jfbm-backdrop .jfbm-panel .jfbm-checkbox input" },
     { "name": "ticked", "waitFor": "document.querySelector('.jfbm-backdrop .jfbm-panel .jfbm-checkbox input').checked === true" },
     { "name": "Delete", "script": "[...document.querySelectorAll('.jfbm-backdrop .jfbm-panel .jfbm-actions button')].find(b => b.textContent === 'Delete').click(); return true;" },
-    { "name": "deleted", "waitFor": "!document.querySelector('.jfbm-backdrop') && !document.querySelector('#itemDetailPage:not(.hide) .jfbm-row[data-id=\"' + __vars.namedClip.id + '\"]')" },
+    { "name": "deleted", "waitFor": "!document.querySelector('.jfbm-backdrop') && !document.querySelector('#itemDetailPage:not(.hide) .jfbm-bookmark-card[data-jfbm-card=\"' + __vars.namedClip.id + '\"]')" },
     {
       "name": "ticked, the clip went with the bookmark: both 404",
       "script": "const status = async (method, p) => (await fetch(ApiClient.getUrl(p), { method, headers: { Authorization: 'MediaBrowser Token=\"' + ApiClient.accessToken() + '\"' } })).status; const bookmark = await status('GET', 'Bookmarks/' + __vars.namedClip.id); const clip = await status('DELETE', 'Bookmarks/' + __vars.namedClip.id + '/Clip'); if (bookmark !== 404 || clip !== 404) throw new Error(JSON.stringify({ bookmark, clip })); return { bookmark, clip };"
     },
 
-    { "name": "the race's row, without a clip", "waitFor": "((r) => !!r && r.querySelector('.jfbm-row-title').textContent === 'rows-probe race' && !r.querySelector('.jfbm-clip'))(document.querySelector('#itemDetailPage:not(.hide) .jfbm-row[data-id=\"' + __vars.raceId + '\"]'))", "timeout": 20000 },
-    { "name": "Delete on the race's row", "click": "#itemDetailPage:not(.hide) .jfbm-row[data-id=\"${raceId}\"] button[title=\"Delete\"]" },
+    { "name": "the race's card, without a clip", "waitFor": "((c) => !!c && ((c) => c.querySelector('.cardText-first').textContent)(c) === 'rows-probe race' && !((c) => !!c.querySelector('.cardIndicators .content_cut'))(c) && JSON.stringify(((c) => [...c.querySelectorAll('.cardText-secondary')].map((t) => t.textContent))(c)) === JSON.stringify(['0:01–0:03']))(document.querySelector('#itemDetailPage:not(.hide) .jfbm-bookmark-card[data-jfbm-card=\"' + __vars.raceId + '\"]'))", "timeout": 20000 },
+    { "name": "Delete on the race's card, from its menu", "script": "const c = document.querySelector('#itemDetailPage:not(.hide) .jfbm-bookmark-card[data-jfbm-card=\"' + __vars.raceId + '\"]'); if (!c) throw new Error('no such card'); const more = c.querySelector('.cardOverlayButton-br button, button.cardOverlayButton-br'); if (more) { more.click(); } else { c.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true })); } const items = [...document.querySelectorAll('.jfbm-backdrop .jfbm-row-menu-item')]; const b = items.find((x) => x.lastElementChild.textContent === 'Delete'); if (!b) throw new Error('no Delete in the card menu: ' + items.map((x) => x.lastElementChild.textContent).join(', ')); if (b.disabled) throw new Error('Delete is disabled'); b.click(); return true;" },
     { "name": "its confirmation: no clip file, so no box", "waitFor": "(() => { const p = document.querySelector('.jfbm-backdrop .jfbm-panel'); return !!p && p.querySelector('h3').textContent === 'Delete bookmark?' && p.querySelector('p').textContent === '\"rows-probe race\" at 0:01 will be deleted.' && !p.querySelector('.jfbm-checkbox'); })()" },
     {
       "name": "while the confirmation is open, an Accurate clip of the range is made through the API and completes",
@@ -135,7 +189,7 @@
     },
     { "name": "the confirmation still open, still without the box", "assert": "(() => { const p = document.querySelector('.jfbm-backdrop .jfbm-panel'); return !!p && p.querySelector('h3').textContent === 'Delete bookmark?' && !p.querySelector('.jfbm-checkbox'); })()" },
     { "name": "Delete the race's bookmark", "script": "[...document.querySelectorAll('.jfbm-backdrop .jfbm-panel .jfbm-actions button')].find(b => b.textContent === 'Delete').click(); return true;" },
-    { "name": "the race's bookmark deleted", "waitFor": "!document.querySelector('.jfbm-backdrop') && !document.querySelector('#itemDetailPage:not(.hide) .jfbm-row[data-id=\"' + __vars.raceId + '\"]')" },
+    { "name": "the race's bookmark deleted", "waitFor": "!document.querySelector('.jfbm-backdrop') && !document.querySelector('#itemDetailPage:not(.hide) .jfbm-bookmark-card[data-jfbm-card=\"' + __vars.raceId + '\"]')" },
     {
       "name": "without the box the box's default applies: the clip that finished meanwhile is kept (since My Clips; 1.1.0 deleted it), the bookmark is 404, its clip file still downloads, then DELETE /Bookmarks/{id}/Clip removes it (204)",
       "script": "const status = async (method, p) => (await fetch(ApiClient.getUrl(p), { method, headers: { Authorization: 'MediaBrowser Token=\"' + ApiClient.accessToken() + '\"' } })).status; const bookmark = await status('GET', 'Bookmarks/' + __vars.raceId); const file = await fetch(ApiClient.getUrl('Bookmarks/' + __vars.raceId + '/Clip/File', { ApiKey: ApiClient.accessToken(), download: 'false' })); const bytes = file.ok ? (await file.arrayBuffer()).byteLength : 0; const removed = await status('DELETE', 'Bookmarks/' + __vars.raceId + '/Clip'); const again = await status('DELETE', 'Bookmarks/' + __vars.raceId + '/Clip'); if (bookmark !== 404 || file.status !== 200 || bytes <= 0 || removed !== 204 || again !== 404) throw new Error(JSON.stringify({ bookmark, file: file.status, bytes, removed, again })); return { bookmark, file: file.status, bytes, removed, again };"

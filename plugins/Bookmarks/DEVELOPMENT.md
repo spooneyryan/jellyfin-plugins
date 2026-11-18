@@ -10,7 +10,7 @@ want more than the user [README.md](README.md) gives. Release history: [CHANGELO
   a **note** (free text, at most 500).
 - **While watching**, `Shift+B` (or the bookmark button) bookmarks the moment without pausing, and a small dialog asks
   for a name. Bookmarks are marked on the progress bar.
-- **A video's page** has a **My bookmarks** section; **My Bookmarks** and **My Clips** (under **Library tools**) list
+- **A video's page** has **Bookmarks** and **Clips** rows of cards (as its Scenes row); **My Bookmarks** and **My Clips** (under **Library tools**) list
   every bookmark and clip of yours. Admins can switch My Clips to **All users**.
 - **Clips** are cut in the background: **Accurate** re-encodes to H.264/AAC MP4 (frame-exact, HDR tone-mapped to SDR),
   **Fast** copies the streams into MKV (from the keyframe at or before the start). A free-space guard protects the drive.
@@ -163,11 +163,40 @@ The UI's behaviour, for review and support; the user README has the tour.
 ### On a video's page
 
 **Add bookmark** opens the editor (Name, Start, End, Note, clip mode; times typed as `1:02:03.5` or set by a clock button
-while playing). **My bookmarks (n)** lists the video's bookmarks: play, edit, delete, make, preview or download a clip,
-**Name it** for an unnamed one, **See all** and **My Clips** links. A row's title is the name, else the note's first line
-(80 characters), else "Bookmark at …" or "Range …–…". Badges: **Relinked, check position** (**Looks right** or a save
-clears it), **Not in library** and **Unavailable** (no play, no clip). Deleting a bookmark with a clip offers **Also
-delete its clip**: unticked while My Clips is on (the clip stays there), ticked while it is off.
+while playing). Since 1.6.0 / 2.4.0 (the **My bookmarks (n)** section before) two rows follow jellyfin-web's
+**Scenes** row, in its parent (the `detailScenes` anchor, `#scenesCollapsible`, there even when hidden; without it, at
+the end of `detailContent`), built from the kit's `kit.cardRow` and `kit.rowCard` (`Web/js/52-detail-rows.js`): the
+native section, heading, `emby-scroller` and `overflowBackdropCard` markup, so sizes, hover overlay, scroll arrows and
+TV focus are jellyfin-web's own. A row is hidden while empty.
+
+- **Bookmarks** (`.jfbm-section.jfbm-detail-bookmarks`, still the TV jump target): the user's bookmarks of the video in
+  time order. A card's title is the display title (the name, else the note's first line, 80 characters, else
+  "Bookmark at …" or "Range …–…"), then the time, a name's note's first line (the whole note as the tooltip), and lines
+  for **Relinked, check position**, a clip being made or failed or older than the range, and **Not in library** /
+  **Unavailable** (no play, no clip); a `content_cut` indicator when it has a clip file. The picture: the trickplay tile
+  at the start (the bookmark's own media source, the widest width up to 480; Jellyfin pads every sheet to its full
+  TileWidth × TileHeight grid, so the sprite's percentages come from those, as the scrubber's offsets do), else the last
+  chapter image at or before it, else the backdrop, thumb or primary image. Click, Enter or Space plays from it
+  (`playFrom`); the ⋮ menu (`openActionMenu`) has the list's actions: Play from here, Name it, Looks right, Make a clip
+  (again), Edit, Delete, Cancel the clip, Preview, Download and Delete the clip, View in My Clips. **Manage** in the
+  heading opens My Bookmarks with `item=` (See all before).
+- **Clips** (`.jfbm-detail-clips`): the user's clips of the video with a file (`GET /Bookmarks/Clips?itemId=` with
+  tombstones, then `GET /Bookmarks/Clips/Media`), by start. The picture is the clip's artwork sidecar (Thumb, Fanart,
+  Poster through `/Bookmarks/Clips/{id}/Artwork/{kind}`), else the frame at its start; the lines its length and range,
+  **Outdated: the range changed**, or "Being made again". A click plays the library item the file is (`kit.playback`)
+  when the caller may open it, else My Clips' Preview (a Ready clip, download permission), else the video at the clip's
+  start. The ⋮ menu is Play the clip, My Clips' `clipActions` through an adapter page (`page.detail`), and View in My
+  Clips. **My Clips** in the heading opens the page.
+- **Input:** desktop cards are `card-hoverable` with the play and ⋮ overlay; TV cards (`show-focus`) are the focus stop
+  themselves (OK plays, the remote's menu key, the `command` event, opens the menu); mobile cards have the ⋮ alone in
+  the image's corner (`cardOverlayButton-br`), as jellyfin-web's. A right click or long press opens the menu; touch
+  pointers get 40 px buttons.
+- **Refresh:** both rows are lists of `35-lists.js` (`render`, and for Clips `refresh`), so the existing change
+  notifications redraw them; a clip's progress ticks (`clipTick`) never re-read the clips. A row redraws only when its
+  cards' signature changes and puts the focus back on the card with the same key.
+
+Deleting a bookmark with a clip offers **Also delete its clip**: unticked while My Clips is on (the clip stays there),
+ticked while it is off.
 
 ### The My Bookmarks page
 
@@ -752,6 +781,8 @@ The caller's own (tombstones' too).
 | GET | `/Bookmarks/Clips` | 50 a page. `searchTerm` (also the file name), `state`, `mode`, `itemTypes`, `includeDeleted` (default true), `itemId`; `sortBy` `Newest`, `Oldest`, `Name`, `ItemName`, `Size`, `Duration`; being made first. |
 | GET | `/Bookmarks/Clips/Summary` | `{Count, TotalBytes, InProgress, Failed, Missing, FolderUnavailable}`. |
 | GET | `/Bookmarks/Clips/Status?ids=` | 1–200 ids: `{Id, Status, State, Progress, Error, FileName, FileSize}`. |
+| GET | `/Bookmarks/Clips/Media?ids=` | 1–200 ids, the caller's clips with a record: `{Id, LibraryItemId, Artwork: [{Kind, Tag}]}`. `LibraryItemId` only when the file is inside a library's folder and the caller may open that item; `Tag` the artwork file's write time (a cache key). Since 1.6.0 / 2.4.0. |
+| GET | `/Bookmarks/Clips/{id}/Artwork/{kind}` | `Thumb`, `Fanart` or `Poster`: the caller's clip's artwork sidecar file (`Cache-Control: private, max-age=86400`); 404 for none or another user's clip, 400 for another kind. Since 1.6.0 / 2.4.0. |
 | POST | `/Bookmarks/Clips/BulkDelete` | `{Ids}` → `{FilesDeleted, RecordsRemoved, NotFound, InProgress, InUse, FolderUnavailable, Failed}`. |
 | POST | `/Bookmarks/Clips/{id}/Name` | `{Name, RenameFile, IfUpdatedAt}`: name, and file, both or neither. |
 | POST | `/Bookmarks/Clips/{id}/RenameFile` | The file to the clip's name; optional `{IfUpdatedAt}`. |
@@ -849,6 +880,7 @@ Each area has unit tests, most also behind Jellyfin's real web pipeline (`Api/*A
 | Identity, deleted users | `Services/BookmarkIdentityServiceTests`, `BookmarkUserDataOwnerTests`, `Api/RecordsAdminApiTests`, `Integration/ItemMovedHookV1Tests` | `bookmarks-identity-probe.mjs`, `bookmarks-data-probe.mjs` |
 | My Bookmarks | `Services/BookmarkQueryServiceTests`, `BookmarkBulkDeleteTests`, `BookmarkPreferencesTests`, `Api/BookmarkQueryApiTests`, `Web/page-bookmarks.test.mjs` | `bookmarks-query-probe.mjs`, `bookmarks-page-probe.mjs` |
 | Editor, player | `Web/bookmarks.test.mjs`, `Web/chapter-names.test.mjs`, `Web/ChapterSuggestionTests` | `bookmarks-rows-probe.mjs`, `bookmarks-player-probe.mjs` |
+| A video's Bookmarks and Clips rows | `Web/detail-rows.test.mjs`, `Web/detail-tv.test.mjs`, `Web/bookmarks.test.mjs`, the kit's `kit.test.mjs` (`cardRow`, `rowCard`), `Clips/ClipServiceTests` (`GetMedia`, `GetArtworkPath`), `Api/ClipsApiTests` | `webchecks/bookmarks-detail-rows.json` |
 | JE import | `Import/JellyfinEnhancedBookmarkImporterTests` (`kit/testdata/je-data/import-81`), `Api/JeImportApiTests` | `bookmarks-je-import-probe.mjs`, `bookmarks-je-web-probe.mjs` |
 | Settings and admin tools | `Web/configpage.test.mjs` (the page's real markup), `Web/SettingsTests`, `Services/BookmarkCountsTests`, `Api/AdminToolsApiTests` | `bookmarks-settings-probe.mjs` |
 | My Clips | `Clips/ClipQueryServiceTests`, `ClipStateCacheTests`, `ClipServiceTests`, `Api/ClipsApiTests`, `Web/page-clips.test.mjs` | `bookmarks-clips-probe.mjs`, `bookmarks-clips-page-probe.mjs` |

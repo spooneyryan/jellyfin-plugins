@@ -85,6 +85,7 @@ public sealed class PublicBoundaryTests
                 typeof(BookmarkJeImportUserDto), typeof(BookmarkJeImportSampleDto), typeof(BookmarkJeImportOutcome), typeof(BookmarkJeChecklistItemDto),
                 typeof(BookmarkClipItemDto), typeof(BookmarkClipQueryFilter), typeof(BookmarkClipSortBy), typeof(BookmarkClipState), typeof(BookmarkClipSummaryDto),
                 typeof(BookmarkClipStatusDto), typeof(BookmarkClipBulkDeleteRequest), typeof(BookmarkClipBulkDeleteResultDto),
+                typeof(BookmarkClipMediaDto), typeof(BookmarkClipArtworkDto), typeof(BookmarkClipArtworkKind),
                 typeof(BookmarkClipRenameRequest), typeof(BookmarkClipRenameFileRequest), typeof(BookmarkClipFolderCheckRequest),
                 typeof(BookmarkAdminClipItemDto), typeof(BookmarkAdminClipSummaryDto), typeof(BookmarkAdminClipUserDto),
                 typeof(BookmarkPlaylistExportEstimateDto), typeof(BookmarkPlaylistExportJobDto), typeof(BookmarkPlaylistExportSkippedDto),
@@ -181,7 +182,7 @@ public sealed class PublicBoundaryTests
             .OrderBy(type => type.Name, StringComparer.Ordinal)
             .ToList();
         Assert.Equal(
-            [typeof(BookmarkClipBulkDeleteResultDto), typeof(BookmarkClipItemDto), typeof(BookmarkClipStatusDto), typeof(BookmarkClipSummaryDto)],
+            [typeof(BookmarkClipBulkDeleteResultDto), typeof(BookmarkClipItemDto), typeof(BookmarkClipMediaDto), typeof(BookmarkClipStatusDto), typeof(BookmarkClipSummaryDto)],
             answered);
     }
 

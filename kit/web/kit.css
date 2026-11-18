@@ -49,6 +49,11 @@ select.__PFX__-select{-webkit-appearance:menulist;appearance:auto}
 .__PFX__-link:hover{text-decoration:underline}
 .__PFX__-card-image{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;border-radius:inherit}
 .__PFX__-card-actions{display:flex;justify-content:center;gap:.2em;padding:.2em 0}
+/* kit.cardRow and kit.rowCard: links in a row's heading, after its title, at body size; a sprite tile is not tiled. */
+.__PFX__-row-links{display:inline-flex;flex-wrap:wrap;gap:.2em 1.2em;margin-left:1.2em;font-size:.6em;font-weight:normal;vertical-align:middle}
+.__PFX__-rowcard-image{background-repeat:no-repeat}
+.__PFX__-rowcard-letterbox{background-color:#000}
+.__PFX__-rowcard-frame{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background-repeat:no-repeat;max-width:100%;max-height:100%}
 .__PFX__-listitem-image{position:relative;width:3.4em;height:5.1em;flex-shrink:0;display:flex;align-items:center;justify-content:center;overflow:hidden;border-radius:.2em;background:rgba(128,128,128,.12);color:inherit}
 .__PFX__-listitem-img{width:100%;height:100%;object-fit:cover}
 .__PFX__-listitem-link{color:inherit;text-decoration:none}
@@ -64,5 +69,5 @@ select.__PFX__-select{-webkit-appearance:menulist;appearance:auto}
 .__PFX__-notice-error{color:var(--__PFX__-danger)}
 .__PFX__-notice-error .__PFX__-notice-action{color:inherit}
 @media (max-width:40em){.__PFX__-backdrop{align-items:flex-end;padding:0}.__PFX__-panel{width:100%;max-height:85vh;border-radius:.5em .5em 0 0}}
-@media (pointer:coarse){.__PFX__-icon-button{min-width:40px;min-height:40px}}
+@media (pointer:coarse){.__PFX__-icon-button,.__PFX__-rowcard-play,.__PFX__-rowcard-more{min-width:40px;min-height:40px}}
 @media (forced-colors:active){.__PFX__-button,.__PFX__-icon-button,.__PFX__-toast{border:1px solid ButtonText}.__PFX__-panel{border:1px solid CanvasText}}

@@ -462,6 +462,114 @@ public sealed class ClipServiceTests : IDisposable
 
     public void Dispose() => _fixture.Dispose();
 
+    [Fact]
+    public async Task GetMedia_TheCallersClipsWithAFile_TheirArtwork_AndTheLibraryItemOnlyInALibraryTheCallerMayOpen()
+    {
+        var ready = await _fixture.AddAsync(_alice.Id, new ClipSpec { Name = "ready" }, Ct);
+        var plain = await _fixture.AddAsync(_alice.Id, new ClipSpec { Name = "plain" }, Ct);
+        var missing = await _fixture.AddAsync(_alice.Id, new ClipSpec { Name = "missing", OnDisk = false }, Ct);
+        var queued = await _fixture.AddAsync(_alice.Id, new ClipSpec { Status = BookmarkClipStatus.Queued, HasFile = false }, Ct);
+        var bobs = await _fixture.AddAsync(_bob.Id, new ClipSpec { Name = "bob's", UserFolder = "bob" }, Ct);
+        var readyPath = ready.Clip!.FilePath!;
+        var stem = Path.Combine(Path.GetDirectoryName(readyPath)!, Path.GetFileNameWithoutExtension(readyPath));
+        File.WriteAllBytes(stem + "-thumb.png", [1]);
+        File.WriteAllBytes(stem + "-poster.jpg", [2]);
+        File.WriteAllBytes(stem + "-poster.webp", [3]);
+        Directory.CreateDirectory(stem + "-fanart.jpg");
+        var written = new DateTime(2026, 11, 2, 10, 0, 0, DateTimeKind.Utc);
+        File.SetLastWriteTimeUtc(stem + "-thumb.png", written);
+        var libraryItem = new MediaBrowser.Controller.Entities.Movies.Movie { Id = Guid.NewGuid() };
+        _library.Setup(m => m.FindByPath(readyPath, false)).Returns(libraryItem);
+        _library.Setup(m => m.FindByPath(plain.Clip!.FilePath!, false)).Returns((BaseItem?)null);
+        _library.Setup(m => m.GetItemById<BaseItem>(libraryItem.Id, It.IsAny<User?>()))
+            .Returns((Guid id, User? user) => user is not null && _visible.Contains(id) ? libraryItem : null);
+        _visible.Add(libraryItem.Id);
+        _virtualFolders =
+        [
+            new VirtualFolderInfo { Name = "Clips", Locations = [_fixture.Root], CollectionType = CollectionTypeOptions.homevideos, ItemId = ClipsLibraryId.ToString("N") }
+        ];
+
+        var answer = Service().GetMedia(_alice, [missing.Id, bobs.Id, ready.Id, Guid.NewGuid(), queued.Id, plain.Id, ready.Id]);
+        var media = answer.ToDictionary(m => m.Id);
+
+        Assert.Equal([missing.Id, ready.Id, queued.Id, plain.Id], answer.Select(m => m.Id));
+        Assert.Equal(libraryItem.Id, media[ready.Id].LibraryItemId);
+        Assert.Equal(
+            [(BookmarkClipArtworkKind.Poster, null), (BookmarkClipArtworkKind.Thumb, written.Ticks.ToString(System.Globalization.CultureInfo.InvariantCulture))],
+            media[ready.Id].Artwork.Select(a => (a.Kind, a.Kind == BookmarkClipArtworkKind.Thumb ? a.Tag : null)));
+        Assert.Null(media[plain.Id].LibraryItemId);
+        Assert.Empty(media[plain.Id].Artwork);
+        Assert.Null(media[missing.Id].LibraryItemId);
+        Assert.Empty(media[missing.Id].Artwork);
+        Assert.Null(media[queued.Id].LibraryItemId);
+        _library.Verify(m => m.FindByPath(missing.Clip!.FilePath!, It.IsAny<bool>()), Times.Never);
+        _library.Verify(m => m.GetItemById<BaseItem>(It.IsAny<Guid>(), null), Times.Never);
+
+        // The library item asked for as the caller: one they can't open isn't named.
+        _visible.Remove(libraryItem.Id);
+        Assert.Null(Service().GetMedia(_alice, [ready.Id]).Single().LibraryItemId);
+
+        // Outside the libraries' folders the library isn't asked at all.
+        _visible.Add(libraryItem.Id);
+        _virtualFolders = [];
+        _library.Invocations.Clear();
+        Assert.Null(Service().GetMedia(_alice, [ready.Id]).Single().LibraryItemId);
+        _library.Verify(m => m.FindByPath(It.IsAny<string>(), It.IsAny<bool>()), Times.Never);
+
+        // A lookup that fails is no library item, never an error.
+        _virtualFolders = [new VirtualFolderInfo { Name = "Clips", Locations = [_fixture.Root], CollectionType = CollectionTypeOptions.homevideos, ItemId = ClipsLibraryId.ToString("N") }];
+        _library.Setup(m => m.FindByPath(readyPath, false)).Throws(new InvalidOperationException("broken"));
+        Assert.Null(Service().GetMedia(_alice, [ready.Id]).Single().LibraryItemId);
+
+        foreach (var (ids, message) in new (IReadOnlyList<Guid>?, string)[]
+        {
+            (null, ClipService.StatusNoIdsMessage),
+            ([], ClipService.StatusNoIdsMessage),
+            (Enumerable.Range(0, 201).Select(_ => Guid.NewGuid()).ToList(), ClipService.StatusTooManyMessage)
+        })
+        {
+            var error = Assert.Throws<BookmarkException>(() => Service().GetMedia(_alice, ids));
+            Assert.Equal(PluginErrorKind.Invalid, error.Kind);
+            Assert.Equal(message, error.Message);
+        }
+    }
+
+    [Fact]
+    public async Task GetArtworkPath_TheCallersClipsArtworkFile_ElseNotFound()
+    {
+        var ready = await _fixture.AddAsync(_alice.Id, new ClipSpec { Name = "ready" }, Ct);
+        var missing = await _fixture.AddAsync(_alice.Id, new ClipSpec { Name = "missing", OnDisk = false }, Ct);
+        var bobs = await _fixture.AddAsync(_bob.Id, new ClipSpec { Name = "bob's", UserFolder = "bob" }, Ct);
+        var noClip = await _fixture.AddAsync(_alice.Id, new ClipSpec { NoClip = true }, Ct);
+        foreach (var record in new[] { ready, missing, bobs })
+        {
+            var path = record.Clip!.FilePath!;
+            var stem = Path.Combine(Path.GetDirectoryName(path)!, Path.GetFileNameWithoutExtension(path));
+            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+            File.WriteAllBytes(stem + "-thumb.jpg", [1]);
+        }
+
+        var readyStem = Path.Combine(Path.GetDirectoryName(ready.Clip!.FilePath!)!, Path.GetFileNameWithoutExtension(ready.Clip.FilePath)!);
+        Directory.CreateDirectory(readyStem + "-fanart.png");
+
+        Assert.Equal(readyStem + "-thumb.jpg", Service().GetArtworkPath(_alice, ready.Id, BookmarkClipArtworkKind.Thumb), ignoreCase: true);
+        foreach (var (user, id, kind) in new[]
+        {
+            (_alice, ready.Id, BookmarkClipArtworkKind.Poster),
+            (_alice, ready.Id, BookmarkClipArtworkKind.Fanart),
+            (_alice, missing.Id, BookmarkClipArtworkKind.Thumb),
+            (_alice, bobs.Id, BookmarkClipArtworkKind.Thumb),
+            (_alice, noClip.Id, BookmarkClipArtworkKind.Thumb),
+            (_alice, Guid.NewGuid(), BookmarkClipArtworkKind.Thumb),
+            (_bob, ready.Id, BookmarkClipArtworkKind.Thumb)
+        })
+        {
+            var error = Assert.Throws<BookmarkException>(() => Service().GetArtworkPath(user, id, kind));
+            Assert.Equal(PluginErrorKind.NotFound, error.Kind);
+            Assert.Equal(ClipService.NoArtworkMessage, error.Message);
+        }
+    }
+
     private ClipService Service(IBookmarkStore? store = null, IClipFileSystem? fileSystem = null, ILogger? logger = null)
     {
         store ??= _fixture.Store;

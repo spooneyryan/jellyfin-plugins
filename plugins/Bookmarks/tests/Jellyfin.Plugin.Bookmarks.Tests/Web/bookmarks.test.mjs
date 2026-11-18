@@ -41,11 +41,32 @@ function bookmarks() {
     ];
 }
 
+// A clip of the video as GET /Bookmarks/Clips lists it: b2's, a Ready MP4 of 0:30–0:40; overrides.Clip merges into its clip.
+function clipItem(overrides) {
+    const o = overrides || {};
+    const clip = Object.assign({
+        Status: 'Completed', State: 'Ready', Mode: 'Accurate', StartTicks: 300000000, EndTicks: 400000000, DurationTicks: 100000000,
+        IsOutdated: false, Progress: null, FileName: 'Long Test Movie - 0.30-0.40.mp4', FileSize: 2048, FileExists: true,
+        IsNameOutdated: false, InLibrary: false, Container: 'mp4', RootAvailable: true, RequestedAt: '2026-11-01T10:00:00Z'
+    }, o.Clip || {});
+    return Object.assign({
+        Id: 'b2', BookmarkDeleted: false, Origin: 'Bookmarks', Name: null, Note: null, ItemId: 'item1', ItemName: 'Long Test Movie',
+        ItemType: 'Movie', ItemAvailable: true, MediaSourceId: null, AudioStreamIndex: null, BookmarkStartTicks: 300000000,
+        BookmarkEndTicks: 400000000, CreatedAt: '2026-11-01T10:00:00Z', UpdatedAt: '2026-11-01T10:00:00Z'
+    }, o, { Clip: clip });
+}
+
+function clipsAnswer(items) {
+    return { Items: items, TotalRecordCount: items.length, StartIndex: 0 };
+}
+
 async function start(options) {
     options = options || {};
     const page = createPage();
     page.respond('GET', '/Bookmarks/Capabilities', Object.assign({}, CAPABILITIES, options.capabilities || {}));
     page.respond('GET', '/Bookmarks', options.list || bookmarks());
+    page.respond('GET', '/Bookmarks/Clips', options.clips || { Items: [], TotalRecordCount: 0, StartIndex: 0 });
+    page.respond('GET', '/Bookmarks/Clips/Media', options.media || []);
     page.respond('GET', '/Sessions', [{ Id: 's1', DeviceId: 'device-1' }]);
     page.respond('POST', '/Sessions/s1/Playing/Seek', null, 204);
     page.respond('POST', '/Sessions/s1/Playing', null, 204);
@@ -57,12 +78,15 @@ async function start(options) {
 }
 
 // The details view; options.jellyfin12 gives Jellyfin 12's markup, whose sections sit in .detailPageSecondaryContainer
-// (no .detailPageContent), the first a hidden #childrenCollapsible on movies.
+// (no .detailPageContent), the first a hidden #childrenCollapsible on movies. Both have a Scenes row (#scenesCollapsible)
+// with a section after it, as jellyfin-web's own.
 function detailsPage(page, options) {
     const buttons = page.element('div', { class: 'mainDetailButtons' }, [page.element('button', { class: 'btnPlay' }), page.element('button', { class: 'btnMoreCommands' })]);
+    const scenes = () => page.element('div', { id: 'scenesCollapsible', class: 'verticalSection detailVerticalSection' });
+    const similar = () => page.element('div', { id: 'similarCollapsible', class: 'verticalSection' });
     const content = options && options.jellyfin12
-        ? page.element('div', { class: 'detailPageSecondaryContainer padded-left padded-bottom-page' }, [page.element('div', { id: 'childrenCollapsible', class: 'verticalSection hide' }), page.element('div', { class: 'nativeSection' })])
-        : page.element('div', { class: 'detailPageContent' }, [page.element('div', { class: 'nativeSection' })]);
+        ? page.element('div', { class: 'detailPageSecondaryContainer padded-left padded-bottom-page' }, [page.element('div', { id: 'childrenCollapsible', class: 'verticalSection hide' }), page.element('div', { class: 'nativeSection' }), scenes(), similar()])
+        : page.element('div', { class: 'detailPageContent' }, [page.element('div', { class: 'nativeSection' }), scenes(), similar()]);
     const view = page.element('div', { id: 'itemDetailPage', class: 'page' }, [buttons, content]);
     page.document.body.append(view);
     page.context.location.hash = '#/details?id=item1&serverId=server-1';
@@ -92,7 +116,52 @@ function toasts(page) {
     return page.document.querySelectorAll('.jfbm-toast').map((t) => t.textContent);
 }
 
-test('the details page gets the Add bookmark button before the more button and the My bookmarks section first', { skip }, async () => {
+// The details page's Bookmarks row's cards (52-detail-rows.js), in the order shown, and its Clips row's.
+function bookmarkCards(root) {
+    return root.querySelectorAll('.jfbm-detail-bookmarks .jfbm-bookmark-card');
+}
+
+function clipCards(root) {
+    return root.querySelectorAll('.jfbm-detail-clips .jfbm-clip-card');
+}
+
+// What a card says: its text lines.
+function cardTexts(card) {
+    return card.querySelectorAll('.cardText').map((t) => t.textContent);
+}
+
+// A card's menu, opened by its More button (the desktop layout's, on the hover overlay): the dialog.
+async function openCardMenu(page, card) {
+    card.querySelector('.cardOverlayButton-br button').click();
+    await page.advance(10);
+    return page.document.querySelectorAll('.jfbm-backdrop .jfbm-panel').find((p) => !!p.querySelector('.jfbm-row-menu')) || null;
+}
+
+// The labels of a menu's items, " (disabled)" after those that are.
+function menuLabels(menu) {
+    return menu.querySelectorAll('.jfbm-row-menu-item').map((b) => b.textContent + (b.disabled ? ' (disabled)' : ''));
+}
+
+// A card's action, by its label in the card's menu.
+async function cardAction(page, card, label) {
+    const menu = await openCardMenu(page, card);
+    assert.ok(menu, 'the card menu');
+    const item = menu.querySelectorAll('.jfbm-row-menu-item').find((b) => b.textContent === label);
+    assert.ok(item, label + ' is in the menu: ' + menuLabels(menu).join(', '));
+    item.click();
+    await page.advance(10);
+}
+
+// A card's menu's labels, the menu closed again.
+async function cardMenuLabels(page, card) {
+    const menu = await openCardMenu(page, card);
+    const labels = menuLabels(menu);
+    page.key(page.document.body, 'Escape');
+    await page.advance(10);
+    return labels;
+}
+
+test('the details page gets the Add bookmark button before the more button, and the Bookmarks and Clips rows right after Scenes', { skip }, async () => {
     const page = await start();
     const { buttons, content } = detailsPage(page);
     await page.advance(400);
@@ -105,63 +174,83 @@ test('the details page gets the Add bookmark button before the more button and t
     assert.equal(add.getAttribute('title'), 'Add bookmark');
     assert.equal(add.firstChild.firstChild.className, 'material-icons detailButton-icon bookmark_add');
 
-    const section = content.firstElementChild;
-    assert.equal(section.className, 'verticalSection detailVerticalSection jfbm-section');
+    // The Bookmarks row right after Scenes, shaped like jellyfin-web's own rows (kit.cardRow), then the Clips row,
+    // hidden without clips, then the page's next section.
+    const scenes = content.querySelector('#scenesCollapsible');
+    const section = scenes.nextElementSibling;
+    assert.equal(section.className, 'verticalSection detailVerticalSection verticalSection-extrabottompadding jfbm-section jfbm-detail-bookmarks');
     assert.equal(section.getAttribute('data-item-id'), 'item1');
-    assert.equal(section.querySelector('h2').textContent, 'My bookmarks (2)');
-    assert.equal(section.querySelector('h2').className, 'sectionTitle sectionTitle-cards padded-right');
-    const links = section.querySelector('.jfbm-section-links');
-    assert.equal(links.className, 'jfbm-section-links hide', 'no page links: the server offers neither page');
+    const heading = section.querySelector('h2');
+    assert.equal(heading.className, 'sectionTitle sectionTitle-cards padded-right');
+    assert.equal(heading.firstChild.textContent, 'Bookmarks');
+    const links = heading.querySelector('.jfbm-row-links');
+    assert.equal(links.className, 'jfbm-row-links hide', 'no page links: the server offers neither page');
     assert.equal(links.children.length, 0);
-    const rows = section.querySelectorAll('.jfbm-list.padded-right > .jfbm-row');
-    assert.deepEqual(rows.map((r) => r.getAttribute('data-id')), ['b1', 'b2']);
-    assert.equal(section.querySelector('.jfbm-list').getAttribute('role'), 'list', 'a list of list items');
-    assert.deepEqual(rows.map((r) => r.getAttribute('role')), ['listitem', 'listitem']);
-    assert.equal(rows[0].querySelector('.jfbm-time-button').textContent, '0:15');
-    assert.equal(rows[0].querySelector('.jfbm-row-title').textContent, '<b>webcheck</b>');
-    assert.equal(rows[0].querySelectorAll('b').length, 0, 'notes are text, never HTML');
-    assert.equal(rows[0].querySelector('.jfbm-row-subtitle'), null, 'the note is the title, so no second line');
-    assert.equal(rows[0].querySelector('.jfbm-name-it').textContent, 'Name it');
-    assert.equal(rows[1].querySelector('.jfbm-time-button').textContent, '0:30 – 0:40');
-    assert.equal(rows[1].querySelector('.jfbm-row-title').textContent, 'Range 0:30–0:40');
-    assert.equal(rows[1].querySelector('.jfbm-name-it').textContent, 'Name it');
-    assert.equal(section.querySelectorAll('.jfbm-badge').length, 0);
-    assert.deepEqual(rows[1].querySelectorAll('.jfbm-row-actions button').map((b) => b.getAttribute('title')), ['Make the clip again', 'Edit', 'Delete']);
-    assert.deepEqual(rows[0].querySelectorAll('.jfbm-row-actions button').map((b) => b.getAttribute('title')), ['Edit', 'Delete']);
-    const ready = rows[1].querySelector('.jfbm-clip.jfbm-clip-ready');
-    assert.equal(ready.querySelector('span:not(.material-icons)').textContent, 'Clip ready, 2.0 KB');
-    assert.match(ready.querySelector('a.jfbm-link').getAttribute('href'), /\/Bookmarks\/b2\/Clip\/File\?ApiKey=test-token&download=true$/);
-    assert.deepEqual(ready.querySelectorAll('button.jfbm-link').map((b) => b.textContent), ['Preview', 'Delete clip']);
+    const scroller = heading.nextElementSibling;
+    assert.equal(scroller.getAttribute('is'), 'emby-scroller');
+    assert.equal(scroller.getAttribute('data-centerfocus'), 'true');
+    assert.equal(scroller.firstChild.className, 'scrollSlider focuscontainer-x itemsContainer jfbm-row-slider');
+    const clipsRow = section.nextElementSibling;
+    assert.equal(clipsRow.className, 'verticalSection detailVerticalSection verticalSection-extrabottompadding jfbm-detail-clips hide', 'no clips: the Clips row hidden');
+    assert.equal(clipsRow.querySelector('h2').firstChild.textContent, 'Clips');
+    assert.equal(clipsRow.nextElementSibling.id, 'similarCollapsible');
+
+    const cards = bookmarkCards(content);
+    assert.deepEqual(cards.map((c) => c.getAttribute('data-jfbm-card')), ['b1', 'b2'], 'in time order');
+    assert.deepEqual(cards.map((c) => c.parentNode), [scroller.firstChild, scroller.firstChild]);
+    assert.equal(cards[0].className, 'card overflowBackdropCard card-hoverable jfbm-rowcard jfbm-bookmark-card');
+    assert.equal(cards[0].hasAttribute('data-id'), false, 'no item id: jellyfin-web\'s item menu never takes it for the video');
+    assert.deepEqual(cardTexts(cards[0]), ['<b>webcheck</b>', '0:15'], 'the note is the title, so no second line');
+    assert.equal(cards[0].querySelectorAll('b').length, 0, 'notes are text, never HTML');
+    assert.equal(cards[0].getAttribute('title'), '<b>webcheck</b>', 'the whole note on hover');
+    assert.equal(cards[0].querySelector('.cardImageContainer').getAttribute('aria-label'), '<b>webcheck</b>, 0:15');
+    assert.equal(cards[0].querySelector('.cardIndicators'), null);
+    assert.deepEqual(cardTexts(cards[1]), ['Range 0:30–0:40', '0:30–0:40']);
+    assert.equal(cards[1].querySelector('.indicatorIcon').className, 'material-icons indicatorIcon content_cut', 'a scissors: it has a clip');
+    assert.equal(cards[1].querySelector('.cardImageContainer').getAttribute('aria-label'), 'Range 0:30–0:40, 0:30–0:40, has a clip');
+    assert.equal(cards[0].querySelector('.cardImageContainer').classList.contains('defaultCardBackground'), true, 'no trickplay, chapters or artwork: the icon');
+    assert.equal(section.querySelectorAll('.jfbm-card-warning').length, 0);
+    // Every action the list had, in its menu.
+    assert.deepEqual(await cardMenuLabels(page, cards[1]), ['Play from here', 'Name it', 'Make the clip again', 'Edit', 'Delete', 'Preview the clip', 'Download the clip', 'Delete clip']);
+    assert.deepEqual(await cardMenuLabels(page, cards[0]), ['Play from here', 'Name it', 'Edit', 'Delete']);
     assert.ok(page.fetchLog.every((f) => f.userId === 'user-1'));
-    assert.deepEqual(page.fetchLog.map((f) => f.method + ' ' + f.path).sort(), ['GET /Bookmarks', 'GET /Bookmarks/Capabilities']);
+    assert.deepEqual(page.fetchLog.map((f) => f.method + ' ' + f.path).sort(), ['GET /Bookmarks', 'GET /Bookmarks/Capabilities', 'GET /Bookmarks/Clips']);
+    assert.deepEqual(page.fetchLog.find((f) => f.path === '/Bookmarks/Clips').query, { itemId: 'item1', limit: '200', includeDeleted: 'true' });
     assert.equal(page.errors.length, 0, page.errors.join('\n'));
 });
 
-test('on Jellyfin 12\'s details page the section goes first in the secondary container, with the button', { skip }, async () => {
+test('on Jellyfin 12\'s details page the rows go after Scenes in the secondary container, with the button', { skip }, async () => {
     const page = await start();
     const { buttons, content } = detailsPage(page, { jellyfin12: true });
     await page.advance(400);
 
     assert.ok(buttons.querySelector('.btnBookmarkItem'), 'Add bookmark button');
-    const section = content.firstElementChild;
-    assert.equal(section.className, 'verticalSection detailVerticalSection jfbm-section');
-    assert.equal(section.querySelector('h2').textContent, 'My bookmarks (2)');
-    assert.equal(section.nextElementSibling.id, 'childrenCollapsible');
+    assert.deepEqual(content.children.map((c) => c.id || c.className), [
+        'childrenCollapsible',
+        'nativeSection',
+        'scenesCollapsible',
+        'verticalSection detailVerticalSection verticalSection-extrabottompadding jfbm-section jfbm-detail-bookmarks',
+        'verticalSection detailVerticalSection verticalSection-extrabottompadding jfbm-detail-clips hide',
+        'similarCollapsible'
+    ]);
+    assert.equal(bookmarkCards(content).length, 2);
     assert.equal(page.errors.length, 0, page.errors.join('\n'));
 });
 
-test('an item without bookmarks keeps the section hidden; a folder gets no UI', { skip }, async () => {
+test('an item without bookmarks or clips keeps both rows hidden; a folder gets no UI', { skip }, async () => {
     const page = await start({ list: [] });
     const { content, buttons } = detailsPage(page);
     await page.advance(400);
-    assert.equal(content.firstElementChild.className, 'verticalSection detailVerticalSection jfbm-section hide');
-    assert.ok(buttons.querySelector('.btnBookmarkItem'));
+    assert.equal(content.querySelector('.jfbm-section').className, 'verticalSection detailVerticalSection verticalSection-extrabottompadding jfbm-section jfbm-detail-bookmarks hide');
+    assert.equal(content.querySelector('.jfbm-detail-clips').className, 'verticalSection detailVerticalSection verticalSection-extrabottompadding jfbm-detail-clips hide');
+    assert.ok(buttons.querySelector('.btnBookmarkItem'), 'Add bookmark stays on the button row');
 
     const folderPage = await start();
     folderPage.context.ApiClient.getItem = () => Promise.resolve({ Id: 'item1', Type: 'Series', MediaType: 'Video', IsFolder: true });
     const folder = detailsPage(folderPage);
     await folderPage.advance(400);
     assert.equal(folder.content.querySelector('.jfbm-section'), null);
+    assert.equal(folder.content.querySelector('.jfbm-detail-clips'), null);
     assert.equal(folder.buttons.querySelector('.btnBookmarkItem'), null);
 });
 
@@ -279,9 +368,8 @@ test('the delete confirmation (1.1.0): no stray "null" text without a clip; "Als
     await page.advance(400);
     page.respond('DELETE', /^\/Bookmarks\/b\d$/, null, 204);
 
-    const [first, second] = content.querySelectorAll('.jfbm-row');
-    first.querySelector('button[title="Delete"]').click();
-    await page.advance(10);
+    const [first, second] = bookmarkCards(content);
+    await cardAction(page, first, 'Delete');
     let confirm = panel(page, 'Delete bookmark?');
     const body = confirm.querySelector('.jfbm-panel-body');
     assert.equal(body.textContent.includes('null'), false);
@@ -293,8 +381,7 @@ test('the delete confirmation (1.1.0): no stray "null" text without a clip; "Als
 
     // In 1.1.0 (Capabilities.Pages.Clips false) the box is ticked, as in 1.0; unticked, the dialog says the
     // clip stays and where it will be listed.
-    second.querySelector('button[title="Delete"]').click();
-    await page.advance(10);
+    await cardAction(page, second, 'Delete');
     confirm = panel(page, 'Delete bookmark?');
     assert.equal(confirm.querySelector('p').textContent, 'Range 0:30–0:40 will be deleted.', 'an untitled bookmark by its display title');
     assert.equal(confirm.querySelector('.jfbm-checkbox span').textContent, 'Also delete its clip (clip.mp4)');
@@ -316,8 +403,7 @@ test('the delete confirmation (1.1.0): no stray "null" text without a clip; "Als
     assert.deepEqual(toasts(page), ['Bookmark deleted.']);
 
     // Unticked, the clip is kept (a tombstone).
-    content.querySelectorAll('.jfbm-row')[1].querySelector('button[title="Delete"]').click();
-    await page.advance(10);
+    await cardAction(page, bookmarkCards(content)[1], 'Delete');
     confirm = panel(page, 'Delete bookmark?');
     untick(page, confirm.querySelector('.jfbm-checkbox input'), false);
     deleteButton(confirm).click();
@@ -334,8 +420,7 @@ test('the delete confirmation once My Clips is there (Pages.Clips): "Also delete
     await page.advance(400);
     page.respond('DELETE', /^\/Bookmarks\/b\d$/, null, 204);
 
-    content.querySelectorAll('.jfbm-row')[1].querySelector('button[title="Delete"]').click();
-    await page.advance(10);
+    await cardAction(page, bookmarkCards(content)[1], 'Delete');
     const confirm = panel(page, 'Delete bookmark?');
     const box = confirm.querySelector('.jfbm-checkbox input');
     const hint = confirm.querySelector('.jfbm-delete-hint');
@@ -360,8 +445,7 @@ test('the delete confirmation without a clip file sends the box\'s default: a cl
         await page.advance(400);
         page.respond('DELETE', /^\/Bookmarks\/b\d$/, null, 204);
 
-        content.querySelectorAll('.jfbm-row')[0].querySelector('button[title="Delete"]').click();
-        await page.advance(10);
+        await cardAction(page, bookmarkCards(content)[0], 'Delete');
         const confirm = panel(page, 'Delete bookmark?');
         assert.equal(confirm.querySelector('p').textContent, '"race" at 0:01 will be deleted.');
         assert.equal(confirm.querySelector('.jfbm-checkbox'), null, 'no clip file yet: no box');
@@ -381,8 +465,7 @@ test('the delete confirmation without a clip file sends the box\'s default: a cl
         assert.deepEqual(deleted[0].query, expected, clipsPage ? 'kept, and listed in My Clips' : 'deleted with the bookmark, as the box would have been ticked');
 
         // A bookmark that never had a clip sends the same default.
-        content.querySelectorAll('.jfbm-row')[1].querySelector('button[title="Delete"]').click();
-        await page.advance(10);
+        await cardAction(page, bookmarkCards(content)[1], 'Delete');
         deleteButton(panel(page, 'Delete bookmark?')).click();
         await page.advance(50);
         deleted = page.fetchLog.filter((f) => f.method === 'DELETE');
@@ -392,7 +475,7 @@ test('the delete confirmation without a clip file sends the box\'s default: a cl
     }
 });
 
-test('the display title: the name, else the note\'s first line cut to 80 characters, else the time; a name\'s note as a second line', { skip }, async () => {
+test('the display title: the name, else the note\'s first line cut to 80 characters, else the time; a name\'s note as a second line; in time order', { skip }, async () => {
     const longLine = 'A'.repeat(78) + '😀 tail beyond eighty';
     const page = await start({
         list: [
@@ -400,14 +483,14 @@ test('the display title: the name, else the note\'s first line cut to 80 charact
             { Id: 'b2', ItemId: 'item1', StartTicks: 160000000, EndTicks: null, Name: null, Note: '\r\n' + longLine + '\r\nmore', Clip: null },
             { Id: 'b3', ItemId: 'item1', StartTicks: 170000000, EndTicks: null, Name: null, Note: ' \n\t\n ', Clip: null },
             { Id: 'b4', ItemId: 'item1', StartTicks: 36000000000, EndTicks: 37230000000, Name: null, Note: null, Clip: null },
-            { Id: 'b5', ItemId: 'item1', StartTicks: 180000000, EndTicks: null, Name: 'Short', Note: 'x'.repeat(120), Clip: null }
+            { Id: 'b5', ItemId: 'item1', StartTicks: 40000000000, EndTicks: null, Name: 'Short', Note: 'x'.repeat(120), Clip: null }
         ]
     });
     const { content } = detailsPage(page);
     await page.advance(400);
 
-    const rows = content.querySelectorAll('.jfbm-row');
-    const titles = rows.map((r) => r.querySelector('.jfbm-row-title').textContent);
+    const rows = bookmarkCards(content);
+    const titles = rows.map((r) => cardTexts(r)[0]);
     assert.deepEqual(titles, [
         '<i>Bank job</i>',
         'A'.repeat(78) + '😀…',
@@ -417,18 +500,21 @@ test('the display title: the name, else the note\'s first line cut to 80 charact
     ]);
     assert.equal(rows[0].querySelectorAll('i').length, 0, 'names are text, never HTML');
     assert.equal(Array.from(titles[1]).length, 80, 'cut by code points: the emoji at the cut stays whole (it would be half a surrogate pair by UTF-16 units)');
-    assert.equal(rows[0].querySelector('.jfbm-row-subtitle').textContent, 'Watch the reflection');
-    assert.equal(rows[0].querySelector('.jfbm-row-subtitle').getAttribute('title'), '\n  Watch the reflection  \nsecond line', 'the whole note on hover');
-    assert.equal(rows[4].querySelector('.jfbm-row-subtitle').textContent, 'x'.repeat(79) + '…');
-    assert.deepEqual(rows.map((r) => !!r.querySelector('.jfbm-row-subtitle')), [true, false, false, false, true]);
-    assert.deepEqual(rows.map((r) => !!r.querySelector('.jfbm-name-it')), [false, true, true, true, false], 'Name it on unnamed rows only');
+    assert.deepEqual(cardTexts(rows[0]), ['<i>Bank job</i>', '0:15', 'Watch the reflection'], 'a name\'s note as a second line');
+    assert.equal(rows[0].getAttribute('title'), '\n  Watch the reflection  \nsecond line', 'the whole note on hover');
+    assert.deepEqual(cardTexts(rows[4]), ['Short', '1:06:40', 'x'.repeat(79) + '…']);
+    assert.deepEqual(rows.map((r) => cardTexts(r).length), [3, 2, 2, 2, 3]);
+    const named = [];
+    for (const row of rows) {
+        named.push((await cardMenuLabels(page, row)).includes('Name it'));
+    }
 
-    rows[2].querySelector('button[title="Delete"]').click();
-    await page.advance(10);
+    assert.deepEqual(named, [false, true, true, true, false], 'Name it on unnamed cards only');
+
+    await cardAction(page, rows[2], 'Delete');
     assert.equal(panel(page, 'Delete bookmark?').querySelector('.jfbm-panel-body p').textContent, 'Bookmark at 0:17 will be deleted.');
     page.key(page.document.body, 'Escape');
-    rows[0].querySelector('button[title="Delete"]').click();
-    await page.advance(10);
+    await cardAction(page, rows[0], 'Delete');
     assert.equal(panel(page, 'Delete bookmark?').querySelector('.jfbm-panel-body p').textContent, '"<i>Bank job</i>" at 0:15 will be deleted.');
     assert.equal(page.errors.length, 0, page.errors.join('\n'));
 });
@@ -441,8 +527,7 @@ test('Name it opens the editor on the bookmark with Name focused; saving sends t
     await page.advance(400);
     page.respond('POST', '/Bookmarks/b1', (entry) => Object.assign({ Id: 'b1', ItemId: 'item1', UpdatedAt: '2026-09-30T08:06:00.0000000Z', Clip: null }, entry.body));
 
-    content.querySelector('.jfbm-row .jfbm-name-it').click();
-    await page.advance(10);
+    await cardAction(page, bookmarkCards(content)[0], 'Name it');
     const editor = panel(page, 'Edit bookmark');
     const nameInput = editor.querySelectorAll('input[type="text"]')[0];
     assert.equal(page.document.activeElement, nameInput);
@@ -454,7 +539,7 @@ test('Name it opens the editor on the bookmark with Name focused; saving sends t
     const saved = page.fetchLog.find((f) => f.method === 'POST' && f.path === '/Bookmarks/b1');
     assert.deepEqual(saved.body, { StartTicks: 150000000, EndTicks: null, Name: 'Vault', Note: 'the note', IfUpdatedAt: '2026-09-30T08:00:00.1234567Z' });
     assert.equal(panel(page, 'Edit bookmark'), null);
-    assert.equal(page.fetchLog.filter((f) => f.method === 'GET' && f.path === '/Bookmarks').length, 2, 'the section was refreshed');
+    assert.equal(page.fetchLog.filter((f) => f.method === 'GET' && f.path === '/Bookmarks').length, 2, 'the row was refreshed');
 });
 
 test('the editor keeps the name it shows (an update replaces every field) with the UpdatedAt it read; a 409 offers Reload', { skip }, async () => {
@@ -473,9 +558,8 @@ test('the editor keeps the name it shows (an update replaces every field) with t
     page.respond('POST', '/Bookmarks/b2', (entry) => Object.assign({ Id: 'b2', ItemId: 'item1', UpdatedAt: '2026-09-30T08:06:00.0000000Z', Clip: null }, entry.body));
     page.respond('GET', '/Bookmarks/b1', { Id: 'b1', ItemId: 'item1', StartTicks: 150000000, EndTicks: null, Name: 'Other tab', Note: 'the note', UpdatedAt: '2026-09-30T08:07:00.0000000Z', Clip: null });
 
-    const [named, unnamed] = content.querySelectorAll('.jfbm-row');
-    named.querySelector('button[title="Edit"]').click();
-    await page.advance(10);
+    const [named, unnamed] = bookmarkCards(content);
+    await cardAction(page, named, 'Edit');
     let editor = panel(page, 'Edit bookmark');
     assert.equal(editor.querySelectorAll('input[type="text"]')[0].value, 'Bank job');
     let noteInput = editor.querySelector('textarea');
@@ -500,8 +584,7 @@ test('the editor keeps the name it shows (an update replaces every field) with t
     assert.equal(editor.querySelector('textarea').value, 'the note');
     page.key(page.document.body, 'Escape');
 
-    unnamed.querySelector('button[title="Edit"]').click();
-    await page.advance(10);
+    await cardAction(page, unnamed, 'Edit');
     editor = panel(page, 'Edit bookmark');
     noteInput = editor.querySelector('textarea');
     noteInput.value = 'still unnamed';
@@ -523,8 +606,7 @@ test('Reload after a 409 on a bookmark deleted meanwhile closes the editor with 
     await page.advance(400);
     page.respond('POST', '/Bookmarks/b1', { title: 'Conflict', status: 409, detail: 'Changed elsewhere. Reload to see the latest.' }, 409);
     page.respond('GET', '/Bookmarks/b1', { title: 'Not Found', status: 404, detail: 'Bookmark not found.' }, 404);
-    content.querySelector('.jfbm-row button[title="Edit"]').click();
-    await page.advance(10);
+    await cardAction(page, bookmarkCards(content)[0], 'Edit');
     const editor = panel(page, 'Edit bookmark');
     page.dispatch(editor.querySelector('form'), 'submit');
     await page.advance(50);
@@ -534,7 +616,7 @@ test('Reload after a 409 on a bookmark deleted meanwhile closes the editor with 
     assert.ok(toasts(page).includes('This bookmark was deleted elsewhere.'));
 });
 
-test('badges: Not in library (greyed, no play, no clip), Unavailable (no play, no clip), their editors without Save & make clip, and Relinked with Looks right', { skip }, async () => {
+test('badges: Not in library (no play, no clip), Unavailable (no play, no clip), their editors without Save & make clip, and Relinked with Looks right', { skip }, async () => {
     const clip = { Status: 'Completed', FileName: 'clip.mp4', FileSize: 2048, IsOutdated: false };
     const page = await start({
         list: [
@@ -548,36 +630,31 @@ test('badges: Not in library (greyed, no play, no clip), Unavailable (no play, n
     await page.advance(400);
     page.respond('POST', '/Bookmarks/b3/Name', (entry) => ({ Id: 'b3', ItemId: 'item1', Name: entry.body.Name, Relinked: false }));
 
-    const [gone, hidden, moved, fine] = content.querySelectorAll('.jfbm-row');
-    const badges = (row) => row.querySelectorAll('.jfbm-badge').map((b) => b.className + '|' + b.textContent);
-    assert.equal(gone.className, 'jfbm-row jfbm-row-detached');
-    assert.deepEqual(badges(gone), ['jfbm-badge jfbm-badge-missing|Not in library']);
-    assert.match(gone.querySelector('.jfbm-badge').getAttribute('title'), /isn't in the library any more/);
-    assert.equal(gone.querySelector('.jfbm-time-button').disabled, true, 'no play');
-    assert.equal(gone.querySelector('.jfbm-time-button').getAttribute('title'), 'Not in library');
-    assert.deepEqual(gone.querySelectorAll('.jfbm-row-actions button').map((b) => b.getAttribute('title')), ['Edit', 'Delete'], 'no clip of a missing video');
-    assert.ok(gone.querySelector('.jfbm-clip-ready'), 'its clip file can still be downloaded');
+    const [gone, hidden, moved, fine] = bookmarkCards(content);
+    const warnings = (card) => card.querySelectorAll('.jfbm-card-warning').map((w) => w.textContent);
+    assert.deepEqual(cardTexts(gone), ['Gone', '0:15–0:25', 'Not in library']);
+    assert.equal(gone.querySelector('.indicatorIcon').className, 'material-icons indicatorIcon content_cut');
+    assert.deepEqual(await cardMenuLabels(page, gone), ['Play from here (disabled)', 'Edit', 'Delete', 'Preview the clip', 'Download the clip', 'Delete clip'], 'no play, no clip of a missing video; its clip file can still be downloaded');
+    gone.querySelector('.cardOverlayFab-primary').click();
+    await page.advance(10);
+    assert.match(toasts(page).join('|'), /isn't in the library any more/, 'a click says why it can\'t play');
+    assert.equal(page.fetchLog.filter((f) => f.path.indexOf('/Sessions') === 0).length, 0);
 
-    assert.equal(hidden.className, 'jfbm-row');
-    assert.deepEqual(badges(hidden), ['jfbm-badge jfbm-badge-unavailable|Unavailable']);
-    assert.equal(hidden.querySelector('.jfbm-time-button').disabled, true);
-    assert.equal(hidden.querySelector('.jfbm-time-button').getAttribute('title'), 'Unavailable');
-    assert.deepEqual(hidden.querySelectorAll('.jfbm-row-actions button').map((b) => b.getAttribute('title')), ['Edit', 'Delete']);
+    assert.deepEqual(cardTexts(hidden), ['Hidden', '0:16–0:26', 'Unavailable']);
+    assert.deepEqual(await cardMenuLabels(page, hidden), ['Play from here (disabled)', 'Edit', 'Delete']);
 
-    assert.deepEqual(badges(moved), ['jfbm-badge jfbm-badge-relinked|Relinked, check position']);
-    assert.equal(moved.querySelector('.jfbm-time-button').disabled, false, 'a relinked bookmark still plays');
-    const looksRight = moved.querySelector('.jfbm-looks-right');
-    assert.equal(looksRight.textContent, 'Looks right');
+    assert.deepEqual(cardTexts(moved), ['Moved', '0:17', 'Relinked, check position']);
+    assert.deepEqual(warnings(moved), ['Relinked, check position']);
+    assert.equal(moved.className, 'card overflowBackdropCard card-hoverable jfbm-rowcard jfbm-bookmark-card jfbm-bookmark-card-relinked');
+    assert.deepEqual(await cardMenuLabels(page, moved), ['Play from here', 'Looks right', 'Edit', 'Delete'], 'a relinked bookmark still plays');
 
-    assert.deepEqual(badges(fine), []);
-    assert.equal(fine.querySelector('.jfbm-time-button').disabled, false);
-    assert.deepEqual(fine.querySelectorAll('.jfbm-row-actions button').map((b) => b.getAttribute('title')), ['Make a clip', 'Edit', 'Delete']);
+    assert.deepEqual(warnings(fine), []);
+    assert.deepEqual(await cardMenuLabels(page, fine), ['Play from here', 'Name it', 'Make a clip', 'Edit', 'Delete']);
 
     // The editor follows the row: no Save & make clip (nor the clip mode) for a Not in library or Unavailable bookmark,
     // whose Save is the primary button; the others keep it.
     const editorActions = async (row) => {
-        row.querySelector('button[title="Edit"]').click();
-        await page.advance(10);
+        await cardAction(page, row, 'Edit');
         const editor = panel(page, 'Edit bookmark');
         const actions = {
             buttons: editor.querySelectorAll('.jfbm-actions button').map((b) => b.textContent + (b.classList.contains('jfbm-button-primary') ? ' (primary)' : '')),
@@ -594,23 +671,23 @@ test('badges: Not in library (greyed, no play, no clip), Unavailable (no play, n
     assert.equal(page.fetchLog.filter((f) => f.method === 'POST').length, 0);
 
     const listsBefore = page.fetchLog.filter((f) => f.method === 'GET' && f.path === '/Bookmarks').length;
-    looksRight.click();
-    await page.advance(50);
+    await cardAction(page, moved, 'Looks right');
+    await page.advance(40);
     const confirmed = page.fetchLog.find((f) => f.method === 'POST' && f.path === '/Bookmarks/b3/Name');
     assert.deepEqual(confirmed.body, { Name: 'Moved', IfUpdatedAt: '2026-09-30T08:00:00.0000000Z' }, 'the rename with the unchanged name');
-    assert.equal(page.fetchLog.filter((f) => f.method === 'GET' && f.path === '/Bookmarks').length, listsBefore + 1, 'the section was refreshed');
+    assert.equal(page.fetchLog.filter((f) => f.method === 'GET' && f.path === '/Bookmarks').length, listsBefore + 1, 'the row was refreshed');
     assert.equal(page.errors.length, 0, page.errors.join('\n'));
 });
 
-test('Looks right answered 409 shows the sentence with Reload, which refreshes the section', { skip }, async () => {
+test('Looks right answered 409 shows the sentence with Reload, which refreshes the row', { skip }, async () => {
     const page = await start({
         list: [{ Id: 'b3', ItemId: 'item1', StartTicks: 170000000, EndTicks: null, Name: null, Note: null, Relinked: true, UpdatedAt: '2026-09-30T08:00:00.0000000Z', Clip: null }]
     });
     const { content } = detailsPage(page);
     await page.advance(400);
     page.respond('POST', '/Bookmarks/b3/Name', { title: 'Conflict', status: 409, detail: 'Changed elsewhere. Reload to see the latest.' }, 409);
-    content.querySelector('.jfbm-looks-right').click();
-    await page.advance(50);
+    await cardAction(page, bookmarkCards(content)[0], 'Looks right');
+    await page.advance(40);
     assert.deepEqual(page.fetchLog.find((f) => f.path === '/Bookmarks/b3/Name').body, { Name: null, IfUpdatedAt: '2026-09-30T08:00:00.0000000Z' });
     assert.deepEqual(toasts(page), ['Changed elsewhere. Reload to see the latest.Reload']);
     const lists = page.fetchLog.filter((f) => f.method === 'GET' && f.path === '/Bookmarks').length;
@@ -619,26 +696,34 @@ test('Looks right answered 409 shows the sentence with Reload, which refreshes t
     assert.equal(page.fetchLog.filter((f) => f.method === 'GET' && f.path === '/Bookmarks').length, lists + 1);
 });
 
-test('the section\'s page links follow Capabilities.Pages: See all to My Bookmarks for this video, My Clips only while it is there', { skip }, async () => {
-    const onlyBookmarks = await start({ capabilities: { Pages: { Bookmarks: true, Clips: false } } });
+test('the heading links of the rows follow Capabilities.Pages: Manage to My Bookmarks for this video, My Clips only while it is there', { skip }, async () => {
+    const clip = clipItem();
+    const onlyBookmarks = await start({ capabilities: { Pages: { Bookmarks: true, Clips: false } }, clips: clipsAnswer([clip]), media: [{ Id: 'b2', LibraryItemId: null, Artwork: [] }] });
     detailsPage(onlyBookmarks);
     await onlyBookmarks.advance(400);
-    let links = onlyBookmarks.document.querySelector('.jfbm-section .jfbm-section-links');
+    let links = onlyBookmarks.document.querySelector('.jfbm-section .jfbm-row-links');
+    assert.equal(links.parentNode.tagName, 'H2', 'in the heading, after the title');
     assert.equal(links.classList.contains('hide'), false);
-    assert.deepEqual(links.querySelectorAll('a').map((a) => a.textContent + '|' + a.getAttribute('href') + '|' + a.getAttribute('data-jfbm-link')), ['See all|#/jfbm-bookmarks?item=item1|bookmarks']);
+    assert.deepEqual(links.querySelectorAll('a').map((a) => a.textContent + '|' + a.getAttribute('href') + '|' + a.getAttribute('data-jfbm-link')), ['Manage|#/jfbm-bookmarks?item=item1|bookmarks']);
     assert.equal(links.querySelector('a').getAttribute('is'), 'emby-linkbutton');
+    assert.ok(onlyBookmarks.document.querySelector('.jfbm-detail-clips .jfbm-row-links').classList.contains('hide'));
     assert.equal(onlyBookmarks.document.body.textContent.includes('My Clips'), false, 'no My Clips link while Pages.Clips is false');
+    assert.equal((await cardMenuLabels(onlyBookmarks, bookmarkCards(onlyBookmarks.document)[1])).includes('View in My Clips'), false);
 
-    const both = await start({ capabilities: { Pages: { Bookmarks: true, Clips: true } } });
+    const both = await start({ capabilities: { Pages: { Bookmarks: true, Clips: true } }, clips: clipsAnswer([clip]), media: [{ Id: 'b2', LibraryItemId: null, Artwork: [] }] });
     detailsPage(both);
     await both.advance(400);
-    links = both.document.querySelector('.jfbm-section .jfbm-section-links');
-    assert.deepEqual(links.querySelectorAll('a').map((a) => a.textContent + '|' + a.getAttribute('href')), ['See all|#/jfbm-bookmarks?item=item1', 'My Clips|#/jfbm-clips']);
+    links = both.document.querySelector('.jfbm-section .jfbm-row-links');
+    assert.deepEqual(links.querySelectorAll('a').map((a) => a.textContent + '|' + a.getAttribute('href')), ['Manage|#/jfbm-bookmarks?item=item1']);
+    const clipLinks = both.document.querySelector('.jfbm-detail-clips .jfbm-row-links');
+    assert.deepEqual(clipLinks.querySelectorAll('a').map((a) => a.textContent + '|' + a.getAttribute('href')), ['My Clips|#/jfbm-clips']);
+    await cardAction(both, bookmarkCards(both.document)[1], 'View in My Clips');
+    assert.equal(both.context.location.hash, '#/jfbm-clips?highlight=b2', 'the bookmark\'s clip, marked');
 
     const older = await start({ capabilities: { Pages: undefined } });
     detailsPage(older);
     await older.advance(400);
-    links = older.document.querySelector('.jfbm-section .jfbm-section-links');
+    links = older.document.querySelector('.jfbm-section .jfbm-row-links');
     assert.ok(links.classList.contains('hide'), 'without Pages (an older answer) no links');
     assert.equal(links.children.length, 0);
 });
@@ -940,11 +1025,11 @@ test('Set end time without playback or without bookmarks only says so', { skip }
     assert.deepEqual(toasts(empty), ['This video has no bookmarks yet. Bookmark a moment first, then set its end time here.']);
 });
 
-test('Play from here on the details page starts playback through the Sessions API, sending again if it does not start', { skip }, async () => {
+test('a click on a bookmark card plays from it through the Sessions API, sending again if it does not start', { skip }, async () => {
     const page = await start();
     const { content } = detailsPage(page);
     await page.advance(400);
-    content.querySelector('.jfbm-row .jfbm-time-button').click();
+    bookmarkCards(content)[0].querySelector('.cardImageContainer').click();
     await page.advance(8100);
     await page.context.ApiClient.reportPlaybackStart({ ItemId: 'item1', PositionTicks: 150000000 });
     await page.advance(50);
@@ -1633,17 +1718,17 @@ test('with every anchor there, the health check stays quiet: no warning and no r
     assert.deepEqual(page.warnings, []);
 });
 
-test('a missing button row (detailButtons): no Add bookmark button, the section still works, one warning and one report', { skip }, async () => {
+test('a missing button row (detailButtons): no Add bookmark button, the rows still work, one warning and one report', { skip }, async () => {
     const page = await start();
     page.respond('POST', '/Bookmarks/Diagnostics/ClientHealth', null, 204);
-    const content = page.element('div', { class: 'detailPageContent' });
+    const content = page.element('div', { class: 'detailPageContent' }, [page.element('div', { id: 'scenesCollapsible', class: 'verticalSection' })]);
     const view = page.element('div', { id: 'itemDetailPage', class: 'page' }, [page.element('div', { class: 'mainDetailButtonsRenamed' }), content]);
     page.document.body.append(view);
     page.context.location.hash = '#/details?id=item1&serverId=server-1';
     page.dispatch(view, 'viewshow');
     await page.advance(400);
     assert.equal(page.document.querySelector('.btnBookmarkItem'), null, 'the feature that needs the row is off');
-    assert.equal(content.firstElementChild.querySelector('h2').textContent, 'My bookmarks (2)', 'the section doesn\'t need it');
+    assert.equal(bookmarkCards(content).length, 2, 'the rows don\'t need it');
 
     await page.advance(4000);
     assert.deepEqual(page.warnings, [

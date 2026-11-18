@@ -1,5 +1,5 @@
 {
-  "name": "Admin and viewer in the web UI: admin, then viewer (no download permission), then admin again, signing out and in from the drawer without a reload. Admin: the drawer's admin section, GET /Bookmarks/Admin/Diagnostics 200, a range bookmark's Make a clip button and the editor's Save & make clip. Viewer: no admin section and no admin link of ours in the drawer, Admin/Diagnostics 403, only the viewer's own bookmark in the details section, no Make a clip button, no Save & make clip, and making a clip through the API is refused (403). Back as admin: admin's bookmarks and clip controls again. Creates one range bookmark per user on Long Test Movie and deletes both at the end (sandbox data only).",
+  "name": "Admin and viewer in the web UI: admin, then viewer (no download permission), then admin again, signing out and in from the drawer without a reload. Admin: the drawer's admin section, GET /Bookmarks/Admin/Diagnostics 200, Make a clip in a range bookmark's card menu and the editor's Save & make clip. Viewer: no admin section and no admin link of ours in the drawer, Admin/Diagnostics 403, only the viewer's own bookmark in the details page's Bookmarks row, no Make a clip in its menu, no Save & make clip, and making a clip through the API is refused (403). Back as admin: admin's bookmarks and clip controls again. Creates one range bookmark per user on Long Test Movie and deletes both at the end (sandbox data only).",
   "failOnException": false,
   "timeout": 30000,
   "steps": [
@@ -33,12 +33,30 @@
     { "name": "admin: jellyfin-web's admin section is there", "assert": "__vars.adminDrawer.adminSection === true" },
     { "name": "details page (closes the drawer)", "goto": "/web/index.html#/details?id=${movieId}" },
     {
-      "name": "admin: the section lists admin's range with its Make a clip button",
-      "waitFor": "(() => { const s = document.querySelector('#itemDetailPage:not(.hide) .jfbm-section'); if (!s || s.classList.contains('hide')) return false; const row = [...s.querySelectorAll('.jfbm-row')].find(r => r.textContent.includes('webcheck-users admin')); return !!row && !!row.querySelector('.jfbm-row-actions button[title=\"Make a clip\"]') && { rows: s.querySelectorAll('.jfbm-row').length }; })()",
+      "name": "admin: the Bookmarks row shows admin's range",
+      "waitFor": "(() => { const s = document.querySelector('#itemDetailPage:not(.hide) .jfbm-detail-bookmarks'); if (!s || s.classList.contains('hide')) return false; return !![...document.querySelectorAll('#itemDetailPage:not(.hide) .jfbm-detail-bookmarks .jfbm-bookmark-card')].find((c) => c.textContent.indexOf('webcheck-users admin') !== -1) && { rows: [...document.querySelectorAll('#itemDetailPage:not(.hide) .jfbm-detail-bookmarks .jfbm-bookmark-card')].length }; })()",
       "timeout": 20000,
       "save": "adminSection"
     },
-    { "name": "admin: open the range's editor", "script": "const row = [...document.querySelectorAll('#itemDetailPage:not(.hide) .jfbm-row')].find(r => r.textContent.includes('webcheck-users admin')); row.querySelector('.jfbm-row-actions button[title=\"Edit\"]').click(); return true;" },
+    {
+      "name": "the menu of admin's range card",
+      "script": "const c = [...document.querySelectorAll('#itemDetailPage:not(.hide) .jfbm-detail-bookmarks .jfbm-bookmark-card')].find((c) => c.textContent.indexOf('webcheck-users admin') !== -1); if (!c) throw new Error('no such card'); const more = c.querySelector('.cardOverlayButton-br button, button.cardOverlayButton-br'); if (more) { more.click(); } else { c.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true })); } return [...document.querySelectorAll('.jfbm-backdrop .jfbm-row-menu-item')].map((x) => x.lastElementChild.textContent);",
+      "save": "adminMenu",
+      "full": true
+    },
+    {
+      "name": "close it",
+      "key": "Escape"
+    },
+    {
+      "name": "closed",
+      "waitFor": "!document.querySelector('.jfbm-backdrop')"
+    },
+    {
+      "name": "admin: Make a clip in it",
+      "assert": "__vars.adminMenu.indexOf('Make a clip') !== -1"
+    },
+    { "name": "admin: open the range's editor from its card's menu", "script": "const c = [...document.querySelectorAll('#itemDetailPage:not(.hide) .jfbm-detail-bookmarks .jfbm-bookmark-card')].find((c) => c.textContent.indexOf('webcheck-users admin') !== -1); if (!c) throw new Error('no such card'); const more = c.querySelector('.cardOverlayButton-br button, button.cardOverlayButton-br'); if (more) { more.click(); } else { c.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true })); } const items = [...document.querySelectorAll('.jfbm-backdrop .jfbm-row-menu-item')]; const b = items.find((x) => x.lastElementChild.textContent === 'Edit'); if (!b) throw new Error('no Edit in the card menu: ' + items.map((x) => x.lastElementChild.textContent).join(', ')); if (b.disabled) throw new Error('Edit is disabled'); b.click(); return true;" },
     {
       "name": "admin: the editor offers Save & make clip and the clip mode",
       "waitFor": "(() => { const p = document.querySelector('.jfbm-backdrop .jfbm-panel'); if (!p || p.querySelector('h3').textContent !== 'Edit bookmark') return false; const labels = [...p.querySelectorAll('button')].map(b => b.textContent.trim()); return labels.includes('Save & make clip') && !!p.querySelector('select[aria-label=\"Clip mode\"]') && labels; })()",
@@ -80,14 +98,32 @@
     { "screenshot": "users-viewer-drawer.png" },
     { "name": "details page (closes the drawer)", "goto": "/web/index.html#/details?id=${movieId}" },
     {
-      "name": "viewer: the section lists the viewer's bookmark and none of admin's, with no Make a clip button",
-      "waitFor": "(() => { const s = document.querySelector('#itemDetailPage:not(.hide) .jfbm-section'); if (!s || s.classList.contains('hide')) return false; const rows = [...s.querySelectorAll('.jfbm-row')]; const own = rows.find(r => r.textContent.includes('webcheck-users viewer')); return !!own && !rows.some(r => r.textContent.includes('webcheck-users admin') || r.textContent.includes('webcheck-ui range')) && !s.querySelector('button[title=\"Make a clip\"], button[title=\"Make the clip again\"]') && { title: s.querySelector('h2').textContent, rows: rows.length, buttons: [...own.querySelectorAll('.jfbm-row-actions button')].map(b => b.getAttribute('title')) }; })()",
+      "name": "viewer: the Bookmarks row shows the viewer's bookmark and none of admin's",
+      "waitFor": "(() => { const s = document.querySelector('#itemDetailPage:not(.hide) .jfbm-detail-bookmarks'); if (!s || s.classList.contains('hide')) return false; const cards = [...document.querySelectorAll('#itemDetailPage:not(.hide) .jfbm-detail-bookmarks .jfbm-bookmark-card')]; const own = [...document.querySelectorAll('#itemDetailPage:not(.hide) .jfbm-detail-bookmarks .jfbm-bookmark-card')].find((c) => c.textContent.indexOf('webcheck-users viewer') !== -1); return !!own && !cards.some(c => c.textContent.includes('webcheck-users admin') || c.textContent.includes('webcheck-ui range')) && { title: s.querySelector('h2 > span').textContent, rows: cards.length }; })()",
       "timeout": 20000,
       "save": "viewerSection"
     },
+    {
+      "name": "the menu of the viewer's card",
+      "script": "const c = [...document.querySelectorAll('#itemDetailPage:not(.hide) .jfbm-detail-bookmarks .jfbm-bookmark-card')].find((c) => c.textContent.indexOf('webcheck-users viewer') !== -1); if (!c) throw new Error('no such card'); const more = c.querySelector('.cardOverlayButton-br button, button.cardOverlayButton-br'); if (more) { more.click(); } else { c.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true })); } return [...document.querySelectorAll('.jfbm-backdrop .jfbm-row-menu-item')].map((x) => x.lastElementChild.textContent);",
+      "save": "viewerMenu",
+      "full": true
+    },
+    {
+      "name": "close it",
+      "key": "Escape"
+    },
+    {
+      "name": "closed",
+      "waitFor": "!document.querySelector('.jfbm-backdrop')"
+    },
+    {
+      "name": "viewer: no Make a clip in it (no download permission), Edit and Delete there",
+      "assert": "__vars.viewerMenu.every(x => !/^Make (a|the) clip/.test(x)) && __vars.viewerMenu.indexOf('Edit') !== -1 && __vars.viewerMenu.indexOf('Delete') !== -1"
+    },
     { "name": "viewer: the Add bookmark button is still there", "assert": "!!document.querySelector('#itemDetailPage:not(.hide) .mainDetailButtons .btnBookmarkItem')" },
     { "screenshot": "users-viewer-details.png" },
-    { "name": "viewer: open the range's editor", "script": "const row = [...document.querySelectorAll('#itemDetailPage:not(.hide) .jfbm-row')].find(r => r.textContent.includes('webcheck-users viewer')); row.querySelector('.jfbm-row-actions button[title=\"Edit\"]').click(); return true;" },
+    { "name": "viewer: open the range's editor from its card's menu", "script": "const c = [...document.querySelectorAll('#itemDetailPage:not(.hide) .jfbm-detail-bookmarks .jfbm-bookmark-card')].find((c) => c.textContent.indexOf('webcheck-users viewer') !== -1); if (!c) throw new Error('no such card'); const more = c.querySelector('.cardOverlayButton-br button, button.cardOverlayButton-br'); if (more) { more.click(); } else { c.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true })); } const items = [...document.querySelectorAll('.jfbm-backdrop .jfbm-row-menu-item')]; const b = items.find((x) => x.lastElementChild.textContent === 'Edit'); if (!b) throw new Error('no Edit in the card menu: ' + items.map((x) => x.lastElementChild.textContent).join(', ')); if (b.disabled) throw new Error('Edit is disabled'); b.click(); return true;" },
     {
       "name": "viewer: the editor has Save but no Save & make clip and no clip mode",
       "waitFor": "(() => { const p = document.querySelector('.jfbm-backdrop .jfbm-panel'); if (!p || p.querySelector('h3').textContent !== 'Edit bookmark') return false; const labels = [...p.querySelectorAll('button')].map(b => b.textContent.trim()); return labels.includes('Save') && !labels.includes('Save & make clip') && !p.querySelector('select[aria-label=\"Clip mode\"]') && labels; })()",
@@ -106,10 +142,28 @@
     { "name": "admin signed in again, without a reload", "waitFor": "!!window.ApiClient && !!ApiClient.getCurrentUserId() && window.__usersCheckLoad === __vars.load && !!document.querySelector('.homePage:not(.hide)')", "timeout": 20000 },
     { "name": "details page", "goto": "/web/index.html#/details?id=${movieId}" },
     {
-      "name": "admin again: admin's range with its Make a clip button, not the viewer's",
-      "waitFor": "(() => { const s = document.querySelector('#itemDetailPage:not(.hide) .jfbm-section'); if (!s || s.classList.contains('hide')) return false; const rows = [...s.querySelectorAll('.jfbm-row')]; const row = rows.find(r => r.textContent.includes('webcheck-users admin')); return !!row && !rows.some(r => r.textContent.includes('webcheck-users viewer')) && !!row.querySelector('.jfbm-row-actions button[title=\"Make a clip\"]') && { rows: rows.length }; })()",
+      "name": "admin again: admin's range card, not the viewer's",
+      "waitFor": "(() => { const s = document.querySelector('#itemDetailPage:not(.hide) .jfbm-detail-bookmarks'); if (!s || s.classList.contains('hide')) return false; const cards = [...document.querySelectorAll('#itemDetailPage:not(.hide) .jfbm-detail-bookmarks .jfbm-bookmark-card')]; return !![...document.querySelectorAll('#itemDetailPage:not(.hide) .jfbm-detail-bookmarks .jfbm-bookmark-card')].find((c) => c.textContent.indexOf('webcheck-users admin') !== -1) && !cards.some(c => c.textContent.includes('webcheck-users viewer')) && { rows: cards.length }; })()",
       "timeout": 20000,
       "save": "adminAgain"
+    },
+    {
+      "name": "the menu of admin's range card",
+      "script": "const c = [...document.querySelectorAll('#itemDetailPage:not(.hide) .jfbm-detail-bookmarks .jfbm-bookmark-card')].find((c) => c.textContent.indexOf('webcheck-users admin') !== -1); if (!c) throw new Error('no such card'); const more = c.querySelector('.cardOverlayButton-br button, button.cardOverlayButton-br'); if (more) { more.click(); } else { c.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true })); } return [...document.querySelectorAll('.jfbm-backdrop .jfbm-row-menu-item')].map((x) => x.lastElementChild.textContent);",
+      "save": "adminAgainMenu",
+      "full": true
+    },
+    {
+      "name": "close it",
+      "key": "Escape"
+    },
+    {
+      "name": "closed",
+      "waitFor": "!document.querySelector('.jfbm-backdrop')"
+    },
+    {
+      "name": "admin again: Make a clip in it",
+      "assert": "__vars.adminAgainMenu.indexOf('Make a clip') !== -1 || __vars.adminAgainMenu.indexOf('Make the clip again') !== -1"
     },
     { "name": "open the drawer", "click": ".skinHeader .mainDrawerButton" },
     { "name": "admin again: the admin section is back", "waitFor": "!!document.querySelector('.mainDrawer .adminMenuOptions a[href=\"#/dashboard\"]')" },

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
@@ -64,6 +65,55 @@ internal sealed partial class ClipFileOps
         {
             _logger.LogWarning(ex, "Could not delete the artwork of clip files that are gone; the daily maintenance tries again");
         }
+    }
+
+    /// <summary>
+    /// Finds the artwork files beside a clip file that is there (since 1.6.0 / 2.4.0, for the clip cards on a video's page):
+    /// for each kind (<see cref="ClipArtworkNames.Kinds"/>) the first of <see cref="ClipArtworkNames.Extensions"/> that is a
+    /// plain file (no folder, junction or link), with its last write time. Only for a clip file named as Bookmarks names
+    /// clips; nothing is read but the files' attributes and times. Never throws.
+    /// </summary>
+    /// <param name="clipFullPath">The clip file's full path, as <see cref="FindServable"/> gave it.</param>
+    /// <returns>The artwork, as (kind, full path, last write time); empty when there is none.</returns>
+    public IReadOnlyList<(string Kind, string Path, DateTime LastWriteUtc)> FindArtwork(string? clipFullPath)
+    {
+        var found = new List<(string Kind, string Path, DateTime LastWriteUtc)>();
+        var stem = ClipArtworkNames.ClipStem(Path.GetFileName(clipFullPath));
+        var folder = Path.GetDirectoryName(clipFullPath);
+        if (stem is null || string.IsNullOrEmpty(folder))
+        {
+            return found;
+        }
+
+        foreach (var kind in ClipArtworkNames.Kinds)
+        {
+            foreach (var extension in ClipArtworkNames.Extensions)
+            {
+                var path = Path.Combine(folder, ClipArtworkNames.FileName(stem, kind, extension));
+                FileAttributes? attributes;
+                try
+                {
+                    attributes = _fileSystem.GetAttributes(path);
+                }
+                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
+                {
+                    continue;
+                }
+
+                if (attributes is not { } a || (a & (FileAttributes.Directory | FileAttributes.ReparsePoint)) != 0)
+                {
+                    continue;
+                }
+
+                if (_fileSystem.GetLastWriteTimeUtc(path) is { } written)
+                {
+                    found.Add((kind, path, written));
+                    break;
+                }
+            }
+        }
+
+        return found;
     }
 
     /// <summary>

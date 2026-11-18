@@ -24,8 +24,8 @@
     },
     { "name": "open the details page", "goto": "/web/index.html#/details?id=${movieId}" },
     {
-      "name": "the My bookmarks section is shown (1.0's 'Bookmarks' section, so named since 1.1)",
-      "waitFor": "(() => { const s = document.querySelector('#itemDetailPage:not(.hide) .jfbm-section'); return !!s && !s.classList.contains('hide') && /^My bookmarks \\(\\d+\\)$/.test(s.querySelector('h2').textContent) && s.querySelector('h2').textContent; })()"
+      "name": "the Bookmarks row is shown with the movie's bookmarks as cards (1.0's 'Bookmarks' section, 'My bookmarks' from 1.1, a row of cards since 1.6.0 / 2.4.0)",
+      "waitFor": "(() => { const s = document.querySelector('#itemDetailPage:not(.hide) .jfbm-detail-bookmarks'); return !!s && !s.classList.contains('hide') && s.querySelector('h2 > span').textContent === 'Bookmarks' && [...document.querySelectorAll('#itemDetailPage:not(.hide) .jfbm-detail-bookmarks .jfbm-bookmark-card')].length; })()"
     },
     {
       "name": "the Add bookmark button is shown",

@@ -4,8 +4,8 @@
  * index.html by the kit's middleware. It provides:
  *   - player controls: bookmark the current moment (also the B key), mark a start/end range, and a list of the video's
  *     bookmarks to jump between; the video's bookmarks marked on the player's position slider;
- *   - on video detail pages: an "Add bookmark" button and a "My bookmarks" section with play-from-here, name it, edit,
- *     delete and clip controls, and the Not in library, Unavailable and Relinked badges;
+ *   - on video detail pages: an "Add bookmark" button, and Bookmarks and Clips rows of cards like jellyfin-web's own
+ *     Scenes row, each card's menu with play-from-here, name it, edit, delete and clip controls;
  *   - an editor for name, position, optional end and note, which can also start clip extraction.
  *
  * It only talks to the plugin's REST API (/Bookmarks) and the standard Sessions API. The current playback position comes
@@ -23,7 +23,7 @@
 const VIEWS = Object.freeze({
     details: Object.freeze({
         route: '/details',
-        anchors: Object.freeze(['detailPage', { name: 'detailContent', within: 'detailPage' }, { name: 'detailButtons', within: 'detailPage' }, { name: 'detailButtonsBefore', within: 'detailPage' }])
+        anchors: Object.freeze(['detailPage', { name: 'detailContent', within: 'detailPage' }, { name: 'detailButtons', within: 'detailPage' }, { name: 'detailButtonsBefore', within: 'detailPage' }, { name: 'detailScenes', within: 'detailPage' }])
     }),
     player: Object.freeze({
         route: '/video',

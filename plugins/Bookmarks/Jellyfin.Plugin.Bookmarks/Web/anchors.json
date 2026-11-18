@@ -13,7 +13,14 @@
       "css": [".detailPageContent", ".detailPageSecondaryContainer"],
       "required": true,
       "views": ["details"],
-      "note": "The content column inside detailPage; the Bookmarks section goes first in it (itemDetails-index-html chunk). bm:Web/bookmarks.js:1134-1251. Jellyfin 12 has no .detailPageContent: its secondary container holds the sections (first is a hidden #childrenCollapsible on movies). Missing: no section and no button."
+      "note": "The content column inside detailPage; the Bookmarks and Clips rows go in it (after detailScenes; until 1.6.0 / 2.4.0 the section went first) (itemDetails-index-html chunk). bm:Web/bookmarks.js:1134-1251. Jellyfin 12 has no .detailPageContent: its secondary container holds the sections (first is a hidden #childrenCollapsible on movies). Missing: no section and no button."
+    },
+    {
+      "name": "detailScenes",
+      "css": ["#scenesCollapsible"],
+      "required": false,
+      "views": ["details"],
+      "note": "The Scenes row inside detailPage (jellyfin-web 10.11.5's itemDetails-index-html chunk and 12's details page; there even when hidden, for a video without chapters); the Bookmarks and Clips rows go right after it, in its parent. Missing: they go at the end of detailContent."
     },
     {
       "name": "detailButtons",

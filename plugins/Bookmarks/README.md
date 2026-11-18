@@ -18,8 +18,12 @@ bookmarks people already made in Jellyfin Enhanced.
   Android TV and other native players don't run the plugin's player tools.
 - **On the progress bar:** each bookmark shows as an amber tick, and a range as a band. Point at a tick to see its name.
   Click it to play from there.
-- **On a movie or episode page:** an **Add bookmark** button and a **My bookmarks** section. From there you can play
-  from a bookmark, edit, rename or delete it, and make, preview or download its clip.
+- **On a movie or episode page:** an **Add bookmark** button, and two rows in the same style as the page's own
+  **Scenes** and **Special Features** rows, right after Scenes. **Bookmarks** shows each of your bookmarks of that video
+  as a card with the frame at that moment, its name and time (a scissors when it has a clip). **Clips** shows each clip
+  you made from it, with its artwork (or the frame at its start), its name, length and range, marked when its range has
+  changed since. Click a card to play; its **⋮** menu has the rest: edit, name or delete a bookmark, make, cancel,
+  preview, download or delete its clip, or open it on My Clips. A row is hidden while it is empty.
 - **My Bookmarks page** (in the menu under **Library tools**): every bookmark you have, across all videos. You can
   search, filter, sort, show them grouped by video or as one list, rename them in place and delete several at once.
 - **My Clips page** (under **Library tools**, after My Bookmarks): every clip you have made, including clips you kept
@@ -88,8 +92,13 @@ bookmarks people already made in Jellyfin Enhanced.
   skip. Each user can set their own shortcut on their device from **My Bookmarks -> Player options**. The admin can change
   the server's default shortcut or hide the player buttons on the settings page.
 - **Make a clip:** give the bookmark an end time (the scissors button, **Set end time**, or the editor's End field). Then
-  use **Save & make clip** in the editor, or the scissors on a bookmark row. A message appears when the clip is ready,
-  with a download link and **View in My Clips**.
+  use **Save & make clip** in the editor, **Make a clip** in a bookmark card's **⋮** menu, or the scissors on a row
+  of My Bookmarks. A message appears when the clip is ready, with a download link and **View in My Clips**.
+- **On a video's page:** click a bookmark card (or press Enter on it) to play from that moment; **Manage** next to the
+  row's title opens My Bookmarks for that video. Click a clip card to play the clip: in Jellyfin's own player when the
+  clip folder is in a library (so the clip is a library item), otherwise in the preview, as on My Clips. **My Clips**
+  next to the Clips row's title opens the page. On a TV remote, OK plays and the menu key opens the **⋮** menu; on a
+  phone the **⋮** button sits in the card's corner, as on Jellyfin's own cards.
 - **Export a playlist:** open the playlist and choose **Export to clips folder**. The dialog shows how many videos are
   joined, which are left out and why (music and photos, offline or missing files, discs and streams, videos you may not
   download), the running time, the picture size, the estimated size and time and the file name, with a warning over 3

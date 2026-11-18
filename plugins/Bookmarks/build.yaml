@@ -1,15 +1,15 @@
 ---
 name: "Bookmarks"
 guid: "d0ee1b2a-7f71-4654-8ff2-163a81441b03"
-version: "1.5.0.0"
+version: "1.6.0.0"
 targetAbi: "10.11.5.0"
 framework: "net9.0"
 overview: "Named per-user bookmarks, My Bookmarks and My Clips pages, and ffmpeg clip extraction"
 description: >
   Lets each user bookmark moments in movies and episodes, optionally with an
   end time and a name, and extract the bookmarked range into a clip file with
-  ffmpeg. Adds bookmark buttons and Shift+B to the web player, a bookmarks
-  list to item pages, a My Bookmarks page listing every bookmark and a My
+  ffmpeg. Adds bookmark buttons and Shift+B to the web player, Bookmarks
+  and Clips rows to item pages, a My Bookmarks page listing every bookmark and a My
   Clips page listing every clip, and imports Jellyfin Enhanced's bookmarks;
   no other plugin is needed for the web UI.
 category: "General"
@@ -17,6 +17,19 @@ owner: "NoRepine"
 artifacts:
 - "Jellyfin.Plugin.Bookmarks.dll"
 changelog: |
+  1.6.0
+  - Bookmarks and Clips rows on a video's page, in the same style as
+    its Scenes and Special Features rows, right after Scenes. Each
+    bookmark is a card showing the frame at that moment, its name and
+    time (a scissors when it has a clip); click it to play from there.
+    Each of your clips from that video is a card with its own artwork
+    or the frame at its start, its name, length and range; click it to
+    play it (a clip in a library plays in Jellyfin's player). The ⋮
+    menu on a card has every action the old "My bookmarks" list had
+    (name, edit, delete, make, cancel, preview, download or delete a
+    clip) and My Clips' actions for a clip; "Manage" opens My
+    Bookmarks for that video. They work with a mouse, a keyboard, a TV
+    remote and on a phone.
   1.5.0
   - Export a playlist to the clip folder: a playlist's page has Export
     to clips folder. Its videos (films, episodes, clips, any video) are

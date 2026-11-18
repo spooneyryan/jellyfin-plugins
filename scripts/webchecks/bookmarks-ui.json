@@ -1,5 +1,5 @@
 {
-  "name": "Bookmarks' web UI end to end (since 1.1 with its editor, rows and section: the Name field first and focused, the Note a textarea, rows by their display title, 'My bookmarks (n)'): the details section, the editor (invalid input, add, edit), the delete confirmation, the player buttons, the B shortcut (its toast offers Name it since 1.1), the player bookmarks list and its seek, and the range button. Every step saves a normalised DOM snapshot (probes/dom-snapshot.js), so two runs, before and after a change, can be compared with compare-snapshots.mjs (against Bookmarks 1.0: --ignore-classes dialog,emby-input,emby-select-withcolor,button-submit --ignore-attrs aria-label,aria-labelledby,id, which leaves only 1.0's stray 'null' text in the delete confirmation; scripts/README.md). Resets the admin's bookmarks on Long Test Movie to two known ones first (sandbox data only).",
+  "name": "Bookmarks' web UI end to end (since 1.1 with its editor, rows and section: the Name field first and focused, the Note a textarea, rows by their display title, 'My bookmarks (n)'; since 1.6.0 / 2.4.0 a Bookmarks row of cards with each one's actions in its menu): the details page's Bookmarks row, the editor (invalid input, add, edit), the delete confirmation, the player buttons, the B shortcut (its toast offers Name it since 1.1), the player bookmarks list and its seek, and the range button. Every step saves a normalised DOM snapshot (probes/dom-snapshot.js), so two runs, before and after a change, can be compared with compare-snapshots.mjs (against Bookmarks 1.0: --ignore-classes dialog,emby-input,emby-select-withcolor,button-submit --ignore-attrs aria-label,aria-labelledby,id, which leaves only 1.0's stray 'null' text in the delete confirmation; scripts/README.md). Resets the admin's bookmarks on Long Test Movie to two known ones first (sandbox data only).",
   "failOnException": false,
   "timeout": 30000,
   "steps": [
@@ -18,18 +18,18 @@
     },
     { "name": "open the details page", "goto": "/web/index.html#/details?id=${movieId}" },
     {
-      "name": "the Bookmarks section lists the two bookmarks",
-      "waitFor": "(() => { const s = document.querySelector('#itemDetailPage:not(.hide) .jfbm-section'); return !!s && !s.classList.contains('hide') && s.querySelector('h2').textContent === 'My bookmarks (2)' && s.querySelectorAll('.jfbm-row').length === 2; })()"
+      "name": "the Bookmarks row shows the two bookmarks as cards, by their display titles",
+      "waitFor": "(() => { const s = document.querySelector('#itemDetailPage:not(.hide) .jfbm-detail-bookmarks'); if (!s || s.classList.contains('hide') || s.querySelector('h2 > span').textContent !== 'Bookmarks') return false; const t = [...document.querySelectorAll('#itemDetailPage:not(.hide) .jfbm-detail-bookmarks .jfbm-bookmark-card')].map((c) => c.querySelector('.cardText-first').textContent); return t.length === 2 && t[0] === 'webcheck' && t[1] === 'webcheck-ui range'; })()"
     },
-    { "name": "snapshot: details section", "eval": "__domSnap('#itemDetailPage:not(.hide) .jfbm-section')", "save": "snapDetailsSection", "full": true },
+    { "name": "snapshot: the Bookmarks row", "eval": "__domSnap('#itemDetailPage:not(.hide) .jfbm-detail-bookmarks')", "save": "snapDetailsSection", "full": true },
     { "name": "snapshot: Add bookmark button", "eval": "__domSnap('#itemDetailPage:not(.hide) .mainDetailButtons .btnBookmarkItem')", "save": "snapAddButton", "full": true },
     {
       "name": "the Add bookmark button sits before the more-commands button",
       "assert": "(() => { const b = document.querySelector('#itemDetailPage:not(.hide) .mainDetailButtons .btnBookmarkItem'); return !!b && !!b.nextElementSibling && b.nextElementSibling.classList.contains('btnMoreCommands'); })()"
     },
     {
-      "name": "the section is the first child of the page content",
-      "assert": "(document.querySelector('#itemDetailPage:not(.hide) .detailPageContent') || document.querySelector('#itemDetailPage:not(.hide) .detailPageSecondaryContainer')).firstElementChild.classList.contains('jfbm-section')"
+      "name": "the Bookmarks row sits right after Jellyfin's Scenes row (there even when hidden), the Clips row right after it",
+      "assert": "(() => { const p = document.querySelector('#itemDetailPage:not(.hide)'); const scenes = p.querySelector('#scenesCollapsible'); const row = p.querySelector('.jfbm-detail-bookmarks'); const clips = p.querySelector('.jfbm-detail-clips'); return !!scenes && !!row && scenes.nextElementSibling === row && row.nextElementSibling === clips; })()"
     },
     { "screenshot": "bookmarks-ui-details.png" },
 
@@ -45,12 +45,12 @@
     { "name": "save", "click": ".jfbm-panel button[type=submit]" },
     { "name": "the editor closes and a toast confirms", "waitFor": "!document.querySelector('.jfbm-backdrop') && [...document.querySelectorAll('.jfbm-toast')].some(t => t.textContent === 'Bookmark added at 0:07.')" },
     { "name": "snapshot: toast after adding", "eval": "__domSnap('.jfbm-toasts')", "save": "snapToastAdded", "full": true },
-    { "name": "the section now lists three", "waitFor": "document.querySelector('#itemDetailPage:not(.hide) .jfbm-section h2').textContent === 'My bookmarks (3)'" },
-    { "name": "snapshot: details section with three", "eval": "__domSnap('#itemDetailPage:not(.hide) .jfbm-section')", "save": "snapDetailsSection3", "full": true },
+    { "name": "the row now shows three cards", "waitFor": "[...document.querySelectorAll('#itemDetailPage:not(.hide) .jfbm-detail-bookmarks .jfbm-bookmark-card')].length === 3" },
+    { "name": "snapshot: the Bookmarks row with three", "eval": "__domSnap('#itemDetailPage:not(.hide) .jfbm-detail-bookmarks')", "save": "snapDetailsSection3", "full": true },
 
     {
-      "name": "open the delete confirmation of the new bookmark",
-      "script": "const row = [...document.querySelectorAll('#itemDetailPage:not(.hide) .jfbm-row')].find(r => r.textContent.includes('webcheck-ui created')); row.querySelector('.jfbm-row-actions button[title=\"Delete\"]').click(); return true;"
+      "name": "open the delete confirmation of the new bookmark from its card's menu",
+      "script": "const c = [...document.querySelectorAll('#itemDetailPage:not(.hide) .jfbm-detail-bookmarks .jfbm-bookmark-card')].find((c) => c.textContent.indexOf('webcheck-ui created') !== -1); if (!c) throw new Error('no such card'); const more = c.querySelector('.cardOverlayButton-br button, button.cardOverlayButton-br'); if (more) { more.click(); } else { c.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true })); } const items = [...document.querySelectorAll('.jfbm-backdrop .jfbm-row-menu-item')]; const b = items.find((x) => x.lastElementChild.textContent === 'Delete'); if (!b) throw new Error('no Delete in the card menu: ' + items.map((x) => x.lastElementChild.textContent).join(', ')); if (b.disabled) throw new Error('Delete is disabled'); b.click(); return true;"
     },
     { "name": "the confirmation", "waitFor": "(() => { const p = document.querySelector('.jfbm-backdrop .jfbm-panel'); return !!p && p.querySelector('h3').textContent === 'Delete bookmark?'; })()" },
     { "name": "snapshot: delete confirmation", "eval": "__domSnap('.jfbm-backdrop')", "save": "snapDeleteConfirm", "full": true },
@@ -59,11 +59,11 @@
       "name": "confirm",
       "script": "[...document.querySelectorAll('.jfbm-panel .jfbm-actions button')].find(b => b.textContent === 'Delete').click(); return true;"
     },
-    { "name": "deleted, with a toast", "waitFor": "!document.querySelector('.jfbm-backdrop') && [...document.querySelectorAll('.jfbm-toast')].some(t => t.textContent === 'Bookmark deleted.') && document.querySelector('#itemDetailPage:not(.hide) .jfbm-section h2').textContent === 'My bookmarks (2)'" },
+    { "name": "deleted, with a toast", "waitFor": "!document.querySelector('.jfbm-backdrop') && [...document.querySelectorAll('.jfbm-toast')].some(t => t.textContent === 'Bookmark deleted.') && [...document.querySelectorAll('#itemDetailPage:not(.hide) .jfbm-detail-bookmarks .jfbm-bookmark-card')].length === 2" },
 
     {
-      "name": "open the range bookmark's editor",
-      "script": "const row = [...document.querySelectorAll('#itemDetailPage:not(.hide) .jfbm-row')].find(r => r.textContent.includes('webcheck-ui range')); row.querySelector('.jfbm-row-actions button[title=\"Edit\"]').click(); return true;"
+      "name": "open the range bookmark's editor from its card's menu",
+      "script": "const c = [...document.querySelectorAll('#itemDetailPage:not(.hide) .jfbm-detail-bookmarks .jfbm-bookmark-card')].find((c) => c.textContent.indexOf('webcheck-ui range') !== -1); if (!c) throw new Error('no such card'); const more = c.querySelector('.cardOverlayButton-br button, button.cardOverlayButton-br'); if (more) { more.click(); } else { c.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true })); } const items = [...document.querySelectorAll('.jfbm-backdrop .jfbm-row-menu-item')]; const b = items.find((x) => x.lastElementChild.textContent === 'Edit'); if (!b) throw new Error('no Edit in the card menu: ' + items.map((x) => x.lastElementChild.textContent).join(', ')); if (b.disabled) throw new Error('Edit is disabled'); b.click(); return true;"
     },
     {
       "name": "the Edit bookmark editor with the stored times, the note and the range length, Name focused",
@@ -126,7 +126,7 @@
     { "name": "Escape closes it", "key": "Escape" },
     { "name": "closed", "waitFor": "!document.querySelector('.jfbm-backdrop')" },
     { "name": "leave the player", "goto": "/web/index.html#/details?id=${movieId}" },
-    { "name": "details page again", "waitFor": "(() => { const s = document.querySelector('#itemDetailPage:not(.hide) .jfbm-section'); return !!s && s.querySelector('h2').textContent === 'My bookmarks (3)'; })()", "timeout": 20000 },
+    { "name": "details page again", "waitFor": "((s) => !!s && !s.classList.contains('hide'))(document.querySelector('#itemDetailPage:not(.hide) .jfbm-detail-bookmarks')) && [...document.querySelectorAll('#itemDetailPage:not(.hide) .jfbm-detail-bookmarks .jfbm-bookmark-card')].length === 3", "timeout": 20000 },
     {
       "name": "remove the bookmark made with B",
       "script": "for (const b of await ApiClient.getJSON(ApiClient.getUrl('Bookmarks', { itemId: __vars.movieId }))) { if (!b.Note) { await ApiClient.ajax({ type: 'DELETE', url: ApiClient.getUrl('Bookmarks/' + b.Id, { deleteClip: 'true' }) }); } } return (await ApiClient.getJSON(ApiClient.getUrl('Bookmarks', { itemId: __vars.movieId }))).length;"

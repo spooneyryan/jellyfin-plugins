@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Bookmarks' My Bookmarks page in a running sandbox, in the web client, with the server's side of it: the webchecks page-bookmarks.json (as admin: the
 // page on its fallback route (#/<prefix>-<key>), the toolbar, both views, every sort, paging, the state in the hash, deep links, Back and
-// Forward, See all, Open title and Back, the four filters), page-bookmarks-off.json (as admin: EnableBookmarksPage off
+// Forward, Manage on a video's Bookmarks row, Open title and Back, the four filters), page-bookmarks-off.json (as admin: EnableBookmarksPage off
 // and back on, through the configuration API), and page-unavailable.json (viewer's group Unavailable while
 // the admin takes a library away, and back), page-actions.json (admin: the inline rename with a 409, the point
 // bookmark's scissors, the bulk delete with and without the clips, a Select all over 205 rows
@@ -450,7 +450,7 @@ async function run() {
         cleanup: page.value('clean-up: the seeded bookmarks deleted with their clip')
     };
     const missing = evidence.page.missing;
-    check('3. page-bookmarks.json (admin): the Library tools link, the grouped and flat views with each view\'s sort list (Recently created and Position in title in the API\'s order), paging, the state in the hash (sort, type, filters, search, deep link reload, Back and Forward), Not in library showing the detached seed with the API\'s count, See all, Open title and Back (the group marked once), the shell',
+    check('3. page-bookmarks.json (admin): the Library tools link, the grouped and flat views with each view\'s sort list (Recently created and Position in title in the API\'s order), paging, the state in the hash (sort, type, filters, search, deep link reload, Back and Forward), Not in library showing the detached seed with the API\'s count, Manage on the Bookmarks row, Open title and Back (the group marked once), the shell',
         page.ok && !!missing && missing.api >= 1 && missing.seeded === true, { exit: page.exit, failed: page.failed, missing });
 
     // ---- 4. the page turned off
@@ -459,7 +459,7 @@ async function run() {
         const after = await getConfiguration();
         evidence.off = { ok: off.ok, exit: off.exit, seconds: off.seconds, steps: off.steps, failed: off.failed, failedRequests: off.failedRequests, closed: off.closed,
             route: off.value('the note under the page\'s own title, no \'Page not found\', no toolbar'), shell: off.value('the shell: 200 text/html, the note, no page marker'), enabledAfter: after.EnableBookmarksPage };
-        check('4. page-bookmarks-off.json (admin): with EnableBookmarksPage off no link, the route and the shell show "My Bookmarks is turned off by your server admin." (200, no marker), the capabilities say so, no See all (My Clips still linked), no My Bookmarks link in the My Clips page\'s header; on again, the link is back',
+        check('4. page-bookmarks-off.json (admin): with EnableBookmarksPage off no link, the route and the shell show "My Bookmarks is turned off by your server admin." (200, no marker), the capabilities say so, no Manage on the Bookmarks row (My Clips still linked on the Clips row), no My Bookmarks link in the My Clips page\'s header; on again, the link is back',
             off.ok && after.EnableBookmarksPage === true, { exit: off.exit, failed: off.failed, enabledAfter: after.EnableBookmarksPage });
     }
 

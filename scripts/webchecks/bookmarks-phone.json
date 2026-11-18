@@ -1,5 +1,5 @@
 {
-  "name": "Bookmarks' web UI at phone width: a 390x844 touch viewport, where kit.css's phone rules apply that Bookmarks 1.0 didn't have: dialogs as bottom sheets (max-width 40em), icon buttons of at least 40 px (pointer: coarse), and borders in forced-colors mode. Screenshots of the details section, the editor and the player's bookmarks list, with the measurements saved as evidence. Resets the admin's bookmarks on Long Test Movie to two known ones first (sandbox data only).",
+  "name": "Bookmarks' web UI at phone width: a 390x844 touch viewport, where kit.css's phone rules apply that Bookmarks 1.0 didn't have: dialogs as bottom sheets (max-width 40em), icon buttons of at least 40 px (pointer: coarse), and borders in forced-colors mode. Screenshots of the details page's Bookmarks row (cards since 1.6.0 / 2.4.0), the editor and the player's bookmarks list, with the measurements saved as evidence. Resets the admin's bookmarks on Long Test Movie to two known ones first (sandbox data only).",
   "failOnException": false,
   "timeout": 30000,
   "steps": [
@@ -22,17 +22,17 @@
     },
     { "name": "open the details page", "goto": "/web/index.html#/details?id=${movieId}" },
     {
-      "name": "the Bookmarks section lists the two bookmarks",
-      "waitFor": "(() => { const s = document.querySelector('#itemDetailPage:not(.hide) .jfbm-section'); return !!s && !s.classList.contains('hide') && s.querySelectorAll('.jfbm-row').length === 2; })()"
+      "name": "the Bookmarks row shows the two bookmarks as cards",
+      "waitFor": "((s) => !!s && !s.classList.contains('hide'))(document.querySelector('#itemDetailPage:not(.hide) .jfbm-detail-bookmarks')) && [...document.querySelectorAll('#itemDetailPage:not(.hide) .jfbm-detail-bookmarks .jfbm-bookmark-card')].length === 2"
     },
     {
-      "name": "the rows wrap at phone width and their icon buttons are touch-sized",
-      "script": "const rows = [...document.querySelectorAll('#itemDetailPage:not(.hide) .jfbm-section .jfbm-row')]; const buttons = rows.flatMap(r => [...r.querySelectorAll('.jfbm-icon-button')]); const sizes = buttons.map(b => { const r = b.getBoundingClientRect(); return [Math.round(r.width), Math.round(r.height)]; }); return { rowWrap: getComputedStyle(rows[0]).flexWrap, sizes, ok: getComputedStyle(rows[0]).flexWrap === 'wrap' && buttons.length >= 4 && sizes.every(([w, h]) => w >= 40 && h >= 40) };",
+      "name": "at phone width the row scrolls sideways inside itself (the page never does), a card is narrower than the screen, and the cards' play and more buttons are touch-sized (40 px under a coarse pointer)",
+      "script": "const cards = [...document.querySelectorAll('#itemDetailPage:not(.hide) .jfbm-detail-bookmarks .jfbm-bookmark-card')]; const buttons = cards.flatMap(c => [...c.querySelectorAll('button')]); const sizes = buttons.map(b => { const r = b.getBoundingClientRect(); return [Math.round(r.width), Math.round(r.height)]; }); const cardWidth = Math.round(cards[0].getBoundingClientRect().width); const pageScroll = document.documentElement.scrollWidth > innerWidth; return { cardWidth, pageScroll, sizes, ok: !pageScroll && cardWidth > 0 && cardWidth < innerWidth && buttons.length >= 4 && sizes.every(([w, h]) => w >= 40 && h >= 40) };",
       "save": "detailsRows",
       "full": true
     },
-    { "name": "details rows as expected", "assert": "__vars.detailsRows.ok", "message": "the details rows don't wrap or have icon buttons under 40 px" },
-    { "name": "scroll the section into view", "script": "document.querySelector('#itemDetailPage:not(.hide) .jfbm-section').scrollIntoView({ block: 'start' }); return true;" },
+    { "name": "the cards as expected", "assert": "__vars.detailsRows.ok", "message": "the Bookmarks row's cards overflow the phone or have buttons under 40 px" },
+    { "name": "scroll the row into view", "script": "document.querySelector('#itemDetailPage:not(.hide) .jfbm-detail-bookmarks').scrollIntoView({ block: 'start' }); return true;" },
     { "sleep": 300 },
     { "screenshot": "bookmarks-phone-details.png" },
 
@@ -83,7 +83,7 @@
     { "name": "Escape closes the list", "key": "Escape" },
     { "name": "closed", "waitFor": "!document.querySelector('.jfbm-backdrop')" },
     { "name": "leave the player", "goto": "/web/index.html#/details?id=${movieId}" },
-    { "name": "details page again", "waitFor": "(() => { const s = document.querySelector('#itemDetailPage:not(.hide) .jfbm-section'); return !!s && s.querySelectorAll('.jfbm-row').length === 2; })()", "timeout": 20000 },
+    { "name": "details page again", "waitFor": "((s) => !!s && !s.classList.contains('hide'))(document.querySelector('#itemDetailPage:not(.hide) .jfbm-detail-bookmarks')) && [...document.querySelectorAll('#itemDetailPage:not(.hide) .jfbm-detail-bookmarks .jfbm-bookmark-card')].length === 2", "timeout": 20000 },
     { "name": "back to the desktop viewport", "emulate": "desktop" },
     { "name": "no uncaught exceptions (the stale CustomRatings tag, and jellyfin-web's own 'player cannot be null' when the player is left, excepted)", "noExceptions": true, "ignore": "/CustomRatings/script|^Error: player cannot be null" }
   ]

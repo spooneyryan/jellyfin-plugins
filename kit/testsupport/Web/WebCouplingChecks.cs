@@ -69,7 +69,7 @@ public static partial class WebCouplingChecks
         ["--jf-palette-background-", "--jf-palette-text-", "--jf-palette-primary-contrastText"];
 
     // Native class names that are also plain words (role="dialog", "card", ...): only whole literals equal to them count.
-    private static readonly HashSet<string> _plainWords = new(StringComparer.Ordinal) { "card", "dialog", "hide", "raised", "secondary" };
+    private static readonly HashSet<string> _plainWords = new(StringComparer.Ordinal) { "card", "dialog", "hide", "indicator", "raised", "secondary" };
 
     private static readonly string[] _htmlSinks = ["innerHTML", "outerHTML", "insertAdjacentHTML", "document.write"];
 

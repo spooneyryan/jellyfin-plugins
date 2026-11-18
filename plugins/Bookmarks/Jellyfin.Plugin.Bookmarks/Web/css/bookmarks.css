@@ -18,7 +18,8 @@
 .jfbm-badge{display:inline-block;font-size:.75em;line-height:1.5;padding:0 .55em;border:1px solid currentColor;border-radius:1em;white-space:nowrap;opacity:.85}
 .jfbm-badge-relinked{color:var(--jfbm-warning);opacity:1}
 .jfbm-row-actions{display:flex;gap:.1em}
-.jfbm-section-links{display:flex;flex-wrap:wrap;gap:1.2em;margin:-.4em 0 .6em}
+/* The details page's Bookmarks and Clips rows (52-detail-rows.js): kit.cardRow and kit.rowCard; a card's note is its tooltip. */
+.jfbm-card-warning{color:var(--jfbm-warning)}
 .jfbm-error-row{display:flex;flex-wrap:wrap;align-items:baseline;gap:0 .8em}
 .jfbm-error-row .jfbm-error{flex:1;min-width:10em}
 .jfbm-delete-hint{font-size:.9em;opacity:.8;margin:-.2em 0 .8em}

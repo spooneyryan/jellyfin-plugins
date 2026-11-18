@@ -12,7 +12,7 @@
 // <kit-native-classes>
 // Native styling classes. The kit writes them on its own nodes so they look native; plugins get them only through the
 // kit's markup helpers (kit.card, kit.listItem, kit.list, kit.grid, kit.button, kit.input, kit.textarea, kit.dialog,
-// kit.osdButton, kit.detailButton, kit.headerButton, kit.section, kit.setHidden). Theme colours come from these classes (theme.css), never
+// kit.osdButton, kit.detailButton, kit.headerButton, kit.section, kit.cardRow, kit.rowCard, kit.setHidden). Theme colours come from these classes (theme.css), never
 // from --jf-palette-* surface or text variables.
 const KIT_NATIVE_CLASSES = Object.freeze({
     icon: 'material-icons',
@@ -92,7 +92,32 @@ const KIT_NATIVE_CLASSES = Object.freeze({
     smoothScrollY: 'smoothScrollY',
     dialogContentInner: 'dialogContentInner',
     dialogContentCentered: 'dialog-content-centered',
-    btnCancel: 'btnCancel'
+    btnCancel: 'btnCancel',
+    // kit.cardRow and kit.rowCard: a details page's horizontally scrolling row of cards, shaped like jellyfin-web 10.11's and
+    // 12's own (Scenes, Special Features, Cast & Crew: a verticalSection with an emby-scroller over a scrollSlider, and
+    // overflowBackdrop cards with the hover overlay on the desktop layout, show-focus cards on the TV layout, the "more"
+    // button alone in the image's corner on the mobile layout).
+    verticalSectionExtraBottom: 'verticalSection-extrabottompadding',
+    scroller: 'emby-scroller',
+    scrollerPaddedTop: 'padded-top-focusscale',
+    scrollerPaddedBottom: 'padded-bottom-focusscale',
+    noPadding: 'no-padding',
+    scrollSlider: 'scrollSlider',
+    focusContainerX: 'focuscontainer-x',
+    overflowBackdropCard: 'overflowBackdropCard',
+    overflowBackdropPadder: 'cardPadder-overflowBackdrop',
+    cardHoverable: 'card-hoverable',
+    showFocus: 'show-focus',
+    cardIndicators: 'cardIndicators',
+    cardIndicator: 'indicator',
+    cardIndicatorIcon: 'indicatorIcon',
+    cardOverlayContainer: 'cardOverlayContainer',
+    cardOverlayButton: 'cardOverlayButton',
+    cardOverlayButtonHover: 'cardOverlayButton-hover',
+    cardOverlayFabPrimary: 'cardOverlayFab-primary',
+    cardOverlayButtonBr: 'cardOverlayButton-br',
+    cardOverlayButtonIcon: 'cardOverlayButtonIcon',
+    cardOverlayButtonIconHover: 'cardOverlayButtonIcon-hover'
 });
 // </kit-native-classes>
 
@@ -782,6 +807,189 @@ function createKit(build, css, options) {
         return { section: h('div', attrs, [title, body]), title: title, body: body };
     };
 
+    // A details page's row of cards (Bookmarks 1.6.0 / 2.4.0's Bookmarks and Clips rows), shaped like jellyfin-web's own
+    // Scenes and Special Features rows: { section, heading, title, links, slider, setTitle(text), setCards(cards) }. The
+    // heading is the native plain h2 (a sectionTitleContainer spaces differently), with the title text and a span for
+    // the plugin's links (a "Manage" link) inside it. setCards puts a fresh emby-scroller over a scrollSlider in each
+    // time, so jellyfin-web's scroller measures the new content and adds its arrows (desktop) or centres the focus (TV)
+    // as for its own rows; the slider is never an emby-itemscontainer, so its clicks stay the plugin's. Except within
+    // the frame a scroller was made in: jellyfin-web's scroll buttons measure once in the next frame and throw ("t.
+    // scrollHandler is not a function") when their scroller has left the page by then, so a scroller that young keeps
+    // its place and only its slider's cards change (the pending measure sees them). No cards hide the section (it
+    // starts hidden).
+    kit.cardRow = function (opts) {
+        const titleText = h('span', { text: opts.title });
+        const links = h('span', { class: cls('row-links') });
+        const heading = h('h2', { class: classes(N.sectionTitle, N.sectionTitleCards, N.paddedRight) }, [titleText, links]);
+        const attrs = Object.assign({}, opts.attrs || {});
+        attrs.class = classes(N.verticalSection, N.detailVerticalSection, N.verticalSectionExtraBottom, opts.className, N.hide);
+        const section = h('div', attrs, heading);
+        const row = { section: section, heading: heading, title: titleText, links: links, slider: null };
+        row.setTitle = function (text) {
+            titleText.textContent = text;
+        };
+        let young = false;
+        row.setCards = function (cards) {
+            cards = (cards || []).filter(Boolean);
+            if (young && row.slider) {
+                row.slider.replaceChildren.apply(row.slider, cards);
+            } else {
+                while (heading.nextSibling) {
+                    heading.nextSibling.remove();
+                }
+
+                row.slider = h('div', { class: classes(N.scrollSlider, N.focusContainerX, N.itemsContainer, cls('row-slider')) }, cards);
+                section.append(h('div', {
+                    is: N.scroller,
+                    class: classes(N.scrollerPaddedTop, N.scrollerPaddedBottom, N.noPadding),
+                    'data-centerfocus': 'true'
+                }, row.slider));
+                if (section.isConnected) {
+                    young = true;
+                    (window.requestAnimationFrame || window.setTimeout)(function () {
+                        young = false;
+                    });
+                }
+            }
+
+            kit.setHidden(section, cards.length === 0);
+            if (section.isConnected && cards.length) {
+                kit.upgrade(section);
+            }
+
+            return row.slider;
+        };
+        return row;
+    };
+
+    // A card for kit.cardRow, shaped like jellyfin-web's own overflowBackdrop cards (its Special Features cards) for the
+    // layout in use: on the desktop the hover overlay with a play button and a "more" button (card-hoverable); on the TV
+    // layout the card itself is the focus stop (show-focus, as jellyfin-web's TV cards); on the mobile layout the "more"
+    // button alone in the image's bottom right corner, always shown (cardOverlayButton-br without an overlay, as
+    // jellyfin-web's mobile cards). opts: title; lines (strings or
+    // nodes under it); image ({ url, size, position }: a background image, with a background-size and -position for one
+    // tile of a sprite sheet); icon (the image box's icon without an image); indicator (a Material icon in the corner);
+    // label (the accessible name); playTitle and moreTitle (the buttons' titles); onPlay(event) (a click on the image,
+    // Enter or Space); onMenu(anchor) (the "more" button, a right click or long press, or a remote's menu key: the
+    // command event); className; attrs. The card carries no data-id, so jellyfin-web's and other plugins' item menus
+    // never take it for one of their items.
+    kit.rowCard = function (opts) {
+        const tv = kit.layout.isTv();
+        const desktop = !tv && !kit.layout.isMobile();
+        const img = opts.image && opts.image.url ? opts.image : null;
+        const playTitle = opts.playTitle || 'Play';
+        const moreTitle = opts.moreTitle || 'More';
+        let root = null;
+        function play(event) {
+            if (event) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+
+            opts.onPlay(event);
+        }
+
+        function menu(event, anchor) {
+            if (event) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+
+            opts.onMenu(anchor || root);
+        }
+
+        function moreButton(className, iconClass) {
+            return h('button', {
+                is: N.iconButton,
+                type: 'button',
+                class: className,
+                title: moreTitle,
+                'aria-label': moreTitle + (opts.label ? ': ' + opts.label : ''),
+                onclick: function (event) {
+                    menu(event, event.currentTarget);
+                }
+            }, h('span', { class: classes(N.icon, iconClass, 'more_vert'), 'aria-hidden': 'true' }));
+        }
+
+        const imageBox = h('div', {
+            class: classes(N.cardImageContainer, N.coveredImage, N.cardContent, img ? null : N.defaultCardBackground, cls('rowcard-image'))
+        }, [
+            img ? null : kit.icon(opts.icon || 'movie', N.cardImageIcon),
+            opts.indicator ? h('div', { class: N.cardIndicators }, h('div', { class: classes(N.cardIndicator, cls('rowcard-indicator')) }, kit.icon(opts.indicator, N.cardIndicatorIcon))) : null
+        ]);
+        // A tile whose shape isn't the card's 16:9 (img.aspect, its width over its height) sits whole in a box of its
+        // own shape in the middle, letterboxed, so a sprite's percentages never stretch it.
+        const framed = !!img && typeof img.aspect === 'number' && img.aspect > 0 && Math.abs(img.aspect - 16 / 9) > 0.02;
+        const painted = framed ? h('span', { class: cls('rowcard-frame') }) : imageBox;
+        if (img) {
+            painted.style.backgroundImage = 'url("' + String(img.url).replace(/["\\\n\r]/g, encodeURIComponent) + '")';
+            if (img.size) {
+                painted.style.backgroundSize = img.size;
+            }
+
+            if (img.position) {
+                painted.style.backgroundPosition = img.position;
+            }
+        }
+
+        if (framed) {
+            painted.style.aspectRatio = String(img.aspect);
+            painted.style[img.aspect > 16 / 9 ? 'width' : 'height'] = '100%';
+            imageBox.classList.add(cls('rowcard-letterbox'));
+            imageBox.insertBefore(painted, imageBox.firstChild);
+        }
+
+        const scalable = [h('div', { class: classes(N.cardPadder, N.overflowBackdropPadder) }), imageBox];
+        if (!desktop && !tv && opts.onMenu) {
+            scalable.push(moreButton(classes(N.cardOverlayButton, N.cardOverlayButtonBr, N.iconButton, cls('rowcard-more')), N.cardOverlayButtonIcon));
+        }
+
+        if (desktop) {
+            scalable.push(h('div', { class: classes(N.cardOverlayContainer, cls('rowcard-overlay')), onclick: play }, [
+                h('button', {
+                    is: N.iconButton,
+                    type: 'button',
+                    class: classes(N.cardOverlayButton, N.cardOverlayButtonHover, N.iconButton, N.cardOverlayFabPrimary, cls('rowcard-play')),
+                    title: playTitle,
+                    'aria-label': playTitle + (opts.label ? ': ' + opts.label : ''),
+                    onclick: play
+                }, h('span', { class: classes(N.icon, N.cardOverlayButtonIcon, N.cardOverlayButtonIconHover, 'play_arrow'), 'aria-hidden': 'true' })),
+                opts.onMenu ? h('div', { class: N.cardOverlayButtonBr }, moreButton(classes(N.cardOverlayButton, N.cardOverlayButtonHover, N.iconButton, cls('rowcard-more')), classes(N.cardOverlayButtonIcon, N.cardOverlayButtonIconHover))) : null
+            ]));
+        }
+
+        const texts = [h('div', { class: classes(N.cardText, N.cardTextCentered, N.cardTextFirst) }, h('bdi', { text: opts.title || '' }))]
+            .concat((opts.lines || []).filter(Boolean).map(function (line) {
+                return h('div', { class: classes(N.cardText, N.cardTextCentered, N.cardTextSecondary) }, typeof line === 'string' ? h('bdi', { text: line }) : line);
+            }));
+        const attrs = Object.assign({}, opts.attrs || {});
+        attrs.class = classes(N.card, N.overflowBackdropCard, desktop ? N.cardHoverable : null, tv ? N.showFocus : null, cls('rowcard'), opts.className);
+        root = h('div', attrs, h('div', { class: classes(N.cardBox, N.cardBoxPadded) }, [h('div', { class: N.cardScalable }, scalable)].concat(texts)));
+        // The focus stop: the card itself on TV (as jellyfin-web's TV cards), the image box elsewhere (the overlay shows
+        // while the focus is inside the card, .card-hoverable:focus-within).
+        const stop = tv ? root : imageBox;
+        stop.setAttribute('role', 'button');
+        stop.setAttribute('aria-label', opts.label || opts.title || '');
+        kit.makeFocusable(stop);
+        stop.addEventListener('keydown', function (event) {
+            if ((event.key === 'Enter' || event.key === ' ') && event.target === stop) {
+                play(event);
+            }
+        });
+        stop.addEventListener('click', play);
+        if (opts.onMenu) {
+            root.addEventListener('contextmenu', function (event) {
+                menu(event, root);
+            });
+            root.addEventListener(A.menuTriggers.commandEvent, function (event) {
+                if (event.detail && event.detail.command === A.menuTriggers.menuCommand) {
+                    menu(event, root);
+                }
+            });
+        }
+
+        return root;
+    };
     // ------------------------------------------------------------------ item markup
     // Own card and row markup with native styling classes, never emby-itemscontainer. Item
     // cards and rows carry data-id (N format) and data-type like native ones, so Jellyfin Enhanced's Hidden Content

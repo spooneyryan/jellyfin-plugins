@@ -157,3 +157,22 @@ html.layout-tv .jfbm-clip-rename-file-box{font-size:inherit;width:1.4em;height:1
 @media (pointer:coarse){.jfbm-clips-toolbar .jfbm-searchbox,.jfbm-clips-toolbar .jfbm-clips-filter,.jfbm-clips-toolbar .jfbm-checkbox,.jfbm-list-toolbar-links a,.jfbm-clips-header .jfbm-link{min-height:40px}.jfbm-clips-header .jfbm-link,.jfbm-list-toolbar-links a{display:inline-flex;align-items:center}}
 @media (max-width:40em){.jfbm-row{flex-wrap:wrap}.jfbm-row-actions{margin-left:auto}.jfbm-time-button{min-width:0}.jfbm-group-rows{padding-left:0}.jfbm-page-toolbar .jfbm-searchbox{flex-basis:100%}.jfbm-page-header{justify-content:flex-start}.jfbm-page-content .jfbm-row-actions>.jfbm-icon-button:not(.jfbm-row-more),.jfbm-clips-content .jfbm-row-actions>.jfbm-icon-button:not(.jfbm-row-more){display:none}.jfbm-page-content .jfbm-row-more,.jfbm-clips-content .jfbm-row-more{display:inline-flex}.jfbm-bulk-bar{border-radius:.4em .4em 0 0}}
 @media (pointer:coarse){.jfbm-rename .jfbm-icon-button,.jfbm-page-segment,.jfbm-bulk-bar .jfbm-button,.jfbm-page-options,.jfbm-page-count .jfbm-link{min-height:40px}}
+/* The player's Adjust bar (since 1.4.0): over the video near the top, clear of jellyfin-web's header and controls,
+   under our dialogs; always dark, as the player is. Its buttons at least 40 px on a touch screen; on a phone the times
+   wrap and the actions fill the width. */
+.jfbm-adjust{position:fixed;left:50%;top:calc(4.5em + env(safe-area-inset-top,0px));transform:translateX(-50%);z-index:99990;box-sizing:border-box;width:max-content;max-width:calc(100vw - 1.5em);background:#141414;color:rgba(255,255,255,.92);border-radius:.5em;box-shadow:0 6px 24px rgba(0,0,0,.6);padding:.7em .9em .5em;font-size:1rem}
+.jfbm-adjust-heading{display:flex;align-items:center;gap:.45em;font-weight:600;margin-bottom:.3em;min-width:0}
+.jfbm-adjust-title{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.jfbm-adjust-times{display:flex;flex-wrap:wrap;gap:.2em 1.2em;font-size:.9em;font-variant-numeric:tabular-nums;margin-bottom:.5em}
+.jfbm-adjust-now{opacity:.75}
+.jfbm-adjust-actions{display:flex;flex-wrap:wrap;align-items:center;gap:.45em}
+.jfbm-adjust-steps{display:inline-flex;gap:.3em}
+.jfbm-adjust-spacer{flex:1 1 0;min-width:.5em}
+.jfbm-adjust .jfbm-adjust-button{padding:.5em .85em}
+.jfbm-adjust .jfbm-adjust-back,.jfbm-adjust .jfbm-adjust-forward{padding:.4em .55em}
+.jfbm-adjust .jfbm-adjust-button:focus-visible{outline:2px solid var(--jfbm-accent);outline-offset:2px}
+html.layout-tv .jfbm-adjust .jfbm-adjust-button:focus{outline:2px solid var(--jfbm-accent);outline-offset:2px}
+.jfbm-adjust .jfbm-adjust-hint{margin:.45em 0 0}
+.jfbm-adjust .jfbm-adjust-error{margin:.3em 0 0;min-height:0}
+@media (pointer:coarse){.jfbm-adjust .jfbm-adjust-button{min-height:40px;min-width:40px;justify-content:center}}
+@media (max-width:40em){.jfbm-adjust{width:calc(100vw - 1.5em);top:calc(3.8em + env(safe-area-inset-top,0px));padding:.6em .7em .45em}.jfbm-adjust-spacer{display:none}.jfbm-adjust-actions .jfbm-adjust-save{margin-left:auto}}

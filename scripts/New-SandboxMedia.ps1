@@ -25,7 +25,9 @@ Standard set (Initialize-Sandbox.ps1 creates one library per top folder):
                  ("LM Edition Pair - Extended (2003)"); a poster.jpg for the first of each pair
   LM Duplicates 2\ the Confirmed pair's other half (rated R in its NFO, for a parental limit's check)
   Player Tracks\ "Multi Track (2021)": two audio tracks (English 440 Hz, French 660 Hz) and two SRT subtitle tracks
-                 (English, French), for the player's track sheets; not in
+                 (English, French), for the player's track sheets; "Frame Counter (2023)" (H.264 MP4, 25 fps) and
+                 "Frame Counter Transcode (2023)" (MPEG-2, 29.97 fps, transcoded), each frame showing its number as
+                 text and as a 12-bit code, for the player's frame stepping; not in
                  media-set.json, and its library only with Initialize-Sandbox.ps1 -PlayerTracks
 
 Synthetic scale seed (one shared definition for every plan's timing work):
@@ -318,6 +320,39 @@ if (-not (Test-Path -LiteralPath $multiTrack) -or $Force) {
     if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $partial)) { throw "ffmpeg failed to create $multiTrack." }
     Move-Item -LiteralPath $partial -Destination $multiTrack -Force
     Write-Host "Player tracks: $multiTrack"
+}
+
+# Frame counters for the player's frame stepping (Bookmarks 1.4.0 / 2.2.0): every frame shows its own number, as text
+# and as a 12-bit code in the top band (bit 0 the leftmost of 12 equal cells, white for 1), which a check reads back
+# from the <video> through a canvas to prove that a step moved exactly one frame. "Frame Counter (2023)" is H.264 in
+# MP4 at 25 fps, which browsers play directly; "Frame Counter Transcode (2023)" is MPEG-2 at 30000/1001 fps, which no
+# browser plays, so Jellyfin transcodes it (HLS). In Player Tracks, so only Initialize-Sandbox.ps1 -PlayerTracks gives
+# them a library.
+$frameFont = Join-Path $env:WINDIR 'Fonts\consola.ttf'
+$frameCounters = @(
+    @{ Path = 'Player Tracks\Frame Counter (2023)\Frame Counter (2023).mp4'; Rate = '25'; Video = @('-c:v', 'libx264', '-preset', 'veryfast', '-crf', '18', '-pix_fmt', 'yuv420p', '-g', '50'); Audio = @('-c:a', 'aac', '-b:a', '64k'); Extra = @('-movflags', '+faststart') }
+    @{ Path = 'Player Tracks\Frame Counter Transcode (2023)\Frame Counter Transcode (2023).mkv'; Rate = '30000/1001'; Video = @('-c:v', 'mpeg2video', '-q:v', '2', '-g', '15', '-pix_fmt', 'yuv420p'); Audio = @('-c:a', 'mp2', '-b:a', '128k'); Extra = @() }
+)
+foreach ($counter in $frameCounters) {
+    $target = Join-Path $MediaRoot $counter.Path
+    if ((Test-Path -LiteralPath $target) -and -not $Force) { continue }
+    New-Item -ItemType Directory -Force -Path (Split-Path -Parent $target) | Out-Null
+    $extension = [IO.Path]::GetExtension($target)
+    $partial = $target + '.partial' + $extension
+    $filter = "geq=lum='if(lt(Y,60),255*mod(floor(N/pow(2,floor(X*12/W))),2),64)':cb=128:cr=128"
+    if (Test-Path -LiteralPath $frameFont) {
+        $font = $frameFont.Replace('\', '/').Replace(':', '\:')
+        $filter += ",drawtext=fontfile='$font':text='frame %{frame_num}':fontsize=72:fontcolor=white:x=(w-text_w)/2:y=(h-text_h)/2+30"
+    }
+
+    $ffmpegArgs = @('-hide_banner', '-loglevel', 'error', '-nostdin', '-y',
+        '-f', 'lavfi', '-i', ('color=c=black:size=640x360:rate={0}:duration=20' -f $counter.Rate),
+        '-f', 'lavfi', '-i', 'sine=frequency=440:sample_rate=48000:duration=20',
+        '-map', '0:v', '-map', '1:a', '-vf', $filter) + $counter.Video + $counter.Audio + @('-shortest') + $counter.Extra + @($partial)
+    & $FfmpegPath @ffmpegArgs
+    if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $partial)) { throw "ffmpeg failed to create $target." }
+    Move-Item -LiteralPath $partial -Destination $target -Force
+    Write-Host "Frame counter: $target"
 }
 
 # ------------------------------------------------------------------------------------------ synthetic seed

@@ -205,6 +205,26 @@ test('update follows a settings change, an empty or invalid combination binds no
     assert.throws(() => kit.shortcuts.bind('B'), { name: 'TypeError', message: 'kit.shortcuts.bind needs a handler' });
 });
 
+test('repeat: true takes a held key\'s repeats for that binding only; the other rules still apply to them', () => {
+    const { kit, page } = setup();
+    const fired = [];
+    kit.shortcuts.bind('.', (event) => fired.push('step' + (event.repeat ? ' repeat' : '')), { repeat: true });
+    kit.shortcuts.bind('Shift+B', () => fired.push('bookmark'));
+
+    assert.equal(page.key(page.document.body, '.'), false);
+    assert.equal(page.key(page.document.body, '.', { repeat: true }), false, 'a repeat is handled (default prevented)');
+    assert.equal(page.key(page.document.body, 'B', { shiftKey: true, repeat: true }), true, 'the other binding still skips repeats');
+    assert.deepEqual(fired, ['step', 'step repeat']);
+
+    const input = page.element('input');
+    page.document.body.append(input);
+    assert.equal(page.key(input, '.', { repeat: true }), true, 'never in a text field');
+    const prevented = new page.Event('keydown', { bubbles: true, cancelable: true, key: '.', repeat: true });
+    prevented.preventDefault();
+    page.document.body.dispatchEvent(prevented);
+    assert.deepEqual(fired, ['step', 'step repeat'], 'never a key another listener handled');
+});
+
 test('the first matching binding handles a press, and a handler that throws is reported, not thrown', () => {
     const { kit, page } = setup();
     const order = [];

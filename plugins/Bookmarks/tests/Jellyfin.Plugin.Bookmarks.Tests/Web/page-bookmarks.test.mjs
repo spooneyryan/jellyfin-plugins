@@ -1808,7 +1808,7 @@ test('Player options: the preferences read fresh, the three AskForName states an
     assert.equal(panel(page, 'Player options'), null);
     assert.deepEqual(toasts(page), ['Player options saved.']);
     assert.equal(t.content.querySelector('.jfbm-notice-text').textContent, 'No bookmarks yet. Press Shift+Y while watching, or use the bookmark button in the player.', 'the empty state names the device\'s key');
-    assert.deepEqual(plain(page.context.__jfkit.jfbm.instance.shortcuts.bindings()), ['Shift+Y'], 'the player\'s binding follows at once');
+    assert.deepEqual(plain(page.context.__jfkit.jfbm.instance.shortcuts.bindings()), ['Shift+Y', ',', '.'], 'the player\'s binding follows at once (the frame keys after it)');
 
     // Open again: the preferences as the server has them now, the override in the field; Never and the server's key.
     page.respond('GET', '/Bookmarks/Preferences', { AskForName: true, PauseWhileNaming: true });
@@ -1847,7 +1847,7 @@ test('Player options: the preferences read fresh, the three AskForName states an
     assert.deepEqual(page.fetchLog.filter((f) => f.method === 'POST' && f.path === '/Bookmarks/Preferences')[2].body, { AskForName: null, PauseWhileNaming: true });
     assert.equal(page.context.localStorage.getItem('jfbm:shortcut:bookmarkNow'), '""');
     assert.equal(t.content.querySelector('.jfbm-notice-text').textContent, 'No bookmarks yet. Use the bookmark button in the player while watching.');
-    assert.deepEqual(plain(page.context.__jfkit.jfbm.instance.shortcuts.bindings()), ['']);
+    assert.deepEqual(plain(page.context.__jfkit.jfbm.instance.shortcuts.bindings()), ['', ',', '.']);
 
     // A refused save shows the server's sentence and keeps the dialog.
     button.click();

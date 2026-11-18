@@ -643,24 +643,28 @@ test('the section\'s page links follow Capabilities.Pages: See all to My Bookmar
     assert.equal(links.children.length, 0);
 });
 
-test('the player: four buttons before the subtitles button, Shift+B bookmarks the current position, toasts sit above the controls', { skip }, async () => {
+test('the player: six buttons before the subtitles button (the four bookmark buttons, then a frame back and forward), Shift+B bookmarks the current position, toasts sit above the controls', { skip }, async () => {
     const page = await start();
     const { buttons, video } = playerPage(page);
     await page.context.ApiClient.reportPlaybackStart({ ItemId: 'item1', PositionTicks: 100000000, MediaSourceId: 'ms1', AudioStreamIndex: 1, IsPaused: false });
     await page.advance(400);
     page.respond('POST', '/Bookmarks', (entry) => Object.assign({ Id: 'b9', Clip: null }, entry.body), 201);
 
-    const inserted = buttons.children.slice(0, 4);
+    const inserted = buttons.children.slice(0, 6);
     assert.deepEqual(inserted.map((b) => b.className), [
         'btnBookmarkAdd autoSize paper-icon-button-light',
         'btnBookmarkRange autoSize paper-icon-button-light',
         'btnBookmarkEnd autoSize paper-icon-button-light',
-        'btnBookmarkList autoSize paper-icon-button-light'
+        'btnBookmarkList autoSize paper-icon-button-light',
+        'btnFrameBack autoSize paper-icon-button-light',
+        'btnFrameForward autoSize paper-icon-button-light'
     ]);
-    assert.deepEqual(inserted.map((b) => b.getAttribute('title')), ['Bookmark this moment (Shift+B)', 'Mark the start of a range', 'Set end time', 'Bookmarks']);
+    assert.deepEqual(inserted.map((b) => b.getAttribute('title')), ['Bookmark this moment (Shift+B)', 'Mark the start of a range', 'Set end time', 'Bookmarks', 'Back one frame (,)', 'Forward one frame (.)']);
     assert.equal(inserted[0].firstChild.className, 'xlargePaperIconButton material-icons bookmark_add');
     assert.equal(inserted[2].firstChild.className, 'xlargePaperIconButton material-icons last_page');
-    assert.equal(buttons.children[4].className, 'btnSubtitles');
+    assert.equal(inserted[4].firstChild.className, 'xlargePaperIconButton material-icons navigate_before');
+    assert.equal(inserted[5].firstChild.className, 'xlargePaperIconButton material-icons navigate_next');
+    assert.equal(buttons.children[6].className, 'btnSubtitles');
 
     // Plain B is Jellyfin Enhanced's (the kit's policy): the configured combination, Shift+B by default, is matched whole.
     video.currentTime = 44.5;

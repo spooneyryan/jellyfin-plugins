@@ -1,0 +1,689 @@
+{
+  "name": "Frame by frame in the player (Bookmarks 1.4.0 / 2.2.0) on Frame Counter (2023) (H.264 MP4 at 25 fps, played directly; Initialize-Sandbox.ps1 -PlayerTracks adds it). Every frame of the video carries its number as a 12-bit code, read back through a canvas, so each step is proved to show exactly the next or the previous frame, paused, with the position in the middle of it: . while playing, . and , (three quick presses all counted), the two player buttons and a held key; then Adjust on 'Frames R' (0:04-0:06) from the player's Bookmarks list: the start shown, stepped with the keys in the bar, Right and Enter to Set start here and to Save, the saved start exactly 3 frames later (read back, and shown again when adjusted again), Escape saving nothing; then at phone width (375 px, mobile layout) the frame buttons and the bar inside the screen with 40 px buttons, a tap to step, Set start here and Cancel saving nothing. Screenshots: frames-player-desktop, frames-adjust-desktop, frames-player-phone and frames-adjust-phone. As admin; the video's bookmarks reset first and deleted at the end.",
+  "failOnException": false,
+  "timeout": 30000,
+  "steps": [
+    {
+      "name": "console probe in every document",
+      "initScript": {
+        "file": "probes/console-probe.js"
+      }
+    },
+    {
+      "name": "sign in as admin",
+      "login": "admin"
+    },
+    {
+      "name": "the home page",
+      "waitFor": "!!document.querySelector('.homePage:not(.hide)')"
+    },
+    {
+      "name": "find Frame Counter (2023)",
+      "eval": "(async () => { const r = await ApiClient.getItems(ApiClient.getCurrentUserId(), { IncludeItemTypes: 'Movie', Recursive: true, SearchTerm: 'Frame Counter', Limit: 10 }); const m = r.Items.find(i => i.Name === 'Frame Counter (2023)'); if (!m) throw new Error('Frame Counter (2023) is not in the library: Initialize-Sandbox.ps1 -PlayerTracks adds it'); return m.Id; })()",
+      "save": "movieId"
+    },
+    {
+      "name": "its video stream's frame rate",
+      "eval": "(async () => { const it = await ApiClient.getItem(ApiClient.getCurrentUserId(), __vars.movieId); const v = it.MediaSources[0].MediaStreams.find(s => s.Type === 'Video'); return { real: v.RealFrameRate, average: v.AverageFrameRate, codec: v.Codec }; })()",
+      "save": "stream",
+      "full": true
+    },
+    {
+      "name": "reset its bookmarks to 'Frames P' (a point at 0:02) and 'Frames R' (the range 0:04-0:06)",
+      "script": "const itemId = __vars.movieId; const url = (p, q) => ApiClient.getUrl(p, q); for (const b of await ApiClient.getJSON(url('Bookmarks', { itemId }))) { await ApiClient.ajax({ type: 'DELETE', url: url('Bookmarks/' + b.Id, { deleteClip: 'true' }) }); } for (const body of [{ ItemId: itemId, StartTicks: 20000000, Name: 'Frames P' }, { ItemId: itemId, StartTicks: 40000000, EndTicks: 60000000, Name: 'Frames R' }]) { await ApiClient.ajax({ type: 'POST', url: url('Bookmarks'), data: JSON.stringify(body), contentType: 'application/json' }); } return (await ApiClient.getJSON(url('Bookmarks', { itemId }))).map(b => b.Name + ' ' + b.StartTicks + (b.EndTicks ? '-' + b.EndTicks : ''));",
+      "full": true
+    },
+    {
+      "name": "open the details page",
+      "goto": "/web/index.html#/details?id=${movieId}"
+    },
+    {
+      "name": "details page with a Play button",
+      "waitFor": "!!document.querySelector('#itemDetailPage:not(.hide) .mainDetailButtons .btnPlay:not(.hide)')",
+      "timeout": 20000
+    },
+    {
+      "name": "start playback",
+      "click": "#itemDetailPage:not(.hide) .mainDetailButtons .btnPlay:not(.hide)",
+      "js": true
+    },
+    {
+      "name": "video page, playing past 0:01.5",
+      "waitFor": "location.hash.indexOf('#/video') === 0 && (v => !!v && !v.paused && v.currentTime > 1.5)(document.querySelector('.videoPlayerContainer video'))",
+      "timeout": 60000
+    },
+    {
+      "name": "the frame reader: each frame of the video carries its number as a 12-bit code in its top band (white is 1, bit 0 on the left), read through a canvas",
+      "eval": "(window.__fc = { video: () => document.querySelector('.videoPlayerContainer video'), fps: 25, no: () => { const v = window.__fc.video(); const c = document.createElement('canvas'); c.width = 640; c.height = 360; const g = c.getContext('2d'); g.drawImage(v, 0, 0, 640, 360); const d = g.getImageData(0, 0, 640, 60).data; let n = 0; for (let b = 0; b < 12; b++) { const x = Math.floor((b + 0.5) * 640 / 12); if (d[(30 * 640 + x) * 4] > 128) n |= 1 << b; } return n; }, settled: () => { const v = window.__fc.video(); return !!v && v.paused && !v.seeking && v.readyState >= 2; }, at: () => { const f = window.__fc.video().currentTime * window.__fc.fps; const k = Math.floor(f + 1e-6); return { frame: k, offMiddle: Math.abs(f - k - 0.5) }; } }, true)"
+    },
+    {
+      "name": "played as DirectPlay",
+      "waitFor": "(async () => { const s = await ApiClient.getJSON(ApiClient.getUrl('Sessions', { deviceId: ApiClient.deviceId() })); const p = s[0] && s[0].PlayState; return !!p && p.PlayMethod === 'DirectPlay'; })()",
+      "timeout": 20000
+    },
+    {
+      "name": "the player buttons: Back and Forward one frame right after Bookmarks",
+      "waitFor": "(() => { const b = document.querySelector('.videoOsdBottom .buttons .btnFrameBack'); const f = document.querySelector('.videoOsdBottom .buttons .btnFrameForward'); return !!b && !!f && b.previousElementSibling.classList.contains('btnBookmarkList') && b.nextElementSibling === f && b.getAttribute('title') === 'Back one frame (,)' && f.getAttribute('title') === 'Forward one frame (.)' && !!b.querySelector('.material-icons.navigate_before') && !!f.querySelector('.material-icons.navigate_next'); })()",
+      "timeout": 20000
+    },
+    {
+      "name": "move the mouse, so the controls show",
+      "cdp": "Input.dispatchMouseEvent",
+      "params": {
+        "type": "mouseMoved",
+        "x": 200,
+        "y": 200
+      }
+    },
+    {
+      "name": "move it again",
+      "cdp": "Input.dispatchMouseEvent",
+      "params": {
+        "type": "mouseMoved",
+        "x": 220,
+        "y": 210
+      }
+    },
+    {
+      "sleep": 500
+    },
+    {
+      "screenshot": "frames-player-desktop.png"
+    },
+    {
+      "name": ". while playing",
+      "key": "."
+    },
+    {
+      "name": "paused, still, in the middle of the frame whose code it shows",
+      "waitFor": "window.__fc.settled() && (a => a.frame === window.__fc.no() && a.offMiddle < 0.05)(window.__fc.at())",
+      "timeout": 30000
+    },
+    {
+      "name": "the frame shown",
+      "eval": "window.__fc.no()",
+      "save": "f0",
+      "full": true
+    },
+    {
+      "name": ".",
+      "key": "."
+    },
+    {
+      "name": "exactly one frame on",
+      "waitFor": "window.__fc.settled() && window.__fc.no() === (__vars.f0 + 1) && (a => a.frame === window.__fc.no() && a.offMiddle < 0.05)(window.__fc.at())",
+      "timeout": 30000
+    },
+    {
+      "name": ". again",
+      "key": "."
+    },
+    {
+      "name": "exactly two frames on",
+      "waitFor": "window.__fc.settled() && window.__fc.no() === (__vars.f0 + 2) && (a => a.frame === window.__fc.no() && a.offMiddle < 0.05)(window.__fc.at())",
+      "timeout": 30000
+    },
+    {
+      "name": ",",
+      "key": ","
+    },
+    {
+      "name": "exactly one frame back",
+      "waitFor": "window.__fc.settled() && window.__fc.no() === (__vars.f0 + 1) && (a => a.frame === window.__fc.no() && a.offMiddle < 0.05)(window.__fc.at())",
+      "timeout": 30000
+    },
+    {
+      "name": ", (1 of 3, quickly)",
+      "key": ","
+    },
+    {
+      "name": ", (2 of 3)",
+      "key": ","
+    },
+    {
+      "name": ", (3 of 3)",
+      "key": ","
+    },
+    {
+      "name": "exactly three frames back: every press counted",
+      "waitFor": "window.__fc.settled() && window.__fc.no() === (__vars.f0 - 2) && (a => a.frame === window.__fc.no() && a.offMiddle < 0.05)(window.__fc.at())",
+      "timeout": 30000
+    },
+    {
+      "name": "the Forward one frame button",
+      "click": ".videoOsdBottom .buttons .btnFrameForward",
+      "js": true
+    },
+    {
+      "name": "one frame on by the button",
+      "waitFor": "window.__fc.settled() && window.__fc.no() === (__vars.f0 - 1) && (a => a.frame === window.__fc.no() && a.offMiddle < 0.05)(window.__fc.at())",
+      "timeout": 30000
+    },
+    {
+      "name": "the Back one frame button",
+      "click": ".videoOsdBottom .buttons .btnFrameBack",
+      "js": true
+    },
+    {
+      "name": "one frame back by the button",
+      "waitFor": "window.__fc.settled() && window.__fc.no() === (__vars.f0 - 2) && (a => a.frame === window.__fc.no() && a.offMiddle < 0.05)(window.__fc.at())",
+      "timeout": 30000
+    },
+    {
+      "name": "hold . : the first press",
+      "cdp": "Input.dispatchKeyEvent",
+      "params": {
+        "key": ".",
+        "code": "Period",
+        "windowsVirtualKeyCode": 190,
+        "nativeVirtualKeyCode": 190,
+        "type": "keyDown",
+        "text": "."
+      }
+    },
+    {
+      "name": "hold . : repeat 1",
+      "cdp": "Input.dispatchKeyEvent",
+      "params": {
+        "key": ".",
+        "code": "Period",
+        "windowsVirtualKeyCode": 190,
+        "nativeVirtualKeyCode": 190,
+        "type": "keyDown",
+        "text": ".",
+        "autoRepeat": true
+      }
+    },
+    {
+      "sleep": 40
+    },
+    {
+      "name": "hold . : repeat 2",
+      "cdp": "Input.dispatchKeyEvent",
+      "params": {
+        "key": ".",
+        "code": "Period",
+        "windowsVirtualKeyCode": 190,
+        "nativeVirtualKeyCode": 190,
+        "type": "keyDown",
+        "text": ".",
+        "autoRepeat": true
+      }
+    },
+    {
+      "sleep": 40
+    },
+    {
+      "name": "hold . : repeat 3",
+      "cdp": "Input.dispatchKeyEvent",
+      "params": {
+        "key": ".",
+        "code": "Period",
+        "windowsVirtualKeyCode": 190,
+        "nativeVirtualKeyCode": 190,
+        "type": "keyDown",
+        "text": ".",
+        "autoRepeat": true
+      }
+    },
+    {
+      "sleep": 40
+    },
+    {
+      "name": "hold . : repeat 4",
+      "cdp": "Input.dispatchKeyEvent",
+      "params": {
+        "key": ".",
+        "code": "Period",
+        "windowsVirtualKeyCode": 190,
+        "nativeVirtualKeyCode": 190,
+        "type": "keyDown",
+        "text": ".",
+        "autoRepeat": true
+      }
+    },
+    {
+      "sleep": 40
+    },
+    {
+      "name": "hold . : repeat 5",
+      "cdp": "Input.dispatchKeyEvent",
+      "params": {
+        "key": ".",
+        "code": "Period",
+        "windowsVirtualKeyCode": 190,
+        "nativeVirtualKeyCode": 190,
+        "type": "keyDown",
+        "text": ".",
+        "autoRepeat": true
+      }
+    },
+    {
+      "sleep": 40
+    },
+    {
+      "name": "hold . : repeat 6",
+      "cdp": "Input.dispatchKeyEvent",
+      "params": {
+        "key": ".",
+        "code": "Period",
+        "windowsVirtualKeyCode": 190,
+        "nativeVirtualKeyCode": 190,
+        "type": "keyDown",
+        "text": ".",
+        "autoRepeat": true
+      }
+    },
+    {
+      "sleep": 40
+    },
+    {
+      "name": "let go of .",
+      "cdp": "Input.dispatchKeyEvent",
+      "params": {
+        "key": ".",
+        "code": "Period",
+        "windowsVirtualKeyCode": 190,
+        "nativeVirtualKeyCode": 190,
+        "type": "keyUp"
+      }
+    },
+    {
+      "sleep": 1500
+    },
+    {
+      "name": "after holding: on by one to seven frames, paused in the middle of a frame",
+      "waitFor": "window.__fc.settled() && (n => n >= __vars.f0 - 1 && n <= __vars.f0 + 5)(window.__fc.no()) && (a => a.frame === window.__fc.no() && a.offMiddle < 0.05)(window.__fc.at())",
+      "timeout": 30000
+    },
+    {
+      "name": "frames on after holding",
+      "eval": "window.__fc.no() - (__vars.f0 - 2)",
+      "save": "held",
+      "full": true
+    },
+    {
+      "name": "open the Bookmarks list",
+      "click": ".videoOsdBottom .buttons .btnBookmarkList",
+      "js": true
+    },
+    {
+      "name": "the list with 'Frames R'",
+      "waitFor": "[...document.querySelectorAll('.jfbm-backdrop .jfbm-panel .jfbm-row')].some(r => r.querySelector('.jfbm-row-title').textContent === 'Frames R')",
+      "timeout": 20000
+    },
+    {
+      "name": "its Adjust frame by frame",
+      "eval": "([...document.querySelectorAll('.jfbm-backdrop .jfbm-panel .jfbm-row')].find(r => r.querySelector('.jfbm-row-title').textContent === 'Frames R').querySelector('button[title=\"Adjust frame by frame\"]').click(), true)"
+    },
+    {
+      "name": "the list closed, the bar shown",
+      "waitFor": "!document.querySelector('.jfbm-backdrop') && !!document.querySelector('.jfbm-adjust')",
+      "timeout": 20000
+    },
+    {
+      "name": "the bookmark's start (0:04) shown, paused: frame 100",
+      "waitFor": "window.__fc.settled() && window.__fc.no() === (100) && (a => a.frame === window.__fc.no() && a.offMiddle < 0.05)(window.__fc.at())",
+      "timeout": 30000
+    },
+    {
+      "name": "the bar: its title, start and end unchanged, Save off, the focus on Forward one frame",
+      "waitFor": "(() => { const b = document.querySelector('.jfbm-adjust'); return b.querySelector('.jfbm-adjust-title').textContent === 'Adjusting \"Frames R\"' && b.querySelector('.jfbm-adjust-start').textContent === 'Start 0:04.000 (unchanged)' && b.querySelector('.jfbm-adjust-end').textContent === 'End 0:06.000 (unchanged)' && document.activeElement === b.querySelector('.jfbm-adjust-forward') && b.querySelector('.jfbm-adjust-save').disabled; })()"
+    },
+    {
+      "name": ". in the bar",
+      "key": "."
+    },
+    {
+      "name": "one frame after the start",
+      "waitFor": "window.__fc.settled() && window.__fc.no() === (101) && (a => a.frame === window.__fc.no() && a.offMiddle < 0.05)(window.__fc.at())",
+      "timeout": 30000
+    },
+    {
+      "name": ". again",
+      "key": "."
+    },
+    {
+      "name": "two frames after",
+      "waitFor": "window.__fc.settled() && window.__fc.no() === (102) && (a => a.frame === window.__fc.no() && a.offMiddle < 0.05)(window.__fc.at())",
+      "timeout": 30000
+    },
+    {
+      "name": ", in the bar",
+      "key": ","
+    },
+    {
+      "name": "back to one after",
+      "waitFor": "window.__fc.settled() && window.__fc.no() === (101) && (a => a.frame === window.__fc.no() && a.offMiddle < 0.05)(window.__fc.at())",
+      "timeout": 30000
+    },
+    {
+      "name": "Enter on the focused Forward one frame",
+      "key": "Enter"
+    },
+    {
+      "name": "two frames after again",
+      "waitFor": "window.__fc.settled() && window.__fc.no() === (102) && (a => a.frame === window.__fc.no() && a.offMiddle < 0.05)(window.__fc.at())",
+      "timeout": 30000
+    },
+    {
+      "name": ". once more",
+      "key": "."
+    },
+    {
+      "name": "three frames after the start",
+      "waitFor": "window.__fc.settled() && window.__fc.no() === (103) && (a => a.frame === window.__fc.no() && a.offMiddle < 0.05)(window.__fc.at())",
+      "timeout": 30000
+    },
+    {
+      "name": "the bar says where the frame on screen is",
+      "waitFor": "/, 3 frames after the start$/.test(document.querySelector('.jfbm-adjust-now').textContent)"
+    },
+    {
+      "name": "Right: to Set start here",
+      "key": "ArrowRight"
+    },
+    {
+      "name": "the focus on Set start here",
+      "message": "Right did not move the focus to Set start here",
+      "assert": "document.activeElement === document.querySelector('.jfbm-adjust-set-start')"
+    },
+    {
+      "name": "Enter: Set start here",
+      "key": "Enter"
+    },
+    {
+      "name": "the start moved +3 frames, Save on",
+      "waitFor": "/^Start 0:04\\.\\d{3} \\(\\+3 frames\\)$/.test(document.querySelector('.jfbm-adjust-start').textContent) && !document.querySelector('.jfbm-adjust-save').disabled",
+      "timeout": 5000
+    },
+    {
+      "name": "the bar's texts",
+      "eval": "[...document.querySelectorAll('.jfbm-adjust-title, .jfbm-adjust-start, .jfbm-adjust-end, .jfbm-adjust-now, .jfbm-adjust-hint')].map(e => e.textContent)",
+      "save": "barTexts",
+      "full": true
+    },
+    {
+      "screenshot": "frames-adjust-desktop.png"
+    },
+    {
+      "name": "Right (1 of 3)",
+      "key": "ArrowRight"
+    },
+    {
+      "name": "Right (2 of 3)",
+      "key": "ArrowRight"
+    },
+    {
+      "name": "Right (3 of 3)",
+      "key": "ArrowRight"
+    },
+    {
+      "name": "the focus on Save",
+      "message": "three Rights did not reach Save",
+      "assert": "document.activeElement === document.querySelector('.jfbm-adjust-save')"
+    },
+    {
+      "name": "Enter: Save",
+      "key": "Enter"
+    },
+    {
+      "name": "the bar closed, Bookmark saved.",
+      "waitFor": "!document.querySelector('.jfbm-adjust') && [...document.querySelectorAll('.jfbm-toast')].some(t => t.textContent === 'Bookmark saved.')",
+      "timeout": 15000
+    },
+    {
+      "name": "the video's bookmarks read back",
+      "eval": "(async () => (await ApiClient.getJSON(ApiClient.getUrl('Bookmarks', { itemId: __vars.movieId }))).map(b => ({ name: b.Name, start: b.StartTicks, end: b.EndTicks })))()",
+      "save": "after",
+      "full": true
+    },
+    {
+      "name": "'Frames R' starts exactly 3 frames later (the middle of frame 103: 41400000 ticks); its end and 'Frames P' as they were",
+      "message": "the saved start is not exactly 3 frames after the old one",
+      "assert": "(() => { const r = __vars.after.find(b => b.name === 'Frames R'); const p = __vars.after.find(b => b.name === 'Frames P'); const f = t => Math.floor(t * 25 / 10000000 + 1e-6); return r.start === 41400000 && f(r.start) - f(40000000) === 3 && r.end === 60000000 && p.start === 20000000; })()"
+    },
+    {
+      "name": "again: open the Bookmarks list",
+      "click": ".videoOsdBottom .buttons .btnBookmarkList",
+      "js": true
+    },
+    {
+      "name": "again: the list with 'Frames R'",
+      "waitFor": "[...document.querySelectorAll('.jfbm-backdrop .jfbm-panel .jfbm-row')].some(r => r.querySelector('.jfbm-row-title').textContent === 'Frames R')",
+      "timeout": 20000
+    },
+    {
+      "name": "again: its Adjust frame by frame",
+      "eval": "([...document.querySelectorAll('.jfbm-backdrop .jfbm-panel .jfbm-row')].find(r => r.querySelector('.jfbm-row-title').textContent === 'Frames R').querySelector('button[title=\"Adjust frame by frame\"]').click(), true)"
+    },
+    {
+      "name": "again: the list closed, the bar shown",
+      "waitFor": "!document.querySelector('.jfbm-backdrop') && !!document.querySelector('.jfbm-adjust')",
+      "timeout": 20000
+    },
+    {
+      "name": "again: the saved start shows frame 103",
+      "waitFor": "window.__fc.settled() && window.__fc.no() === (103) && (a => a.frame === window.__fc.no() && a.offMiddle < 0.05)(window.__fc.at())",
+      "timeout": 30000
+    },
+    {
+      "name": "again: Start unchanged in the bar",
+      "waitFor": "/^Start 0:04\\.\\d{3} \\(unchanged\\)$/.test(document.querySelector('.jfbm-adjust-start').textContent)"
+    },
+    {
+      "name": "again: . then Escape in the bar",
+      "key": "."
+    },
+    {
+      "name": "again: one frame on",
+      "waitFor": "window.__fc.settled() && window.__fc.no() === (104) && (a => a.frame === window.__fc.no() && a.offMiddle < 0.05)(window.__fc.at())",
+      "timeout": 30000
+    },
+    {
+      "name": "again: Escape",
+      "key": "Escape"
+    },
+    {
+      "name": "again: the bar closed",
+      "waitFor": "!document.querySelector('.jfbm-adjust')"
+    },
+    {
+      "name": "again: the start read back",
+      "eval": "(async () => (await ApiClient.getJSON(ApiClient.getUrl('Bookmarks', { itemId: __vars.movieId }))).find(b => b.Name === 'Frames R').StartTicks)()",
+      "save": "startAgain"
+    },
+    {
+      "name": "again: Escape saved nothing",
+      "message": "Escape changed the bookmark",
+      "assert": "__vars.startAgain === 41400000"
+    },
+    {
+      "name": "leave the player",
+      "goto": "/web/index.html#/details?id=${movieId}"
+    },
+    {
+      "name": "details page again",
+      "waitFor": "!!document.querySelector('#itemDetailPage:not(.hide) .mainDetailButtons .btnPlay')",
+      "timeout": 20000
+    },
+    {
+      "name": "a phone: 375x812, touch",
+      "emulate": {
+        "width": 375,
+        "height": 812,
+        "deviceScaleFactor": 1,
+        "mobile": true,
+        "touch": true
+      }
+    },
+    {
+      "name": "mobile layout for this browser",
+      "eval": "(localStorage.setItem('layout', 'mobile'), true)"
+    },
+    {
+      "name": "reload (mobile)",
+      "reload": true
+    },
+    {
+      "name": "mobile layout applied at 375 px",
+      "waitFor": "document.documentElement.classList.contains('layout-mobile') && innerWidth === 375 && !!window.__jfkit && !!window.__jfkit.jfbm",
+      "timeout": 20000
+    },
+    {
+      "name": "phone: open the details page",
+      "goto": "/web/index.html#/details?id=${movieId}"
+    },
+    {
+      "name": "phone: details page with a Play button",
+      "waitFor": "!!document.querySelector('#itemDetailPage:not(.hide) .mainDetailButtons .btnPlay:not(.hide)')",
+      "timeout": 20000
+    },
+    {
+      "name": "phone: start playback",
+      "click": "#itemDetailPage:not(.hide) .mainDetailButtons .btnPlay:not(.hide)",
+      "js": true
+    },
+    {
+      "name": "phone: video page, playing past 0:01.5",
+      "waitFor": "location.hash.indexOf('#/video') === 0 && (v => !!v && !v.paused && v.currentTime > 1.5)(document.querySelector('.videoPlayerContainer video'))",
+      "timeout": 60000
+    },
+    {
+      "name": "phone: the frame reader: each frame of the video carries its number as a 12-bit code in its top band (white is 1, bit 0 on the left), read through a canvas",
+      "eval": "(window.__fc = { video: () => document.querySelector('.videoPlayerContainer video'), fps: 25, no: () => { const v = window.__fc.video(); const c = document.createElement('canvas'); c.width = 640; c.height = 360; const g = c.getContext('2d'); g.drawImage(v, 0, 0, 640, 360); const d = g.getImageData(0, 0, 640, 60).data; let n = 0; for (let b = 0; b < 12; b++) { const x = Math.floor((b + 0.5) * 640 / 12); if (d[(30 * 640 + x) * 4] > 128) n |= 1 << b; } return n; }, settled: () => { const v = window.__fc.video(); return !!v && v.paused && !v.seeking && v.readyState >= 2; }, at: () => { const f = window.__fc.video().currentTime * window.__fc.fps; const k = Math.floor(f + 1e-6); return { frame: k, offMiddle: Math.abs(f - k - 0.5) }; } }, true)"
+    },
+    {
+      "name": "phone: the frame buttons",
+      "waitFor": "!!document.querySelector('.videoOsdBottom .buttons .btnFrameForward')",
+      "timeout": 20000
+    },
+    {
+      "name": "phone: tap Forward one frame",
+      "click": ".videoOsdBottom .buttons .btnFrameForward",
+      "js": true
+    },
+    {
+      "name": "phone: paused in the middle of a frame",
+      "waitFor": "window.__fc.settled() && (a => a.frame === window.__fc.no() && a.offMiddle < 0.05)(window.__fc.at())",
+      "timeout": 30000
+    },
+    {
+      "name": "phone: the button row with where each sits (the controls shown)",
+      "eval": "(() => { const osd = document.querySelector('.videoOsdBottom'); ['hide', 'videoOsdBottom-hidden'].forEach(c => osd.classList.remove(c)); return [...document.querySelector('.videoOsdBottom .buttons .btnFrameForward').parentElement.children].map(b => { const r = b.getBoundingClientRect(); return { cls: b.className.split(' ')[0], shown: r.width > 0 && getComputedStyle(b).display !== 'none', left: Math.round(r.left), right: Math.round(r.right), top: Math.round(r.top) }; }).filter(b => b.shown); })()",
+      "save": "phoneRow",
+      "full": true
+    },
+    {
+      "name": "phone: both frame buttons inside the 375 px screen",
+      "message": "a frame button is off the phone screen (see the button row step)",
+      "assert": "['btnFrameBack', 'btnFrameForward'].every(c => { const b = __vars.phoneRow.find(x => x.cls === c); return !!b && b.left >= 0 && b.right <= 375; })"
+    },
+    {
+      "screenshot": "frames-player-phone.png"
+    },
+    {
+      "name": "phone: open the Bookmarks list",
+      "click": ".videoOsdBottom .buttons .btnBookmarkList",
+      "js": true
+    },
+    {
+      "name": "phone: the list with 'Frames P'",
+      "waitFor": "[...document.querySelectorAll('.jfbm-backdrop .jfbm-panel .jfbm-row')].some(r => r.querySelector('.jfbm-row-title').textContent === 'Frames P')",
+      "timeout": 20000
+    },
+    {
+      "name": "phone: its Adjust frame by frame",
+      "eval": "([...document.querySelectorAll('.jfbm-backdrop .jfbm-panel .jfbm-row')].find(r => r.querySelector('.jfbm-row-title').textContent === 'Frames P').querySelector('button[title=\"Adjust frame by frame\"]').click(), true)"
+    },
+    {
+      "name": "phone: the list closed, the bar shown",
+      "waitFor": "!document.querySelector('.jfbm-backdrop') && !!document.querySelector('.jfbm-adjust')",
+      "timeout": 20000
+    },
+    {
+      "name": "phone: Frames P's start (0:02) shown: frame 50",
+      "waitFor": "window.__fc.settled() && window.__fc.no() === (50) && (a => a.frame === window.__fc.no() && a.offMiddle < 0.05)(window.__fc.at())",
+      "timeout": 30000
+    },
+    {
+      "name": "phone: the bar and its buttons inside the screen, each at least 40 px; no Set end here for a point",
+      "message": "the bar or one of its buttons is off the phone screen or under 40 px",
+      "assert": "(() => { const b = document.querySelector('.jfbm-adjust').getBoundingClientRect(); const buttons = [...document.querySelectorAll('.jfbm-adjust button')].map(x => x.getBoundingClientRect()); return b.left >= 0 && b.right <= 375 && buttons.every(r => r.left >= 0 && r.right <= 375 && r.height >= 40 && r.width >= 40) && !document.querySelector('.jfbm-adjust-set-end'); })()"
+    },
+    {
+      "name": "phone: tap Forward one frame in the bar",
+      "click": ".jfbm-adjust .jfbm-adjust-forward"
+    },
+    {
+      "name": "phone: frame 51",
+      "waitFor": "window.__fc.settled() && window.__fc.no() === (51) && (a => a.frame === window.__fc.no() && a.offMiddle < 0.05)(window.__fc.at())",
+      "timeout": 30000
+    },
+    {
+      "name": "phone: tap Set start here",
+      "click": ".jfbm-adjust .jfbm-adjust-set-start"
+    },
+    {
+      "name": "phone: +1 frame",
+      "waitFor": "document.querySelector('.jfbm-adjust-start').textContent === 'Start 0:02.060 (+1 frame)'"
+    },
+    {
+      "screenshot": "frames-adjust-phone.png"
+    },
+    {
+      "name": "phone: tap Cancel",
+      "click": ".jfbm-adjust .jfbm-adjust-cancel"
+    },
+    {
+      "name": "phone: the bar closed",
+      "waitFor": "!document.querySelector('.jfbm-adjust')"
+    },
+    {
+      "name": "phone: 'Frames P' read back",
+      "eval": "(async () => (await ApiClient.getJSON(ApiClient.getUrl('Bookmarks', { itemId: __vars.movieId }))).find(b => b.Name === 'Frames P').StartTicks)()",
+      "save": "pAfter"
+    },
+    {
+      "name": "phone: Cancel saved nothing",
+      "message": "Cancel changed the bookmark",
+      "assert": "__vars.pAfter === 20000000"
+    },
+    {
+      "name": "entries from our scripts",
+      "eval": "__consoleProbe.ours()",
+      "save": "ours",
+      "full": true
+    },
+    {
+      "name": "the console shows no error or warning from our scripts",
+      "message": "our scripts wrote to the console (see the 'entries from our scripts' step)",
+      "assert": "__vars.ours.length === 0"
+    },
+    {
+      "name": "leave the player",
+      "goto": "/web/index.html#/home",
+      "finally": true
+    },
+    {
+      "name": "back to the desktop viewport",
+      "emulate": "desktop",
+      "finally": true
+    },
+    {
+      "name": "back to the stable layout for this browser",
+      "eval": "(localStorage.setItem('layout', ''), true)",
+      "finally": true
+    },
+    {
+      "name": "delete the video's bookmarks",
+      "script": "const url = (p, q) => ApiClient.getUrl(p, q); for (const b of await ApiClient.getJSON(url('Bookmarks', { itemId: __vars.movieId }))) { await ApiClient.ajax({ type: 'DELETE', url: url('Bookmarks/' + b.Id, { deleteClip: 'true' }) }); } return (await ApiClient.getJSON(url('Bookmarks', { itemId: __vars.movieId }))).length;",
+      "finally": true
+    },
+    {
+      "name": "no uncaught exceptions (the stale CustomRatings tag, and jellyfin-web's own 'player cannot be null' when the player is left, excepted)",
+      "noExceptions": true,
+      "ignore": "/CustomRatings/script|^Error: player cannot be null"
+    }
+  ]
+}

@@ -310,7 +310,10 @@ a sandbox made before a file was added gets it at its next scan.
   ids in their NFOs; "LM Edition Pair (2003)" and its " - Extended" edition), so the `default` counts other checks use
   don't change.
 - `Player Tracks\Multi Track (2021)\Multi Track (2021).mkv`: 30 s with two audio tracks (English, French) and two SRT
-  subtitle tracks, for a player check with more than one track. No library covers it unless
+  subtitle tracks, for a player check with more than one track; and two 20 s frame counters, `Frame Counter (2023)`
+  (H.264 MP4, 25 fps, played directly) and `Frame Counter Transcode (2023)` (MPEG-2 MKV, 29.97 fps, transcoded), each
+  frame showing its number as text and as a 12-bit code in a band along the top (white is 1, bit 0 on the left), for
+  the frame-by-frame checks. No library covers them unless
   `Initialize-Sandbox.ps1 -PlayerTracks`; remove that library afterwards (Dashboard, Libraries, or
   `DELETE /Library/VirtualFolders?name=Player%20Tracks&refreshLibrary=true`).
 - The scale seed (`-SyntheticMovies`, `-SyntheticEpisodes`, `-SyntheticSeed`) creates `Synthetic/` movie folders
@@ -1050,6 +1053,8 @@ once up.
 node scripts/webcheck.mjs --sandbox default --steps player-set-end.json            # also je, bare and baseurl
 node scripts/webcheck.mjs --sandbox default --steps player-timeline.json           # also je, bare and baseurl
 node scripts/webcheck.mjs --sandbox default --steps player-replay-from-page.json   # also je, bare and baseurl
+node scripts/webcheck.mjs --sandbox default --steps player-frames.json             # needs -PlayerTracks
+node scripts/webcheck.mjs --sandbox default --steps player-frames-transcode.json   # needs -PlayerTracks
 node scripts/webcheck.mjs --sandbox default --steps page-clips-theme.json
 node scripts/webcheck.mjs --sandbox je --steps je-tv-reviews.json
 ```
@@ -1059,6 +1064,8 @@ node scripts/webcheck.mjs --sandbox je --steps je-tv-reviews.json
 | `player-set-end.json` | the player's Set end time |
 | `player-timeline.json` | bookmarks on the position slider, also at phone width |
 | `player-replay-from-page.json` | Set end time after plays from My Bookmarks, with jellyfin-web's hidden player views |
+| `player-frames.json` | frame by frame on `Frame Counter (2023)` (direct play): each step of `.`, `,`, the buttons and a held key shows exactly the next or previous frame (the frame number is read from a code in the picture); Adjust saves a start exactly 3 frames later; at phone width too |
+| `player-frames-transcode.json` | the same steps and Adjust on `Frame Counter Transcode (2023)`, transcoded to HLS at 29.97 fps |
 | `page-clips-theme.json` | My Clips in four themes (a reload right after a hash navigation lands on Home, so it reloads the settled page) |
 | `je-tv-reviews.json` | `je` only: the kit's mitigation of JE 12.14's TV trap, where JE's closed Reviews section catches the D-pad |
 

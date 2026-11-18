@@ -36,6 +36,14 @@
     "imageUrl": "https://raw.githubusercontent.com/spooneyryan/jellyfin-plugins/main/plugins/Bookmarks/image.png",
     "versions": [
       {
+        "version": "2.2.0.0",
+        "changelog": "- Frame by frame in the web player: Back one frame and Forward one\n  frame buttons, and the , and . keys (as on YouTube). A step pauses\n  the video and shows exactly the frame before or after; hold a key to\n  keep stepping. It works when the video is transcoded too, a little\n  slower.\n- Adjust a bookmark frame by frame: in the player's Bookmarks list,\n  Adjust shows the bookmark's start on a small bar over the video. Step\n  to the right frame, choose Set start here (or Set end here for a\n  range) and Save. Cancel leaves it as it was. A bookmark with a clip\n  keeps it, as when its times are edited: make the clip again for the\n  new range.",
+        "targetAbi": "12.4.0.0",
+        "sourceUrl": "https://github.com/spooneyryan/jellyfin-plugins/releases/download/bookmarks%2Fv2.2.0/bookmarks_2.2.0.0.zip",
+        "checksum": "cc0fb2211df9dd65455fa297e6713abd",
+        "timestamp": "2026-11-18T02:00:12Z"
+      },
+      {
         "version": "2.1.0.0",
         "changelog": "- Clips get their video's artwork: for a clip folder that is a Home\n  Videos and Photos library, each clip gets the film's poster and\n  backdrop (an episode's series poster and its own image) as image files\n  beside it, so the library shows those instead of a frame from the\n  clip. Made with the clip, kept with it when it is renamed, and deleted\n  with it; the daily maintenance gives clips made before theirs. A new\n  setting (Clips), on by default, turns it off.",
         "targetAbi": "12.4.0.0",

@@ -1,5 +1,29 @@
 # Changelog
 
+## 1.4.0 / 2.2.0 (2026-11-17)
+
+1.4.0 for Jellyfin 10.11, 2.2.0 for Jellyfin 12.4. Only the web player changes: the bookmark data stays at schema 2 and
+nothing in it changes, so the upgrade keeps every bookmark and clip as it is, and going back to 1.3.0 (or 2.1.0) reads it
+as it is.
+
+**In short**
+- **Frame by frame in the web player.** Two new buttons, **Back one frame** and **Forward one frame**, after the bookmark
+  buttons, and the **,** and **.** keys (as on YouTube; they work when the player buttons are hidden too). A step pauses
+  a playing video, then shows exactly the frame before or after the one on screen; hold a key to keep stepping. The
+  frame's length comes from the video itself (its frame rate as Jellyfin read it). It works on a transcoded video too:
+  a frame the server hasn't transcoded yet takes a moment longer. The keys are left alone while you type in a field or
+  a dialog is open. On the player they take over the web player's own **,** and **.** (Jellyfin 12.4's stepped only while
+  paused, from wherever the clock was, so steps could drift).
+- **Adjust a bookmark frame by frame.** In the player's **Bookmarks** list each bookmark of the video has **Adjust**. It
+  shows the bookmark's start, paused, with a small bar over the video: the start (and a range's end) and how many frames
+  each has moved, Back and Forward one frame, **Set start here**, **Set end here** (for a range), **Save** and
+  **Cancel**. Save follows the same rules as editing the times in the editor; a bookmark with a clip keeps its clip,
+  which is then shown as made before the range was changed, to be made again. Cancel, Escape, stopping the video or
+  leaving the player change nothing. The bar works with a mouse, the keyboard (Left and Right move between its buttons)
+  and a TV remote, and on a phone.
+- **Where:** the web player (a browser, and Jellyfin's apps that show the web player). Jellyfin's Android TV app and
+  other native players don't run the plugin's player tools.
+
 ## 1.3.0 / 2.1.0 (2026-11-15)
 
 1.3.0 for Jellyfin 10.11, 2.1.0 for Jellyfin 12.4. The bookmark data stays at schema 2 and nothing in it changes, so the

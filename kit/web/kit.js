@@ -2325,7 +2325,7 @@ function createKit(build, css, options) {
     //
     // One document bubble-phase keydown listener serves every binding of this kit: JE's capture-phase player keys never
     // arrive (it stops them), keys JE or another plugin handled arrive defaultPrevented and are skipped, and so are key
-    // repeats, keys typed into a field, and keys pressed while one of our dialogs or a jellyfin-web dialog is open. The
+    // repeats (unless the binding asks for them), keys typed into a field, and keys pressed while one of our dialogs or a jellyfin-web dialog is open. The
     // first binding whose combination matches handles the press (once per keydown) and the event is defaultPrevented, so
     // the next bubble listener, Bookmarks 1.0's for example, skips it too. Never a capture listener on window or document:
     // one added at script load runs before JE's and would act on JE's own keys as well.
@@ -2404,7 +2404,7 @@ function createKit(build, css, options) {
     // The key's origin (keyOrigin): a field inside a web component's open shadow root reaches this listener with its host as
     // the target, which isn't a field, so a shortcut fired while someone typed there.
     function onShortcutKeyDown(event) {
-        if (event.defaultPrevented || event.repeat || bindings.length === 0 || isTextTarget(keyOrigin(event))) {
+        if (event.defaultPrevented || bindings.length === 0 || isTextTarget(keyOrigin(event))) {
             return;
         }
 
@@ -2419,7 +2419,7 @@ function createKit(build, css, options) {
 
         for (let i = 0; i < bindings.length; i++) {
             const binding = bindings[i];
-            if (binding.combo !== combo) {
+            if (binding.combo !== combo || (event.repeat && !binding.repeat)) {
                 continue;
             }
 
@@ -2557,8 +2557,9 @@ function createKit(build, css, options) {
             });
         },
         // Binds a handler to a combination (in any spelling; '' or an invalid one binds nothing until update()). Options:
-        // when(event) returning false leaves the press to others (not on the player, say). Returns the binding, whose
-        // update(combo) follows a settings change and unbind() removes it.
+        // when(event) returning false leaves the press to others (not on the player, say); repeat: true also takes a held
+        // key's repeats (event.repeat; Bookmarks' frame steps), which every other binding leaves alone. Returns the
+        // binding, whose update(combo) follows a settings change and unbind() removes it.
         bind: function (combo, handler, options) {
             if (typeof handler !== 'function') {
                 throw new TypeError('kit.shortcuts.bind needs a handler');
@@ -2568,6 +2569,7 @@ function createKit(build, css, options) {
                 combo: kit.shortcuts.normalize(combo) || '',
                 handler: handler,
                 when: options && options.when,
+                repeat: !!(options && options.repeat === true),
                 update: function (next) {
                     binding.combo = kit.shortcuts.normalize(next) || '';
                     return binding;

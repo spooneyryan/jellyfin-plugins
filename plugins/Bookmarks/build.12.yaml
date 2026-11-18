@@ -1,7 +1,7 @@
 ---
 name: "Bookmarks"
 guid: "d0ee1b2a-7f71-4654-8ff2-163a81441b03"
-version: "2.1.0.0"
+version: "2.2.0.0"
 targetAbi: "12.4.0.0"
 framework: "net10.0"
 overview: "Named per-user bookmarks, My Bookmarks and My Clips pages, and ffmpeg clip extraction"
@@ -17,6 +17,18 @@ owner: "NoRepine"
 artifacts:
 - "Jellyfin.Plugin.Bookmarks.dll"
 changelog: |
+  2.2.0
+  - Frame by frame in the web player: Back one frame and Forward one
+    frame buttons, and the , and . keys (as on YouTube). A step pauses
+    the video and shows exactly the frame before or after; hold a key to
+    keep stepping. It works when the video is transcoded too, a little
+    slower.
+  - Adjust a bookmark frame by frame: in the player's Bookmarks list,
+    Adjust shows the bookmark's start on a small bar over the video. Step
+    to the right frame, choose Set start here (or Set end here for a
+    range) and Save. Cancel leaves it as it was. A bookmark with a clip
+    keeps it, as when its times are edited: make the clip again for the
+    new range.
   2.1.0
   - Clips get their video's artwork: for a clip folder that is a Home
     Videos and Photos library, each clip gets the film's poster and

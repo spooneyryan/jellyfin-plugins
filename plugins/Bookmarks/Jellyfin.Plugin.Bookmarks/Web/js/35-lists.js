@@ -95,6 +95,13 @@ function rowActions(bookmark, list, row) {
         } });
     }
 
+    // The player's list (since 1.4.0): Adjust moves the start or end frame by frame on the player (42-frames.js).
+    if (list.onAdjust && !unavailable) {
+        actions.push({ icon: 'tune', label: 'Adjust frame by frame', run: function () {
+            list.onAdjust(bookmark);
+        } });
+    }
+
     actions.push({ icon: 'edit', label: 'Edit', run: function () {
         openEditor({ bookmark: bookmark });
     } });

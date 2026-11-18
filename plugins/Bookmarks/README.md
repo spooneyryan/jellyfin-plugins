@@ -11,6 +11,11 @@ bookmarks people already made in Jellyfin Enhanced.
   dialog asks for a name and suggests the chapter's title. A scissors button marks a range: press it at the start of a
   scene and again at the end. A **Set end time** button turns an existing bookmark into a range that ends at the current
   moment.
+- **Frame by frame:** the **Back one frame** and **Forward one frame** buttons, or the **,** and **.** keys, pause the
+  video and move exactly one frame. Hold a key to keep going. In the player's **Bookmarks** list, **Adjust** moves a
+  bookmark's start (or a range's end) frame by frame: step to the right frame, choose **Set start here** or **Set end
+  here**, then **Save**. This is in the web player (a browser, and the apps that show the web player); Jellyfin's
+  Android TV and other native players don't run the plugin's player tools.
 - **On the progress bar:** each bookmark shows as an amber tick, and a range as a band. Point at a tick to see its name.
   Click it to play from there.
 - **On a movie or episode page:** an **Add bookmark** button and a **My bookmarks** section. From there you can play

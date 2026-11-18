@@ -3,7 +3,7 @@
 A Jellyfin plugin that lets each user bookmark moments in movies and episodes, name them, find them again on a page of
 their own, and cut a bookmarked range into a clip file with ffmpeg.
 
-Version **1.3.0**, for Jellyfin **10.11.5** (`net9.0`; 2.1.0 for Jellyfin 12.4). This is the technical reference for developers and for admins who
+Version **1.4.0**, for Jellyfin **10.11.5** (`net9.0`; 2.2.0 for Jellyfin 12.4). This is the technical reference for developers and for admins who
 want more than the user [README.md](README.md) gives. Release history: [CHANGELOG.md](CHANGELOG.md).
 
 - **Bookmarks** belong to one user: a position, an optional end time, a **name** (one line, at most 100 characters) and
@@ -123,8 +123,32 @@ The UI's behaviour, for review and support; the user README has the tour.
 
 - **Buttons** (hidden by `ShowPlayerButtons`; the shortcut works either way): **bookmark now** (also `Shift+B`; the toast
   offers **Name it** for 8 s), **scissors** (press at the start and the end of a scene: the editor opens with the range),
-  **Set end time** (ends one of this video's bookmarks here; the nearest earlier one first) and **this video's bookmarks**
-  (with links to My Bookmarks and My Clips).
+  **Set end time** (ends one of this video's bookmarks here; the nearest earlier one first), **this video's bookmarks**
+  (with links to My Bookmarks and My Clips), and since 1.4.0 **Back one frame** and **Forward one frame**.
+- **Frame by frame** (since 1.4.0 / 2.2.0, `Web/js/42-frames.js`; the keys `,` and `.` work without the buttons): a step
+  pauses a playing video, then shows the frame before or after the one on screen. The frame length is the playing
+  version's video stream's `RealFrameRate`, else `AverageFrameRate` (a rate within 0.002 of an NTSC one taken as its
+  exact fraction), 24000/1001 only when neither is known. It steps from the frame actually shown
+  (`requestVideoFrameCallback`'s `mediaTime`) to the middle of the target frame, so steps never drift. The `<video>` is
+  seeked directly when the position is in its seekable range (a direct play, and a transcode's HLS playlist, which covers
+  the whole video; a frame the server hasn't transcoded yet takes as long as the transcode needs); otherwise through the
+  Sessions API, pausing again when the new stream plays. Presses during a step add up into one more seek; a held key's
+  repeats during a step are dropped, so holding steps as fast as frames can be shown. The keys keep the kit's rules
+  (never in a field or while a dialog is open) and are stopped there, so jellyfin-web's own `,`/`.` (paused only, by
+  `ReferenceFrameRate`, from the clock) doesn't step a second time; the kit's `shortcuts.bind` takes `repeat: true` for them.
+  `scripts/webchecks/player-frames.json` (direct play) and `player-frames-transcode.json` (HLS) prove each step live on
+  the sandbox's frame counters, which carry their frame number as a code in the picture (`scripts/README.md`).
+- **Adjust** (the player's Bookmarks list, each bookmark of the playing video): closes the list, shows the bookmark's
+  start (the middle of its frame), paused, and a bar over the video with the start (a range's end too) as it will be
+  saved and how many frames each moved, the frame on screen, Back/Forward one frame, **Set start here**, **Set end
+  here** (ranges only), **Cancel** and **Save**. Positions set there are the middle of the frame on screen, in ticks.
+  Save sends the editor's update (`POST /Bookmarks/{id}` with every field as read and its `UpdatedAt`), with the editor's
+  rules (the end after the start; the clip limit only warned of); a 409 reads the bookmark again and keeps the times set
+  here for the next Save, a 404 ends the bar. A clip is left as the editor leaves it: its file stays, flagged "made
+  before the range was changed" (`IsOutdated`), to be made again. Cancel, Escape or Back in the bar, playback stopping,
+  another video or leaving the player discard. In the bar, Left/Right/Up/Down (and a remote's D-pad) move along its
+  buttons, `,`/`.` step, and its keys reach nothing else (a window capture listener for targets inside it, as the kit's
+  scopedKeys dialogs).
 - **The progress bar** marks each bookmark (an amber tick; a range as a band); point for its name, click to play.
 - **The name dialog**: **Save** (Enter), **Skip** (Escape), **More…** (the editor), **Always ask for a name**.
   - It suggests the **chapter's** title, selected (`SuggestChapterNames`), never a generated one ("Chapter 3" in any of

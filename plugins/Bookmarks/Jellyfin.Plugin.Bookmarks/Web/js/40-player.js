@@ -1,6 +1,6 @@
-// The player: the playback position, the four on-screen buttons (while the server's ShowPlayerButtons is on), the
-// bookmark shortcut, the quick bookmark with its name dialog or "Name it" toast, the range flow, Set end time
-// and the player's bookmarks list.
+// The player: the playback position, the on-screen buttons (while the server's ShowPlayerButtons is on: the four
+// bookmark buttons and, since 1.4.0, Back and Forward one frame, 42-frames.js), the bookmark shortcut, the quick bookmark
+// with its name dialog or "Name it" toast, the range flow, Set end time and the player's bookmarks list.
 
 function findVideoElement() {
     return findAnchor('videoElement');
@@ -95,11 +95,13 @@ const PLAYER_BUTTONS = [
     { className: 'btnBookmarkAdd', icon: 'bookmark_add', title: 'Bookmark this moment (Shift+B)', onClick: addBookmarkNow },
     { className: 'btnBookmarkRange', icon: 'content_cut', title: 'Mark the start of a range', onClick: toggleRange },
     { className: 'btnBookmarkEnd', icon: 'last_page', title: 'Set end time', onClick: setBookmarkEnd },
-    { className: 'btnBookmarkList', icon: 'bookmarks', title: 'Bookmarks', onClick: openPlayerBookmarks }
+    { className: 'btnBookmarkList', icon: 'bookmarks', title: 'Bookmarks', onClick: openPlayerBookmarks },
+    { className: 'btnFrameBack', icon: 'navigate_before', title: 'Back one frame (,)', onClick: stepBack },
+    { className: 'btnFrameForward', icon: 'navigate_next', title: 'Forward one frame (.)', onClick: stepForward }
 ];
 
-// A scanner (90-main.js): the four buttons in the player's button row while the server's ShowPlayerButtons is on (the
-// shortcut works either way). The capabilities decide; the first scan of a player without them asks and
+// A scanner (90-main.js): the six buttons in the player's button row while the server's ShowPlayerButtons is on (the
+// shortcuts work either way). The capabilities decide; the first scan of a player without them asks and
 // scans again once they are there (they are then cached, so the buttons are back at once on the next video).
 function injectPlayerButtons() {
     const containers = findAllAnchors('osdButtons');
@@ -468,6 +470,14 @@ function openPlayerBookmarks() {
         onJump: function (bookmark) {
             dialog.close();
             kit.playback.seekTo(bookmark.StartTicks).catch(function (e) {
+                toast(e.message);
+            });
+        },
+        // Adjust (since 1.4.0): the bookmark's start or end moved frame by frame, on the player (42-frames.js).
+        onAdjust: function (bookmark) {
+            dialog.close();
+            startAdjust(bookmark).catch(function (e) {
+                endAdjust();
                 toast(e.message);
             });
         },

@@ -454,7 +454,7 @@ public sealed class ClipsApiTests : IAsyncLifetime
         Assert.Equal(("ids", BindingSource.Query, typeof(IReadOnlyList<Guid>)), (mediaIds.Name, mediaIds.Source, mediaIds.Type));
         Assert.Contains(Find("GET", "Bookmarks/Clips/Media").SupportedResponseTypes, r => r.StatusCode == 200 && r.Type == typeof(IReadOnlyList<BookmarkClipMediaDto>));
         var artwork = Find("GET", "Bookmarks/Clips/{bookmarkId}/Artwork/{kind}");
-        Assert.Equal(typeof(BookmarkClipArtworkKind), artwork.ParameterDescriptions.Single(p => p.Name == "kind").Type);
+        Assert.Equal(typeof(BookmarkClipArtworkKind), artwork.ParameterDescriptions.Single(p => p.Name == "kind").ModelMetadata?.ModelType);
         Assert.Equal([200, 400, 404], artwork.SupportedResponseTypes.Select(r => r.StatusCode).Distinct().Order());
         var bulk = Find("POST", "Bookmarks/Clips/BulkDelete");
         Assert.Equal(typeof(BookmarkClipBulkDeleteRequest), Assert.Single(bulk.ParameterDescriptions, p => p.Source == BindingSource.Body).Type);

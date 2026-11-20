@@ -24,7 +24,7 @@ public sealed partial class ClipPlannerTests
         {
             AttributesFailure = path =>
             {
-                if (!Path.GetFileName(path).StartsWith("Heat (1995)", StringComparison.Ordinal))
+                if (!Path.GetFileName(path).StartsWith("Bank job - Heat (1995)", StringComparison.Ordinal))
                 {
                     return null;
                 }
@@ -38,7 +38,7 @@ public sealed partial class ClipPlannerTests
 
         Assert.Equal(1, failures);
         Assert.True(lookups >= 3, "the name asked again, then its .partial");
-        Assert.StartsWith("Heat (1995)", Path.GetFileName(plan.OutputPath), StringComparison.Ordinal);
+        Assert.StartsWith("Bank job - Heat (1995)", Path.GetFileName(plan.OutputPath), StringComparison.Ordinal);
         Assert.DoesNotContain(" (2)", plan.OutputPath, StringComparison.Ordinal);
     }
 }

@@ -589,9 +589,9 @@ async function run(context) {
         nameOnly: { status: nameOnly.status, name: nameOnly.json && nameOnly.json.Name, file: nameOnly.json && nameOnly.json.Clip.FileName, outdated: nameOnly.json && nameOnly.json.Clip.IsNameOutdated, fileKept: fs.existsSync(file('Name')) },
         both: { status: both.status, name: both.json && both.json.Name, file: both.json && both.json.Clip.FileName, outdated: both.json && both.json.Clip.IsNameOutdated, stored: path.basename(bothFile), oldGone: !fs.existsSync(file('Both')), newThere: fs.existsSync(bothFile), noPath: !both.text.toLowerCase().includes(sandboxRoot.toLowerCase().replace(/\\/g, '\\\\')) }
     };
-    check('2. the name only: 200, the name changed, the file the same with "Name changed"; the name and the file: 200, the file renamed to "Long Test Movie (2021) - clip-rename-probe Both renamed [00.00.16-00.00.20].mkv", the old path gone, no path in the answer',
+    check('2. the name only: 200, the name changed, the file the same with "Name changed"; the name and the file: 200, the file renamed to "clip-rename-probe Both renamed - Long Test Movie (2021) [00.00.16-00.00.20].mkv", the old path gone, no path in the answer',
         nameOnly.status === 200 && evidence.renamed.nameOnly.name === N('Name renamed') && evidence.renamed.nameOnly.file === path.basename(file('Name')) && evidence.renamed.nameOnly.outdated === true && evidence.renamed.nameOnly.fileKept
-        && both.status === 200 && evidence.renamed.both.file === `Long Test Movie (2021) - ${N('Both renamed')} [00.00.16-00.00.20].mkv` && evidence.renamed.both.stored === evidence.renamed.both.file
+        && both.status === 200 && evidence.renamed.both.file === `${N('Both renamed')} - Long Test Movie (2021) [00.00.16-00.00.20].mkv` && evidence.renamed.both.stored === evidence.renamed.both.file
         && evidence.renamed.both.outdated === false && evidence.renamed.both.oldGone && evidence.renamed.both.newThere && evidence.renamed.both.noPath,
         evidence.renamed);
 
@@ -599,7 +599,11 @@ async function run(context) {
     const targetBytes = fs.statSync(file('Target')).size;
     const collide = await rename('admin', ids.Collide, { Name: N('Target'), RenameFile: true });
     const caseRename = await rename('admin', ids.Case, { Name: N('CASE'), RenameFile: true });
-    const caseListing = filesIn(folder).filter((f) => f.toLowerCase().includes('clip-rename-probe case'));
+    // The clip file (its first frame's -poster and -thumb, since 1.7.0 / 2.5.0, follow it in case too: caseArtwork).
+    const caseAll = filesIn(folder).filter((f) => f.toLowerCase().includes('clip-rename-probe case'));
+    const isArtwork = (f) => /-(poster|thumb|fanart)\.(jpg|jpeg|png|webp)$/i.test(f);
+    const caseListing = caseAll.filter((f) => !isArtwork(f));
+    const caseArtwork = caseAll.filter(isArtwork);
     const unsafe = await rename('admin', ids.Bad, { Name: 'a<b>c:d"e/f\\g|h?i*j...', RenameFile: true });
     const device = await rename('admin', ids.Bad, { Name: 'CON', RenameFile: true });
     const storeBefore = fs.readFileSync(storeFile);
@@ -610,17 +614,18 @@ async function run(context) {
     const back = await rename('admin', ids.Bad, { Name: N('Bad'), RenameFile: true });
     evidence.names = {
         collide: { status: collide.status, file: collide.json && collide.json.Clip.FileName, targetKept: fs.existsSync(file('Target')) && fs.statSync(file('Target')).size === targetBytes },
-        caseRename: { status: caseRename.status, file: caseRename.json && caseRename.json.Clip.FileName, listing: caseListing },
+        caseRename: { status: caseRename.status, file: caseRename.json && caseRename.json.Clip.FileName, listing: caseListing, artwork: caseArtwork },
         unsafe: { status: unsafe.status, file: unsafe.json && unsafe.json.Clip.FileName },
         device: { status: device.status, file: device.json && device.json.Clip.FileName, onDisk: fs.existsSync(stored(ids.Bad).Clip.FilePath) },
         tooLong: { status: tooLong.status, detail: tooLong.detail, unchanged: tooLongUnchanged },
         back: { status: back.status, file: back.json && back.json.Clip.FileName }
     };
     check('3. a taken name numbered (" (2)", the other clip\'s file untouched); a change of case alone renamed on disk; Windows\' invalid characters and trailing dots replaced, a device name inside a clip\'s name kept safe; a name over 100 characters 400 with bookmarks.json unchanged',
-        collide.status === 200 && evidence.names.collide.file === `Long Test Movie (2021) - ${N('Target')} [00.00.22-00.00.26] (2).mkv` && evidence.names.collide.targetKept
-        && caseRename.status === 200 && evidence.names.caseRename.file === `Long Test Movie (2021) - ${N('CASE')} [00.00.28-00.00.32].mkv` && caseListing.length === 1 && caseListing[0] === evidence.names.caseRename.file
-        && unsafe.status === 200 && evidence.names.unsafe.file === 'Long Test Movie (2021) - a_b_c -d_e_f_g_h_i_j [00.00.34-00.00.38].mkv'
-        && device.status === 200 && evidence.names.device.file === 'Long Test Movie (2021) - CON [00.00.34-00.00.38].mkv' && evidence.names.device.onDisk
+        collide.status === 200 && evidence.names.collide.file === `${N('Target')} - Long Test Movie (2021) [00.00.22-00.00.26] (2).mkv` && evidence.names.collide.targetKept
+        && caseRename.status === 200 && evidence.names.caseRename.file === `${N('CASE')} - Long Test Movie (2021) [00.00.28-00.00.32].mkv` && caseListing.length === 1 && caseListing[0] === evidence.names.caseRename.file
+        && caseArtwork.every((f) => f.startsWith(evidence.names.caseRename.file.replace(/\.mkv$/, '') + '-'))
+        && unsafe.status === 200 && evidence.names.unsafe.file === 'a_b_c -d_e_f_g_h_i_j - Long Test Movie (2021) [00.00.34-00.00.38].mkv'
+        && device.status === 200 && evidence.names.device.file === 'CON - Long Test Movie (2021) [00.00.34-00.00.38].mkv' && evidence.names.device.onDisk
         && tooLong.status === 400 && tooLong.detail === 'Names can be at most 100 characters long.' && evidence.names.tooLong.unchanged
         && back.status === 200 && evidence.names.back.file === path.basename(file('Bad')),
         evidence.names);
@@ -642,9 +647,9 @@ async function run(context) {
         otherKept: fs.existsSync(file('Other')) && stored(ids.Other).Name === N('Other')
     };
     check('4. Rename file after the bookmark was renamed on My Bookmarks: "Name changed" before, the file then named for the clip, its UpdatedAt kept; a deleted bookmark\'s kept clip renamed with its file; another user\'s clip 404 both ways, nothing of it changed',
-        evidence.others.outdated.before === true && outdated.status === 200 && evidence.others.outdated.file === `Long Test Movie (2021) - ${N('Outdated renamed')} [00.00.46-00.00.50].mkv`
+        evidence.others.outdated.before === true && outdated.status === 200 && evidence.others.outdated.file === `${N('Outdated renamed')} - Long Test Movie (2021) [00.00.46-00.00.50].mkv`
         && evidence.others.outdated.outdated === false && evidence.others.outdated.updatedKept
-        && keptRename.status === 200 && evidence.others.kept.deleted === true && evidence.others.kept.file === `Long Test Movie (2021) - ${N('Kept renamed')} [00.00.52-00.00.56].mkv`
+        && keptRename.status === 200 && evidence.others.kept.deleted === true && evidence.others.kept.file === `${N('Kept renamed')} - Long Test Movie (2021) [00.00.52-00.00.56].mkv`
         && othersByAdmin.status === 404 && adminsByViewer.status === 404 && othersFileByAdmin.status === 404 && evidence.others.otherKept,
         evidence.others);
 
@@ -693,7 +698,7 @@ async function run(context) {
     evidence.refusals = refusals;
     check('5. refused with bookmarks.json byte for byte and every file where it was: the file held open 409 "in use" after the server\'s three attempts (then renamed once released); a folder offline 503 and one there but not recognised 503, each with its sentence; IfUpdatedAt stale 409; a clip being made 409 "Wait for the clip to finish or cancel it first." for both routes',
         refusals.held.status === 409 && refusals.held.detail === IN_USE && refusals.held.unchanged && refusals.held.fileKept && refusals.held.ms >= 400
-        && released.status === 200 && refusals.released.file === `Long Test Movie (2021) - ${N('Held renamed')} [00.00.40-00.00.44].mkv`
+        && released.status === 200 && refusals.released.file === `${N('Held renamed')} - Long Test Movie (2021) [00.00.40-00.00.44].mkv`
         && refusals.offline.status === 503 && /^The clip's folder isn't available/.test(refusals.offline.detail || '') && refusals.offline.unchanged
         && refusals.stray.status === 503 && /^The clip's folder is there, but it isn't recognised/.test(refusals.stray.detail || '') && refusals.stray.unchanged
         && refusals.stale.status === 409 && refusals.stale.detail === 'Changed elsewhere. Reload to see the latest.' && refusals.stale.unchanged
@@ -755,10 +760,10 @@ async function run(context) {
         made: { file: path.basename(madeFile), lone: hasLoneSurrogate(madeFile), there: madeThere, size: madeSize, recordSize: madeEmoji.Clip.FileSize, partials, download: download.status, bytes: download.text ? download.text.length : 0 },
         renamed: { status: renamedEmoji.status, file: path.basename(renamedEmojiFile), lone: hasLoneSurrogate(renamedEmojiFile), there: fs.existsSync(renamedEmojiFile), oldGone: !fs.existsSync(madeFile), name: stored(emoji.Id).Name === N('h'.repeat(61)) + EMOJI + 'rename' }
     };
-    check('5b. an emoji at the name\'s 80th character: the clip made by the worker and ffmpeg under "Long Test Movie (2021) - clip-rename-probe ggg… [00.02.08-00.02.12].mkv" (the emoji cut whole, no half of it in the name), the record naming that file, its size the file\'s, no .partial left, the download 200 with the file; renamed with its file under a name like it, the file there',
-        madeEmoji.Clip.Status === 'Completed' && evidence.emoji.made.file === `Long Test Movie (2021) - ${N('g'.repeat(61))} [00.02.08-00.02.12].mkv` && !evidence.emoji.made.lone && evidence.emoji.made.there
+    check('5b. an emoji at the name\'s 80th character: the clip made by the worker and ffmpeg under "clip-rename-probe ggg… - Long Test Movie (2021) [00.02.08-00.02.12].mkv" (the emoji cut whole, no half of it in the name), the record naming that file, its size the file\'s, no .partial left, the download 200 with the file; renamed with its file under a name like it, the file there',
+        madeEmoji.Clip.Status === 'Completed' && evidence.emoji.made.file === `${N('g'.repeat(61))} - Long Test Movie (2021) [00.02.08-00.02.12].mkv` && !evidence.emoji.made.lone && evidence.emoji.made.there
         && evidence.emoji.made.size > 0 && evidence.emoji.made.size === madeEmoji.Clip.FileSize && partials.length === 0 && download.status === 200 && evidence.emoji.made.bytes > 0
-        && renamedEmoji.status === 200 && evidence.emoji.renamed.file === `Long Test Movie (2021) - ${N('h'.repeat(61))} [00.02.08-00.02.12].mkv` && !evidence.emoji.renamed.lone
+        && renamedEmoji.status === 200 && evidence.emoji.renamed.file === `${N('h'.repeat(61))} - Long Test Movie (2021) [00.02.08-00.02.12].mkv` && !evidence.emoji.renamed.lone
         && evidence.emoji.renamed.there && evidence.emoji.renamed.oldGone && evidence.emoji.renamed.name,
         evidence.emoji);
 
@@ -793,8 +798,8 @@ async function run(context) {
     if (opts.restart) {
         const crashed = stored(ids.Crashed);
         const notMoved = stored(ids.NotMoved);
-        const crashedTo = path.join(path.dirname(crashed.Clip.FilePath), `Long Test Movie (2021) - ${N('Crashed renamed')} [00.01.04-00.01.08].mkv`);
-        const notMovedTo = path.join(path.dirname(notMoved.Clip.FilePath), `Long Test Movie (2021) - ${N('NotMoved renamed')} [00.01.10-00.01.14].mkv`);
+        const crashedTo = path.join(path.dirname(crashed.Clip.FilePath), `${N('Crashed renamed')} - Long Test Movie (2021) [00.01.04-00.01.08].mkv`);
+        const notMovedTo = path.join(path.dirname(notMoved.Clip.FilePath), `${N('NotMoved renamed')} - Long Test Movie (2021) [00.01.10-00.01.14].mkv`);
         const position = logPosition();
         stopSandbox('crash simulation');
         const plantedCrashed = plantEntry(crashed, crashedTo, N('Crashed renamed'));

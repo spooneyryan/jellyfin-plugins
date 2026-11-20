@@ -75,20 +75,30 @@ async function start(options) {
     page.respond('POST', '/Sessions/s1/Playing', null, 204);
     page.run(source, file);
     await page.advance(50);
-    page.installApiClient({ userId: 'user-1', items: { item1: o.movie || movie() } });
+    page.installApiClient({ userId: 'user-1', items: Object.assign({ item1: o.movie || movie() }, o.items || {}) });
     await page.advance(50);
     const buttons = page.element('div', { class: 'mainDetailButtons' }, [page.element('button', { class: 'btnMoreCommands' })]);
-    const content = page.element('div', { class: 'detailPageContent' }, [
-        page.element('div', { id: 'specialsCollapsible', class: 'verticalSection' }),
-        page.element('div', { id: 'scenesCollapsible', class: 'verticalSection' }),
-        page.element('div', { id: 'similarCollapsible', class: 'verticalSection' })
-    ]);
+    const content = page.element('div', { class: 'detailPageContent' }, (o.sections || MOVIE_SECTIONS).map((id) => section(page, id)));
     const view = page.element('div', { id: 'itemDetailPage', class: 'page' }, [buttons, content]);
     page.document.body.append(view);
     page.context.location.hash = '#/details?id=item1&serverId=server-1';
     page.dispatch(view, 'viewshow');
     await page.advance(400);
-    return { page, content, bookmarksRow: content.querySelector('.jfbm-detail-bookmarks'), clipsRow: content.querySelector('.jfbm-detail-clips') };
+    return { page, view, content, bookmarksRow: content.querySelector('.jfbm-detail-bookmarks'), clipsRow: content.querySelector('.jfbm-detail-clips') };
+}
+
+// jellyfin-web's sections of a movie's page, in its order (10.11.5 and 12.4: Cast & Crew, then Guest Stars, hidden
+// without guest stars but always there, Special Features, Scenes, then More Like This); '-hide' marks a hidden one.
+const MOVIE_SECTIONS = ['castCollapsible', 'guestCastCollapsible-hide', 'specialsCollapsible', 'scenesCollapsible', 'similarCollapsible'];
+
+function section(page, id) {
+    const hidden = /-hide$/.test(id);
+    return page.element('div', { id: id.replace(/-hide$/, ''), class: 'verticalSection detailVerticalSection' + (hidden ? ' hide' : '') });
+}
+
+// The content's children: a section's id, ours by their jfbm-detail class.
+function order(content) {
+    return content.children.map((c) => c.id || c.className.split(' ').filter((n) => n.indexOf('jfbm-detail') === 0)[0]);
 }
 
 function bookmarkCards(root) {
@@ -143,7 +153,7 @@ test('a bookmark card shows the trickplay tile of its moment, cropped as jellyfi
         movie: movie({ Trickplay: trickplay({ Width: 320, Height: 180, ThumbnailCount: 6 }) }),
         list: [bookmark('late', 75), bookmark('b1', 15), bookmark('b0', 0)]
     });
-    assert.deepEqual(content.children.map((c) => c.id || c.className.split(' ').filter((n) => n.indexOf('jfbm-detail') === 0)[0]), ['specialsCollapsible', 'scenesCollapsible', 'jfbm-detail-bookmarks', 'jfbm-detail-clips', 'similarCollapsible'], 'right after Scenes');
+    assert.deepEqual(order(content), ['castCollapsible', 'guestCastCollapsible', 'jfbm-detail-bookmarks', 'specialsCollapsible', 'scenesCollapsible', 'jfbm-detail-clips', 'similarCollapsible'], 'Bookmarks right after Cast & Crew (and the hidden Guest Stars), Clips right after Scenes');
     assert.ok(bookmarksRow);
     const cards = bookmarkCards(content);
     assert.deepEqual(cards.map((c) => c.getAttribute('data-jfbm-card')), ['b0', 'b1', 'late'], 'in time order');
@@ -156,6 +166,77 @@ test('a bookmark card shows the trickplay tile of its moment, cropped as jellyfi
     // Past the last thumbnail (75 s of a 60 s trickplay): the last one, 5.
     assert.equal(painted(cards[2]).style.backgroundPosition, '55.556% 0%');
     assert.equal(cards[1].querySelector('.jfbm-rowcard-frame'), null, 'a 16:9 tile paints the card\'s own image box');
+    assert.equal(page.errors.length, 0, page.errors.join('\n'));
+});
+
+// Where the rows go: Bookmarks right after Cast & Crew (since 1.6.1 / 2.4.1), after Guest Stars when that comes right
+// under it; Clips right after Scenes; without Cast & Crew both after Scenes, as in 1.6.0 / 2.4.0, else at the end.
+const ROWS = { list: [bookmark('a', 5)], clips: [clip('c', 1, 3)], media: [{ Id: 'c', LibraryItemId: null, Artwork: [] }] };
+
+test('an episode: Bookmarks after Guest Stars, which stays right under Cast & Crew, so before Special Features', { skip }, async () => {
+    const { page, content, bookmarksRow, clipsRow } = await start(Object.assign({ sections: ['castCollapsible', 'guestCastCollapsible', 'specialsCollapsible', 'scenesCollapsible', 'similarCollapsible'] }, ROWS));
+    assert.deepEqual(order(content), ['castCollapsible', 'guestCastCollapsible', 'jfbm-detail-bookmarks', 'specialsCollapsible', 'scenesCollapsible', 'jfbm-detail-clips', 'similarCollapsible']);
+    assert.equal(bookmarksRow.classList.contains('hide'), false);
+    assert.equal(clipsRow.classList.contains('hide'), false);
+    assert.equal(page.errors.length, 0, page.errors.join('\n'));
+});
+
+test('Guest Stars not right under Cast & Crew, or not there: Bookmarks right after Cast & Crew; a hidden Cast & Crew is still the place', { skip }, async () => {
+    let s = await start(Object.assign({ sections: ['castCollapsible', 'specialsCollapsible', 'guestCastCollapsible', 'scenesCollapsible', 'similarCollapsible'] }, ROWS));
+    assert.deepEqual(order(s.content), ['castCollapsible', 'jfbm-detail-bookmarks', 'specialsCollapsible', 'guestCastCollapsible', 'scenesCollapsible', 'jfbm-detail-clips', 'similarCollapsible']);
+    s = await start(Object.assign({ sections: ['castCollapsible', 'scenesCollapsible', 'similarCollapsible'] }, ROWS));
+    assert.deepEqual(order(s.content), ['castCollapsible', 'jfbm-detail-bookmarks', 'scenesCollapsible', 'jfbm-detail-clips', 'similarCollapsible']);
+    // An item without people: jellyfin-web keeps both people sections, hidden; the rows go where they would.
+    s = await start(Object.assign({ sections: ['castCollapsible-hide', 'guestCastCollapsible-hide', 'specialsCollapsible', 'scenesCollapsible-hide', 'similarCollapsible'] }, ROWS));
+    assert.deepEqual(order(s.content), ['castCollapsible', 'guestCastCollapsible', 'jfbm-detail-bookmarks', 'specialsCollapsible', 'scenesCollapsible', 'jfbm-detail-clips', 'similarCollapsible']);
+    assert.equal(s.page.errors.length, 0, s.page.errors.join('\n'));
+});
+
+test('without Cast & Crew both rows go right after Scenes, Bookmarks first (Guest Stars alone is no place); without Scenes too, at the end', { skip }, async () => {
+    let s = await start(Object.assign({ sections: ['specialsCollapsible', 'scenesCollapsible', 'similarCollapsible'] }, ROWS));
+    assert.deepEqual(order(s.content), ['specialsCollapsible', 'scenesCollapsible', 'jfbm-detail-bookmarks', 'jfbm-detail-clips', 'similarCollapsible']);
+    s = await start(Object.assign({ sections: ['guestCastCollapsible', 'specialsCollapsible', 'scenesCollapsible', 'similarCollapsible'] }, ROWS));
+    assert.deepEqual(order(s.content), ['guestCastCollapsible', 'specialsCollapsible', 'scenesCollapsible', 'jfbm-detail-bookmarks', 'jfbm-detail-clips', 'similarCollapsible']);
+    s = await start(Object.assign({ sections: ['specialsCollapsible', 'similarCollapsible'] }, ROWS));
+    assert.deepEqual(order(s.content), ['specialsCollapsible', 'similarCollapsible', 'jfbm-detail-bookmarks', 'jfbm-detail-clips']);
+    // Cast & Crew but no Scenes: Bookmarks still after Cast & Crew, Clips at the end.
+    s = await start(Object.assign({ sections: ['castCollapsible', 'specialsCollapsible', 'similarCollapsible'] }, ROWS));
+    assert.deepEqual(order(s.content), ['castCollapsible', 'jfbm-detail-bookmarks', 'specialsCollapsible', 'similarCollapsible', 'jfbm-detail-clips']);
+    assert.equal(s.page.errors.length, 0, s.page.errors.join('\n'));
+});
+
+test('the places hold on every visit: another item in the same view, back to the first, the cached view shown again, a redraw', { skip }, async () => {
+    const expected = ['castCollapsible', 'guestCastCollapsible', 'jfbm-detail-bookmarks', 'specialsCollapsible', 'scenesCollapsible', 'jfbm-detail-clips', 'similarCollapsible'];
+    const withClip = bookmark('done', 30, { EndTicks: 400000000, Clip: { Status: 'Completed', FileName: 'done.mp4', FileSize: 9, IsOutdated: false } });
+    const { page, view, content } = await start(Object.assign({}, ROWS, { list: [bookmark('a', 5), withClip], items: { item2: movie({ Id: 'item2', Name: 'Other Movie' }) } }));
+    assert.deepEqual(order(content), expected);
+    const visit = async (id) => {
+        page.context.location.hash = '#/details?id=' + id + '&serverId=server-1';
+        page.dispatch(view, 'viewshow');
+        await page.advance(400);
+    };
+    await visit('item2');
+    assert.deepEqual(order(content), expected, 'one of each, in the same places');
+    assert.equal(content.querySelector('.jfbm-detail-bookmarks').getAttribute('data-item-id'), 'item2');
+    assert.equal(content.querySelector('.jfbm-detail-clips').getAttribute('data-item-id'), 'item2');
+    await visit('item1');
+    assert.deepEqual(order(content), expected);
+    assert.equal(content.querySelector('.jfbm-detail-bookmarks').getAttribute('data-item-id'), 'item1');
+    const rows = [content.querySelector('.jfbm-detail-bookmarks'), content.querySelector('.jfbm-detail-clips')];
+    // Shown again from jellyfin-web's view cache (Back): the same rows, where they were.
+    page.dispatch(view, 'viewshow');
+    await page.advance(400);
+    assert.deepEqual([content.querySelector('.jfbm-detail-bookmarks'), content.querySelector('.jfbm-detail-clips')], rows);
+    assert.deepEqual(order(content), expected);
+    // A change (a clip deleted from a bookmark card) reads and draws both rows again, in place.
+    page.respond('DELETE', '/Bookmarks/done/Clip', null, 204);
+    const reads = requests(page, 'GET', '/Bookmarks/Clips').length;
+    await act(page, bookmarkCards(content)[1], 'Delete clip');
+    await page.advance(400);
+    assert.equal(requests(page, 'DELETE', '/Bookmarks/done/Clip').length, 1);
+    assert.ok(requests(page, 'GET', '/Bookmarks/Clips').length > reads, 'the Clips row read again');
+    assert.deepEqual([content.querySelector('.jfbm-detail-bookmarks'), content.querySelector('.jfbm-detail-clips')], rows);
+    assert.deepEqual(order(content), expected);
     assert.equal(page.errors.length, 0, page.errors.join('\n'));
 });
 
@@ -247,7 +328,7 @@ test('a clip card: only clips with a file, in time order; its own artwork, else 
             { Id: 'b6', LibraryItemId: 'lib6', Artwork: [] }
         ]
     });
-    assert.equal(content.children[content.children.indexOf(clipsRow) - 1].classList.contains('jfbm-detail-bookmarks'), true, 'after the Bookmarks row');
+    assert.equal(content.children[content.children.indexOf(clipsRow) - 1].id, 'scenesCollapsible', 'right after Scenes');
     assert.equal(clipsRow.classList.contains('hide'), false);
     assert.equal(clipsRow.querySelector('h2').firstChild.textContent, 'Clips');
     assert.deepEqual(requests(page, 'GET', '/Bookmarks/Clips/Media').map((f) => f.query), [{ ids: 'b6,b5' }]);

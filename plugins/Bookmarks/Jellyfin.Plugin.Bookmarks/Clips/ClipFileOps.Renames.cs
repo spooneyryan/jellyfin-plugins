@@ -692,7 +692,8 @@ internal sealed partial class ClipFileOps
 
             if (outcome != RenameOutcome.Waiting)
             {
-                if (outcome is RenameOutcome.Written or RenameOutcome.Completed)
+                var renamed = outcome is RenameOutcome.Written or RenameOutcome.Completed;
+                if (renamed)
                 {
                     NoteFinished(entry, entry.To);
                 }
@@ -705,6 +706,13 @@ internal sealed partial class ClipFileOps
 
                 _states?.Forget(entry.From);
                 _states?.Forget(entry.To);
+
+                // Its artwork follows it, as after a rename that finished at once (since 1.7.0 / 2.5.0: a clip's first frame
+                // is always beside it, so the old name's would stay until the daily maintenance).
+                if (renamed)
+                {
+                    await ArtworkAfterRenameAsync(entry.BookmarkId, entry.From, entry.To).ConfigureAwait(false);
+                }
             }
 
             _logger.LogDebug("The rename of {From} to {To} (bookmark {BookmarkId}): {Outcome}", entry.From, entry.To, entry.BookmarkId, outcome);

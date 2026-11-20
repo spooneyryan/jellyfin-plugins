@@ -99,6 +99,23 @@ public sealed class ClipFactsTests : IDisposable
         Assert.Equal(outdated, _fixture.Query.Describe(record).IsNameOutdated);
     }
 
+    [Theory]
+    [InlineData("Heat (1995) - Bank job [00.01.00-00.01.30].mp4", "Bank job", false)]         // made before 1.7.0: still its name
+    [InlineData("Heat (1995) - Bank job [00.01.00-00.01.30] (2).mkv", "Bank job", false)]
+    [InlineData("Bank job - Heat (1995) [00.01.00-00.01.30].mp4", "Bank job", false)]         // today's order
+    [InlineData("Heat (1995) - Bank job [00.01.00-00.01.30].mp4", "Vault", true)]             // renamed since, in either order
+    [InlineData("Bank job - Heat (1995) [00.01.00-00.01.30].mp4", "Vault", true)]
+    [InlineData("Heat (1995) - Bank job [00.01.00-00.01.30].mp4", null, true)]                // unnamed since
+    [InlineData("Heat (1995) - bank job [00.01.00-00.01.30].mp4", "Bank job", true)]          // a change of case
+    public async Task IsNameOutdated_TakesAFileNamedInTheOrderBefore17_AsNamedAfterItsRecord(string fileName, string? name, bool outdated)
+    {
+        // Since 1.7.0 / 2.5.0 a clip is named "<name> - <video> [range]"; files made before are "<video> - <name> [range]" and
+        // keep that name: they show no "Name changed" until the bookmark's name really changes, and nothing renames them.
+        var record = await _fixture.AddAsync(Alice, new ClipSpec { Name = name, FileName = fileName }, Ct);
+
+        Assert.Equal(outdated, _fixture.Query.Describe(record).IsNameOutdated);
+    }
+
     [Fact]
     public async Task IsNameOutdated_ComparesWithTheNameAlone_SoANoteInAnOlderFileNameIsOutdated_AndIgnoresANameBookmarksDoesntGive()
     {

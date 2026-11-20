@@ -86,7 +86,7 @@ public sealed partial class ClipPlannerTests : IDisposable
         Assert.Equal(1080, plan.Command.SourceHeight);
         Assert.Equal(plan.TempPath, plan.Command.OutputPath);
         Assert.Equal(plan.OutputPath + ".partial", plan.TempPath);
-        Assert.Equal("Heat (1995) - Bank job (0:01:00-0:01:30)", plan.Command.Title);
+        Assert.Equal("Bank job - Heat (1995) (0:01:00-0:01:30)", plan.Command.Title);
     }
 
     [Fact]
@@ -112,7 +112,7 @@ public sealed partial class ClipPlannerTests : IDisposable
         var plan = _planner.Plan(Bookmark(), BookmarkClipMode.Accurate);
 
         Assert.Equal(
-            _directory.Combine("data", "bookmarks", "clips", "alice", "Heat (1995) - Bank job [00.01.00-00.01.30].mp4"),
+            _directory.Combine("data", "bookmarks", "clips", "alice", "Bank job - Heat (1995) [00.01.00-00.01.30].mp4"),
             plan.OutputPath);
     }
 
@@ -124,7 +124,7 @@ public sealed partial class ClipPlannerTests : IDisposable
 
         var plan = _planner.Plan(Bookmark(), BookmarkClipMode.Fast);
 
-        Assert.Equal(_directory.Combine("library", "Clips", "Heat (1995) - Bank job [00.01.00-00.01.30].mkv"), plan.OutputPath);
+        Assert.Equal(_directory.Combine("library", "Clips", "Bank job - Heat (1995) [00.01.00-00.01.30].mkv"), plan.OutputPath);
     }
 
     [Fact]
@@ -182,7 +182,7 @@ public sealed partial class ClipPlannerTests : IDisposable
 
         var again = _planner.Plan(Bookmark() with { Clip = new ClipInfo { FilePath = first.OutputPath } }, BookmarkClipMode.Accurate);
 
-        Assert.Equal(Path.Combine(Path.GetDirectoryName(first.OutputPath)!, "Heat (1995) - Bank job [00.01.00-00.01.30] (2).mp4"), again.OutputPath);
+        Assert.Equal(Path.Combine(Path.GetDirectoryName(first.OutputPath)!, "Bank job - Heat (1995) [00.01.00-00.01.30] (2).mp4"), again.OutputPath);
         Assert.Equal(again.OutputPath + ".partial", again.TempPath);
 
         // Once the previous file is gone, the canonical name is free again.
@@ -367,7 +367,7 @@ public sealed partial class ClipPlannerTests : IDisposable
     }
 
     [Theory]
-    [InlineData("Vault", "Bank job", "Heat (1995) - Vault")]
+    [InlineData("Vault", "Bank job", "Vault - Heat (1995)")]
     [InlineData(null, "Bank job", "Heat (1995)")]
     [InlineData("  ", "Bank job", "Heat (1995)")]
     [InlineData(null, "secret plans\nline two", "Heat (1995)")]
@@ -441,7 +441,7 @@ public sealed partial class ClipPlannerTests : IDisposable
         // a new clip, so two records named one file, and the first one's Delete, Forget or remake deleted the second's clip.
         var data = _directory.Combine("data", "bookmarks");
         var folder = Path.Combine(data, "clips", "alice");
-        string Named(string suffix) => Path.Combine(folder, "Heat (1995) - Bank job [00.01.00-00.01.30]" + suffix + ".mp4");
+        string Named(string suffix) => Path.Combine(folder, "Bank job - Heat (1995) [00.01.00-00.01.30]" + suffix + ".mp4");
         using var store = ClipFileSupport.StoreWithClipRoots(Path.Combine(data, "bookmarks.json"), Path.Combine(data, "clips"));
         await store.AddAsync(Bookmark() with { Id = Guid.NewGuid(), Clip = new ClipInfo { Status = BookmarkClipStatus.Completed, FilePath = Named(string.Empty), FileSize = 4 } }, TestContext.Current.CancellationToken);
         Assert.False(File.Exists(Named(string.Empty)));
@@ -465,7 +465,7 @@ public sealed partial class ClipPlannerTests : IDisposable
         // deleted the second's clip (reproduced on 1.1.2).
         var data = _directory.Combine("data", "bookmarks");
         var folder = Path.Combine(data, "clips", "alice");
-        string Named(string suffix) => Path.Combine(folder, "Heat (1995) - Bank job [00.01.00-00.01.30]" + suffix + ".mp4");
+        string Named(string suffix) => Path.Combine(folder, "Bank job - Heat (1995) [00.01.00-00.01.30]" + suffix + ".mp4");
         using var store = ClipFileSupport.StoreWithClipRoots(Path.Combine(data, "bookmarks.json"), Path.Combine(data, "clips"));
         await store.AddAsync(Bookmark() with { Id = Guid.NewGuid(), Clip = new ClipInfo { Status = BookmarkClipStatus.Completed, FilePath = Named(string.Empty), FileSize = 4 } }, TestContext.Current.CancellationToken);
         Assert.False(File.Exists(Named(string.Empty)));
@@ -494,8 +494,8 @@ public sealed partial class ClipPlannerTests : IDisposable
         // Bookmarks 1.2.1: a remake took " (2)" (since 1.1) whether its own file was there or gone; it keeps its own file's name
         // now, to replace the file (ReplacesOwnFile), while nothing else holds that path.
         var data = _directory.Combine("data", "bookmarks");
-        var previous = Path.Combine(data, "clips", "alice", "Heat (1995) - Bank job [00.01.00-00.01.30].mp4");
-        var second = Path.Combine(Path.GetDirectoryName(previous)!, "Heat (1995) - Bank job [00.01.00-00.01.30] (2).mp4");
+        var previous = Path.Combine(data, "clips", "alice", "Bank job - Heat (1995) [00.01.00-00.01.30].mp4");
+        var second = Path.Combine(Path.GetDirectoryName(previous)!, "Bank job - Heat (1995) [00.01.00-00.01.30] (2).mp4");
         using var store = ClipFileSupport.StoreWithClipRoots(Path.Combine(data, "bookmarks.json"), Path.Combine(data, "clips"));
         var own = Bookmark() with { Clip = new ClipInfo { Status = BookmarkClipStatus.Completed, FilePath = previous, FileSize = 4 } };
         await store.AddAsync(own, TestContext.Current.CancellationToken);
@@ -545,7 +545,7 @@ public sealed partial class ClipPlannerTests : IDisposable
         {
             AttributesFailure = path =>
             {
-                if (!Path.GetFileName(path).StartsWith("Heat (1995) - Bank job", StringComparison.Ordinal))
+                if (!Path.GetFileName(path).StartsWith("Bank job - Heat (1995)", StringComparison.Ordinal))
                 {
                     return null;
                 }

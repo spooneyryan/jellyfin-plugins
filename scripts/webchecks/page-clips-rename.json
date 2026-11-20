@@ -106,7 +106,7 @@
     },
     {
       "name": "as expected: the file renamed to the name Bookmarks gives the clip now, one dialog all along, the focus back on the row's Rename clip",
-      "assert": "__vars.renamedA.name === 'clip-rename-probe Web A renamed' && __vars.renamedA.file === __vars.seed['Web A'].file.replace('clip-rename-probe Web A [', 'clip-rename-probe Web A renamed [') && __vars.renamedA.outdated === false && __vars.renamedA.state === 'Ready' && __vars.renamedA.maxDialogs === 1 && __vars.renamedA.where.row === __vars.seed['Web A'].id && __vars.renamedA.where.title === 'Rename clip'"
+      "assert": "__vars.renamedA.name === 'clip-rename-probe Web A renamed' && __vars.renamedA.file === __vars.seed['Web A'].file.replace('clip-rename-probe Web A - ', 'clip-rename-probe Web A renamed - ') && __vars.renamedA.outdated === false && __vars.renamedA.state === 'Ready' && __vars.renamedA.maxDialogs === 1 && __vars.renamedA.where.row === __vars.seed['Web A'].id && __vars.renamedA.where.title === 'Rename clip'"
     },
     {
       "name": "B's Rename file",
@@ -143,7 +143,7 @@
     },
     {
       "name": "as expected: its file has the clip's name now; the focus on the row (its Rename file gone)",
-      "assert": "__vars.renamedB.outdated === false && __vars.renamedB.file !== __vars.seed['Web B'].file && __vars.renamedB.file.indexOf(__vars.seed['Web B'].name + ' [') > 0 && __vars.renamedB.where.row === __vars.seed['Web B'].id"
+      "assert": "__vars.renamedB.outdated === false && __vars.renamedB.file !== __vars.seed['Web B'].file && __vars.renamedB.file.indexOf(__vars.seed['Web B'].name + ' - ') === 0 && __vars.renamedB.where.row === __vars.seed['Web B'].id"
     },
     {
       "name": "D (its file held open by the probe): Rename clip",

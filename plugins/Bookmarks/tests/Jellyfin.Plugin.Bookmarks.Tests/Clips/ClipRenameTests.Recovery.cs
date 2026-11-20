@@ -87,6 +87,39 @@ public sealed partial class ClipRenameTests
     }
 
     [Fact]
+    public async Task ARenameFinishedAtTheNextStart_TakesTheClipsFrameWithIt()
+    {
+        // Since 1.7.0 / 2.5.0 every clip has its first frame beside it; found on a sandbox: a rename finished at the next
+        // start left the old name's frame (and, after the clip's delete, an orphan) until the daily maintenance.
+        var record = await _fixture.AddAsync(_alice.Id, new ClipSpec { Name = "Bank job" }, Ct);
+        var frames = new FakeClipFrameExtractor();
+        ClipFileOps Started()
+        {
+            // A server start: the journal is read, and the artwork hooks are there.
+            var files = ClipFileSupport.Ops(_fixture.Store, fileSystem: _fileSystem, states: _fixture.States);
+            var artwork = new ClipArtwork(_fixture.Store, files, new FakeClipArtworkSource(), TestData.ConfigurationProvider(new Configuration.PluginConfiguration()), NullLogger.Instance, frames);
+            files.Artwork = () => artwork;
+            return files;
+        }
+
+        await Started().ArtworkForClipAsync(record.Id);
+        var folder = Path.GetDirectoryName(record.Clip!.FilePath)!;
+        var oldStem = Path.GetFileNameWithoutExtension(record.Clip.FilePath);
+        Assert.True(File.Exists(Path.Combine(folder, oldStem + "-poster.jpg")));
+
+        var (_, to) = await CrashAfterTheMoveAsync(record, "Vault");
+        var recovery = await Started().FinishRenamesAsync(null, Ct);
+
+        Assert.Equal(1, recovery.Completed);
+        var newStem = Path.GetFileNameWithoutExtension(to);
+        Assert.StartsWith("Vault - ", newStem, StringComparison.Ordinal);
+        Assert.Equal(
+            [newStem + "-poster.jpg", newStem + "-thumb.jpg"],
+            Directory.GetFiles(folder, "*.jpg").Select(Path.GetFileName).Order(StringComparer.Ordinal));
+        Assert.Single(frames.Calls);
+    }
+
+    [Fact]
     public async Task ARecordChangedAfterTheStop_GetsTheRenamedPath_ButKeepsItsNewName()
     {
         // The rename's name is applied only to a record unchanged since the rename was decided.
@@ -199,7 +232,7 @@ public sealed partial class ClipRenameTests
 
         var renamed = await Service().RenameAsync(_alice, record.Id, new BookmarkClipRenameRequest { Name = "Vault", RenameFile = true }, Ct);
 
-        Assert.Equal("Heat (1995) - Vault [00.01.00-00.01.30].mp4", renamed.Clip.FileName);
+        Assert.Equal("Vault - Heat (1995) [00.01.00-00.01.30].mp4", renamed.Clip.FileName);
         Assert.True(File.Exists(_fixture.Store.Get(record.Id)!.Clip!.FilePath));
         Assert.Empty(JournalFiles());
         Assert.Single(_fileSystem.Moves);
@@ -223,7 +256,7 @@ public sealed partial class ClipRenameTests
         var to = _fixture.Store.Get(record.Id)!.Clip!.FilePath!;
         Assert.Equal([to], _fileSystem.Flushes);
         Assert.Equal(record.Clip!.FilePath, recordAtFlush);
-        Assert.EndsWith("Vault [00.01.00-00.01.30].mp4", renamed.Clip.FileName, StringComparison.Ordinal);
+        Assert.Equal("Vault - Heat (1995) [00.01.00-00.01.30].mp4", renamed.Clip.FileName);
     }
 
     [Fact]
@@ -252,7 +285,7 @@ public sealed partial class ClipRenameTests
         // The record names the new path, the file is at the old one, the entry is there: the clip volume lost the rename.
         var record = await _fixture.AddAsync(_alice.Id, new ClipSpec { Name = "Bank job" }, Ct);
         var from = record.Clip!.FilePath!;
-        var to = Path.Combine(Path.GetDirectoryName(from)!, "Heat (1995) - Vault [00.01.00-00.01.30].mp4");
+        var to = Path.Combine(Path.GetDirectoryName(from)!, "Vault - Heat (1995) [00.01.00-00.01.30].mp4");
         new ClipRenameJournal(DataFolder, PhysicalClipFileSystem.Instance, NullLogger.Instance).Add(Entry(record, to, "Vault"));
         await _fixture.Store.UpdateAsync(record.Id, b => b with { Name = "Vault", Clip = b.Clip! with { FilePath = to } }, Ct);
         var logger = new ListLogger();
@@ -291,7 +324,7 @@ public sealed partial class ClipRenameTests
         Assert.SkipUnless(OperatingSystem.IsWindows(), "A change of case alone is a rename of one file on Windows.");
         var record = await _fixture.AddAsync(_alice.Id, new ClipSpec { Name = "bank job" }, Ct);
         var from = record.Clip!.FilePath!;
-        var to = Path.Combine(Path.GetDirectoryName(from)!, "Heat (1995) - Bank Job [00.01.00-00.01.30].mp4");
+        var to = Path.Combine(Path.GetDirectoryName(from)!, "Bank Job - Heat (1995) [00.01.00-00.01.30].mp4");
         var journal = new ClipRenameJournal(DataFolder, PhysicalClipFileSystem.Instance, NullLogger.Instance);
         journal.Add(Entry(record, to, "Bank Job"));
 
@@ -382,7 +415,7 @@ public sealed partial class ClipRenameTests
         Assert.Empty(_fileSystem.Moves);
         var now = _fixture.Store.Get(record.Id)!;
         Assert.Equal(record.Clip!.FilePath, now.Clip!.FilePath);
-        Assert.Equal("Heat (1995) - Elsewhere [00.01.00-00.01.30].mp4", (await Service().RenameFileAsync(_alice, record.Id, now.UpdatedAt, Ct)).Clip.FileName);
+        Assert.Equal("Elsewhere - Heat (1995) [00.01.00-00.01.30].mp4", (await Service().RenameFileAsync(_alice, record.Id, now.UpdatedAt, Ct)).Clip.FileName);
     }
 
     [Fact]
@@ -490,7 +523,7 @@ public sealed partial class ClipRenameTests
 
         var renamed = await Service().RenameAsync(_alice, record.Id, new BookmarkClipRenameRequest { Name = name, RenameFile = true }, Ct);
 
-        Assert.Equal("Heat (1995) - " + new string('g', 79) + " [00.01.00-00.01.30].mp4", renamed.Clip.FileName);
+        Assert.Equal(new string('g', 79) + " - Heat (1995) [00.01.00-00.01.30].mp4", renamed.Clip.FileName);
         using var reopened = BookmarkStore.Create(_fixture.Directory.Combine("data", "bookmarks.json"), NullLogger.Instance);
         var stored = reopened.Get(record.Id)!;
         Assert.Equal(name, stored.Name);

@@ -261,7 +261,7 @@ public sealed class PageHostingTests
     /// <summary>
     /// page-clips.test.mjs: the My Clips page in a fake page: the registration and the nav link after My
     /// Bookmarks, the toolbar and the state in the hash (deep links, Back, wrong values), each clip state and badge, the
-    /// poster and the link only for a video the viewer can open, the summary line, paging, the poll of the clips being made
+    /// poster (or the clip's own thumbnail, its first frame) and the link only for a video the viewer can open, the summary line, paging, the poll of the clips being made
     /// (in place, paused while hidden, stopped), the highlight's one landing, the empty, error and turned-off states, and
     /// the links to the page (My Bookmarks, the player's list, the clip-ready toast); and the row actions (each
     /// state's, Preview with the MKV fallback, Download, Play, Edit, Make the clip again, Cancel, Delete with the 409, Forget,

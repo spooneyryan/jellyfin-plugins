@@ -30,7 +30,7 @@ namespace Jellyfin.Plugin.Bookmarks.Tests.Clips;
 /// <summary>
 /// A named clip with the real ffmpeg (skipped without ffmpeg): the manager, the
 /// real planner and the clip worker make a clip of a named range bookmark of "Test Pattern (2020)", and its file is named
-/// <c>Test Pattern (2020) - Bank job [00.01.05-00.01.15].mp4</c> and titled with the name (<c>ffprobe -show_entries
+/// <c>Bank job - Test Pattern (2020) [00.01.05-00.01.15].mp4</c> and titled with the name (<c>ffprobe -show_entries
 /// format_tags=title</c>), not the note. A rename leaves that file's name as it is; the clip made next carries the
 /// new name, and the old file goes.
 /// </summary>
@@ -78,10 +78,10 @@ public sealed class NamedClipFfmpegTests : IAsyncLifetime
         var first = await WaitForClipAsync(bookmark.Id);
 
         var clipFolder = _directory.Combine("data", "bookmarks", "clips", "alice");
-        var firstFile = Path.Combine(clipFolder, "Test Pattern (2020) - Bank job [00.01.05-00.01.15].mp4");
+        var firstFile = Path.Combine(clipFolder, "Bank job - Test Pattern (2020) [00.01.05-00.01.15].mp4");
         Assert.Equal(firstFile, first.FilePath);
         Assert.True(File.Exists(firstFile));
-        Assert.Equal("Test Pattern (2020) - Bank job (0:01:05-0:01:15)", await tools.ProbeTitleAsync(firstFile, Ct));
+        Assert.Equal("Bank job - Test Pattern (2020) (0:01:05-0:01:15)", await tools.ProbeTitleAsync(firstFile, Ct));
         var probe = await tools.ProbeAsync(firstFile, Ct);
         Assert.InRange(probe.Duration, 9.9, 10.15);
         Assert.Contains(("video", "h264"), probe.Streams);
@@ -95,9 +95,9 @@ public sealed class NamedClipFfmpegTests : IAsyncLifetime
         // The next clip uses the new name; the previous file goes once the bookmark points at the new one.
         await manager.StartClipAsync(_alice, bookmark.Id, BookmarkClipMode.Fast, isAdmin: false, Ct);
         var second = await WaitForClipAsync(bookmark.Id);
-        var secondFile = Path.Combine(clipFolder, "Test Pattern (2020) - Vault [00.01.05-00.01.15].mkv");
+        var secondFile = Path.Combine(clipFolder, "Vault - Test Pattern (2020) [00.01.05-00.01.15].mkv");
         Assert.Equal(secondFile, second.FilePath);
-        Assert.Equal("Test Pattern (2020) - Vault (0:01:05-0:01:15)", await tools.ProbeTitleAsync(secondFile, Ct));
+        Assert.Equal("Vault - Test Pattern (2020) (0:01:05-0:01:15)", await tools.ProbeTitleAsync(secondFile, Ct));
         Assert.False(File.Exists(firstFile));
         Assert.Equal([secondFile], Directory.GetFiles(clipFolder));
     }

@@ -127,7 +127,7 @@ public sealed partial class ClipRenameTests
 
             // A new rename waiting: the next pass comes within a step, and the pause starts over.
             var second = await _fixture.AddAsync(_alice.Id, new ClipSpec { Name = "Second", Start = 120, End = 150 }, Ct);
-            var moved = Path.Combine(Path.GetDirectoryName(second.Clip!.FilePath!)!, "Heat (1995) - Safe [00.02.00-00.02.30].mp4");
+            var moved = Path.Combine(Path.GetDirectoryName(second.Clip!.FilePath!)!, "Safe - Heat (1995) [00.02.00-00.02.30].mp4");
             Files.Journal!.Add(Entry(second, moved, "Safe"));
             File.Move(second.Clip.FilePath!, moved);
             resume.Set();
@@ -156,7 +156,7 @@ public sealed partial class ClipRenameTests
 
         // The recovery's note too: a rename the server stopped during, finished at the next pass.
         var other = await _fixture.AddAsync(_alice.Id, new ClipSpec { Name = "Other", Start = 120, End = 150 }, Ct);
-        var to = Path.Combine(Path.GetDirectoryName(other.Clip!.FilePath!)!, "Heat (1995) - Safe [00.02.00-00.02.30].mp4");
+        var to = Path.Combine(Path.GetDirectoryName(other.Clip!.FilePath!)!, "Safe - Heat (1995) [00.02.00-00.02.30].mp4");
         Files.Journal!.Add(Entry(other, to, "Safe") with { File = _fileSystem.GetFileIdentity(other.Clip.FilePath!) });
         File.Move(other.Clip.FilePath!, to);
         Assert.Equal(1, (await Files.FinishRenamesAsync(null, Ct)).Completed);
@@ -172,8 +172,8 @@ public sealed partial class ClipRenameTests
         // its move might not be on the disk.
         var record = await _fixture.AddAsync(_alice.Id, new ClipSpec { Name = "Bank job" }, Ct);
         var folder = Path.GetDirectoryName(record.Clip!.FilePath!)!;
-        var middle = Path.Combine(folder, "Heat (1995) - Vault [00.01.00-00.01.30].mp4");
-        var last = Path.Combine(folder, "Heat (1995) - Safe [00.01.00-00.01.30].mp4");
+        var middle = Path.Combine(folder, "Vault - Heat (1995) [00.01.00-00.01.30].mp4");
+        var last = Path.Combine(folder, "Safe - Heat (1995) [00.01.00-00.01.30].mp4");
         _fileSystem.FlushFailure = _ => true;
 
         Assert.Equal(ClipFileOutcome.Done, Files.RenameOnce(Entry(record, middle, null), 1, out var older).Outcome);
@@ -199,7 +199,7 @@ public sealed partial class ClipRenameTests
         // Found by mutation testing: neither path holds the file as the journal recorded it, and a file is at the new path, which
         // another record (Bob's clip) names: the rename's record keeps its old path ("Lost"), never Bob's file.
         var record = await _fixture.AddAsync(_alice.Id, new ClipSpec { Name = "Bank job" }, Ct);
-        var bobs = await _fixture.AddAsync(_bob.Id, new ClipSpec { Name = "Bobs", FileName = "Heat (1995) - Vault [00.01.00-00.01.30].mp4", Start = 300, End = 330 }, Ct);
+        var bobs = await _fixture.AddAsync(_bob.Id, new ClipSpec { Name = "Bobs", FileName = "Vault - Heat (1995) [00.01.00-00.01.30].mp4", Start = 300, End = 330 }, Ct);
         var from = record.Clip!.FilePath!;
         Files.Journal!.Add(Entry(record, bobs.Clip!.FilePath!, "Vault"));
         File.Delete(from);
@@ -305,7 +305,7 @@ public sealed partial class ClipRenameTests
         var lookups = 0;
         _fileSystem.AttributesFailure = path =>
         {
-            if (!Path.GetFileName(path).StartsWith("Heat (1995) - Vault", StringComparison.Ordinal))
+            if (!Path.GetFileName(path).StartsWith("Vault - Heat (1995)", StringComparison.Ordinal))
             {
                 return null;
             }
@@ -315,7 +315,7 @@ public sealed partial class ClipRenameTests
 
         var renamed = await Service().RenameAsync(_alice, record.Id, new BookmarkClipRenameRequest { Name = "Vault", RenameFile = true }, Ct);
 
-        Assert.Equal("Heat (1995) - Vault [00.01.00-00.01.30].mp4", renamed.Clip.FileName);
+        Assert.Equal("Vault - Heat (1995) [00.01.00-00.01.30].mp4", renamed.Clip.FileName);
         Assert.True(lookups >= 2);
         Assert.Single(_fileSystem.Moves, m => m.Source == file);
         Assert.Equal(1, Files.NameGate.CurrentCount);
@@ -325,7 +325,7 @@ public sealed partial class ClipRenameTests
     public async Task AClipFolderThatCantAnswerTwice_Is503_WithNothingChanged()
     {
         var record = await _fixture.AddAsync(_alice.Id, new ClipSpec { Name = "Bank job" }, Ct);
-        _fileSystem.AttributesFailure = path => Path.GetFileName(path).StartsWith("Heat (1995) - Vault", StringComparison.Ordinal)
+        _fileSystem.AttributesFailure = path => Path.GetFileName(path).StartsWith("Vault - Heat (1995)", StringComparison.Ordinal)
             ? new UnauthorizedAccessException("Access to the path is denied.")
             : null;
         var storeFile = _fixture.Directory.Combine("data", "bookmarks.json");
@@ -348,7 +348,7 @@ public sealed partial class ClipRenameTests
             : identity with
             {
                 Volume = 7,
-                FileId = Path.GetFileName(path).Contains(" - Vault", StringComparison.Ordinal) || Path.GetFileName(path).Contains(" - Safe", StringComparison.Ordinal)
+                FileId = Path.GetFileName(path).StartsWith("Vault - ", StringComparison.Ordinal) || Path.GetFileName(path).StartsWith("Safe - ", StringComparison.Ordinal)
                     ? AtTheNewName
                     : "00000000000000000000000000000041"
             };

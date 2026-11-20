@@ -28,6 +28,9 @@ internal static partial class ClipArtworkNames
     /// <summary>The Thumb image's kind: <c>-thumb</c>.</summary>
     public const string Thumb = "thumb";
 
+    /// <summary>The extension of a clip's first frame (since 1.7.0 / 2.5.0): a JPEG, as <c>-poster</c> and <c>-thumb</c>.</summary>
+    public const string FrameExtension = ".jpg";
+
     /// <summary>
     /// The expression of an artwork file's name, before its clip part is checked against <see cref="ClipNamePattern"/>.
     /// </summary>

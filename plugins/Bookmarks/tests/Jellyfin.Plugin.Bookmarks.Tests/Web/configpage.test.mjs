@@ -299,7 +299,7 @@ const everySetting = {
     EnableWebUi: false, ReportWebAnchorProblems: false, EnableBookmarksPage: false, EnableClipsPage: false, PageHostMode: 'Auto', RegisterPluginPages: false, ShowFallbackNav: false,
     ShowPlayerButtons: false, BookmarkNowShortcut: 'Ctrl+Alt+K', AskForNameDefault: true, SuggestChapterNames: false, ShowJellyfinEnhancedBanner: false,
     DeletedUserPolicy: 'Delete', DetachedRetentionDays: 120, SnapshotsToKeep: 14,
-    EnableClips: false, AdminsCanManageAllClips: false, ClipOutputPath: 'E:\\Jellyfin Clips', MinFreeSpaceMegabytes: 4096, OrganizeClipsByUser: false, GiveClipsVideoArtwork: false, DefaultClipMode: 'Fast',
+    EnableClips: false, AdminsCanManageAllClips: false, ClipOutputPath: 'E:\\Jellyfin Clips', MinFreeSpaceMegabytes: 4096, OrganizeClipsByUser: false, GiveClipsVideoArtwork: false, UseClipFirstFrameAsThumbnail: false, DefaultClipMode: 'Fast',
     MaxClipDurationSeconds: 900, MaxConcurrentClips: 2, CleanUpPartialFilesOnStartup: false, MissingClipRetentionDays: 7,
     VideoPreset: 'slow', VideoCrf: 18, MaxVideoHeight: 1080, AudioBitrateKbps: 256, AudioChannels: 6
 };
@@ -334,7 +334,7 @@ test('each setting changed on the page is saved with its new value and type', as
         EnableWebUi: true, ReportWebAnchorProblems: true, EnableBookmarksPage: true, EnableClipsPage: true, PageHostMode: 'PluginPagesOnly', RegisterPluginPages: true, ShowFallbackNav: true,
         ShowPlayerButtons: true, BookmarkNowShortcut: 'F7', AskForNameDefault: false, SuggestChapterNames: true, ShowJellyfinEnhancedBanner: true,
         DeletedUserPolicy: 'KeepAsOrphan', DetachedRetentionDays: 0, SnapshotsToKeep: 0,
-        EnableClips: true, AdminsCanManageAllClips: true, ClipOutputPath: '', MinFreeSpaceMegabytes: 0, OrganizeClipsByUser: true, GiveClipsVideoArtwork: true, DefaultClipMode: 'Accurate',
+        EnableClips: true, AdminsCanManageAllClips: true, ClipOutputPath: '', MinFreeSpaceMegabytes: 0, OrganizeClipsByUser: true, GiveClipsVideoArtwork: true, UseClipFirstFrameAsThumbnail: true, DefaultClipMode: 'Accurate',
         MaxClipDurationSeconds: 0, MaxConcurrentClips: 1, CleanUpPartialFilesOnStartup: true, MissingClipRetentionDays: 0,
         VideoPreset: 'veryfast', VideoCrf: 20, MaxVideoHeight: 0, AudioBitrateKbps: 192, AudioChannels: 2
     };
@@ -365,7 +365,7 @@ test('a select keeps a setting it has no option for, so saving never changes it 
 test('the page sections and their order: Web client, Pages, Player, Jellyfin Enhanced, Bookmark data, Clips, Accurate clip encoding', () => {
     const titles = Array.from(formHtml.matchAll(/<h2 class="sectionTitle">([^<]+)<\/h2>/g), (m) => m[1]);
     assert.deepEqual(titles, ['Web client', 'Pages', 'Player', 'Jellyfin Enhanced', 'Bookmark data', 'Clips', 'Accurate clip encoding']);
-    for (const name of ['EnableBookmarksPage', 'EnableClipsPage', 'RegisterPluginPages', 'ShowFallbackNav', 'ShowPlayerButtons', 'AskForNameDefault', 'SuggestChapterNames', 'ShowJellyfinEnhancedBanner', 'EnableClips', 'AdminsCanManageAllClips', 'OrganizeClipsByUser', 'GiveClipsVideoArtwork', 'CleanUpPartialFilesOnStartup']) {
+    for (const name of ['EnableBookmarksPage', 'EnableClipsPage', 'RegisterPluginPages', 'ShowFallbackNav', 'ShowPlayerButtons', 'AskForNameDefault', 'SuggestChapterNames', 'ShowJellyfinEnhancedBanner', 'EnableClips', 'AdminsCanManageAllClips', 'OrganizeClipsByUser', 'GiveClipsVideoArtwork', 'UseClipFirstFrameAsThumbnail', 'CleanUpPartialFilesOnStartup']) {
         assert.match(html, new RegExp('<input id="' + name + '" name="' + name + '" type="checkbox" is="emby-checkbox" />'));
     }
 

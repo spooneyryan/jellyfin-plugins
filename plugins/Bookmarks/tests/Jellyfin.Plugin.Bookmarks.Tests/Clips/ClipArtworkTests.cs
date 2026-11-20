@@ -34,8 +34,8 @@ namespace Jellyfin.Plugin.Bookmarks.Tests.Clips;
 /// </summary>
 public sealed class ClipArtworkTests : IDisposable
 {
-    private const string ClipName = "Heat (1995) - Bank job [01.52.10-01.55.00].mp4";
-    private const string Stem = "Heat (1995) - Bank job [01.52.10-01.55.00]";
+    private const string ClipName = "Bank job - Heat (1995) [01.52.10-01.55.00].mp4";
+    private const string Stem = "Bank job - Heat (1995) [01.52.10-01.55.00]";
 
     private readonly TempDirectory _directory = new();
     private readonly string _root;
@@ -77,7 +77,7 @@ public sealed class ClipArtworkTests : IDisposable
     }
 
     [Theory]
-    [InlineData("Heat (1995) - Bank job [01.52.10-01.55.00]-poster.jpg", "Heat (1995) - Bank job [01.52.10-01.55.00]", "poster", ".jpg", false)]
+    [InlineData("Bank job - Heat (1995) [01.52.10-01.55.00]-poster.jpg", "Bank job - Heat (1995) [01.52.10-01.55.00]", "poster", ".jpg", false)]
     [InlineData("Heat (1995) [01.52.10-01.55.00] (2)-fanart.webp", "Heat (1995) [01.52.10-01.55.00] (2)", "fanart", ".webp", false)]
     [InlineData("Clip [100.00.00-100.00.10] (0123456789abcdef0123456789abcdef)-thumb.jpeg", "Clip [100.00.00-100.00.10] (0123456789abcdef0123456789abcdef)", "thumb", ".jpeg", false)]
     [InlineData("Heat [00.00.01-00.00.02]-poster.png.0123456789abcdef0123456789abcdef.tmp", "Heat [00.00.01-00.00.02]", "poster", ".png", true)]
@@ -195,7 +195,7 @@ public sealed class ClipArtworkTests : IDisposable
 
         var renamed = await new ClipFileRenamer(_store, _files, NullLogger.Instance).RenameAsync(user, clip.Id, changeName: true, "Vault", renameFile: true, ifUpdatedAt: null, Ct);
 
-        const string NewStem = "Heat (1995) - Vault [01.52.10-01.55.00]";
+        const string NewStem = "Vault - Heat (1995) [01.52.10-01.55.00]";
         Assert.Equal(Path.Combine(_alice, NewStem + ".mp4"), renamed.Clip!.FilePath);
         Assert.Equal(
             [NewStem + "-fanart.png", NewStem + "-poster.jpg", NewStem + ".mp4"],

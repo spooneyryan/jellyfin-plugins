@@ -167,6 +167,7 @@ async function start(options) {
         return { Items: items.slice(start, start + limit), TotalRecordCount: items.length, StartIndex: start };
     });
     page.respond('GET', '/Bookmarks/Clips/Summary', () => summaryOf(page.data.clips));
+    page.respond('GET', '/Bookmarks/Clips/Media', (entry) => (typeof options.media === 'function' ? options.media(entry) : options.media) || []);
     page.respond('GET', '/Bookmarks/Clips/Status', (entry) => {
         const ids = String(entry.query.ids || '').split(',');
         return ids.map((id) => page.data.clips.find((c) => key(c.Id) === id)).filter(Boolean)
@@ -293,6 +294,39 @@ function choose(page, select, value) {
 function renders(page) {
     return page.context.__jfkit.jfbm.instance.pages.state().renders.clips || 0;
 }
+
+test('a clip\'s own thumbnail (its first frame) replaces the video\'s poster, asked once for the clips shown, and again for a remade file', { skip }, async () => {
+    const media = (entry) => String(entry.query.ids || '').split(',').filter((id) => id === 'c1' || id === 'c8')
+        .map((id) => ({ Id: id, LibraryItemId: null, Artwork: [{ Kind: 'Fanart', Tag: '1' }, { Kind: 'Thumb', Tag: id === 'c1' ? '638' : '639' }] }));
+    const page = await opened({ media });
+    const asked = requests(page, '/Bookmarks/Clips/Media');
+    assert.equal(asked.length, 1, 'one request for the page');
+    assert.deepEqual(asked[0].query.ids.split(',').sort(), ['c1', 'c8', 'c9'], 'only the clips whose file is there and whose video the viewer can open');
+
+    const thumb = row(page, 'c1').querySelector('.jfbm-clip-thumb');
+    assert.equal(thumb.querySelector('img').getAttribute('src'), 'http://127.0.0.1:8097/Bookmarks/Clips/c1/Artwork/Thumb?tag=638&ApiKey=test-token');
+    assert.ok(thumb.classList.contains('jfbm-clip-thumb-own'));
+    assert.equal(thumb.getAttribute('href'), '#/details?id=' + key(HEAT) + '&serverId=server-1', 'still the video\'s link');
+    const poster = row(page, 'c9').querySelector('.jfbm-clip-thumb');
+    assert.equal(poster.querySelector('img').getAttribute('src'), 'http://127.0.0.1:8097/Items/' + key(HEAT) + '/Images/Primary?fillHeight=90&quality=90', 'no thumbnail: the poster');
+    assert.equal(poster.classList.contains('jfbm-clip-thumb-own'), false);
+    assert.equal(row(page, 'c10').querySelector('img'), null, 'never for a video the viewer can\'t open');
+
+    // A failed thumbnail leaves the placeholder, as a failed poster does.
+    page.dispatch(row(page, 'c8').querySelector('img'), 'error');
+    assert.ok(row(page, 'c8').querySelector('.jfbm-clip-thumb .material-icons'));
+
+    // The same file again: the known answer, no request; the clip made again: asked again.
+    choose(page, toolbar(page).sort, 'Oldest');
+    await page.advance(120);
+    assert.equal(requests(page, '/Bookmarks/Clips/Media').length, 1);
+    assert.match(row(page, 'c1').querySelector('img').getAttribute('src'), /\/Bookmarks\/Clips\/c1\/Artwork\/Thumb\?tag=638/);
+    page.data.clips.find((c) => c.Id === 'c1').Clip.MadeAt = '2026-10-11T10:00:00.0000000Z';
+    choose(page, toolbar(page).sort, 'Newest');
+    await page.advance(120);
+    assert.deepEqual(requests(page, '/Bookmarks/Clips/Media').slice(1).map((f) => f.query.ids), ['c1']);
+    assert.equal(page.errors.length, 0, page.errors.join('\n'));
+});
 
 test('the page is registered as the server declares it and linked after My Bookmarks in "Library tools"', { skip }, async () => {
     const page = await start();

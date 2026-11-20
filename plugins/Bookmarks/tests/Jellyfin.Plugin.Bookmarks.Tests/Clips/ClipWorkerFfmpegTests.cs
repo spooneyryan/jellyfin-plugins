@@ -78,7 +78,7 @@ public sealed class ClipWorkerFfmpegTests : IAsyncLifetime
         await _store.AddAsync(bookmark, Ct);
         await _store.AddClipRootAsync(planner.Root, Ct);
         var output = planner.OutputPathFor(bookmark);
-        Assert.Equal("Heat (1995) - Bank job [00.00.02-00.00.05].mp4", Path.GetFileName(output));
+        Assert.Equal("Bank job - Heat (1995) [00.00.02-00.00.05].mp4", Path.GetFileName(output));
         var stale = _directory.CreateFile(Path.Combine("clips", Path.GetFileName(output) + ClipFileGuard.PartialExtension), "half a clip");
         File.SetLastWriteTimeUtc(stale, DateTime.UtcNow.AddMinutes(-2));
 

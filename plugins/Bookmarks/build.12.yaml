@@ -1,7 +1,7 @@
 ---
 name: "Bookmarks"
 guid: "d0ee1b2a-7f71-4654-8ff2-163a81441b03"
-version: "2.4.0.0"
+version: "2.5.0.0"
 targetAbi: "12.4.0.0"
 framework: "net10.0"
 overview: "Named per-user bookmarks, My Bookmarks and My Clips pages, and ffmpeg clip extraction"
@@ -17,6 +17,24 @@ owner: "NoRepine"
 artifacts:
 - "Jellyfin.Plugin.Bookmarks.dll"
 changelog: |
+  2.5.0
+  - A clip's file is now named with its own name first, then the
+    video's title, then the time range: "Bank job - Heat (1995)
+    [01.52.10-01.55.00].mp4". A clip without a name stays "Heat (1995)
+    [..]". Clips you already have keep their names (they aren't shown
+    as "Name changed"); Rename or Rename file gives one the new order.
+  - Each clip's first frame is now its thumbnail: it is saved beside
+    the clip as its poster and thumbnail, and shown on the video's
+    Clips row, on My Clips and in a clip library. A clip made again or
+    adjusted gets its new first frame; clips you already have get one
+    at the next clip artwork pass. If ffmpeg can't take the frame, the
+    film's poster is used, as before. A new setting, "Use each clip's
+    first frame as its thumbnail" (on by default), turns it off.
+  2.4.1
+  - The Bookmarks row now comes right after Cast & Crew (after Guest
+    Stars on an episode that has them), before Special Features. The
+    Clips row stays right after Scenes. On a page without Cast & Crew
+    both rows stay right after Scenes, as before.
   2.4.0
   - Bookmarks and Clips rows on a video's page, in the same style as
     its Scenes and Special Features rows, right after Scenes. Each

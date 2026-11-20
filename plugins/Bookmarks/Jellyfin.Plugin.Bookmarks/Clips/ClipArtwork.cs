@@ -20,6 +20,16 @@ namespace Jellyfin.Plugin.Bookmarks.Clips;
 /// (<see cref="ClipArtworkNames"/>, <see cref="IClipArtworkSource"/>).
 /// </summary>
 /// <remarks>
+/// <para><b>The clip's first frame</b> (since 1.7.0 / 2.5.0, the setting <c>UseClipFirstFrameAsThumbnail</c>, on by
+/// default): Jellyfin's ffmpeg takes the clip file's very first frame (<see cref="IClipFrameExtractor"/>) as
+/// <c>&lt;clip&gt;-poster.jpg</c>, and a copy of it as <c>&lt;clip&gt;-thumb.jpg</c>, in place of the film's poster and an
+/// episode's image; <c>-fanart</c> stays the film's backdrop while <c>GiveClipsVideoArtwork</c> is on (the frame is written
+/// with that setting off too, and needs no library item: it comes from the clip file). The frame is written under a
+/// temporary name, given the clip file's last write time, then moved over the poster; a poster whose last write time is the
+/// clip file's is that file's frame already, so nothing is taken again, while a clip made again (a new file, a new time)
+/// gets a new frame. A failure (no ffmpeg, an error, a timeout) is a Warning with the bookmark's id, deletes the temporary
+/// file, and the film's images are written as without the setting. With the setting off the artwork is as before it; a
+/// poster or thumb that is the clip file's frame (its time) goes when the video has no image of that kind to replace it.</para>
 /// <para><b>Written</b> only for a clip that is <c>Completed</c>, whose file is there in a recorded clip folder or a folder
 /// directly inside it, as the guard sees it (<see cref="ClipFileOps.Check"/>: no link on the way, no rename under way), whose
 /// file name is one Bookmarks gives (<see cref="ClipNamePattern"/>), and whose video is still in the library. Only image files
@@ -43,6 +53,7 @@ internal sealed class ClipArtwork : IDisposable
     private readonly IClipArtworkSource _source;
     private readonly IPluginConfigurationProvider _configurationProvider;
     private readonly ILogger _logger;
+    private readonly IClipFrameExtractor? _frames;
     private readonly SemaphoreSlim _lock = new(1, 1);
 
     /// <summary>
@@ -51,10 +62,14 @@ internal sealed class ClipArtwork : IDisposable
     /// <param name="store">The bookmark store: the clips and the clip folders.</param>
     /// <param name="files">The clip file operations: the guard, the clip folders' markers and the file system.</param>
     /// <param name="source">The videos' images and the clips' refresh.</param>
-    /// <param name="configurationProvider">The setting <c>GiveClipsVideoArtwork</c>, read at every use.</param>
+    /// <param name="configurationProvider">The settings <c>GiveClipsVideoArtwork</c> and <c>UseClipFirstFrameAsThumbnail</c>,
+    /// read at every use.</param>
     /// <param name="logger">The logger.</param>
-    public ClipArtwork(IBookmarkStore store, ClipFileOps files, IClipArtworkSource source, IPluginConfigurationProvider configurationProvider, ILogger logger)
+    /// <param name="frames">Takes a clip's first frame; without it (tests of the video's artwork alone) no frame is taken,
+    /// whatever the setting says.</param>
+    public ClipArtwork(IBookmarkStore store, ClipFileOps files, IClipArtworkSource source, IPluginConfigurationProvider configurationProvider, ILogger logger, IClipFrameExtractor? frames = null)
     {
+        _frames = frames;
         ArgumentNullException.ThrowIfNull(store);
         ArgumentNullException.ThrowIfNull(files);
         ArgumentNullException.ThrowIfNull(source);
@@ -68,7 +83,12 @@ internal sealed class ClipArtwork : IDisposable
         _logger = logger;
     }
 
-    private bool Enabled => _configurationProvider.GetConfiguration().GiveClipsVideoArtwork;
+    // Whether anything is written: the video's artwork, or the clip's first frame.
+    private bool Enabled => VideoArtwork || Frames;
+
+    private bool VideoArtwork => _configurationProvider.GetConfiguration().GiveClipsVideoArtwork;
+
+    private bool Frames => _frames is not null && _configurationProvider.GetConfiguration().UseClipFirstFrameAsThumbnail;
 
     /// <inheritdoc />
     public void Dispose() => _lock.Dispose();
@@ -90,7 +110,7 @@ internal sealed class ClipArtwork : IDisposable
         await _lock.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            SyncOne(record, run);
+            await SyncOneAsync(record, run, cancellationToken).ConfigureAwait(false);
         }
         finally
         {
@@ -124,12 +144,12 @@ internal sealed class ClipArtwork : IDisposable
                 foreach (var record in _store.GetClipRecords(null))
                 {
                     cancellationToken.ThrowIfCancellationRequested();
-                    SyncOne(record, run);
+                    await SyncOneAsync(record, run, cancellationToken).ConfigureAwait(false);
                 }
             }
             else
             {
-                run.Skipped = "GiveClipsVideoArtwork is off";
+                run.Skipped = _frames is not null ? "GiveClipsVideoArtwork and UseClipFirstFrameAsThumbnail are off" : "GiveClipsVideoArtwork is off";
             }
 
             CleanUpAll(run, cancellationToken);
@@ -140,11 +160,13 @@ internal sealed class ClipArtwork : IDisposable
         }
 
         _logger.LogInformation(
-            "Clip artwork: {Written} files written for {Clips} clips ({UpToDate} up to date, {Failed} failed), {Deleted} orphaned files deleted ({NotDeleted} could not be), {FoldersLeftOut} clip folders left out",
+            "Clip artwork: {Written} files written for {Clips} clips ({UpToDate} up to date, {Failed} failed; {Frames} first frames taken, {FramesFailed} could not be), {Deleted} orphaned files deleted ({NotDeleted} could not be), {FoldersLeftOut} clip folders left out",
             run.Written,
             run.ClipsWritten,
             run.UpToDate,
             run.Failed,
+            run.Frames,
+            run.FramesFailed,
             run.Deleted,
             run.NotDeleted,
             run.FoldersLeftOut);
@@ -246,7 +268,7 @@ internal sealed class ClipArtwork : IDisposable
 
             if (Enabled && _store.Get(bookmarkId) is { } record)
             {
-                SyncOne(record, run);
+                await SyncOneAsync(record, run, cancellationToken).ConfigureAwait(false);
             }
         }
         finally
@@ -258,11 +280,20 @@ internal sealed class ClipArtwork : IDisposable
         return run;
     }
 
-    // One clip's artwork, when it may have some; a failure is a Warning and counted.
-    private void SyncOne(Bookmark record, ClipArtworkRun run)
+    // Whether an image is the frame of the clip file there now: it was given that file's last write time when written (a
+    // file of the clip's name made again has a new time, so it gets a new frame; a rename keeps the time).
+    private static bool IsFrameOf(ClipFileIdentity? image, ClipFileIdentity clipFile)
+        => image is not null && image.Length > 0 && image.WrittenUtc.Ticks == clipFile.WrittenUtc.Ticks;
+
+    // One clip's artwork, when it may have some; a failure is a Warning and counted. The video's artwork needs its library
+    // item; the clip's first frame (since 1.7.0 / 2.5.0) only the clip file. A frame that couldn't be taken leaves the poster
+    // and the thumb to the video's images, as without the setting.
+    private async Task SyncOneAsync(Bookmark record, ClipArtworkRun run, CancellationToken cancellationToken)
     {
+        var videoArtwork = VideoArtwork && BookmarkRecordRules.HasLibraryItem(record);
+        var frames = Frames;
         if (record.Clip is not { Status: BookmarkClipStatus.Completed, FilePath: { Length: > 0 } path }
-            || !BookmarkRecordRules.HasLibraryItem(record)
+            || !(videoArtwork || frames)
             || Locate(path) is not { } clip
             || clip.Verdict != ClipPathVerdict.Exists)
         {
@@ -271,15 +302,42 @@ internal sealed class ClipArtwork : IDisposable
 
         try
         {
-            if (_source.Find(record.ItemId) is not { } images)
+            var written = 0;
+            var framed = false;
+            if (frames && await WriteFrameAsync(record.Id, clip, run, cancellationToken).ConfigureAwait(false) is { } frame)
             {
+                framed = true;
+                written += frame;
+            }
+
+            var images = videoArtwork ? _source.Find(record.ItemId) : null;
+            if (images is null)
+            {
+                if (written > 0)
+                {
+                    Refresh(clip, run);
+                }
+
                 return;
             }
 
-            var written = 0;
+            var frameSettingOff = !_configurationProvider.GetConfiguration().UseClipFirstFrameAsThumbnail;
             foreach (var kind in ClipArtworkNames.Kinds)
             {
-                if (WriteArtwork(clip, kind, images.For(kind), run))
+                if (framed && kind is ClipArtworkNames.Poster or ClipArtworkNames.Thumb)
+                {
+                    continue;
+                }
+
+                var image = images.For(kind);
+                if (image is null && frameSettingOff && kind is ClipArtworkNames.Poster or ClipArtworkNames.Thumb)
+                {
+                    // The setting turned off: a frame this clip file was given goes when no image of the video replaces it.
+                    DeleteFrame(clip, kind, run);
+                    continue;
+                }
+
+                if (WriteArtwork(clip, kind, image, run))
                 {
                     written++;
                 }
@@ -287,11 +345,7 @@ internal sealed class ClipArtwork : IDisposable
 
             if (written > 0)
             {
-                run.ClipsWritten++;
-                if (_source.RefreshClip(clip.FullPath))
-                {
-                    run.Refreshed++;
-                }
+                Refresh(clip, run);
             }
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
@@ -300,6 +354,127 @@ internal sealed class ClipArtwork : IDisposable
             _logger.LogWarning("Could not give the clip of bookmark {BookmarkId} its video's artwork: {Error}", record.Id, ex.GetType().Name);
             _logger.LogDebug(ex, "Could not give {Path} its video's artwork", clip.FullPath);
         }
+    }
+
+    // A clip with new artwork: counted, and its image refresh queued when it is a library item.
+    private void Refresh(ClipLocation clip, ClipArtworkRun run)
+    {
+        run.ClipsWritten++;
+        if (_source.RefreshClip(clip.FullPath))
+        {
+            run.Refreshed++;
+        }
+    }
+
+    // The clip's first frame as its poster (<clip>-poster.jpg) and thumb (<clip>-thumb.jpg): how many files were written (0
+    // when both are the clip file's frame already), or null when there is no frame to show (a path that isn't a plain
+    // artwork file, the clip file's time unreadable, ffmpeg failing), and the video's images take their places.
+    private async Task<int?> WriteFrameAsync(Guid bookmarkId, ClipLocation clip, ClipArtworkRun run, CancellationToken cancellationToken)
+    {
+        var poster = Path.Combine(clip.Folder, ClipArtworkNames.FileName(clip.Stem, ClipArtworkNames.Poster, ClipArtworkNames.FrameExtension));
+        var thumb = Path.Combine(clip.Folder, ClipArtworkNames.FileName(clip.Stem, ClipArtworkNames.Thumb, ClipArtworkNames.FrameExtension));
+        if (!IsWritable(poster) || !IsWritable(thumb) || _fileSystem.GetFileIdentity(clip.FullPath) is not { } clipFile)
+        {
+            return null;
+        }
+
+        var written = 0;
+        if (IsFrameOf(_fileSystem.GetFileIdentity(poster), clipFile))
+        {
+            run.UpToDate++;
+        }
+        else
+        {
+            var temporary = poster + "." + Guid.NewGuid().ToString("N") + ".tmp";
+            try
+            {
+                await _frames!.ExtractFirstFrameAsync(clip.FullPath, temporary, cancellationToken).ConfigureAwait(false);
+                _fileSystem.SetLastWriteTimeUtc(temporary, clipFile.WrittenUtc);
+                _fileSystem.ReplaceFile(temporary, poster);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
+            {
+                // Nothing partial stays: the temporary file goes (or the daily clean-up deletes it, as a stale .tmp of ours).
+                TryDelete(temporary);
+                run.FramesFailed++;
+                _logger.LogWarning("Could not take the first frame of the clip of bookmark {BookmarkId} ({Error}); its video's images are used", bookmarkId, ex.GetType().Name);
+                _logger.LogDebug(ex, "Could not take the first frame of {Path}", clip.FullPath);
+                return null;
+            }
+            catch
+            {
+                // Cancelled (the maintenance stopping): the temporary file goes too.
+                TryDelete(temporary);
+                throw;
+            }
+
+            run.Frames++;
+            run.Written++;
+            written++;
+            _logger.LogDebug("Wrote {Path}, the first frame of its clip", poster);
+        }
+
+        // The thumb: a copy of the poster, with its time (the clip file's).
+        if (_fileSystem.GetFileIdentity(poster) is { } frame && _fileSystem.GetFileIdentity(thumb) is { } current && current.Length == frame.Length && current.WrittenUtc.Ticks == frame.WrittenUtc.Ticks)
+        {
+            run.UpToDate++;
+        }
+        else
+        {
+            var temporary = thumb + "." + Guid.NewGuid().ToString("N") + ".tmp";
+            try
+            {
+                _fileSystem.CopyFile(poster, temporary);
+                _fileSystem.ReplaceFile(temporary, thumb);
+            }
+            catch
+            {
+                TryDelete(temporary);
+                throw;
+            }
+
+            run.Written++;
+            written++;
+            _logger.LogDebug("Wrote {Path}, the first frame of its clip", thumb);
+        }
+
+        // The same kinds in another format (the video's images before) go: Jellyfin would take either.
+        foreach (var kind in new[] { ClipArtworkNames.Poster, ClipArtworkNames.Thumb })
+        {
+            foreach (var other in ClipArtworkNames.Extensions)
+            {
+                if (!string.Equals(other, ClipArtworkNames.FrameExtension, StringComparison.Ordinal))
+                {
+                    DeleteArtwork(Path.Combine(clip.Folder, ClipArtworkNames.FileName(clip.Stem, kind, other)), run);
+                }
+            }
+        }
+
+        return written;
+    }
+
+    // With the setting off: the poster or thumb that is this clip file's first frame (a .jpg with the clip file's time) is
+    // deleted, when the video has no image of that kind to put there instead.
+    private void DeleteFrame(ClipLocation clip, string kind, ClipArtworkRun run)
+    {
+        var path = Path.Combine(clip.Folder, ClipArtworkNames.FileName(clip.Stem, kind, ClipArtworkNames.FrameExtension));
+        if (_fileSystem.GetFileIdentity(clip.FullPath) is { } clipFile && IsFrameOf(_fileSystem.GetFileIdentity(path), clipFile))
+        {
+            DeleteArtwork(path, run);
+        }
+    }
+
+    // Whether an artwork path may be written: nothing there, or a plain file of that very name (never a link or a folder).
+    private bool IsWritable(string target)
+    {
+        var attributes = _fileSystem.GetAttributes(target);
+        if (attributes is { } found && (found.HasFlag(FileAttributes.ReparsePoint) || found.HasFlag(FileAttributes.Directory) || !IsExactName(target)))
+        {
+            _logger.LogDebug("Left {Path} as it is: a link, a folder or a name in other case, not an artwork file", target);
+            return false;
+        }
+
+        return true;
     }
 
     // One artwork file from its image: whether it was written.
@@ -494,7 +669,7 @@ internal sealed class ClipArtwork : IDisposable
                 || attributes.HasFlag(FileAttributes.ReparsePoint)
                 || attributes.HasFlag(FileAttributes.Directory)
                 || !IsExactName(from)
-                || _fileSystem.GetAttributes(to) is not null)
+                || (_fileSystem.GetAttributes(to) is not null && !IsCaseChangeOf(from, to)))
             {
                 return;
             }
@@ -509,6 +684,11 @@ internal sealed class ClipArtwork : IDisposable
             _logger.LogDebug(ex, "Could not move {From} to {To}", from, to);
         }
     }
+
+    // A clip renamed in case alone ("Case" to "CASE"): on Windows its artwork's new name finds the file itself, which is
+    // then renamed in place (the same folder, the same name but for case).
+    private static bool IsCaseChangeOf(string from, string to)
+        => !string.Equals(from, to, StringComparison.Ordinal) && string.Equals(from, to, StringComparison.OrdinalIgnoreCase);
 
     // Whether the file at a path has that very name, case included (Windows finds Heat-poster.JPG for Heat-poster.jpg, and
     // Bookmarks writes only lower case).

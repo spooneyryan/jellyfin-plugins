@@ -104,12 +104,20 @@ public class PluginServiceRegistrator : IPluginServiceRegistrator
             services.GetRequiredService<MediaBrowser.Controller.Providers.IProviderManager>(),
             services.GetRequiredService<MediaBrowser.Model.IO.IFileSystem>(),
             services.GetRequiredService<ILogger<ClipArtwork>>()));
+        // Since 1.7.0 / 2.5.0 (UseClipFirstFrameAsThumbnail): the clip's first frame as its poster and thumb, taken with
+        // Jellyfin's ffmpeg (its encoder path read at every use) through the clip jobs' runner.
+        serviceCollection.AddSingleton<IClipFrameExtractor>(services =>
+        {
+            var encoder = services.GetRequiredService<MediaBrowser.Controller.MediaEncoding.IMediaEncoder>();
+            return new ClipFrameExtractor(() => encoder.EncoderPath, services.GetRequiredService<IFfmpegRunner>());
+        });
         serviceCollection.AddSingleton(services => new ClipArtwork(
             services.GetRequiredService<IBookmarkStore>(),
             services.GetRequiredService<ClipFileOps>(),
             services.GetRequiredService<IClipArtworkSource>(),
             services.GetRequiredService<IPluginConfigurationProvider>(),
-            services.GetRequiredService<ILogger<ClipArtwork>>()));
+            services.GetRequiredService<ILogger<ClipArtwork>>(),
+            services.GetRequiredService<IClipFrameExtractor>()));
 
         // The free-space guard: the probe (GetDiskFreeSpaceExW on the nearest existing folder), the checks when a clip is
         // asked for and when it starts, the watchdog, the disk-full wording, and Diagnostics' ClipStorage entry for the

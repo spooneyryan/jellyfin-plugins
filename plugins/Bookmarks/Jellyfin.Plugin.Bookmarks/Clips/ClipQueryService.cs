@@ -263,10 +263,12 @@ internal sealed class ClipQueryService
     // isn't what the bookmark's name gives now (BookmarkNames.ClipFileLabel: never its note since 1.2.0, so a file a bookmark
     // without a name got from its note before shows "Name changed", and Rename file gives it its video's name alone).
     // Compared as written (a change of case is a change); a name Bookmarks doesn't give a finished clip has nothing to
-    // compare.
+    // compare. Since 1.7.0 / 2.5.0 the name comes first ("Bank job - Heat (1995)"); a file named in the earlier order
+    // ("Heat (1995) - Bank job") is still named after its record, so it isn't "Name changed" (ClipFileNaming.IsStemOf):
+    // existing clips keep their files' names until their owner renames them.
     private static bool IsNameOutdated(Bookmark record, string filePath)
         => ClipNamePattern.Stem(Path.GetFileName(filePath)) is { } stem
-            && !string.Equals(stem, ClipFileNaming.BuildStem(record.ItemName, BookmarkNames.ClipFileLabel(record)), StringComparison.Ordinal);
+            && !ClipFileNaming.IsStemOf(stem, record.ItemName, BookmarkNames.ClipFileLabel(record));
 
     private static string? ContainerOf(string? path) => Path.GetExtension(path) switch
     {

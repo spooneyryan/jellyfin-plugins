@@ -51,7 +51,7 @@ public sealed partial class ClipRenameTests
         // Once the other record lets go of the file (here its record removed), the rename moves it.
         await _fixture.Store.RemoveAsync(other.Id, Ct);
         var renamed = await Service().RenameFileAsync(_alice, record.Id, null, Ct);
-        Assert.Equal("Heat (1995) - Vault [00.01.00-00.01.30].mp4", renamed.Clip.FileName);
+        Assert.Equal("Vault - Heat (1995) [00.01.00-00.01.30].mp4", renamed.Clip.FileName);
         Assert.False(File.Exists(file));
     }
 
@@ -66,7 +66,7 @@ public sealed partial class ClipRenameTests
         var lookups = 0;
         _fileSystem.AttributesFailure = path =>
         {
-            if (!Path.GetFileName(path).StartsWith("Heat (1995) - Vault", StringComparison.Ordinal))
+            if (!Path.GetFileName(path).StartsWith("Vault - Heat (1995)", StringComparison.Ordinal))
             {
                 return null;
             }
@@ -92,7 +92,7 @@ public sealed partial class ClipRenameTests
         // The name gate was given back: once the folder answers, the rename is made.
         _fileSystem.AttributesFailure = null;
         var renamed = await Service().RenameAsync(_alice, record.Id, new BookmarkClipRenameRequest { Name = "Vault", RenameFile = true }, Ct);
-        Assert.Equal("Heat (1995) - Vault [00.01.00-00.01.30].mp4", renamed.Clip.FileName);
+        Assert.Equal("Vault - Heat (1995) [00.01.00-00.01.30].mp4", renamed.Clip.FileName);
         Assert.Equal(1, Files.NameGate.CurrentCount);
         Assert.Equal(BookmarkClipState.Ready, renamed.Clip.State);
         Assert.Single(_fileSystem.Moves, m => m.Source == file);

@@ -226,6 +226,18 @@ public class PluginConfiguration : BasePluginConfiguration
     public bool GiveClipsVideoArtwork { get; set; } = true;
 
     /// <summary>
+    /// Gets or sets a value indicating whether each clip's own first frame is its thumbnail (since 1.7.0 / 2.5.0,
+    /// <c>Clips/ClipFrameExtractor</c>): Jellyfin's ffmpeg takes the clip file's very first frame as a JPEG, written beside it
+    /// as <c>&lt;clip&gt;-poster.jpg</c> (Primary, what cards show) and <c>&lt;clip&gt;-thumb.jpg</c> (Thumb), in place of the
+    /// film's poster and the episode's image; the film's backdrop stays <c>&lt;clip&gt;-fanart</c> while
+    /// <see cref="GiveClipsVideoArtwork"/> is on. Written when a clip is made, and daily for every clip whose frame isn't its
+    /// file's; when ffmpeg fails, the film's images as before. Off, the clip artwork is as before this setting (a frame it
+    /// wrote is replaced by the film's image, or deleted when the video has none of that kind). Read at every use. On the
+    /// settings page ("Clips").
+    /// </summary>
+    public bool UseClipFirstFrameAsThumbnail { get; set; } = true;
+
+    /// <summary>
     /// Gets or sets the mode used when a clip request doesn't specify one.
     /// </summary>
     public BookmarkClipMode DefaultClipMode { get; set; } = BookmarkClipMode.Accurate;

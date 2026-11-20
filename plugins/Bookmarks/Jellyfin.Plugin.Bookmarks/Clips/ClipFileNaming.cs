@@ -42,7 +42,8 @@ internal static class ClipFileNaming
         => string.Equals(Path.GetExtension(path), ".mkv", StringComparison.OrdinalIgnoreCase) ? BookmarkClipMode.Fast : BookmarkClipMode.Accurate;
 
     /// <summary>
-    /// Builds a clip file name such as <c>Heat (1995) - Bank job [01.52.10-01.55.00].mp4</c>.
+    /// Builds a clip file name such as <c>Bank job - Heat (1995) [01.52.10-01.55.00].mp4</c>: the bookmark's name, the video's,
+    /// the range (since 1.7.0 / 2.5.0; the name came after the video's before, <see cref="BuildLegacyStem"/>).
     /// </summary>
     /// <param name="itemName">The item's display name.</param>
     /// <param name="note">The bookmark's name, if any (<c>BookmarkNames.ClipFileLabel</c>: never its note since 1.2.0).</param>
@@ -59,29 +60,53 @@ internal static class ClipFileNaming
     }
 
     /// <summary>
-    /// Builds the part of a clip file name before its range, such as <c>Heat (1995) - Bank job</c>: what
-    /// <see cref="BuildFileName"/> starts with, and what <see cref="ClipNamePattern.Stem"/> reads back from a file name. The My
-    /// Clips list compares the two for its "Name changed" badge (<c>IsNameOutdated</c>).
+    /// Builds the part of a clip file name before its range, such as <c>Bank job - Heat (1995)</c> (since 1.7.0 / 2.5.0: the
+    /// name the user gave first, then the video's), or <c>Heat (1995)</c> without a name: what <see cref="BuildFileName"/>
+    /// starts with, and what <see cref="ClipNamePattern.Stem"/> reads back from a file name. The My Clips list compares the two
+    /// for its "Name changed" badge (<c>IsNameOutdated</c>, which also takes <see cref="BuildLegacyStem"/>).
     /// </summary>
+    /// <remarks>
+    /// Each part is sanitized and cut to 80 characters on its own (<see cref="Sanitize"/>), so a long name never pushes the
+    /// video's name out. A stem can't be a reserved device name: without a name it is the video's name (or <c>Clip</c>), and
+    /// the range always follows it in a file name.
+    /// </remarks>
     /// <param name="itemName">The item's display name.</param>
     /// <param name="note">The bookmark's name, if any (<c>BookmarkNames.ClipFileLabel</c>: never its note since 1.2.0).</param>
     /// <returns>The stem.</returns>
     public static string BuildStem(string itemName, string? note)
     {
-        var name = Sanitize(itemName, MaxNameLength);
-        if (name.Length == 0)
-        {
-            name = "Clip";
-        }
-
-        var noteText = Sanitize(note, MaxNameLength);
-        if (noteText.Length > 0)
-        {
-            name += " - " + noteText;
-        }
-
-        return name;
+        var name = ItemPart(itemName);
+        var label = Sanitize(note, MaxNameLength);
+        return label.Length > 0 ? label + " - " + name : name;
     }
+
+    /// <summary>
+    /// Builds the stem clip files had before 1.7.0 / 2.5.0, the video's name first, then the bookmark's
+    /// (<c>Heat (1995) - Bank job</c>): a clip file named so is still named after its record, so the "Name changed" badge
+    /// doesn't show for it and nothing renames it on its own. Its Rename and Rename file give it <see cref="BuildStem"/>.
+    /// </summary>
+    /// <param name="itemName">The item's display name.</param>
+    /// <param name="note">The bookmark's name, if any.</param>
+    /// <returns>The stem as 1.6 and earlier gave it.</returns>
+    public static string BuildLegacyStem(string itemName, string? note)
+    {
+        var name = ItemPart(itemName);
+        var label = Sanitize(note, MaxNameLength);
+        return label.Length > 0 ? name + " - " + label : name;
+    }
+
+    /// <summary>
+    /// Whether a clip file's stem (<see cref="ClipNamePattern.Stem"/>) is the one its record gives: today's order
+    /// (<see cref="BuildStem"/>) or the order before 1.7.0 / 2.5.0 (<see cref="BuildLegacyStem"/>). Compared as written: a
+    /// change of case is a change.
+    /// </summary>
+    /// <param name="stem">The file name's stem.</param>
+    /// <param name="itemName">The record's video name.</param>
+    /// <param name="label">The record's name (<c>BookmarkNames.ClipFileLabel</c>).</param>
+    /// <returns>Whether the file is named after its record.</returns>
+    public static bool IsStemOf(string stem, string itemName, string? label)
+        => string.Equals(stem, BuildStem(itemName, label), StringComparison.Ordinal)
+            || string.Equals(stem, BuildLegacyStem(itemName, label), StringComparison.Ordinal);
 
     /// <summary>
     /// Builds the name a clip file gets when it is renamed to match its record (Rename and Rename file): the
@@ -259,6 +284,13 @@ internal static class ClipFileNaming
 
         // Windows drops trailing dots and spaces from names, which would make the path we record wrong.
         return result.TrimEnd('.', ' ');
+    }
+
+    // The video's part of a stem: its name sanitized, or "Clip" when nothing is left.
+    private static string ItemPart(string itemName)
+    {
+        var name = Sanitize(itemName, MaxNameLength);
+        return name.Length == 0 ? "Clip" : name;
     }
 
     // The longest start of the text, at most maxLength code units, that ends on a character's boundary (a grapheme cluster's):

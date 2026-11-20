@@ -11,7 +11,7 @@ namespace Jellyfin.Plugin.Bookmarks.Tests.TestSupport;
 /// <summary>
 /// The real file system with faults on demand (for the file-operation tests): a delete or move that throws what Windows
 /// throws for a file in use, paths that read as reparse points, attributes that can't be read. Every call is recorded. For
-/// clip rename: a move of a clip file (not a <c>.partial</c>) with <see cref="RenameJournalFolder"/> set asserts that the
+/// clip rename: a move of a clip file (not a <c>.partial</c> or an artwork file) with <see cref="RenameJournalFolder"/> set asserts that the
 /// rename's journal entry is on disk and readable at that moment (the crash guarantee: the entry before the move), flushes are
 /// recorded and can fail, and a file's identity can be changed.
 /// </summary>
@@ -145,7 +145,7 @@ internal sealed class FakeClipFileSystem : IClipFileSystem
 
     public void MoveFile(string source, string destination)
     {
-        if (RenameJournalFolder is { } folder && !source.EndsWith(ClipFileGuard.PartialExtension, StringComparison.OrdinalIgnoreCase) && !IsJournalled(folder, source, destination))
+        if (RenameJournalFolder is { } folder && !source.EndsWith(ClipFileGuard.PartialExtension, StringComparison.OrdinalIgnoreCase) && IsClipFile(source) && !IsJournalled(folder, source, destination))
         {
             throw new InvalidOperationException($"A clip file was moved before its rename was in the journal: {source} -> {destination}");
         }
@@ -163,6 +163,10 @@ internal sealed class FakeClipFileSystem : IClipFileSystem
             throw late;
         }
     }
+
+    // A clip file (not its artwork, which follows a rename after its record is written).
+    private static bool IsClipFile(string path)
+        => path.EndsWith(".mp4", StringComparison.OrdinalIgnoreCase) || path.EndsWith(".mkv", StringComparison.OrdinalIgnoreCase);
 
     // A remade clip over its own file (Bookmarks 1.2.1): a move, which fails as one of either path does (a file held open).
     public void ReplaceFile(string source, string destination)

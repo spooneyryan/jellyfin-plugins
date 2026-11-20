@@ -27,7 +27,7 @@ public class ClipFileNamingTests
     {
         var name = ClipFileNaming.BuildFileName("Heat (1995)", "  Bank job ", _start, _end, BookmarkClipMode.Fast);
 
-        Assert.Equal("Heat (1995) - Bank job [01.02.03-01.03.10].mkv", name);
+        Assert.Equal("Bank job - Heat (1995) [01.02.03-01.03.10].mkv", name);
     }
 
     [Fact]
@@ -35,7 +35,7 @@ public class ClipFileNamingTests
     {
         var name = ClipFileNaming.BuildFileName("Star Wars: Episode IV", "What?/Why* <now>|\"ok\"", 0, TimeSpan.TicksPerSecond, BookmarkClipMode.Accurate);
 
-        Assert.Equal("Star Wars - Episode IV - What__Why_ _now___ok_ [00.00.00-00.00.01].mp4", name);
+        Assert.Equal("What__Why_ _now___ok_ - Star Wars - Episode IV [00.00.00-00.00.01].mp4", name);
         Assert.Equal(-1, name.IndexOfAny(['<', '>', ':', '"', '/', '\\', '|', '?', '*']));
     }
 
@@ -69,7 +69,7 @@ public class ClipFileNamingTests
     {
         var name = ClipFileNaming.BuildFileName("Dr.", "Wait...", 0, TimeSpan.TicksPerSecond, BookmarkClipMode.Accurate);
 
-        Assert.Equal("Dr - Wait [00.00.00-00.00.01].mp4", name);
+        Assert.Equal("Wait - Dr [00.00.00-00.00.01].mp4", name);
     }
 
     [Theory]
@@ -113,11 +113,12 @@ public class ClipFileNamingTests
     }
 
     [Theory]
-    [InlineData("Heat (1995)", "Vault", "Heat (1995) - Bank job [01.52.10-01.55.00].mp4", "Heat (1995) - Vault [01.52.10-01.55.00].mp4")]
-    [InlineData("Heat (1995)", "Vault", "Heat (1995) - Bank job [01.52.10-01.55.00] (2).mkv", "Heat (1995) - Vault [01.52.10-01.55.00].mkv")]
-    [InlineData("Heat (1995)", null, "Heat (1995) - Bank job [100.00.00-100.00.30].mp4", "Heat (1995) [100.00.00-100.00.30].mp4")]
-    [InlineData("Heat: Director's Cut", "a/b", "Heat - Director's Cut - x [00.00.01-00.00.02].mp4", "Heat - Director's Cut - a_b [00.00.01-00.00.02].mp4")]
-    [InlineData("", "CON", "Clip - x [00.00.01-00.00.02].mp4", "Clip - CON [00.00.01-00.00.02].mp4")]
+    [InlineData("Heat (1995)", "Vault", "Bank job - Heat (1995) [01.52.10-01.55.00].mp4", "Vault - Heat (1995) [01.52.10-01.55.00].mp4")]
+    [InlineData("Heat (1995)", "Vault", "Bank job - Heat (1995) [01.52.10-01.55.00] (2).mkv", "Vault - Heat (1995) [01.52.10-01.55.00].mkv")]
+    [InlineData("Heat (1995)", null, "Bank job - Heat (1995) [100.00.00-100.00.30].mp4", "Heat (1995) [100.00.00-100.00.30].mp4")]
+    [InlineData("Heat: Director's Cut", "a/b", "x - Heat - Director's Cut [00.00.01-00.00.02].mp4", "a_b - Heat - Director's Cut [00.00.01-00.00.02].mp4")]
+    [InlineData("", "CON", "x - Clip [00.00.01-00.00.02].mp4", "CON - Clip [00.00.01-00.00.02].mp4")]
+    [InlineData("Heat (1995)", "Vault", "Heat (1995) - Vault [01.52.10-01.55.00].mp4", "Vault - Heat (1995) [01.52.10-01.55.00].mp4")]
     public void BuildRenamedFileName_KeepsTheRangeTheFilesNameSays_AndItsMode_WithTheStemOfNow(string itemName, string? label, string current, string expected)
     {
         // Clip rename: the file's own range (not the record's ticks, which a remake that failed may have moved), no " (2)".
@@ -128,12 +129,46 @@ public class ClipFileNamingTests
     public void BuildRenamedFileName_OfANameBookmarksDoesntGive_TakesTheFilesRangeFromTheRecord_OrNone()
     {
         Assert.Equal(
-            "Heat (1995) - Vault [00.01.00-00.01.30].mp4",
+            "Vault - Heat (1995) [00.01.00-00.01.30].mp4",
             ClipFileNaming.BuildRenamedFileName("Heat (1995)", "Vault", "my clip.MP4", 60 * TimeSpan.TicksPerSecond, 90 * TimeSpan.TicksPerSecond));
         Assert.Null(ClipFileNaming.BuildRenamedFileName("Heat (1995)", "Vault", "my clip.mp4", null, 90 * TimeSpan.TicksPerSecond));
 
         // What it gives is a name the pattern takes (the janitor's and the scan's), as every new clip's name.
         Assert.True(ClipNamePattern.IsClipFileName(ClipFileNaming.BuildRenamedFileName("Heat (1995)", "Vault", "my clip.mkv", 0, 1)));
+    }
+
+    // Since 1.7.0 / 2.5.0: the name the user gave first, then the video's, then the range; without a name the video's alone.
+    [Theory]
+    [InlineData("Heat (1995)", "Bank job", "Bank job - Heat (1995)", "Heat (1995) - Bank job")]
+    [InlineData("Heat (1995)", null, "Heat (1995)", "Heat (1995)")]
+    [InlineData("Heat (1995)", "   ", "Heat (1995)", "Heat (1995)")]
+    [InlineData("", "Vault", "Vault - Clip", "Clip - Vault")]
+    [InlineData("Star Wars: Episode IV", "Go?", "Go_ - Star Wars - Episode IV", "Star Wars - Episode IV - Go_")]
+    public void TheStem_IsTheNameThenTheVideo_AndTheLegacyStemTheVideoThenTheName(string itemName, string? label, string stem, string legacy)
+    {
+        Assert.Equal(stem, ClipFileNaming.BuildStem(itemName, label));
+        Assert.Equal(legacy, ClipFileNaming.BuildLegacyStem(itemName, label));
+        Assert.Equal(stem + " [00.00.01-00.00.02].mp4", ClipFileNaming.BuildFileName(itemName, label, TimeSpan.TicksPerSecond, 2 * TimeSpan.TicksPerSecond, BookmarkClipMode.Accurate));
+        Assert.True(ClipFileNaming.IsStemOf(stem, itemName, label));
+        Assert.True(ClipFileNaming.IsStemOf(legacy, itemName, label));
+        Assert.True(ClipNamePattern.IsClipFileName(stem + " [00.00.01-00.00.02].mp4"));
+    }
+
+    [Theory]
+    [InlineData("Bank Job - Heat (1995)")]       // a change of case is a change
+    [InlineData("Vault - Heat (1995)")]          // another name
+    [InlineData("Heat (1995) - Vault")]          // another name, in the earlier order
+    [InlineData("Heat (1995)")]                  // the name was given since
+    [InlineData("Heat (1995) - Bank job - x")]
+    public void IsStemOf_IsFalse_ForANameTheRecordDoesntGive_InEitherOrder(string stem)
+        => Assert.False(ClipFileNaming.IsStemOf(stem, "Heat (1995)", "Bank job"));
+
+    [Fact]
+    public void EachPart_IsCutOnItsOwn_SoALongNameNeverPushesTheVideosNameOut()
+    {
+        var name = ClipFileNaming.BuildFileName(new string('v', 200), new string('n', 200), 0, TimeSpan.TicksPerSecond, BookmarkClipMode.Accurate);
+
+        Assert.Equal(new string('n', 80) + " - " + new string('v', 80) + " [00.00.00-00.00.01].mp4", name);
     }
 
     // Found in testing: the 80-character cut split an emoji's surrogate pair when it straddled the limit, leaving a lone
@@ -166,7 +201,7 @@ public class ClipFileNamingTests
         var name = ClipFileNaming.BuildFileName("Heat (1995)", label, _start, _end, BookmarkClipMode.Fast);
         var renamed = ClipFileNaming.BuildRenamedFileName("Heat (1995)", label, "x [01.02.03-01.03.10].mkv", null, null)!;
 
-        Assert.Equal("Heat (1995) - " + new string('g', 79) + " [01.02.03-01.03.10].mkv", name);
+        Assert.Equal(new string('g', 79) + " - Heat (1995) [01.02.03-01.03.10].mkv", name);
         Assert.Equal(name, renamed);
         Assert.False(HasLoneSurrogate(name));
 
@@ -185,7 +220,7 @@ public class ClipFileNamingTests
         var fromNote = ClipFileNaming.BuildFileName("Heat (1995)", BookmarkNames.ClipFileLabel(noted), _start, _end, BookmarkClipMode.Accurate);
         var fromVideo = ClipFileNaming.BuildFileName(text, null, _start, _end, BookmarkClipMode.Accurate);
 
-        Assert.Equal("Heat (1995) - " + new string('g', 79) + " [01.02.03-01.03.10].mp4", fromNote);
+        Assert.Equal(new string('g', 79) + " - Heat (1995) [01.02.03-01.03.10].mp4", fromNote);
         Assert.Equal(new string('g', 79) + " [01.02.03-01.03.10].mp4", fromVideo);
         Assert.False(HasLoneSurrogate(fromNote));
         Assert.False(HasLoneSurrogate(fromVideo));

@@ -249,10 +249,11 @@ internal sealed class ClipPlanner : IClipPlanner
         var range = string.Create(
             CultureInfo.InvariantCulture,
             $"{FormatClock(bookmark.StartTicks)}-{FormatClock(endTicks)}");
-        // The file's title metadata as its name: never the note, which an admin's download would carry.
+        // The file's title metadata as its name, in its order (since 1.7.0 / 2.5.0 the name first, then the video's): never
+        // the note, which an admin's download would carry.
         return BookmarkNames.ClipFileLabel(bookmark) is not { } label
             ? $"{bookmark.ItemName} ({range})"
-            : $"{bookmark.ItemName} - {label} ({range})";
+            : $"{label} - {bookmark.ItemName} ({range})";
     }
 
     private static string FormatDuration(TimeSpan duration)

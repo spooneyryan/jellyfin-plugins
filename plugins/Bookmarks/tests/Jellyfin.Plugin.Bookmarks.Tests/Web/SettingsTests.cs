@@ -59,7 +59,7 @@ public sealed partial class SettingsTests
             EnableLibraryDemo = true, DetachedRetentionDays = 120, SnapshotsToKeep = 14, DeveloperClockOffsetDays = 3, DeletedUserPolicy = "Delete",
             EnableBookmarksPage = false, EnableClipsPage = false, BookmarkNowShortcut = "Ctrl+Alt+K", ShowPlayerButtons = false, AskForNameDefault = true, SuggestChapterNames = false,
             ShowJellyfinEnhancedBanner = false, EnableClips = false, AdminsCanManageAllClips = false, ClipOutputPath = @"E:\Jellyfin Clips", OrganizeClipsByUser = false, GiveClipsVideoArtwork = false,
-            DefaultClipMode = BookmarkClipMode.Fast, MaxClipDurationSeconds = 900, MaxConcurrentClips = 2, CleanUpPartialFilesOnStartup = false,
+            UseClipFirstFrameAsThumbnail = false, DefaultClipMode = BookmarkClipMode.Fast, MaxClipDurationSeconds = 900, MaxConcurrentClips = 2, CleanUpPartialFilesOnStartup = false,
             MissingClipRetentionDays = 7, MinFreeSpaceMegabytes = 4096, VideoPreset = "slow", VideoCrf = 18, MaxVideoHeight = 1080, AudioBitrateKbps = 256,
             AudioChannels = 6
         };
@@ -124,6 +124,7 @@ public sealed partial class SettingsTests
         Assert.Equal(string.Empty, defaults.ClipOutputPath);
         Assert.True(defaults.OrganizeClipsByUser);
         Assert.True(defaults.GiveClipsVideoArtwork);
+        Assert.True(defaults.UseClipFirstFrameAsThumbnail);
         Assert.False(defaults.EnablePageDemo || defaults.EnableIdentityDemo || defaults.EnableUserDataDemo || defaults.EnableLibraryChangeDemo || defaults.EnableLibraryDemo);
     }
 

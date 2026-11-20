@@ -716,9 +716,10 @@ function clipFileName(itemName, label, startTicks, endTicks, mode) {
         const two = (n) => String(n).padStart(2, '0');
         return `${two(Math.floor(seconds / 3600))}.${two(Math.floor(seconds / 60) % 60)}.${two(seconds % 60)}`;
     };
+    // Since Bookmarks 1.7.0 / 2.5.0 the name comes first: "<name> - <video> [range]".
     let name = sanitizeName(itemName) || 'Clip';
     const labelText = sanitizeName(label);
-    if (labelText) name += ' - ' + labelText;
+    if (labelText) name = labelText + ' - ' + name;
     return `${name} [${stamp(startTicks)}-${stamp(endTicks)}]${mode === 'Fast' ? '.mkv' : '.mp4'}`;
 }
 
@@ -1062,9 +1063,9 @@ async function nameChecks(movie) {
         return `${Math.floor(s / 3600)}:${String(Math.floor(s / 60) % 60).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
     };
     names.fastClip = fast && { FileName: fast.Clip.FileName, expected: fastName, title: fastTitle };
-    check(`names: a named range clip is named "${fastName}" and titled "${itemName} - api-probe Bank job (${clock(start)}-${clock(end)})" (ffprobe format_tags=title), not with the note`,
+    check(`names: a named range clip is named "${fastName}" and titled "api-probe Bank job - ${itemName} (${clock(start)}-${clock(end)})" (ffprobe format_tags=title), not with the note`,
         !!fast && fast.Clip.Status === 'Completed' && fast.Clip.FileName === fastName && clipFilesOnDisk('admin').includes(fastName)
-        && (fastTitle.title === undefined || fastTitle.title === `${itemName} - api-probe Bank job (${clock(start)}-${clock(end)})`),
+        && (fastTitle.title === undefined || fastTitle.title === `api-probe Bank job - ${itemName} (${clock(start)}-${clock(end)})`),
     names.fastClip);
 
     // A rename leaves the file as it is (a deliberate choice); the clip made next has the new name, and the previous file goes.
@@ -1081,7 +1082,7 @@ async function nameChecks(movie) {
     check(`names: the clip made after the rename is "${accurateName}", titled with the new name, and the earlier file is gone`,
         !!accurate && accurate.Clip.Status === 'Completed' && accurate.Clip.FileName === accurateName && clipFilesOnDisk('admin').includes(accurateName)
         && !clipFilesOnDisk('admin').includes(fastName)
-        && (accurateTitle.title === undefined || accurateTitle.title === `${itemName} - api-probe Vault (${clock(start)}-${clock(end)})`),
+        && (accurateTitle.title === undefined || accurateTitle.title === `api-probe Vault - ${itemName} (${clock(start)}-${clock(end)})`),
     names.accurateClip);
 
     // Deleted with its clip kept, the bookmark is a tombstone: the rename is 404 and changes nothing.

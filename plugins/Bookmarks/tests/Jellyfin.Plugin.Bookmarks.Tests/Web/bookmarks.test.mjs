@@ -78,15 +78,17 @@ async function start(options) {
 }
 
 // The details view; options.jellyfin12 gives Jellyfin 12's markup, whose sections sit in .detailPageSecondaryContainer
-// (no .detailPageContent), the first a hidden #childrenCollapsible on movies. Both have a Scenes row (#scenesCollapsible)
-// with a section after it, as jellyfin-web's own.
+// (no .detailPageContent), the first a hidden #childrenCollapsible on movies. Both have a Cast & Crew row
+// (#castCollapsible) with the hidden Guest Stars row (#guestCastCollapsible) right after it, then a Scenes row
+// (#scenesCollapsible) with a section after it, as jellyfin-web's own.
 function detailsPage(page, options) {
     const buttons = page.element('div', { class: 'mainDetailButtons' }, [page.element('button', { class: 'btnPlay' }), page.element('button', { class: 'btnMoreCommands' })]);
+    const people = () => [page.element('div', { id: 'castCollapsible', class: 'verticalSection detailVerticalSection' }), page.element('div', { id: 'guestCastCollapsible', class: 'verticalSection detailVerticalSection hide' })];
     const scenes = () => page.element('div', { id: 'scenesCollapsible', class: 'verticalSection detailVerticalSection' });
     const similar = () => page.element('div', { id: 'similarCollapsible', class: 'verticalSection' });
     const content = options && options.jellyfin12
-        ? page.element('div', { class: 'detailPageSecondaryContainer padded-left padded-bottom-page' }, [page.element('div', { id: 'childrenCollapsible', class: 'verticalSection hide' }), page.element('div', { class: 'nativeSection' }), scenes(), similar()])
-        : page.element('div', { class: 'detailPageContent' }, [page.element('div', { class: 'nativeSection' }), scenes(), similar()]);
+        ? page.element('div', { class: 'detailPageSecondaryContainer padded-left padded-bottom-page' }, [page.element('div', { id: 'childrenCollapsible', class: 'verticalSection hide' }), ...people(), page.element('div', { class: 'nativeSection' }), scenes(), similar()])
+        : page.element('div', { class: 'detailPageContent' }, [...people(), page.element('div', { class: 'nativeSection' }), scenes(), similar()]);
     const view = page.element('div', { id: 'itemDetailPage', class: 'page' }, [buttons, content]);
     page.document.body.append(view);
     page.context.location.hash = '#/details?id=item1&serverId=server-1';
@@ -161,7 +163,7 @@ async function cardMenuLabels(page, card) {
     return labels;
 }
 
-test('the details page gets the Add bookmark button before the more button, and the Bookmarks and Clips rows right after Scenes', { skip }, async () => {
+test('the details page gets the Add bookmark button before the more button, the Bookmarks row right after Cast & Crew and the Clips row right after Scenes', { skip }, async () => {
     const page = await start();
     const { buttons, content } = detailsPage(page);
     await page.advance(400);
@@ -174,10 +176,11 @@ test('the details page gets the Add bookmark button before the more button, and 
     assert.equal(add.getAttribute('title'), 'Add bookmark');
     assert.equal(add.firstChild.firstChild.className, 'material-icons detailButton-icon bookmark_add');
 
-    // The Bookmarks row right after Scenes, shaped like jellyfin-web's own rows (kit.cardRow), then the Clips row,
-    // hidden without clips, then the page's next section.
-    const scenes = content.querySelector('#scenesCollapsible');
-    const section = scenes.nextElementSibling;
+    // The Bookmarks row right after Cast & Crew and its (hidden) Guest Stars, shaped like jellyfin-web's own rows
+    // (kit.cardRow), before the page's next section; the Clips row, hidden without clips, right after Scenes.
+    const guest = content.querySelector('#guestCastCollapsible');
+    assert.equal(content.children[content.children.indexOf(guest) - 1].id, 'castCollapsible', 'Guest Stars stays right under Cast & Crew');
+    const section = guest.nextElementSibling;
     assert.equal(section.className, 'verticalSection detailVerticalSection verticalSection-extrabottompadding jfbm-section jfbm-detail-bookmarks');
     assert.equal(section.getAttribute('data-item-id'), 'item1');
     const heading = section.querySelector('h2');
@@ -190,7 +193,8 @@ test('the details page gets the Add bookmark button before the more button, and 
     assert.equal(scroller.getAttribute('is'), 'emby-scroller');
     assert.equal(scroller.getAttribute('data-centerfocus'), 'true');
     assert.equal(scroller.firstChild.className, 'scrollSlider focuscontainer-x itemsContainer jfbm-row-slider');
-    const clipsRow = section.nextElementSibling;
+    assert.equal(section.nextElementSibling.className, 'nativeSection', 'then the page\'s next section');
+    const clipsRow = content.querySelector('#scenesCollapsible').nextElementSibling;
     assert.equal(clipsRow.className, 'verticalSection detailVerticalSection verticalSection-extrabottompadding jfbm-detail-clips hide', 'no clips: the Clips row hidden');
     assert.equal(clipsRow.querySelector('h2').firstChild.textContent, 'Clips');
     assert.equal(clipsRow.nextElementSibling.id, 'similarCollapsible');
@@ -219,7 +223,7 @@ test('the details page gets the Add bookmark button before the more button, and 
     assert.equal(page.errors.length, 0, page.errors.join('\n'));
 });
 
-test('on Jellyfin 12\'s details page the rows go after Scenes in the secondary container, with the button', { skip }, async () => {
+test('on Jellyfin 12\'s details page the rows go after Cast & Crew and Scenes in the secondary container, with the button', { skip }, async () => {
     const page = await start();
     const { buttons, content } = detailsPage(page, { jellyfin12: true });
     await page.advance(400);
@@ -227,9 +231,11 @@ test('on Jellyfin 12\'s details page the rows go after Scenes in the secondary c
     assert.ok(buttons.querySelector('.btnBookmarkItem'), 'Add bookmark button');
     assert.deepEqual(content.children.map((c) => c.id || c.className), [
         'childrenCollapsible',
+        'castCollapsible',
+        'guestCastCollapsible',
+        'verticalSection detailVerticalSection verticalSection-extrabottompadding jfbm-section jfbm-detail-bookmarks',
         'nativeSection',
         'scenesCollapsible',
-        'verticalSection detailVerticalSection verticalSection-extrabottompadding jfbm-section jfbm-detail-bookmarks',
         'verticalSection detailVerticalSection verticalSection-extrabottompadding jfbm-detail-clips hide',
         'similarCollapsible'
     ]);
@@ -1721,7 +1727,7 @@ test('with every anchor there, the health check stays quiet: no warning and no r
 test('a missing button row (detailButtons): no Add bookmark button, the rows still work, one warning and one report', { skip }, async () => {
     const page = await start();
     page.respond('POST', '/Bookmarks/Diagnostics/ClientHealth', null, 204);
-    const content = page.element('div', { class: 'detailPageContent' }, [page.element('div', { id: 'scenesCollapsible', class: 'verticalSection' })]);
+    const content = page.element('div', { class: 'detailPageContent' }, ['castCollapsible', 'guestCastCollapsible', 'scenesCollapsible'].map((id) => page.element('div', { id: id, class: 'verticalSection' })));
     const view = page.element('div', { id: 'itemDetailPage', class: 'page' }, [page.element('div', { class: 'mainDetailButtonsRenamed' }), content]);
     page.document.body.append(view);
     page.context.location.hash = '#/details?id=item1&serverId=server-1';

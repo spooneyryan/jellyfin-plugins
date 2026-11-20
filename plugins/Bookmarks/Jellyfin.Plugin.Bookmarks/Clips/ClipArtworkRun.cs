@@ -20,6 +20,13 @@ internal sealed class ClipArtworkRun
     /// <summary>Gets or sets how many clips couldn't be given their artwork (a Warning each).</summary>
     public int Failed { get; set; }
 
+    /// <summary>Gets or sets how many clips' first frames were taken (since 1.7.0 / 2.5.0).</summary>
+    public int Frames { get; set; }
+
+    /// <summary>Gets or sets how many clips' first frames couldn't be taken (a Warning each; their video's images are
+    /// used).</summary>
+    public int FramesFailed { get; set; }
+
     /// <summary>Gets or sets how many clips that are library items had an image refresh queued.</summary>
     public int Refreshed { get; set; }
 
@@ -49,6 +56,8 @@ internal sealed class ClipArtworkRun
         ["Clips"] = ClipsWritten,
         ["UpToDate"] = UpToDate,
         ["Failed"] = Failed,
+        ["Frames"] = Frames,
+        ["FramesFailed"] = FramesFailed,
         ["Refreshed"] = Refreshed,
         ["Deleted"] = Deleted,
         ["NotDeleted"] = NotDeleted,

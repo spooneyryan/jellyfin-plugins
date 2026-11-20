@@ -14,8 +14,8 @@
 //
 // Each row is the kit's list item, so it carries the clip's video as data-id and Jellyfin Enhanced's Hidden Content hides
 // the clips of a video the user hid, as on My Bookmarks, with a 16:9 box of our own in place of the kit's image
-// box (the video's poster only while the viewer can open it, ItemAvailable, since core serves images unchecked; a
-// placeholder otherwise and when the image fails), the clip's title (its bookmark's name, else its note's first line,
+// box (the clip's own thumbnail, its first frame since 1.7.0 / 2.5.0, else the video's poster, only while the viewer can
+// open it, ItemAvailable, since core serves images unchecked; a placeholder otherwise and when the image fails), the clip's title (its bookmark's name, else its note's first line,
 // else the clip file's name without its extension), its state (Ready, Queued, being made with its progress, Failed,
 // Cancelled, File missing, Clip folder offline) with its mode and size, the video (a link while the viewer can open it),
 // the clip's range, its length and when it was made, the badges (Bookmark deleted, Range changed, Name changed, Last
@@ -812,7 +812,7 @@ function renderClipRow(page, clip) {
 
     const row = kit.listItem({ id: clip.ItemId, type: clip.ItemType || null, title: title, href: false }, {
         className: 'jfbm-clips-row',
-        thumb: clipThumb(clip),
+        thumb: clipThumb(clip, clipOwnThumb(page, clip)),
         lines: (admin ? [clipOwnerLine(clip)] : []).concat([clipStateLine(clip), clipFactsLine(clip), clipBadges(clip, admin), clipErrorLine(clip), clipNoteLine(clip, page.capabilities)], admin ? [clipPathLine(clip, page.tv)] : []),
         actions: buttons.length > 0 ? [h('div', { class: 'jfbm-row-actions jfbm-clip-actions' }, buttons)] : null
     });
@@ -940,19 +940,27 @@ function clipActions(page, clip) {
     return actions;
 }
 
-// The 16:9 box: the video's poster, linked to the video, only while the viewer can open it; a
-// placeholder otherwise, and when the image fails. A plain box of ours, out of the native card classes Jellyfin
-// Enhanced's card tags decorate.
-function clipThumb(clip) {
+// The 16:9 box: the clip's own thumbnail (since 1.7.0 / 2.5.0, its first frame: clipOwnThumb) or else the video's
+// poster, linked to the video, only while the viewer can open it; a placeholder otherwise, and when the image fails. A
+// plain box of ours, out of the native card classes Jellyfin Enhanced's card tags decorate.
+function clipThumb(clip, ownThumb) {
     const available = clip.ItemAvailable === true;
-    const placeholder = clip.ItemType === 'Episode' ? 'tv' : 'movie';
-    const src = available ? posterUrl(clip.ItemId, CLIPS_POSTER_HEIGHT) : null;
     const box = h(available ? 'a' : 'div', {
         class: 'jfbm-clip-thumb',
         href: available ? kit.itemHref(clip.ItemId) : null,
         tabindex: available ? '-1' : null,
         'aria-hidden': 'true'
-    }, src ? h('img', { src: src, loading: 'lazy', alt: '' }) : icon(placeholder));
+    });
+    fillClipThumb(box, clip, ownThumb);
+    return box;
+}
+
+function fillClipThumb(box, clip, ownThumb) {
+    const available = clip.ItemAvailable === true;
+    const placeholder = clip.ItemType === 'Episode' ? 'tv' : 'movie';
+    const src = available ? (ownThumb || posterUrl(clip.ItemId, CLIPS_POSTER_HEIGHT)) : null;
+    box.classList.toggle('jfbm-clip-thumb-own', !!(available && ownThumb));
+    box.replaceChildren(src ? h('img', { src: src, loading: 'lazy', alt: '' }) : icon(placeholder));
     const image = box.querySelector('img');
     if (image) {
         image.addEventListener('error', function () {
@@ -960,8 +968,81 @@ function clipThumb(clip) {
             box.append(icon(placeholder));
         });
     }
+}
 
-    return box;
+// A clip's own thumbnail on My Clips (since 1.7.0 / 2.5.0): the Thumb artwork beside its file (its first frame, or an
+// episode's image), from GET /Bookmarks/Clips/Media, kept per clip with its file's name, size and time, so a clip made
+// again or renamed is asked about again. Only in the caller's own scope (Media answers the caller's clips only), only for a
+// clip whose file is there and whose video the viewer can open, as the poster it replaces. Returns the known URL, or null
+// (then the poster) while it is asked about: the rows shown are given it in place when the answer comes.
+function clipOwnThumb(page, clip) {
+    const c = clip.Clip;
+    if (!page || clipsAdminScope(page) || clip.ItemAvailable !== true || !c || c.FileExists !== true || !c.FileName) {
+        return null;
+    }
+
+    const key = pageItemKey(clip.Id);
+    const version = clipThumbVersion(clip);
+    const known = page.thumbs && page.thumbs.get(key);
+    if (known && known.version === version) {
+        return known.url;
+    }
+
+    page.thumbsWanted = page.thumbsWanted || new Map();
+    page.thumbsWanted.set(key, { id: clip.Id, version: version });
+    if (!page.thumbsTimer) {
+        page.thumbsTimer = setTimeout(function () {
+            page.thumbsTimer = null;
+            readClipThumbs(page);
+        }, 0);
+    }
+
+    return null;
+}
+
+function clipThumbVersion(clip) {
+    const c = clip.Clip || {};
+    return [c.FileName, c.FileSize, c.MadeAt].join('|');
+}
+
+// The wanted clips' media read, 200 ids a request; each answer kept and put into its row's box when the row still shows
+// that clip's file. A failed read is kept as "none" for those files (the poster stays; a later change asks again).
+async function readClipThumbs(page) {
+    const wanted = Array.from((page.thumbsWanted || new Map()).values());
+    page.thumbsWanted = new Map();
+    page.thumbs = page.thumbs || new Map();
+    const client = kit.client();
+    for (let i = 0; i < wanted.length; i += PAGE_MAX_LIMIT) {
+        const chunk = wanted.slice(i, i + PAGE_MAX_LIMIT);
+        let media = [];
+        try {
+            media = (await api('GET', 'Bookmarks/Clips/Media', undefined, { ids: chunk.map(function (w) {
+                return w.id;
+            }).join(',') })) || [];
+        } catch (e) {
+            report(e);
+        }
+
+        const answers = new Map(media.map(function (m) {
+            return [pageItemKey(m.Id), m];
+        }));
+        chunk.forEach(function (w) {
+            const key = pageItemKey(w.id);
+            const m = answers.get(key);
+            const art = m && (m.Artwork || []).filter(function (a) {
+                return a.Kind === 'Thumb';
+            })[0];
+            const url = art && client ? client.getUrl('Bookmarks/Clips/' + key + '/Artwork/Thumb', { tag: art.Tag, ApiKey: client.accessToken() }) : null;
+            page.thumbs.set(key, { version: w.version, url: url });
+            const clip = page.shown && page.shown.get(key);
+            const box = url && clip && clipThumbVersion(clip) === w.version && page.content
+                ? page.content.querySelector('[data-jfbm-clip="' + cssKey(key) + '"] .jfbm-clip-thumb')
+                : null;
+            if (box) {
+                fillClipThumb(box, clip, url);
+            }
+        });
+    }
 }
 
 // "Ready · Accurate · 45 MB", "Queued · Fast", "Making the clip 43% · Accurate" with its bar, "Failed · Fast", "File

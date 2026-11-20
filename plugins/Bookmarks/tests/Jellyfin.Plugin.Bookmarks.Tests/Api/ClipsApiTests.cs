@@ -106,7 +106,7 @@ public sealed class ClipsApiTests : IAsyncLifetime
         Assert.False(clip.GetProperty("IsNameOutdated").GetBoolean());
         Assert.False(clip.GetProperty("LastJobFailed").GetBoolean());
         Assert.Equal(30 * TestData.OneSecond, clip.GetProperty("DurationTicks").GetInt64());
-        Assert.Equal("Heat (1995) - Bank job [00.01.00-00.01.30].mp4", clip.GetProperty("FileName").GetString());
+        Assert.Equal("Bank job - Heat (1995) [00.01.00-00.01.30].mp4", clip.GetProperty("FileName").GetString());
         Assert.True(clip.TryGetProperty("MadeAt", out _));
         Assert.False(clip.TryGetProperty("LibraryName", out _));
 
@@ -494,11 +494,11 @@ public sealed class ClipsApiTests : IAsyncLifetime
         Assert.Equal(id, Id(body.GetProperty("Id")));
         Assert.Equal("Vault", body.GetProperty("Name").GetString());
         var clip = body.GetProperty("Clip");
-        Assert.Equal("Heat (1995) - Vault [00.01.00-00.01.30].mp4", clip.GetProperty("FileName").GetString());
+        Assert.Equal("Vault - Heat (1995) [00.01.00-00.01.30].mp4", clip.GetProperty("FileName").GetString());
         Assert.Equal("Ready", clip.GetProperty("State").GetString());
         Assert.False(clip.GetProperty("IsNameOutdated").GetBoolean());
         Assert.DoesNotContain(JsonSerializer.Serialize(_data.Path).Trim('"'), body.GetRawText(), StringComparison.OrdinalIgnoreCase);
-        Assert.True(File.Exists(Path.Combine(ClipFolder, "alice", "Heat (1995) - Vault [00.01.00-00.01.30].mp4")));
+        Assert.True(File.Exists(Path.Combine(ClipFolder, "alice", "Vault - Heat (1995) [00.01.00-00.01.30].mp4")));
         Assert.False(File.Exists(before.Clip!.FilePath));
 
         // A name over 100 characters is 400; another user's clip, or none, 404; a stale IfUpdatedAt 409: each ProblemDetails.
@@ -525,7 +525,7 @@ public sealed class ClipsApiTests : IAsyncLifetime
         (_, var list) = await SendAsync(host, "GET", "/Bookmarks/Clips", AliceId);
         Assert.True(list.GetProperty("Items").EnumerateArray().Single(r => Id(r.GetProperty("Id")) == id).GetProperty("Clip").GetProperty("IsNameOutdated").GetBoolean());
         (_, var file) = await SendAsync(host, "POST", $"/Bookmarks/Clips/{id}/RenameFile", AliceId);
-        Assert.Equal("Heat (1995) - Strongroom [00.01.00-00.01.30].mp4", file.GetProperty("Clip").GetProperty("FileName").GetString());
+        Assert.Equal("Strongroom - Heat (1995) [00.01.00-00.01.30].mp4", file.GetProperty("Clip").GetProperty("FileName").GetString());
         Assert.False(file.GetProperty("Clip").GetProperty("IsNameOutdated").GetBoolean());
     }
 
@@ -551,7 +551,7 @@ public sealed class ClipsApiTests : IAsyncLifetime
         }
 
         (_, var released) = await SendAsync(host, "POST", $"/Bookmarks/Clips/{id:N}/Name", AliceId, """{"Name":"Vault","RenameFile":true}""");
-        Assert.Equal("Heat (1995) - Vault [00.01.00-00.01.30].mp4", released.GetProperty("Clip").GetProperty("FileName").GetString());
+        Assert.Equal("Vault - Heat (1995) [00.01.00-00.01.30].mp4", released.GetProperty("Clip").GetProperty("FileName").GetString());
     }
 
     [Fact]
@@ -565,7 +565,7 @@ public sealed class ClipsApiTests : IAsyncLifetime
         // A rename that isn't finished (its record's write failed, and so did the move back) whose clip folder is away now: a
         // remake would delete the file its record names and leave the renamed one no clip's, so it is 503 until the rename is
         // finished.
-        var renamed = Path.Combine(ClipFolder, "alice", "Heat (1995) - Moved [00.01.00-00.01.30].mp4");
+        var renamed = Path.Combine(ClipFolder, "alice", "Moved - Heat (1995) [00.01.00-00.01.30].mp4");
         host.Services.GetRequiredService<ClipFileOps>().Journal!.Add(new ClipRenameEntry
         {
             BookmarkId = id,
@@ -593,7 +593,7 @@ public sealed class ClipsApiTests : IAsyncLifetime
         // Back: the next request that needs it finishes the rename first.
         (_, var renamedNow) = await SendAsync(host, "POST", $"/Bookmarks/Clips/{id:N}/RenameFile", AliceId);
         // (finished: the record named the moved file, whose name no longer says the clip's name, so the file got it back).
-        Assert.Equal("Heat (1995) - Bank job [00.01.00-00.01.30].mp4", renamedNow.GetProperty("Clip").GetProperty("FileName").GetString());
+        Assert.Equal("Bank job - Heat (1995) [00.01.00-00.01.30].mp4", renamedNow.GetProperty("Clip").GetProperty("FileName").GetString());
         Assert.Equal(path, store.Get(id)!.Clip!.FilePath);
         Assert.True(File.Exists(path));
         Assert.False(File.Exists(renamed));

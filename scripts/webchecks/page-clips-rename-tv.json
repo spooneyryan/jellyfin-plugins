@@ -147,7 +147,7 @@
     },
     {
       "name": "TV: the file renamed, one dialog all along, the focus back on the row's Rename clip (not BODY)",
-      "assert": "__vars.t3.file === __vars.seed['Web C'].file.replace('clip-rename-probe Web C [', 'clip-rename-probe Web C renamed [') && __vars.t3.maxDialogs === 1 && !__vars.t3.where.body && __vars.t3.where.row === __vars.seed['Web C'].id && __vars.t3.where.title === 'Rename clip'"
+      "assert": "__vars.t3.file === __vars.seed['Web C'].file.replace('clip-rename-probe Web C - ', 'clip-rename-probe Web C renamed - ') && __vars.t3.maxDialogs === 1 && !__vars.t3.where.body && __vars.t3.where.row === __vars.seed['Web C'].id && __vars.t3.where.title === 'Rename clip'"
     },
     {
       "name": "TV: E's Rename file focused",

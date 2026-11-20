@@ -1,0 +1,149 @@
+{
+  "name": "A clip's file name and first-frame thumbnail (Bookmarks 1.7.0 / 2.5.0): on Chaptered Movie, admin's range 0:12-0:20 named 'clip-thumbs Heist' is made into an Accurate clip; its file is named '<name> - <title> [range].mp4'; GET /Bookmarks/Clips/Media lists its own Poster and Thumb; the poster, drawn in the browser beside the clip's frame 0, matches it (and the thumb matches the poster); the video page's Clips row and My Clips show the Thumb. Screenshots of both (clip-thumbs.png, myclips-thumbs.png). The bookmark and its clip are deleted at the end. Needs UseClipFirstFrameAsThumbnail on (the default).",
+  "failOnException": false,
+  "timeout": 30000,
+  "steps": [
+    {
+      "name": "sign in as admin",
+      "login": "admin"
+    },
+    {
+      "name": "the Bookmarks script ran",
+      "waitFor": "!!window.__jfkit && !!window.__jfkit.jfbm && !!window.ApiClient && !!ApiClient.getCurrentUserId() && document.querySelectorAll('#jfbm-styles').length === 1"
+    },
+    {
+      "name": "clips may be made, and each clip's first frame is its thumbnail (UseClipFirstFrameAsThumbnail, the default)",
+      "assert": "((c) => c.ClipsEnabled === true && c.CanCreateClips === true)(await ApiClient.getJSON(ApiClient.getUrl('Bookmarks/Capabilities')))",
+      "message": "this webcheck needs clips enabled for admin"
+    },
+    {
+      "name": "find Chaptered Movie",
+      "eval": "(await ApiClient.getItems(ApiClient.getCurrentUserId(), { IncludeItemTypes: 'Movie', Recursive: true, SearchTerm: 'Chaptered Movie', Limit: 1 })).Items[0].Id",
+      "save": "movieId"
+    },
+    {
+      "name": "the movie's clip-thumbs bookmarks of an earlier run deleted",
+      "script": "const url = (p, q) => ApiClient.getUrl(p, q); let n = 0; for (const b of await ApiClient.getJSON(url('Bookmarks', { itemId: __vars.movieId }))) { if (/^clip-thumbs/.test(b.Name || '')) { await ApiClient.ajax({ type: 'DELETE', url: url('Bookmarks/' + b.Id, { deleteClip: 'true' }) }); n++; } } return n;"
+    },
+    {
+      "name": "a range 0:12-0:20 named 'clip-thumbs Heist'",
+      "eval": "(await ApiClient.ajax({ type: 'POST', url: ApiClient.getUrl('Bookmarks'), data: JSON.stringify({ ItemId: __vars.movieId, StartTicks: 120000000, EndTicks: 200000000, Name: 'clip-thumbs Heist' }), contentType: 'application/json', dataType: 'json' })).Id",
+      "save": "bookmarkId"
+    },
+    {
+      "name": "its clip asked for (Accurate, MP4)",
+      "eval": "(await ApiClient.ajax({ type: 'POST', url: ApiClient.getUrl('Bookmarks/' + __vars.bookmarkId + '/Clip'), data: JSON.stringify({ Mode: 'Accurate' }), contentType: 'application/json', dataType: 'json' })).Clip.Status"
+    },
+    {
+      "name": "the clip made",
+      "timeout": 120000,
+      "waitFor": "((b) => b.Clip && b.Clip.Status === 'Completed')(await ApiClient.getJSON(ApiClient.getUrl('Bookmarks/' + __vars.bookmarkId)))"
+    },
+    {
+      "name": "the clip as My Clips lists it",
+      "eval": "((r) => r.Items.filter((c) => String(c.Id).replace(/-/g, '').toLowerCase() === String(__vars.bookmarkId).replace(/-/g, '').toLowerCase()).map((c) => ({ ItemName: c.ItemName, FileName: c.Clip.FileName, Container: c.Clip.Container }))[0])(await ApiClient.getJSON(ApiClient.getUrl('Bookmarks/Clips', { itemId: __vars.movieId, limit: 200 })))",
+      "save": "clip",
+      "full": true
+    },
+    {
+      "name": "the file is named with the clip's name first, then the video's title, then the range (1.7.0 / 2.5.0): 'clip-thumbs Heist - <title> [00.00.12-00.00.20].mp4'",
+      "assert": "__vars.clip.FileName === 'clip-thumbs Heist - ' + __vars.clip.ItemName + ' [00.00.12-00.00.20].mp4'",
+      "message": "the clip's file name isn't <name> - <title> [range]"
+    },
+    {
+      "name": "the clip's own artwork: a Poster and a Thumb (its first frame), within 60 s",
+      "timeout": 60000,
+      "waitFor": "((m) => m.length === 1 && ['Poster', 'Thumb'].every((k) => (m[0].Artwork || []).some((a) => a.Kind === k)))(await ApiClient.getJSON(ApiClient.getUrl('Bookmarks/Clips/Media', { ids: __vars.bookmarkId })))"
+    },
+    {
+      "name": "the clip's artwork kinds",
+      "eval": "(await ApiClient.getJSON(ApiClient.getUrl('Bookmarks/Clips/Media', { ids: __vars.bookmarkId })))[0].Artwork.map((a) => a.Kind).sort()",
+      "save": "kinds",
+      "full": true
+    },
+    {
+      "name": "the poster against the clip's frame 0 and its last frame, and the thumb against the poster (each drawn at 64x36 in the browser; mean difference per channel, 0-255)",
+      "timeout": 60000,
+      "eval": "(async () => { const key = String(__vars.bookmarkId).replace(/-/g, '').toLowerCase(); const tok = ApiClient.accessToken(); const W = 64, H = 36; const pixels = (src) => { const c = document.createElement('canvas'); c.width = W; c.height = H; const g = c.getContext('2d'); g.drawImage(src, 0, 0, W, H); return g.getImageData(0, 0, W, H).data; }; const image = (path) => new Promise((ok, no) => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => no(new Error('image ' + path)); i.src = ApiClient.getUrl(path, { ApiKey: tok, v: Date.now() }); }); const diff = (a, b) => { let s = 0, n = 0; for (let i = 0; i < a.length; i += 4) { for (let k = 0; k < 3; k++) { s += Math.abs(a[i + k] - b[i + k]); n++; } } return Math.round(s / n * 10) / 10; }; const poster = await image('Bookmarks/Clips/' + key + '/Artwork/Poster'); const thumb = await image('Bookmarks/Clips/' + key + '/Artwork/Thumb'); const v = document.createElement('video'); v.muted = true; v.preload = 'auto'; v.src = ApiClient.getUrl('Bookmarks/' + key + '/Clip/File', { ApiKey: tok, download: 'false' }); await new Promise((ok, no) => { v.onloadeddata = ok; v.onerror = () => no(new Error('video')); }); const seek = (t) => new Promise((ok) => { v.onseeked = ok; v.currentTime = t; }); await seek(0); const first = pixels(v); await seek(Math.max(0, v.duration - 0.5)); const last = pixels(v); const p = pixels(poster); return { posterSize: [poster.naturalWidth, poster.naturalHeight], videoSize: [v.videoWidth, v.videoHeight], duration: Math.round(v.duration * 10) / 10, firstFrame: diff(p, first), lastFrame: diff(p, last), thumbToPoster: diff(pixels(thumb), p) }; })()",
+      "save": "frame",
+      "full": true
+    },
+    {
+      "name": "the poster is the clip's first frame: the clip's picture size, close to frame 0 (JPEG and the decoder: under 12), and the thumb the same image",
+      "assert": "__vars.frame.posterSize[0] === __vars.frame.videoSize[0] && __vars.frame.posterSize[1] === __vars.frame.videoSize[1] && __vars.frame.firstFrame < 12 && __vars.frame.thumbToPoster < 1",
+      "message": "the poster isn't the clip's first frame"
+    },
+    {
+      "name": "the poster is nearer frame 0 than the last frame, when those two differ",
+      "assert": "__vars.frame.lastFrame <= 12 || __vars.frame.firstFrame < __vars.frame.lastFrame",
+      "message": "the poster looks more like the clip's last frame than its first"
+    },
+    {
+      "name": "open the details page",
+      "goto": "/web/index.html#/details?id=${movieId}"
+    },
+    {
+      "name": "the Clips row shows the clip",
+      "timeout": 30000,
+      "waitFor": "((p) => !!p && [...p.querySelectorAll('.jfbm-detail-clips .jfbm-rowcard')].some((c) => /clip-thumbs Heist/.test(c.textContent)))(document.querySelector('#itemDetailPage:not(.hide)'))"
+    },
+    {
+      "name": "the clip card's image",
+      "eval": "(() => { const c = [...document.querySelector('#itemDetailPage:not(.hide)').querySelectorAll('.jfbm-detail-clips .jfbm-rowcard')].find((x) => /clip-thumbs Heist/.test(x.textContent)); const st = c.querySelector('.cardImageContainer').style; const frame = c.querySelector('.jfbm-rowcard-frame'); return (st.backgroundImage || (frame && frame.style.backgroundImage) || '').replace(/^url\\(\"?|\"?\\)$/g, '').replace(/[?&](ApiKey|api_key)=[^&]*/i, ''); })()",
+      "save": "rowImage"
+    },
+    {
+      "name": "the Clips row's card shows the clip's Thumb (its first frame)",
+      "assert": "/\\/Bookmarks\\/Clips\\/[0-9a-f]+\\/Artwork\\/Thumb\\b/i.test(__vars.rowImage)",
+      "message": "the Clips row doesn't show the clip's own thumbnail"
+    },
+    {
+      "name": "scroll to the Clips row",
+      "eval": "(document.querySelector('#itemDetailPage:not(.hide) .jfbm-detail-clips').scrollIntoView({ block: 'center' }), true)"
+    },
+    {
+      "name": "settle",
+      "sleep": 1500
+    },
+    {
+      "name": "screenshot of the Clips row",
+      "screenshot": "clip-thumbs.png"
+    },
+    {
+      "name": "open My Clips on this clip",
+      "goto": "/web/index.html#/jfbm-clips?q=clip-thumbs&deleted=0"
+    },
+    {
+      "name": "the clip's row shows its own thumbnail",
+      "timeout": 30000,
+      "waitFor": "((r) => !!r && !!r.querySelector('.jfbm-clip-thumb.jfbm-clip-thumb-own img'))(document.querySelector('.jfbm-clips-row[data-jfbm-clip=\"' + String(__vars.bookmarkId).replace(/-/g, '').toLowerCase() + '\"]'))"
+    },
+    {
+      "name": "its image",
+      "eval": "document.querySelector('.jfbm-clips-row[data-jfbm-clip=\"' + String(__vars.bookmarkId).replace(/-/g, '').toLowerCase() + '\"]').querySelector('.jfbm-clip-thumb img').getAttribute('src').replace(/[?&](ApiKey|api_key)=[^&]*/i, '')",
+      "save": "myClipsImage"
+    },
+    {
+      "name": "My Clips shows the clip's Thumb, loaded",
+      "assert": "/\\/Bookmarks\\/Clips\\/[0-9a-f]+\\/Artwork\\/Thumb\\b/i.test(__vars.myClipsImage) && (await new Promise((ok) => { const i = document.querySelector('.jfbm-clips-row[data-jfbm-clip=\"' + String(__vars.bookmarkId).replace(/-/g, '').toLowerCase() + '\"]').querySelector('.jfbm-clip-thumb img'); if (i.complete) { ok(i.naturalWidth > 0); } else { i.onload = () => ok(i.naturalWidth > 0); i.onerror = () => ok(false); } }))",
+      "message": "My Clips doesn't show the clip's own thumbnail"
+    },
+    {
+      "name": "settle",
+      "sleep": 1000
+    },
+    {
+      "name": "screenshot of My Clips",
+      "screenshot": "myclips-thumbs.png"
+    },
+    {
+      "name": "no page errors",
+      "noExceptions": true
+    },
+    {
+      "name": "the clip-thumbs bookmark and its clip deleted",
+      "finally": true,
+      "script": "if (!__vars.movieId) return 0; const url = (p, q) => ApiClient.getUrl(p, q); let n = 0; for (const b of await ApiClient.getJSON(url('Bookmarks', { itemId: __vars.movieId }))) { if (/^clip-thumbs/.test(b.Name || '')) { await ApiClient.ajax({ type: 'DELETE', url: url('Bookmarks/' + b.Id, { deleteClip: 'true' }) }); n++; } } return n;"
+    }
+  ]
+}

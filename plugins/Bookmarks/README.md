@@ -19,9 +19,10 @@ bookmarks people already made in Jellyfin Enhanced.
 - **On the progress bar:** each bookmark shows as an amber tick, and a range as a band. Point at a tick to see its name.
   Click it to play from there.
 - **On a movie or episode page:** an **Add bookmark** button, and two rows in the same style as the page's own
-  **Scenes** and **Special Features** rows, right after Scenes. **Bookmarks** shows each of your bookmarks of that video
+  **Scenes** and **Special Features** rows. **Bookmarks** comes right after **Cast & Crew** (after **Guest Stars** on an
+  episode that has them), before Special Features; **Clips** comes right after Scenes. **Bookmarks** shows each of your bookmarks of that video
   as a card with the frame at that moment, its name and time (a scissors when it has a clip). **Clips** shows each clip
-  you made from it, with its artwork (or the frame at its start), its name, length and range, marked when its range has
+  you made from it, with its first frame (or its artwork, or the frame at its start), its name, length and range, marked when its range has
   changed since. Click a card to play; its **⋮** menu has the rest: edit, name or delete a bookmark, make, cancel,
   preview, download or delete its clip, or open it on My Clips. A row is hidden while it is empty.
 - **My Bookmarks page** (in the menu under **Library tools**): every bookmark you have, across all videos. You can
@@ -135,16 +136,19 @@ bookmarks people already made in Jellyfin Enhanced.
   clip folder isn't recognised". Use the same Diagnostics button, but only if it really is the clip folder.
 - **Clips kept inside a library are visible to everyone** who can open that library. The default clip folder is outside
   every library. If you want clips browsable in Jellyfin, use a separate **Home Videos and Photos** library for the clip
-  folder, never a Movies or TV library. There each clip shows its video's poster and backdrop (an episode's, its series'
-  poster) instead of a frame: Bookmarks puts them beside the clip as image files (`<clip>-poster.jpg`,
-  `<clip>-fanart.jpg`, and `<clip>-thumb.jpg` for an episode), keeps them with the clip when it is renamed, and deletes
-  them with it. Only those files, named after a Bookmarks clip, are ever written or deleted; your own images are never
-  touched. **Give clips their video's artwork** on the settings page turns it off.
+  folder, never a Movies or TV library. There each clip shows its own first frame as its poster and thumbnail, and its
+  video's backdrop: Bookmarks puts them beside the clip as image files (`<clip>-poster.jpg`, `<clip>-thumb.jpg`,
+  `<clip>-fanart.jpg`), keeps them with the clip when it is renamed, and deletes them with it. A clip made again or
+  adjusted gets its new first frame. If ffmpeg can't take the frame, the video's poster is used (an episode's image, its
+  series' poster). Only those files, named after a Bookmarks clip, are ever written or deleted; your own images are
+  never touched. **Use each clip's first frame as its thumbnail** on the settings page goes back to the video's poster;
+  **Give clips their video's artwork** turns the video's images off.
 - **Clip limits:** clips can only be made from regular video files, not from disc folders, ISOs or remote streams. A clip
   includes the video and the audio track that was playing, without subtitles. Clips are made one at a time by default.
 - **Maintenance never deletes clip files.** The daily **Bookmarks: Maintenance** task (Dashboard -> Scheduled Tasks)
   marks clips whose file is gone. After 30 days it archives a kept clip of a deleted bookmark. It also gives every clip
-  its video's artwork and deletes artwork whose clip is gone.
+  its first frame and its video's artwork (a clip made before 1.7.0 / 2.5.0 gets its first frame then) and deletes
+  artwork whose clip is gone.
 - **Going back to 1.1.x:** before you downgrade, check that the Diagnostics tab says "Clip file renames not finished:
   none." Version 1.1 would read a clip whose rename is still waiting as having no file.
 - **Admins only:** the settings page, the Jellyfin Enhanced import, export, import, restore and the All users view all
@@ -169,7 +173,9 @@ bookmarks people already made in Jellyfin Enhanced.
   their text. An admin can clear it on the settings page's **Data** tab: under **Users this server doesn't know**, press
   **Apply the deleted-user policy (...) to them** (the policy set under **When Jellyfin deletes a user**).
 - **What an admin can still read:** an export contains every user's names and notes, so keep it as safe as a database
-  backup. Clip files are named after the video, the bookmark's name and the range. Clips made before 1.2.0 for an
+  backup. Clip files are named after the bookmark's name, the video and the range
+  (`Bank job - Heat (1995) [01.52.10-01.55.00].mp4`; before 1.7.0 / 2.5.0 the video came first, and those files keep
+  their names until you rename them). Clips made before 1.2.0 for an
   unnamed bookmark may still carry the start of its note in the file name.
 - **Backups:** Jellyfin's own backups don't include plugin data, so use the settings page's **Data** tab:
   - **Export** downloads all bookmark data as a JSON file. Clip files are not included, so back up the clip folder

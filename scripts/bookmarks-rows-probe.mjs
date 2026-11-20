@@ -312,10 +312,10 @@ async function run() {
     check('2. editor-rows.json (admin): the Bookmarks row with Manage (and the Clips row with My Clips), cards by display title with a name\'s note under it and Name it in the unnamed ones\' menus, the editor with Name focused (Name, Start, End, Note textarea) saving on Enter, "Also delete its clip" unticked with the hint that the clip stays in My Clips, the clip kept when unticked and deleted when ticked, a clip that finished while a confirmation without the box was open kept as the box would have, the range flow with Name focused and the clip named after the name',
         rows.ok, { exit: rows.exit, failed: rows.failed });
     const namedFile = namedClip && typeof namedClip === 'object' ? namedClip.fileName : null;
-    check('3. the clip folder: the named clip (Long Test Movie (<year>) - rows-probe Bank job [<range>]), the kept clip and the race\'s clip (rows-probe race, kept, then deleted by the webcheck) are gone from admin\'s clip folder after their deletes',
-        !!namedFile && /^Long Test Movie \(\d{4}\) - rows-probe Bank job \[[\d.]+-[\d.]+\]\.(mp4|mkv)$/.test(namedFile) && !clipOnDisk('admin', namedFile)
+    check('3. the clip folder: the named clip (rows-probe Bank job - Long Test Movie (<year>) [<range>]), the kept clip and the race\'s clip (rows-probe race, kept, then deleted by the webcheck) are gone from admin\'s clip folder after their deletes',
+        !!namedFile && /^rows-probe Bank job - Long Test Movie \(\d{4}\) \[[\d.]+-[\d.]+\]\.(mp4|mkv)$/.test(namedFile) && !clipOnDisk('admin', namedFile)
         && typeof keptClip === 'string' && !clipOnDisk('admin', keptClip)
-        && typeof raceClip === 'string' && /^Long Test Movie \(\d{4}\) - rows-probe race \[[\d.]+-[\d.]+\]\.mp4$/.test(raceClip) && !clipOnDisk('admin', raceClip),
+        && typeof raceClip === 'string' && /^rows-probe race - Long Test Movie \(\d{4}\) \[[\d.]+-[\d.]+\]\.mp4$/.test(raceClip) && !clipOnDisk('admin', raceClip),
         { namedFile, keptClip, raceClip });
 
     if (!opts.relink) return;

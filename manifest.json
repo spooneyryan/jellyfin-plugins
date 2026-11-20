@@ -36,6 +36,14 @@
     "imageUrl": "https://raw.githubusercontent.com/spooneyryan/jellyfin-plugins/main/plugins/Bookmarks/image.png",
     "versions": [
       {
+        "version": "2.5.0.0",
+        "changelog": "- A clip's file is now named with its own name first, then the\n  video's title, then the time range: \"Bank job - Heat (1995)\n  [01.52.10-01.55.00].mp4\". A clip without a name stays \"Heat (1995)\n  [..]\". Clips you already have keep their names (they aren't shown\n  as \"Name changed\"); Rename or Rename file gives one the new order.\n- Each clip's first frame is now its thumbnail: it is saved beside\n  the clip as its poster and thumbnail, and shown on the video's\n  Clips row, on My Clips and in a clip library. A clip made again or\n  adjusted gets its new first frame; clips you already have get one\n  at the next clip artwork pass. If ffmpeg can't take the frame, the\n  film's poster is used, as before. A new setting, \"Use each clip's\n  first frame as its thumbnail\" (on by default), turns it off.",
+        "targetAbi": "12.4.0.0",
+        "sourceUrl": "https://github.com/spooneyryan/jellyfin-plugins/releases/download/bookmarks%2Fv2.5.0/bookmarks_2.5.0.0.zip",
+        "checksum": "42c3df3250e5ea2fe0ec488dd99efa08",
+        "timestamp": "2026-11-20T23:13:46Z"
+      },
+      {
         "version": "2.4.0.0",
         "changelog": "- Bookmarks and Clips rows on a video's page, in the same style as\n  its Scenes and Special Features rows, right after Scenes. Each\n  bookmark is a card showing the frame at that moment, its name and\n  time (a scissors when it has a clip); click it to play from there.\n  Each of your clips from that video is a card with its own artwork\n  or the frame at its start, its name, length and range; click it to\n  play it (a clip in a library plays in Jellyfin's player). The ⋮\n  menu on a card has every action the old \"My bookmarks\" list had\n  (name, edit, delete, make, cancel, preview, download or delete a\n  clip) and My Clips' actions for a clip; \"Manage\" opens My\n  Bookmarks for that video. They work with a mouse, a keyboard, a TV\n  remote and on a phone.",
         "targetAbi": "12.4.0.0",

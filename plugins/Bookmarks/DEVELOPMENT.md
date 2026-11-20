@@ -3,7 +3,7 @@
 A Jellyfin plugin that lets each user bookmark moments in movies and episodes, name them, find them again on a page of
 their own, and cut a bookmarked range into a clip file with ffmpeg.
 
-Version **1.5.0**, for Jellyfin **10.11.5** (`net9.0`; 2.3.0 for Jellyfin 12.4). This is the technical reference for developers and for admins who
+Version **1.7.0**, for Jellyfin **10.11.5** (`net9.0`; 2.5.0 for Jellyfin 12.4). This is the technical reference for developers and for admins who
 want more than the user [README.md](README.md) gives. Release history: [CHANGELOG.md](CHANGELOG.md).
 
 - **Bookmarks** belong to one user: a position, an optional end time, a **name** (one line, at most 100 characters) and
@@ -28,8 +28,8 @@ Windows High Contrast and from the keyboard.
   user's id answers 404, like one that doesn't exist. Admins see per-user **counts** (Diagnostics), never a name, note or
   video.
 - **What an admin can still read**, because it is the server's: an **export** (every user's names and notes: keep it as
-  safe as a database backup); the clip files on disk, a folder per user, named after the video, the bookmark's name and
-  the range (`Heat (1995) - Bank job [01.52.10-01.55.00].mp4`); the JE import report's labels. A clip file is **never
+  safe as a database backup); the clip files on disk, a folder per user, named after the bookmark's name, the video and
+  the range (`Bank job - Heat (1995) [01.52.10-01.55.00].mp4`; the video first before 1.7.0 / 2.5.0); the JE import report's labels. A clip file is **never
   named after a note** since 1.2.0; an older file of an unnamed bookmark keeps the start of its note in its name until
   its owner renames it.
 - **The admins' All users view** (My Clips) shows every user's clips with owner, the bookmark's name and the file's full
@@ -163,11 +163,23 @@ The UI's behaviour, for review and support; the user README has the tour.
 ### On a video's page
 
 **Add bookmark** opens the editor (Name, Start, End, Note, clip mode; times typed as `1:02:03.5` or set by a clock button
-while playing). Since 1.6.0 / 2.4.0 (the **My bookmarks (n)** section before) two rows follow jellyfin-web's
-**Scenes** row, in its parent (the `detailScenes` anchor, `#scenesCollapsible`, there even when hidden; without it, at
-the end of `detailContent`), built from the kit's `kit.cardRow` and `kit.rowCard` (`Web/js/52-detail-rows.js`): the
-native section, heading, `emby-scroller` and `overflowBackdropCard` markup, so sizes, hover overlay, scroll arrows and
-TV focus are jellyfin-web's own. A row is hidden while empty.
+while playing). Since 1.6.0 / 2.4.0 (the **My bookmarks (n)** section before) two rows sit among jellyfin-web's own
+sections, built from the kit's `kit.cardRow` and `kit.rowCard` (`Web/js/52-detail-rows.js`): the native section,
+heading, `emby-scroller` and `overflowBackdropCard` markup, so sizes, hover overlay, scroll arrows and TV focus are
+jellyfin-web's own. A row is hidden while empty. Their places (`bookmarksRowPlace`, `clipsRowPlace`, found again each
+time the rows are added: a new item in the same view, a page shown again keeps the rows it has):
+
+- **Bookmarks** (since 1.6.1 / 2.4.1) right after **Cast & Crew**, in its parent (the `detailCast` anchor,
+  `#castCollapsible`, there even when hidden), so before Special Features; after **Guest Stars** instead
+  (`detailGuestCast`, `#guestCastCollapsible`) when that is Cast & Crew's next element, as on an episode, so the two
+  people rows stay together. Without `detailCast` it goes where Clips goes, just before it (as in 1.6.0 / 2.4.0).
+- **Clips** right after **Scenes**, in its parent (the `detailScenes` anchor, `#scenesCollapsible`, there even when
+  hidden); without it, at the end of `detailContent`.
+
+jellyfin-web 10.11.5 and 12.4 have the same order: Cast & Crew, Guest Stars, (the series schedule,) Special Features,
+Music Videos, Scenes, (Collections in 12,) More Like This, so a movie shows Cast & Crew, Bookmarks, Special Features,
+Scenes, Clips. Both rows come after the Jellyfin Enhanced reviews (in `.detailSectionContent`, above every section), and
+in the TV focus order Bookmarks comes before Clips, so the TV jump (below) still goes to Bookmarks first.
 
 - **Bookmarks** (`.jfbm-section.jfbm-detail-bookmarks`, still the TV jump target): the user's bookmarks of the video in
   time order. A card's title is the display title (the name, else the note's first line, 80 characters, else
@@ -246,7 +258,7 @@ video's section and the player's list.
 | Play | a video you can open | From the clip's start, with the bookmark's version and audio track. |
 | Edit bookmark | a live bookmark | The editor on the current bookmark. |
 | Rename clip | not being made, folder there | The name and, with **Also rename the file** (unticked in a library, with a warning that Jellyfin then sees a new video), the file: both or neither. |
-| Rename file | **Name changed** | The file gets the clip's current name. |
+| Rename file | **Name changed** | The file gets the clip's current name: `<name> - <video> [range]` since 1.7.0 / 2.5.0 (`ClipFileNaming.BuildStem`). A file named in the order before (`<video> - <name>`, `BuildLegacyStem`) isn't flagged (`IsStemOf` takes both) and keeps its name until a rename. |
 | Make the clip again | a live bookmark with a range, folder not offline | The current range; the old file stays until the new one is there. |
 | Cancel | being made | An earlier file stays. |
 | Delete | a file that is there | A file in use keeps the row. |
@@ -362,6 +374,7 @@ stored users that don't match the server, JE's bookmarks still on.
 | `MinFreeSpaceMegabytes` | 2048: the reserve ("Free space"); 0 none. |
 | `OrganizeClipsByUser` | on: a sub-folder per user. |
 | `GiveClipsVideoArtwork` | on: each clip gets its video's artwork beside it ("Clip artwork"). Off: none written; orphaned artwork still deleted. |
+| `UseClipFirstFrameAsThumbnail` | on (since 1.7.0 / 2.5.0): each clip's first frame is its `-poster.jpg` and `-thumb.jpg` ("Clip artwork"), with or without the setting above. Off: the video's Primary and Thumb as before. |
 | `DefaultClipMode` | Accurate. |
 | `MaxClipDurationSeconds` | 600 (0: no limit). |
 | `MaxConcurrentClips` | 1 (after a restart). |
@@ -509,6 +522,19 @@ Jellyfin's `LocalImageProvider` takes for a video in a mixed folder (only prefix
 Backdrop; for an episode the series' Primary (else the episode's), the episode's Primary as `<clip>-thumb.<ext>`, and the
 episode's Backdrop or else the series'.
 
+**The first frame** (since 1.7.0 / 2.5.0, `UseClipFirstFrameAsThumbnail`, default on; `ClipFrameExtractor`,
+`FfmpegFrameCommandBuilder`): Jellyfin's configured ffmpeg (`IMediaEncoder.EncoderPath`) takes the clip file's first
+video frame (`-frames:v 1`, square pixels, MJPEG `-q:v 2`, 60 s timeout) to `<clip>-poster.jpg.<32 hex>.tmp`, which gets
+the clip file's last write time and is moved over `<clip>-poster.jpg`; `<clip>-thumb.jpg` is a copy of it (the same
+temp-then-move). It replaces the video's Primary and Thumb (the Backdrop stays the video's while `GiveClipsVideoArtwork`
+is on) and needs no library item, so a clip of a video gone from the library still gets one. A poster whose size is
+above 0 and whose last write time equals the clip file's is up to date (`Frames` / `UpToDate` counts): a rename keeps the
+time and the frame, a clip made again or adjusted has a new time and gets a new frame; nothing is extracted twice for
+the same file. A failure (no ffmpeg, an error, the timeout, no image) deletes the temp file, logs a Warning with the
+bookmark id only (the path at Debug), counts `FramesFailed` and falls back to the video's images. Turned off, the
+video's Primary and Thumb replace the frames on the next sync, and a frame (`-poster`/`-thumb` with the clip's time)
+whose video has no image of that kind is deleted. HDR clips' frames aren't tone-mapped.
+
 - **Written** for a `Completed` clip whose file is there (the guard's `Exists`: no link, no rename under way) in a
   recorded clip folder or one level below, named as Bookmarks names clips (`ClipNamePattern`), whose video resolves
   (`HasLibraryItem`, `GetItemById`). Only images whose `ItemImageInfo` is a local file that is there, `.jpg`, `.jpeg`,
@@ -517,7 +543,8 @@ episode's Backdrop or else the series'.
   kind in another format goes. Then, if the clip is a library item (`FindByPath`), `IProviderManager.QueueRefresh`
   (default metadata and image refresh); otherwise the next scan takes the files.
 - **When:** after a clip is in place and recorded (`ClipExtractionService`); after a rename's record is written (the
-  artwork is moved to the new name, never over a file, then synced); after a single or bulk delete or Forget lets go of a
+  artwork is moved to the new name, never over a file but its own in another case (a rename in case alone, since 1.7.0 /
+  2.5.0), then synced; since 1.7.0 / 2.5.0 also when a rename that wasn't finished is finished at a start or a retry); after a single or bulk delete or Forget lets go of a
   file (`ClipFileSingleDelete`, `ClipFileBatchDelete`: that clip's artwork goes once orphaned); daily, the last
   maintenance step (`ClipArtwork`, after `MissingClips`): every clip synced, then every recorded clip folder cleaned up.
   Each hook catches everything (a Warning, ids only); the step answers its counts (`Written`, `Clips`, `UpToDate`,
@@ -880,12 +907,13 @@ Each area has unit tests, most also behind Jellyfin's real web pipeline (`Api/*A
 | Identity, deleted users | `Services/BookmarkIdentityServiceTests`, `BookmarkUserDataOwnerTests`, `Api/RecordsAdminApiTests`, `Integration/ItemMovedHookV1Tests` | `bookmarks-identity-probe.mjs`, `bookmarks-data-probe.mjs` |
 | My Bookmarks | `Services/BookmarkQueryServiceTests`, `BookmarkBulkDeleteTests`, `BookmarkPreferencesTests`, `Api/BookmarkQueryApiTests`, `Web/page-bookmarks.test.mjs` | `bookmarks-query-probe.mjs`, `bookmarks-page-probe.mjs` |
 | Editor, player | `Web/bookmarks.test.mjs`, `Web/chapter-names.test.mjs`, `Web/ChapterSuggestionTests` | `bookmarks-rows-probe.mjs`, `bookmarks-player-probe.mjs` |
-| A video's Bookmarks and Clips rows | `Web/detail-rows.test.mjs`, `Web/detail-tv.test.mjs`, `Web/bookmarks.test.mjs`, the kit's `kit.test.mjs` (`cardRow`, `rowCard`), `Clips/ClipServiceTests` (`GetMedia`, `GetArtworkPath`), `Api/ClipsApiTests` | `webchecks/bookmarks-detail-rows.json` |
+| A video's Bookmarks and Clips rows (their places: after Cast & Crew or Guest Stars, after Scenes, the fallbacks, on every visit) | `Web/detail-rows.test.mjs`, `Web/detail-tv.test.mjs`, `Web/bookmarks.test.mjs`, the kit's `kit.test.mjs` (`cardRow`, `rowCard`), `Clips/ClipServiceTests` (`GetMedia`, `GetArtworkPath`), `Api/ClipsApiTests` | `webchecks/bookmarks-detail-rows.json`, `webchecks/bookmarks-ui.json` |
 | JE import | `Import/JellyfinEnhancedBookmarkImporterTests` (`kit/testdata/je-data/import-81`), `Api/JeImportApiTests` | `bookmarks-je-import-probe.mjs`, `bookmarks-je-web-probe.mjs` |
 | Settings and admin tools | `Web/configpage.test.mjs` (the page's real markup), `Web/SettingsTests`, `Services/BookmarkCountsTests`, `Api/AdminToolsApiTests` | `bookmarks-settings-probe.mjs` |
 | My Clips | `Clips/ClipQueryServiceTests`, `ClipStateCacheTests`, `ClipServiceTests`, `Api/ClipsApiTests`, `Web/page-clips.test.mjs` | `bookmarks-clips-probe.mjs`, `bookmarks-clips-page-probe.mjs` |
 | Missing clips, markers, facade | `Clips/MissingClipSweepTests`, `ClipRootMarkerTests`, `Integration/ClipRootsV1Tests` (by reflection, its own load context) | `bookmarks-clip-sweep-probe.mjs` |
 | Clip renames | `Clips/ClipRenameTests*`, `ClipRenameRestoreTests` | `bookmarks-clip-rename-probe.mjs` |
+| Clip file names, artwork and first frames | `Clips/ClipFileNamingTests`, `ClipFactsTests`, `ClipArtworkTests`, `ClipFrameTests` (with a real ffmpeg: `BOOKMARKS_TEST_FFMPEG`), `Web/page-clips.test.mjs`, `Web/detail-rows.test.mjs` | `bookmarks-clip-thumbs.json` |
 | All users view | `Clips/AdminClipServiceTests*`, `Api/AdminClipsApiTests`, `Web/page-clips-admin.test.mjs` | `bookmarks-clips-admin-probe.mjs` |
 
 ### The sandbox

@@ -28,8 +28,8 @@
       "assert": "(() => { const b = document.querySelector('#itemDetailPage:not(.hide) .mainDetailButtons .btnBookmarkItem'); return !!b && !!b.nextElementSibling && b.nextElementSibling.classList.contains('btnMoreCommands'); })()"
     },
     {
-      "name": "the Bookmarks row sits right after Jellyfin's Scenes row (there even when hidden), the Clips row right after it",
-      "assert": "(() => { const p = document.querySelector('#itemDetailPage:not(.hide)'); const scenes = p.querySelector('#scenesCollapsible'); const row = p.querySelector('.jfbm-detail-bookmarks'); const clips = p.querySelector('.jfbm-detail-clips'); return !!scenes && !!row && scenes.nextElementSibling === row && row.nextElementSibling === clips; })()"
+      "name": "the Bookmarks row sits right after Jellyfin's Cast & Crew row and the Guest Stars row right under it (both there even when hidden), the Clips row right after the Scenes row (since 1.6.1 / 2.4.1)",
+      "assert": "(() => { const p = document.querySelector('#itemDetailPage:not(.hide)'); const cast = p.querySelector('#castCollapsible'); const guest = p.querySelector('#guestCastCollapsible'); const scenes = p.querySelector('#scenesCollapsible'); const row = p.querySelector('.jfbm-detail-bookmarks'); const clips = p.querySelector('.jfbm-detail-clips'); return !!cast && !!guest && !!scenes && !!row && !!clips && cast.nextElementSibling === guest && guest.nextElementSibling === row && scenes.nextElementSibling === clips && p.querySelectorAll('.jfbm-detail-bookmarks').length === 1 && p.querySelectorAll('.jfbm-detail-clips').length === 1; })()"
     },
     { "screenshot": "bookmarks-ui-details.png" },
 

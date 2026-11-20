@@ -317,6 +317,15 @@
                             <div class="fieldDescription checkboxFieldDescription">For a clip folder that is a Home Videos and Photos library: each clip gets the film's poster and backdrop (an episode's, its series' poster) as image files beside it, so the library shows those instead of a frame from the clip.</div>
                         </div>
 
+                        <!-- Since 1.7.0 / 2.5.0: the clip's first frame as <clip>-poster.jpg and <clip>-thumb.jpg. -->
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label class="emby-checkbox-label">
+                                <input id="UseClipFirstFrameAsThumbnail" name="UseClipFirstFrameAsThumbnail" type="checkbox" is="emby-checkbox" />
+                                <span>Use each clip's first frame as its thumbnail</span>
+                            </label>
+                            <div class="fieldDescription checkboxFieldDescription">Each clip's very first frame is saved beside it as its poster and thumbnail, shown on the video's Clips row, on My Clips and in a clip library. The film's backdrop stays when the setting above is on. Off: the film's poster, as before.</div>
+                        </div>
+
                         <div class="selectContainer">
                             <label class="selectLabel" for="DefaultClipMode">Default clip mode</label>
                             <select is="emby-select" id="DefaultClipMode" name="DefaultClipMode" class="emby-select-withcolor emby-select">
@@ -550,7 +559,7 @@
                 var page = document.querySelector('#BookmarksConfigPage');
                 var form = document.querySelector('#BookmarksConfigForm');
                 var checkboxes = ['EnableWebUi', 'ReportWebAnchorProblems', 'EnableBookmarksPage', 'EnableClipsPage', 'RegisterPluginPages', 'ShowFallbackNav', 'ShowPlayerButtons',
-                    'AskForNameDefault', 'SuggestChapterNames', 'ShowJellyfinEnhancedBanner', 'EnableClips', 'AdminsCanManageAllClips', 'OrganizeClipsByUser', 'GiveClipsVideoArtwork', 'CleanUpPartialFilesOnStartup'];
+                    'AskForNameDefault', 'SuggestChapterNames', 'ShowJellyfinEnhancedBanner', 'EnableClips', 'AdminsCanManageAllClips', 'OrganizeClipsByUser', 'GiveClipsVideoArtwork', 'UseClipFirstFrameAsThumbnail', 'CleanUpPartialFilesOnStartup'];
                 var textFields = ['BookmarkNowShortcut', 'ClipOutputPath'];
                 var selectFields = ['PageHostMode', 'DeletedUserPolicy', 'DefaultClipMode', 'VideoPreset'];
                 var numberFields = ['DetachedRetentionDays', 'SnapshotsToKeep', 'MinFreeSpaceMegabytes', 'MaxClipDurationSeconds', 'MaxConcurrentClips', 'MissingClipRetentionDays',

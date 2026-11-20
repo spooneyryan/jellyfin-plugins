@@ -1,5 +1,6 @@
 // The details page's Bookmarks and Clips rows (since 1.6.0 / 2.4.0, in place of the "My bookmarks" list): jellyfin-web's
-// own row and card markup (kit.cardRow, kit.rowCard), right after its Scenes row. Each card's image is the video's frame
+// own row and card markup (kit.cardRow, kit.rowCard), Bookmarks right after its Cast & Crew row (since 1.6.1 / 2.4.1),
+// Clips right after its Scenes row. Each card's image is the video's frame
 // at that moment: the trickplay tile, else the last chapter image before it, else the video's own artwork. Every action
 // the list had is in a card's menu; "Manage" in the heading opens My Bookmarks filtered to the video.
 
@@ -123,17 +124,39 @@ function frameImage(item, mediaSourceId, ticks) {
 
 // ------------------------------------------------------------------------------------------ the rows
 
-// Both rows, right after the page's Scenes row (else at the end of its content), registered as lists of the video so
-// every change to its bookmarks or clips draws them again: { bookmarks, clips }.
+// Where the Clips row goes: right after the page's Scenes row, in its parent (there even when hidden), else at the end
+// of its content: { parent, before }.
+function clipsRowPlace(page, content) {
+    const scenes = findAnchor('detailScenes', page);
+    return scenes && scenes.parentNode ? { parent: scenes.parentNode, before: scenes.nextSibling } : { parent: content, before: null };
+}
+
+// Where the Bookmarks row goes: right after the page's Cast & Crew row, in its parent (there even when hidden), so before
+// Special Features; after Guest Stars instead when that row comes right after Cast & Crew (an episode's), so the two
+// stay together. Without Cast & Crew, where the Clips row goes (just before it): { parent, before }.
+function bookmarksRowPlace(page, content) {
+    const cast = findAnchor('detailCast', page);
+    if (!cast || !cast.parentNode) {
+        return clipsRowPlace(page, content);
+    }
+
+    const guest = findAnchor('detailGuestCast', page);
+    const after = guest && guest.parentNode === cast.parentNode && cast.nextElementSibling === guest ? guest : cast;
+    return { parent: after.parentNode, before: after.nextSibling };
+}
+
+// Both rows, Bookmarks right after Cast & Crew and Clips right after Scenes (each place found again on every visit, as
+// the rows are), registered as lists of the video so every change to its bookmarks or clips draws them again:
+// { bookmarks, clips }. Both places are found before either row goes in, so without Cast & Crew Bookmarks comes just
+// before Clips, as it did until 1.6.1 / 2.4.1.
 function addDetailRows(page, item) {
     const content = findAnchor('detailContent', page);
-    const scenes = findAnchor('detailScenes', page);
     const bookmarks = createBookmarksRow(item);
     const clips = createClipsRow(item);
-    const parent = scenes && scenes.parentNode ? scenes.parentNode : content;
-    const before = scenes && scenes.parentNode ? scenes.nextSibling : null;
-    parent.insertBefore(bookmarks.container, before);
-    parent.insertBefore(clips.container, before);
+    const bookmarksPlace = bookmarksRowPlace(page, content);
+    const clipsPlace = clipsRowPlace(page, content);
+    bookmarksPlace.parent.insertBefore(bookmarks.container, bookmarksPlace.before);
+    clipsPlace.parent.insertBefore(clips.container, clipsPlace.before);
     registerList(bookmarks);
     registerList(clips);
     return { bookmarks: bookmarks, clips: clips };
@@ -439,8 +462,8 @@ function renderClipsRow(list) {
     setRowLinks(list, pages.clips ? [kit.pages.link(CLIPS_PAGE.key, null, 'My Clips', { title: 'All your clips on My Clips' })] : []);
 }
 
-// A clip's image: its own artwork beside the file (a thumb, else fanart, else a poster), else the video's frame at the
-// clip's start.
+// A clip's image: its own artwork beside the file (a thumb, which since 1.7.0 / 2.5.0 is the clip's first frame, else
+// fanart, else a poster), else the video's frame at the clip's start.
 function clipCardImage(list, clip) {
     const artwork = clipMedia(list, clip).Artwork || [];
     const client = kit.client();

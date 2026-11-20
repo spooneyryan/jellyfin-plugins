@@ -1,5 +1,43 @@
 # Changelog
 
+## 1.7.0 / 2.5.0 (2026-11-19)
+
+1.7.0 for Jellyfin 10.11, 2.5.0 for Jellyfin 12.4. The bookmark data stays at schema 2 and nothing in it changes, so
+going back to 1.6.1 (or 2.4.1) keeps every bookmark and clip; the image files it wrote stay beside the clips.
+
+**In short**
+- **A clip's file now starts with its own name,** then the video's title, then the time range:
+  `Bank job - Heat (1995) [01.52.10-01.55.00].mp4` (it was `Heat (1995) - Bank job [...]`). A clip without a name is
+  still `Heat (1995) [...]`. The title inside the file follows the same order.
+- **Your existing clips keep their names.** They aren't renamed and aren't marked **Name changed**. When you rename one
+  (**Rename clip** with **Also rename the file**, or **Rename file**), its file gets the new order.
+- **Each clip's first frame is its thumbnail.** Bookmarks takes the clip's very first frame with Jellyfin's own ffmpeg
+  and saves it beside the clip as `<clip>-poster.jpg` and `<clip>-thumb.jpg`. You see it on the video's **Clips** row,
+  on **My Clips** and in a clip library. The film's backdrop stays as the clip's backdrop when **Give clips their
+  video's artwork** is on.
+- A clip made again or adjusted gets its new first frame. A renamed clip keeps its frame. Clips you already have get
+  theirs at the next **Bookmarks: Maintenance** run (daily), and each frame is taken only once per file.
+- If ffmpeg can't take the frame, nothing half-written is left behind, the server log says so, and the film's poster is
+  used as before.
+- A clip renamed only in case ("Case" to "CASE"), or whose rename was finished after a restart, now takes its images
+  with it instead of leaving them under the old name until the daily maintenance.
+- **New setting: Use each clip's first frame as its thumbnail** (on by default). Turn it off to go back to the film's
+  poster; the next maintenance run puts the poster back.
+
+## 1.6.1 / 2.4.1 (2026-11-18)
+
+1.6.1 for Jellyfin 10.11, 2.4.1 for Jellyfin 12.4. Only where a row sits on a video's page changes: the bookmark data
+stays at schema 2 and nothing in it changes, so going back to 1.6.0 (or 2.4.0) keeps every bookmark and clip.
+
+**In short**
+- **The Bookmarks row now comes right after Cast & Crew,** before Special Features, so your bookmarks are near the top of
+  the page. On an episode with **Guest Stars** it comes after them, so the two people rows stay together.
+- **The Clips row stays right after Scenes.** A movie's page now reads Cast & Crew, Bookmarks, Special Features, Scenes,
+  Clips.
+- On a page without a Cast & Crew row, both rows stay right after Scenes, as in 1.6.0 / 2.4.0.
+- On the TV layout the **Bookmarks** jump button (with Jellyfin Enhanced's reviews on the page) still goes to the
+  Bookmarks row first, else to the Clips row.
+
 ## 1.6.0 / 2.4.0 (2026-11-18)
 
 1.6.0 for Jellyfin 10.11, 2.4.0 for Jellyfin 12.4. Only the video page changes: the bookmark data stays at schema 2 and

@@ -51,6 +51,16 @@ internal interface IClipFileSystem : IClipPathProbe
     void CopyFile(string source, string destination) => PhysicalClipFileSystem.CopyKeepingTime(source, destination);
 
     /// <summary>
+    /// Sets a file's last write time (since 1.7.0 / 2.5.0: a clip's first frame, written with its clip file's time, so
+    /// <see cref="ClipArtwork"/> tells a frame of the clip file there now from one of an earlier file).
+    /// </summary>
+    /// <param name="path">The file's full path.</param>
+    /// <param name="writtenUtc">The time (UTC).</param>
+    /// <exception cref="IOException">The file isn't there, or its time can't be set.</exception>
+    /// <exception cref="System.UnauthorizedAccessException">The server may not write it.</exception>
+    void SetLastWriteTimeUtc(string path, DateTime writtenUtc) => File.SetLastWriteTimeUtc(path, writtenUtc);
+
+    /// <summary>
     /// Lists the files in a clip folder and in the folders directly inside it (the per-user folders), with their last write
     /// times, for the <c>.partial</c> janitor: no deeper, never into a junction, symbolic link or mount point below the
     /// folder, and past folders the server may not read. The folder itself may be a link. The list is read as it is

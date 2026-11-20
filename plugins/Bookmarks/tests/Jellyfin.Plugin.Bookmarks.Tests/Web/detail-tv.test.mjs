@@ -48,18 +48,26 @@ async function start(options) {
     return page;
 }
 
-// jellyfin-web 10.11.5's details view with Jellyfin Enhanced 12.14's closed Reviews section in its content.
+// jellyfin-web 10.11.5's details view with Jellyfin Enhanced 12.14's closed Reviews section in its content, above
+// jellyfin-web's Cast & Crew (the hidden Guest Stars right after it), Special Features and Scenes rows.
 function detailsPage(page) {
     const more = page.element('button', { class: 'btnMoreCommands' });
     const buttons = page.element('div', { class: 'mainDetailButtons' }, [page.element('button', { class: 'btnPlay' }), more]);
     const write = page.element('button', { class: 'je-review-btn je-review-write-btn' });
     const reviews = page.element('details', { class: 'detailSection tmdb-reviews-section' }, [page.element('summary', { class: 'sectionTitle' }), page.element('div', { class: 'je-review-action-bar' }, [write])]);
-    const content = page.element('div', { class: 'detailPageContent' }, [page.element('div', { class: 'detailSectionContent' }, [reviews])]);
+    const sections = ['castCollapsible', 'guestCastCollapsible', 'specialsCollapsible', 'scenesCollapsible'].map((id) => page.element('div', { id: id, class: 'verticalSection detailVerticalSection' + (id === 'guestCastCollapsible' ? ' hide' : '') }));
+    const content = page.element('div', { class: 'detailPageContent' }, [page.element('div', { class: 'detailSectionContent' }, [reviews])].concat(sections));
     const view = page.element('div', { id: 'itemDetailPage', class: 'page' }, [buttons, content]);
     page.document.body.append(view);
     page.context.location.hash = '#/details?id=item1&serverId=server-1';
     page.dispatch(view, 'viewshow');
     return { view, buttons, more, reviews, write, content };
+}
+
+// The element right before el in its parent (the fake page has no previousElementSibling).
+function previous(el) {
+    const siblings = el.parentNode.children;
+    return siblings[siblings.indexOf(el) - 1];
 }
 
 test('TV layout with JE\'s closed reviews: a Bookmarks button after Add bookmark, before More, and OK on it focuses the Bookmarks row\'s first control', { skip }, async () => {
@@ -68,6 +76,12 @@ test('TV layout with JE\'s closed reviews: a Bookmarks button after Add bookmark
     await page.advance(1000);
     const section = dom.view.querySelector('.jfbm-section');
     assert.ok(section && !section.classList.contains('hide'), 'the Bookmarks row shown');
+    // Below the reviews, right after Cast & Crew (and Guest Stars), so first of our rows in the focus order: the
+    // Clips row comes after Scenes.
+    assert.equal(previous(section).id, 'guestCastCollapsible');
+    assert.equal(section.nextElementSibling.id, 'specialsCollapsible');
+    assert.deepEqual(dom.view.querySelectorAll('.jfbm-section, .jfbm-detail-clips').map((r) => r.className.indexOf('jfbm-section') >= 0 ? 'bookmarks' : 'clips'), ['bookmarks', 'clips']);
+    assert.equal(previous(dom.view.querySelector('.jfbm-detail-clips')).id, 'scenesCollapsible');
     const card = section.querySelector('.jfbm-bookmark-card');
     assert.equal(card.className, 'card overflowBackdropCard show-focus jfbm-rowcard jfbm-bookmark-card focusable', 'a TV card, the focus stop itself');
     assert.equal(card.getAttribute('tabindex'), '0');
@@ -116,6 +130,7 @@ test('TV layout with clips but no bookmarks: the Bookmarks button goes to the Cl
     assert.ok(dom.view.querySelector('.jfbm-section.hide'), 'no bookmarks: the Bookmarks row hidden');
     const clips = dom.view.querySelector('.jfbm-detail-clips');
     assert.equal(clips.classList.contains('hide'), false);
+    assert.equal(previous(clips).id, 'scenesCollapsible', 'the Clips row after Scenes, below the hidden Bookmarks row');
     const jump = dom.buttons.querySelector('.jfbm-je-jump');
     assert.ok(jump, 'the Bookmarks button, for the Clips row');
     jump.click();

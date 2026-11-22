@@ -242,12 +242,12 @@ test('Diagnostics counts the detached Jellyfin Enhanced reviews still under a 0.
     view.q('#UserRatingsTabDiagnostics').click();
     await view.page.flush();
     await view.page.flush();
-    assert.match(view.q('#UserRatingsDiagnosticsSummary').textContent, /Jellyfin Enhanced keys from 0\.3\.210 detached season or episode reviews still under the key 0\.3\.21 kept \(0 expected\)/);
+    assert.match(view.q('#UserRatingsDiagnosticsSummary').textContent, /Old Jellyfin Enhanced keys0 detached season or episode reviews still under an old key \(0 expected\)/);
     view.setBody(Object.assign(diagnostics({}), { Records: { Attached: 3, Detached: 2, Reviews: 1, Users: 2, DetachedJeWithKeySuffix: 2 } }));
     view.q('#UserRatingsRefresh').click();
     await view.page.flush();
     await view.page.flush();
-    assert.match(view.q('#UserRatingsDiagnosticsSummary').textContent, /Jellyfin Enhanced keys from 0\.3\.212 detached season or episode reviews/);
+    assert.match(view.q('#UserRatingsDiagnosticsSummary').textContent, /Old Jellyfin Enhanced keys2 detached season or episode reviews/);
 });
 
 const BANNER = '2 ratings could not be relinked automatically because several copies match or another title is at their place. Review them in Data → Detached & ambiguous.';

@@ -450,7 +450,7 @@ internal sealed class TagCloudQueryService : ITagCloudQuery
     private TagCloudIndexSnapshot RequireSnapshot()
         => _index.Current ?? throw PluginException.Unavailable(string.Format(
             CultureInfo.InvariantCulture,
-            "The tag cloud is being counted ({0:N0} of {1:N0} titles read). Try again in a moment.",
+            "The Tag Cloud is being counted ({0:N0} of {1:N0} titles read). Try again in a moment.",
             _index.Done,
             _index.Total));
 

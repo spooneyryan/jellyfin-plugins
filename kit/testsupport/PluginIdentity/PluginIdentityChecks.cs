@@ -31,9 +31,9 @@ internal static partial class PluginIdentityChecks
     /// </summary>
     public static IReadOnlyDictionary<string, Guid> AssignedGuids { get; } = new Dictionary<string, Guid>(StringComparer.Ordinal)
     {
-        ["Bookmarks"] = new("d0ee1b2a-7f71-4654-8ff2-163a81441b03"),
-        ["User Ratings"] = new("f53c7c34-8cba-4846-b43b-956816b2f6ae"),
-        ["Smart Search"] = new("d92488d5-409f-4ad0-af1d-3615db9d0513"),
+        ["Bookmarks And Clips"] = new("d0ee1b2a-7f71-4654-8ff2-163a81441b03"),
+        ["User Ratings And Reviews"] = new("f53c7c34-8cba-4846-b43b-956816b2f6ae"),
+        ["Smart Search And Dynamic Collections"] = new("d92488d5-409f-4ad0-af1d-3615db9d0513"),
         ["Library Maintenance"] = new("fd47a1d3-dd8c-4e34-aeea-4f2edd973800"),
         ["Access Roles"] = new("7cbc1019-49a5-4b97-8aa2-279de946ef88"),
         ["Tag Cloud"] = new("e36415cf-46f1-4de6-bd61-d1fe7175c7a9"),
@@ -299,9 +299,10 @@ internal static partial class PluginIdentityChecks
     /// <summary>
     /// Checks the dashboard pages: the settings HTML page comes first, because jellyfin-web opens a
     /// plugin's first page when none or several are <c>EnableInMainMenu</c>; at most one page is in the main menu
-    /// and it is the settings page; names carry the plugin prefix; every resource exists and is .html or .js.
+    /// and it is the settings page; names start with <paramref name="pagePrefix"/> (the plugin folder name, spaces removed);
+    /// every resource exists and is .html or .js.
     /// </summary>
-    public static IReadOnlyList<string> CheckPages(IReadOnlyList<PluginPageInfo> pages, string pluginName, IReadOnlyCollection<string> resourceNames)
+    public static IReadOnlyList<string> CheckPages(IReadOnlyList<PluginPageInfo> pages, string pagePrefix, IReadOnlyCollection<string> resourceNames)
     {
         var problems = new List<string>();
         if (pages.Count == 0)
@@ -328,7 +329,7 @@ internal static partial class PluginIdentityChecks
             problems.Add($"The EnableInMainMenu page '{menuPages[0].Name}' must be the settings page, the first GetPages() entry.");
         }
 
-        var prefix = pluginName.Replace(" ", string.Empty, StringComparison.Ordinal);
+        var prefix = pagePrefix.Replace(" ", string.Empty, StringComparison.Ordinal);
         foreach (var page in pages)
         {
             if (!page.Name.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))

@@ -72,7 +72,7 @@ public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
     public override Guid Id => Guid.Parse(PluginId);
 
     /// <inheritdoc />
-    public override string Description => "Roles that keep non-admin users out of settings, the Dashboard's data and libraries they may not open.";
+    public override string Description => "Give your users roles that lock their settings and pick which libraries they can open.";
 
     /// <summary>
     /// Gets the dashboard pages: the one Access Roles page, first and the only one in the main menu, so both the plugin

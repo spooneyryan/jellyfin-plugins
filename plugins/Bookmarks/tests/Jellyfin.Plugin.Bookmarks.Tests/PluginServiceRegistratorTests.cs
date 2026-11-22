@@ -181,7 +181,7 @@ public sealed class PluginServiceRegistratorTests
         var descriptor = Assert.Single(services);
         var status = Assert.IsType<KitAbiStatus>(descriptor.ImplementationInstance);
         Assert.False(status.IsActive);
-        Assert.Equal($"Bookmarks is built for Jellyfin {JellyfinLine.Target}, but the server is Jellyfin {JellyfinLine.OtherLineVersion}: the plugin is inactive. Install the Bookmarks build for Jellyfin {JellyfinLine.OtherTarget}.", status.Message);
+        Assert.Equal($"Bookmarks And Clips is built for Jellyfin {JellyfinLine.Target}, but the server is Jellyfin {JellyfinLine.OtherLineVersion}: the plugin is inactive. Install the Bookmarks And Clips build for Jellyfin {JellyfinLine.OtherTarget}.", status.Message);
     }
 
     [Fact]

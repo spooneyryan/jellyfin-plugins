@@ -15,7 +15,5 @@
   <rect x="110" y="170" width="380" height="380" rx="72" fill="url(#accent)"/>
   <g transform="translate(150,210) scale(1)"><circle cx="125" cy="125" r="80" fill="none" stroke="#fff" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/><path fill="none" stroke="#fff" stroke-width="22" stroke-linecap="round" stroke-linejoin="round" d="M185 185 L265 265"/>
     <path fill="none" stroke="#fff" stroke-width="16" stroke-linecap="round" d="M88 102 H162 M100 127 H150 M112 152 H138"/></g>
-  <text x="560" y="335" font-size="92" font-weight="700" fill="#fff">Smart Search</text>
-  <text x="560" y="420" font-size="40" fill="#cfd6e6">Advanced search, saved</text><text x="560" y="472" font-size="40" fill="#cfd6e6">searches and auto-collections</text>
-  <text x="560" y="250" font-size="34" font-weight="600" letter-spacing="4" fill="#b4c4e4">JELLYFIN PLUGIN</text>
+  <text x="560" y="348" font-size="62" font-weight="700" fill="#fff">Smart Search And</text><text x="560" y="417" font-size="62" font-weight="700" fill="#fff">Dynamic Collections</text>
 </svg>

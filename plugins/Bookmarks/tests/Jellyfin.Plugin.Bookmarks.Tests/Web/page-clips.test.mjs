@@ -425,7 +425,7 @@ test('the badges, the poster and the video link only for a video the viewer can 
     assert.deepEqual(badges('c9'), ['Range changed', 'Name changed', 'Last remake failed']);
     assert.equal(row(page, 'c9').querySelectorAll('.jfbm-badge')[2].getAttribute('title'), 'The last remake failed: ffmpeg exited with code 1.');
     assert.equal(row(page, 'c9').querySelectorAll('.jfbm-badge')[1].getAttribute('title'),
-        'The clip file\'s name isn\'t the one Bookmarks gives this clip now (the bookmark was renamed, or the name holds words of its note from an earlier version). Rename file gives it its name.',
+        'The clip file\'s name isn\'t the one Bookmarks gives this clip now (for example, the bookmark was renamed). Rename file gives it its name.',
         'what the badge means since the file name never holds the note, and the owner\'s way to fix it');
     assert.deepEqual(badges('c2'), []);
     assert.equal(row(page, 'c2').querySelector('.jfbm-clip-badges'), null);

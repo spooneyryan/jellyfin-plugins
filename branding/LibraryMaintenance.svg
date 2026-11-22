@@ -17,7 +17,5 @@
     <rect x="115" y="40" width="50" height="210" rx="10" fill="none" stroke="#fff" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/>
     <path fill="none" stroke="#fff" stroke-width="22" stroke-linecap="round" stroke-linejoin="round" d="M190 85 l45 -12 48 175"/><path fill="none" stroke="#fff" stroke-width="22" stroke-linecap="round" stroke-linejoin="round" d="M30 262 H210"/>
     <circle cx="225" cy="225" r="58" fill="#fff"/><path fill="none" stroke="#5a7fd6" stroke-width="20" stroke-linecap="round" stroke-linejoin="round" d="M197 226 l20 20 36 -40"/></g>
-  <text x="560" y="335" font-size="62" font-weight="700" fill="#fff">Library Maintenance</text>
-  <text x="560" y="420" font-size="40" fill="#cfd6e6">Find and fix problems in your</text><text x="560" y="472" font-size="40" fill="#cfd6e6">libraries</text>
-  <text x="560" y="250" font-size="34" font-weight="600" letter-spacing="4" fill="#b4c4e4">JELLYFIN PLUGIN</text>
+  <text x="560" y="382" font-size="62" font-weight="700" fill="#fff">Library Maintenance</text>
 </svg>

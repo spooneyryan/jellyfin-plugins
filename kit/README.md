@@ -674,7 +674,9 @@ fresh.Update(itemId, user, d => { d.Rating = 7; return true; }, UserDataSaveReas
 - **Maintenance** (`KitMaintenanceTaskBase`): "<Plugin>: Maintenance", daily, staggered (Bookmarks 03:10, User Ratings
   03:20, Access Roles 03:50). Steps in order, each on its own: snapshots (100), `Archive` (200), `Users` (300),
   `VerifySweep` (400), `ResolveDetached` (500), `Reattach` (510), the plugin's (600), SQLite's `Checkpoint` (900).
-  `AddKitMaintenanceGate` holds the plugin's own work during the run (User Ratings' data jobs).
+  `AddKitMaintenanceGate` holds the plugin's own work during the run (User Ratings' data jobs). The task's description
+  on the Scheduled Tasks page names snapshots, plus the records whose library item is gone only with
+  `AddKitDetachedRecords` and the users no longer on the server only with `AddKitUsers`.
 
 Tests: Kit.Tests `Library/` and `Hosting/`; in a sandbox `scripts/library-demo-probe.mjs` through Bookmarks' developer
 library demo.

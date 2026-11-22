@@ -42,7 +42,7 @@ public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
     public override Guid Id => Guid.Parse(PluginId);
 
     /// <inheritdoc />
-    public override string Description => "A Tag Cloud page: your library's tags, genres, people and studios as a word cloud.";
+    public override string Description => "Shows your library's tags, genres, people and studios as a word cloud you can click through.";
 
     /// <inheritdoc />
     public IEnumerable<PluginPageInfo> GetPages()

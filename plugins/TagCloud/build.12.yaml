@@ -1,56 +1,30 @@
 ---
 name: "Tag Cloud"
 guid: "e36415cf-46f1-4de6-bd61-d1fe7175c7a9"
-version: "2.2.0.0"
+version: "2.2.1.0"
 targetAbi: "12.4.0.0"
 framework: "net10.0"
-overview: "A Tag Cloud page: your library's tags, genres, people and studios as a word cloud"
+overview: "Shows your library's tags, genres, people and studios as a word cloud you can click through"
 description: >
-  Adds a Tag Cloud page under Library tools in the menu: the tags, genres,
-  actors, directors, writers or studios of your movies and shows, each word
-  sized by how many titles carry it. Pick libraries and how many words, click
-  a word to list its titles, hold it for a cloud of them, right-click it to
-  narrow the cloud, change the look in Settings, save clouds (private or
-  shared) and show any of them full screen. Counts only ever cover what the
-  viewer may see; no other plugin is needed for the web UI.
+  Tag Cloud turns your library's tags, genres, actors, directors, writers
+  and studios into a word cloud, with the most common words drawn biggest.
+  Click any word to see the movies and shows behind it, hold it down to see
+  them as a cloud of their own, or right-click a few words to narrow the
+  cloud down. You can change how the cloud looks, show it full screen, and
+  save the ones you like to rename, copy or share with everyone on your
+  server. Each person's cloud counts just the titles they can see.
 category: "General"
 owner: "NoRepine"
 artifacts:
 - "Jellyfin.Plugin.TagCloud.dll"
 changelog: |
-  2.2.0
-  - A word's titles can be filtered by name (or original title,
-    ignoring case and accents), sorted by name, release date, date
-    added or rating either way round, limited to a minimum resolution
-    (movies) or to what you haven't watched, with Reset and a count of
-    how many are left. The choices are kept per user on each device.
-  - Resting the mouse on an actor, director or writer shows their
-    photo and how many titles credit them; in a word's held-down
-    cloud, resting on a title shows its poster.
-  2.1.0
-  - A word's titles now show as poster cards, like a library or a
-    collection, each opening the title's page.
-  - With Mix sizes turned up, long words no longer stick out to the
-    side of the cloud: a word that comes late goes where it keeps to
-    the cloud's shape.
-  2.0.0
-  - For Jellyfin 12.4 and later: the same plugin as 1.0.1, built for
-    Jellyfin 12. Jellyfin 10.11 servers keep 1.0.1.
-  1.0.1
-  - First public release.
-  - A Tag Cloud page that shows the tags, genres, actors, directors, writers or studios of your movies and shows as a word cloud; click a word to see its titles.
-  - Saved clouds, private or shared, and a full-screen view. Counts only cover what the viewer may see.
-
-  1.0.0
-  - First release. The Tag Cloud page under Library tools: the tags,
-    genres, actors, directors, writers or studios of your movies, shows or
-    both, over any of your libraries, 25 to 1,000 words. Click a word for
-    its titles, hold it for a cloud of them, right-click it to narrow the
-    cloud.
-  - The settings panel: layout, shape, size mixing, spacing, letter case,
-    font, sizes, scale, palettes, colour rule and backdrops, kept per
-    device.
-  - Saved clouds, private or shared, and a read-only full-screen view of
-    any of them.
-  - Counts only ever cover what the viewer may see.
-  - Not in this release: export and import of the saved clouds.
+  2.2.1
+  - A Tag Cloud page that turns your tags, genres, people and studios
+    into a word cloud, with the most common words drawn biggest.
+  - Click a word to see its movies and shows, then filter and sort them.
+  - Hold a word down to see its titles as a cloud of their own.
+  - Right-click words to narrow the cloud to the titles they share.
+  - Change the layout, shape, font, colours and backdrop to your taste.
+  - Save clouds to rename, copy or share, or show one full screen.
+  - Each person's counts cover just the titles they can see.
+  - Daily backups of the saved clouds, and a recount when you need it.

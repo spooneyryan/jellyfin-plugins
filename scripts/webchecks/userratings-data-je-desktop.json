@@ -1,5 +1,5 @@
 {
-  "name": "User Ratings 1.0.2.0, the Jellyfin Enhanced import: in the je sandbox as admin, the desktop layout, with the synthetic reviews.json of userratings-je-import-probe.mjs --webchecks: the kit's Jellyfin Enhanced banner above the tabs, as text; the Data tab's \"Import from Jellyfin Enhanced\" section with its switch-over checklist (every JE 12.14 review setting in order: user reviews To do, translation Done, the TMDB section Optional) and Use the same hiding rules; Import waits for a dry run; the dry run (one POST 202, polled) and its report as text: new ratings, one stored detached, one left out, one clamped, JE's field names, one JE member to map, no review text anywhere on the page; that member given to viewer2 and the dry run again; Import asks first (Cancel focused), then imports with the dry run's PlanToken; the report names the import's snapshot, which the run restores at the end through the API (the import undone).",
+  "name": "User Ratings 1.0.3.0, the Jellyfin Enhanced import: in the je sandbox as admin, the desktop layout, with the synthetic reviews.json of userratings-je-import-probe.mjs --webchecks: the kit's Jellyfin Enhanced banner above the tabs, as text; the Data tab's \"Import from Jellyfin Enhanced\" section with its switch-over checklist (every JE 12.14 review setting in order: user reviews To do, translation Done, the TMDB section Optional) and Use the same hiding rules; Import waits for a dry run; the dry run (one POST 202, polled) and its report as text: new ratings, one stored detached, one left out, one clamped, JE's field names, one JE member to map, no review text anywhere on the page; that member given to viewer2 and the dry run again; Import asks first (Cancel focused), then imports with the dry run's PlanToken; the report names the import's snapshot, which the run restores at the end through the API (the import undone).",
   "failOnException": false,
   "timeout": 30000,
   "steps": [
@@ -22,14 +22,14 @@
       "reload": true
     },
     {
-      "name": "admin: User Ratings 1.0.2.0 started",
+      "name": "admin: User Ratings 1.0.3.0 started",
       "waitFor": "!!window.ApiClient && !!ApiClient.getCurrentUserId() && !!(window.__jfkit && window.__jfkit.jfur)",
       "timeout": 40000
     },
     {
-      "name": "the served script is 1.0.2.0",
-      "assert": "window.__jfkit.jfur.version === '1.0.2.0'",
-      "message": "User Ratings 1.0.2.0 is not the script the page loaded"
+      "name": "the served script is 1.0.3.0",
+      "assert": "window.__jfkit.jfur.version === '1.0.3.0'",
+      "message": "User Ratings 1.0.3.0 is not the script the page loaded"
     },
     {
       "name": "the users' ids",

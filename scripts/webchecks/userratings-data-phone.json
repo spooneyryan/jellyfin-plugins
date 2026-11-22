@@ -1,5 +1,5 @@
 {
-  "name": "User Ratings 1.0.2.0, the Data tab under touch: in the default sandbox as admin on a 375x812 phone with touch: the Data tab with a dry run's report shown and the detached list: no sideways scroll, every control, snapshot name and line of the report inside the screen; every button and field of the tab and of the list at least 44 px high; Restore…'s question inside the screen with every control at least 44 px; Cancel restores nothing and puts the focus back on Restore…. The snapshots are as before the run.",
+  "name": "User Ratings 1.0.3.0, the Data tab under touch: in the default sandbox as admin on a 375x812 phone with touch: the Data tab with a dry run's report shown and the detached list: no sideways scroll, every control, snapshot name and line of the report inside the screen; every button and field of the tab and of the list at least 44 px high; Restore…'s question inside the screen with every control at least 44 px; Cancel restores nothing and puts the focus back on Restore…. The snapshots are as before the run.",
   "failOnException": false,
   "timeout": 30000,
   "steps": [
@@ -31,14 +31,14 @@
       "reload": true
     },
     {
-      "name": "admin: User Ratings 1.0.2.0 started",
+      "name": "admin: User Ratings 1.0.3.0 started",
       "waitFor": "!!window.ApiClient && !!ApiClient.getCurrentUserId() && !!(window.__jfkit && window.__jfkit.jfur)",
       "timeout": 40000
     },
     {
-      "name": "the served script is 1.0.2.0",
-      "assert": "window.__jfkit.jfur.version === '1.0.2.0'",
-      "message": "User Ratings 1.0.2.0 is not the script the page loaded"
+      "name": "the served script is 1.0.3.0",
+      "assert": "window.__jfkit.jfur.version === '1.0.3.0'",
+      "message": "User Ratings 1.0.3.0 is not the script the page loaded"
     },
     {
       "name": "before the run: the snapshots as the server holds them",

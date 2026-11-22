@@ -4,12 +4,14 @@ A Jellyfin plugin that gives non-admin users roles: a role locks sections of the
 the server enforces both, for the web client and for any other client. This is its technical documentation; the user
 guide is [README.md](README.md).
 
-**Version 1.0.3.0** for Jellyfin 10.11.5 (`net9.0`). It writes managed users' library access, enforces the settings
+**Version 1.0.4.0** for Jellyfin 10.11.5 (`net9.0`, `build.yaml`) and **2.0.1.0** for Jellyfin 12.4 (`net10.0`,
+`build.12.yaml`). It writes managed users' library access, enforces the settings
 locks, hides the locked settings in the web client, keeps the Dashboard's data and server calls from the non-admins whose
 role blocks them, and hardens the server for every non-admin (configuration reads, the restart, the public user list, and
 API answers that leaked items of libraries a user may not open). Its admin page has the tabs Overview, Roles, Users,
 Libraries, Audit, Settings, Data and Diagnostics; every change's preview is the dry run of the write itself. Every lock is
-enforced (`/Me`'s `NotEnforced` is empty). The release notes are in [build.yaml](build.yaml)'s `changelog`.
+enforced (`/Me`'s `NotEnforced` is empty). The release notes are in the `changelog` of [build.yaml](build.yaml) and
+[build.12.yaml](build.12.yaml).
 
 **Administrators and API keys are never restricted** by any lock or rule, so every enabled administrator can always reach
 the plugin's page and API. Only library roles apply to administrators (their library access is written like anyone's).
@@ -484,12 +486,16 @@ locks at the next start, leaving access as last synced and the flags off.
 **Recovery after the plugin folder was deleted with the mirror on.** Nothing of the plugin runs any more, so put the flag
 back with an API key (Dashboard, *API Keys*). The users the mirror turned off are the keys of `PreferenceMirror` in the
 data file (`data\accessroles\accessroles.json`, or after `RESTORE.txt`'s way A
-`data\accessroles.removed-<yyyyMMdd-HHmmss>\accessroles.json`). The recovery line is in the user README
-([README.md](README.md), "Recovery after the plugin folder was deleted with the mirror on"), kept there in one place
-because Repo.Tests reads it from that file: it reads each user's whole policy and posts it back with the flag on, as
+`data\accessroles.removed-<yyyyMMdd-HHmmss>\accessroles.json`). The recovery line is below, kept in one place
+because Repo.Tests reads it from this file: it reads each user's whole policy and posts it back with the flag on, as
 UTF-8 bytes with the charset named (Windows PowerShell 5.1 would otherwise send ISO-8859-1 and break non-ASCII tags).
 Then delete the API key. Repo.Tests `AccessRolesRecoveryLineTests` runs the line against a loopback stand-in in Windows
 PowerShell 5.1 and, where installed, PowerShell 7.
+
+```powershell
+$server = 'http://localhost:8096'; $key = '<API key>'; $data = 'C:\ProgramData\Jellyfin\Server\data\accessroles\accessroles.json'
+$h = @{ Authorization = "MediaBrowser Token=`"$key`"" }; foreach ($id in (Get-Content $data -Raw -Encoding UTF8 | ConvertFrom-Json).PreferenceMirror.PSObject.Properties.Name) { $p = (Invoke-RestMethod "$server/Users/$id" -Headers $h).Policy; $p.EnableUserPreferenceAccess = $true; Invoke-RestMethod -Method Post "$server/Users/$id/Policy" -Headers $h -ContentType 'application/json; charset=utf-8' -Body ([Text.Encoding]::UTF8.GetBytes(($p | ConvertTo-Json -Depth 10))) }
+```
 
 ## Export, import and restore
 

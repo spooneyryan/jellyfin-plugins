@@ -1,152 +1,95 @@
 # Library Maintenance
 
-Library Maintenance helps a Jellyfin administrator tidy up a media collection. Version 1.0.5 does two things: an
-admin-only Dashboard page that lists the movies your libraries hold more than once and compares their copies side by
-side, and a **preview** of moving a movie, an episode or a music video to another folder. It is read-only: it deletes, merges, moves and writes nothing in
-your libraries. It is for home-server admins who want to find duplicate copies and see what a move would involve
-before any tool touches their files.
+Library Maintenance helps you tidy up a Jellyfin server by finding the movies you have more than once. It adds a
+Dashboard page for administrators that lists the duplicates across your libraries, shows how much space the extra
+copies take, and lets you compare the copies side by side before you decide which to keep. You can also preview what
+moving a movie, episode or music video to another folder would involve. The plugin only looks: it never deletes,
+moves or changes anything in your libraries.
 
 ## Features
 
-**Duplicates** (administrators only)
-- Lists the movies held more than once, matched on **Title + Year** (the default) or **Title only**.
-- Versions Jellyfin already groups together count as one movie, and its local alternates are never reported.
-- Each group shows its confidence (**Confirmed**, **Likely**, **Possible** or **Conflict**), the reasons and flags
-  (such as *Same TMDb id*, *Different provider ids* or *In 2 libraries*), and the space the other copies take.
-- Every copy is listed with its poster, edition, year, libraries, resolution, size, bitrate, runtime and path, the
-  suggested copy to keep first, and **Open** to go to its page. The suggestion is advice only.
-- Filter by library, confidence and title; five sort orders; 50 groups at a time with **Load more**.
-- **Compare copies** on a group shows its copies side by side, one column per file: name and folder, size, container,
-  runtime, resolution, video codec, bit depth, dynamic range (SDR, HDR10, Dolby Vision…), frame rate, bitrates, the
-  audio tracks (language, codec, channels, title, commentary, default), the subtitles (forced, default, embedded or
-  external), the special features (how many of each kind, and whether they sit beside the file, in an extras folder or
-  elsewhere), when it was added, how many users played it, and whether its file is there. The best value of each detail
-  is marked **Best** and the details that aren't the same are marked **Differs**: advice only. It reads what Jellyfin
-  learned at its last scan, so a copy on a drive that is unplugged still shows its tracks, marked *File not found*.
+- Finds movies you have more than once in your movie and mixed libraries, matched on the title and year or on the
+  title alone.
+- Leaves out versions Jellyfin already groups together, so they don't show up as duplicates.
+- Explains each match: how sure it is, why the copies matched (such as the same TMDb or IMDb id), and what to check,
+  like different years, runtimes or editions, disc rips and .strm shortcuts.
+- Shows the space the extra copies take and suggests a copy to keep.
+- Lets you filter the groups by library, how sure the match is and title, and sort them by how sure, title, space,
+  group size or newest added. Your browser remembers your choices.
+- Compares the copies side by side: resolution, codecs, HDR, audio tracks, subtitles, extras, date added, how many
+  users watched each one and more, with the best value of each detail marked.
+- Counts the movies in each library, points out broken version links between copies, and shows the index's numbers
+  on a Diagnostics tab.
+- Keeps the list up to date after every library scan, with a **Rebuild** button for when you want it now.
+- Previews moving a movie, episode or music video to another folder or library: the files, the free space, what is
+  kept, such as watch state, collections and playlists, and anything that would stand in the way.
+- Lets you export your settings to a file and import them again, and shows what a change to the libraries or
+  excluded folders does before you save it.
+- Keeps your files safe: nothing is deleted, merged, moved or written.
 
-**Move preview** (administrators only, preview only)
-- **Move media to new location** in the item menu ("⋮") of a movie, an episode or a music video.
-- A dialog shows what would move (the item's folder or files, its versions, parts, extras, subtitles, `.nfo` files,
-  images and trickplay), lets you pick a library and a folder, and previews the move: from, to, the files and bytes,
-  the free space, the folders it would create, what is kept (watch states, favourites, resume points, collections,
-  playlists, metadata edits) and everything that would stand in the way.
-- **There is no Move button.** This build cannot move, rename, create or delete any file or folder; this is by design.
-  Moving itself is planned for a later version.
+## Installing
 
-**Members** (users who are not administrators) see nothing new: the page, the menu entry and the preview are for
-administrators only.
-
-## Requirements
-
-- **Jellyfin 10.11.5 or later within 10.11.** Jellyfin 12 and later are not supported yet.
-- **No other plugin is needed.** Library Maintenance adds its own script to the web client; it does not use File
-  Transformation or JavaScript Injector.
-- **Works alongside Bookmarks**: if Bookmarks saves its clips inside a movie library, see "The Bookmarks clip folder"
-  below.
-- **Web client layouts**: the Dashboard page works on the desktop, mobile and TV layouts. The **Move media to new
-  location** entry appears on the desktop and mobile layouts only, never on the TV layout.
-- **Operating system**: the move preview needs a Windows server; on other systems the menu entry does not appear.
-- **Tested on**: Windows only, with Jellyfin 10.11.5. Linux and Docker servers have not been tested yet.
-
-## Installation
-
-**From the plugin repository**
-1. In Jellyfin, go to **Dashboard -> Plugins -> Repositories** and add `https://raw.githubusercontent.com/spooneyryan/jellyfin-plugins/main/manifest.json`.
+1. In Jellyfin, go to **Dashboard -> Plugins -> Repositories** and add
+   `https://raw.githubusercontent.com/spooneyryan/jellyfin-plugins/main/manifest.json`.
 2. Open **Catalog**, find **Library Maintenance** and install it.
-3. Restart the server.
+3. Restart the server, then reload the web client with **Ctrl+F5**.
 
-**Manually**
-1. Download the zip from the GitHub Releases page: <https://github.com/spooneyryan/jellyfin-plugins/releases>.
-2. Extract it into the `plugins/Library Maintenance_1.0.5.0` folder inside Jellyfin's data folder.
-3. Restart the server.
-
-**After installing**, reload the web client with **Ctrl+F5** so your browser picks up the plugin's script (needed for
-the item-menu entry).
-
-## Getting started
-
-1. Open the plugin's page: **Dashboard -> Plugins -> Library Maintenance**, or the **Library Maintenance** link in the
-   dashboard's menu. It has three tabs: **Duplicates**, **Settings** and **Diagnostics**.
-2. On **Settings**, check:
-   - **Libraries**: the movie and mixed libraries to read. With none chosen, every one is read, including libraries
-     you add later.
-   - **Excluded folders**: one full folder path on the server per line; the movies under them are left out. Before
-     saving, a dialog shows how many movies the change leaves out and whether the server finds each folder.
-   - **Title rules**: *Cut edition suffixes* with its list of **Edition phrases** (such as "Final Cut"), and *Leading
-     articles dropped* per language (English by default).
-   - **Build the index after every library scan** (on by default), so the Duplicates tab is ready when you open it.
-3. Open **Duplicates**. The first time, it builds its list of movies ("Indexing movies… 40%"), then shows the groups.
+Library Maintenance needs Jellyfin 12.4 or later.
 
 ## Using it
 
-**Find duplicates.** On **Duplicates**, pick the match mode, the libraries, the confidence and the order, or type part
-of a title. If Title + Year finds nothing, the page offers **Try Title only** when that would find some. **Rebuild**
-reads your libraries again. The list keeps itself up to date after library scans and changes.
+**Find duplicates.** Open **Dashboard -> Plugins -> Library Maintenance**, or its link in the dashboard's menu, and go
+to the **Duplicates** tab. The first time, it reads your movies, then shows the groups. You can switch between
+**Title + Year** and **Title only**, filter by library, how sure the match is and title, and change the order. Each
+group shows its copies with their posters, years, ids and file paths, the reasons they matched and a suggested keep.
+The list keeps itself up to date after library scans, and **Rebuild** reads your libraries again whenever you like.
+Below the groups you'll find how many movies each library holds, and any broken version links Jellyfin has between
+copies.
 
-**Preview a move.** As an administrator, open "⋮" on a movie's, episode's or music video's card or row (or **More** on
-its details page) and pick **Move media to new location**. Choose a library and a folder; the preview appears below.
-A library folder on another drive or on the network is listed but cannot be chosen yet. **Close** (or Escape) closes
-the dialog; the preview is forgotten after 15 minutes.
+**Compare copies.** Pick **Compare copies** on a group to see its files side by side. "Best" marks the best value of
+each detail, and "Differs" marks the details that aren't the same in every copy. **Open** takes you to a copy's page
+in Jellyfin.
 
-**Export and import the settings.** At the foot of **Settings**, **Export the settings** downloads a `.json` file;
-**Import from a file…** shows what would change before anything is saved. The file contains your excluded folders'
-paths, so keep it somewhere only administrators can read.
+**Preview a move.** On a movie, episode or music video, open the "⋮" menu (or **More** on its details page) and pick
+**Move media to new location**. Choose a library and a folder, or type a new folder's name. A loose movie or music
+video file can go in its own folder. The preview shows what would move, how, the free space, how long it would take,
+what is kept and anything in the way. It is a preview only, so there is no Move button.
 
-**Diagnostics** shows the index's numbers (movies, entries, broken version links, when it was built) and the plugin's
-version, for troubleshooting.
+**Check the numbers.** The **Diagnostics** tab shows how many movies and entries the index holds, how many it left
+out, and when it was last built. **Refresh** reads them again.
 
-## Important notes and limitations
+## Settings
 
-- **Don't use Disable on the Plugins page.** On Jellyfin 10.11.5 a disabled plugin is deleted at the next server start.
-  To switch things off, use **Settings -> Web client and Move** instead: *Move in the item menu* off hides the entry;
-  *Move media* off hides it and turns the preview off; *Add Library Maintenance to the web client* off removes the
-  script from the web client altogether (Duplicates keeps working). Save, then reload the web client with Ctrl+F5.
-- **A preview briefly locks files.** To tell whether another program has a file open, the preview opens each file that
-  would move exclusively for an instant. During that instant no other program can open it, so **don't preview an item
-  that is being imported or written** (a download finishing, Sonarr or Radarr importing it, a copy under way). A player
-  that already has the file open is not disturbed. Otherwise a preview changes nothing on disk and starts no library
-  scan (Windows may update the folders' last-access times as they are listed).
-- **What you see depends on your account.** An administrator sees only the libraries and movies their own account can
-  see: a parental rating or tags limit applies to administrators too. Such an administrator also gets fewer numbers in
-  the settings dialog and on Diagnostics.
-- **Missing drives.** The plugin never deletes or changes anything, so an unmounted library drive cannot cost you data
-  through it. While a drive is missing, the Duplicates list shows what Jellyfin's own library still holds: the index
-  reads Jellyfin's library and does not check that the files are there.
-- **Settings changed elsewhere are not overwritten.** If another administrator saved the settings after you opened
-  them, your save is refused and the page offers **Reload the settings**.
+The **Settings** tab holds the server's settings, the same for every administrator:
 
-### The Bookmarks clip folder
+- **Find duplicate movies**: turn this off to hide the Duplicates tab.
+- **Default match mode** and **A movie with no year matches**: how the Duplicates tab starts, until you pick
+  something else there.
+- **Libraries**: the movie libraries to check. Choose none to check every one, including ones you add later.
+- **Excluded folders**: folders whose movies are left out, one full path per line.
+- **Title rules**: edition phrases such as "Final Cut" to ignore, with a **Default phrases** button, and the leading
+  words to drop, such as "The", in English, French, German, Spanish, Italian or Dutch.
+- **Building the index**: whether the list is rebuilt after every library scan, and how long the page waits for a
+  rebuild that is running.
+- **Web client and Move**: switches to leave the plugin out of the web client, turn the move preview off, or hide the
+  Move entry in the item menu.
+- **Export the settings** and **Import from a file** to save your settings and bring them back.
 
-If you use Bookmarks and it saves its clips into a folder inside a movie library, Jellyfin scans each clip as a movie
-named after its film, so every clip would show up as a duplicate. Add that clip folder to **Excluded folders** on the
-Settings tab (its full path as the server sees it). A clip folder outside every movie library needs nothing.
+When you change the libraries or the excluded folders, or import a file, a dialog first shows what changes and how
+many movies the list would hold, and you save from there.
 
-## Your data and privacy
+## Questions
 
-- **Settings**: the plugin keeps only its settings file, `<data>/plugins/configurations/Jellyfin.Plugin.LibraryMaintenance.xml`,
-  where `<data>` is Jellyfin's data folder (for example `%ProgramData%\Jellyfin\Server` on Windows, `/var/lib/jellyfin`
-  on Linux, `/config` in Docker).
-- **No data folder**: the duplicates index and any move preview live in memory only and are never written to disk.
-- **Your libraries**: nothing is ever written to them.
-- **Backups**: back up the settings file above, or use **Export the settings**.
-- **Who sees what**: only administrators can use the plugin, each within the libraries their account can see.
-- **No external services**: the plugin makes no calls outside your Jellyfin server.
+- **Who sees it?** Only administrators. Other users see nothing new. Each administrator sees only the libraries and
+  movies their own account can see.
+- **Where is the Move entry?** It shows on the desktop and mobile layouts of a Windows server, not on the TV layout.
+- **Should I use Disable on the Plugins page?** No. To turn parts of the plugin off, use the switches under
+  **Settings -> Web client and Move**.
+- **Is a preview completely hands-off?** Almost. To see whether another program is using a file, a preview opens it
+  for an instant. Avoid previewing something that is still downloading or being imported.
+- **Do you use Bookmarks?** If it saves its clips inside a movie library, add that clip folder to **Excluded folders**
+  so the clips don't show up as duplicates.
 
-## Uninstalling
+## License
 
-1. Go to **Dashboard -> Plugins**, select **Library Maintenance** and choose **Uninstall** (not Disable), then restart
-   the server. Or stop the server and delete the `plugins/Library Maintenance_1.0.5.0` folder in Jellyfin's data
-   folder.
-2. To remove the settings too, delete `<data>/plugins/configurations/Jellyfin.Plugin.LibraryMaintenance.xml`.
-3. Start the server and reload the web client with Ctrl+F5. The item menus no longer have the Move entry.
-
-Nothing else is left behind: watch states, users, libraries and other plugins are untouched, and since the plugin
-never wrote to a library there is nothing else to undo. Uninstall removes the plugin's folder; on Windows, where the
-running server holds the plugin's file open, Jellyfin deletes the folder at the next start instead. It leaves the
-settings file, which step 2 removes.
-
-## More detail
-
-- The full technical documentation (how titles are compared, how groups and confidence are worked out, the API):
-  [DEVELOPMENT.md](DEVELOPMENT.md).
-- What changed in each version: [CHANGELOG.md](CHANGELOG.md), and the `changelog` in `build.yaml`.
+Released under the GNU General Public License v3.0.

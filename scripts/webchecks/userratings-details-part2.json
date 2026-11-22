@@ -1,5 +1,5 @@
 {
-  "name": "User Ratings 1.0.2.0, spoilers, drafts and who may rate: in the default sandbox, in four browser contexts (viewer, a second window of viewer, viewer2, admin): a review marked as a spoiler is out of the page until Show spoiler (window.find doesn't find it; a blur with no text in its place) and out again after Hide spoiler; the form's \"Contains spoilers\" sent and kept by Edit, the own card saying it, viewer2 seeing it hidden; the 409 with two windows: its panel shows the review as it is now (a spoiler there hidden until asked), Reload puts the other window's text in the form and keeps this one's beside it, \"Use my text\" swaps them, Save sends the newer review's time; Overwrite sends the review time of the row its panel shows, with no read of its own, so a save made after the panel was shown is a 409 again with the newer text shown, then Overwrite saves; drafts: saved after a pause under jfur:draft:<user>:<item>, kept across another item and Back, a reload, and TV Back pressed from inside the text area (written at once), put back with Discard, removed at sign-out; selected raters after setting WhoCanRate = SelectedUsers (viewer only) through POST /Plugins/{id}/Configuration: viewer2 sees read-only stars with \"Rating is limited to selected members.\" and no tab stop there, gets 403 from PUT Mine/Rating, still reads viewer's review, deletes an older own row, and rates again once All users is set back, nothing else changed; in the TV layout, taken out of the raters while on the page, a rating's 403 turns the focused slider into the read-only stars, which take the focus (never the page's body), and the page shown again (visibilitychange) reads the item and gives the slider the focus back once viewer2 may rate (on the TV, never the page's body); RequirePlayedToRate: the disabled slider with its note on an unplayed item, a tab stop, nothing sent; ReadOnly (the probe's answer) the disabled slider with its note. The settings are put back to the defaults and every row of the run deleted at the end.",
+  "name": "User Ratings 1.0.3.0, spoilers, drafts and who may rate: in the default sandbox, in four browser contexts (viewer, a second window of viewer, viewer2, admin): a review marked as a spoiler is out of the page until Show spoiler (window.find doesn't find it; a blur with no text in its place) and out again after Hide spoiler; the form's \"Contains spoilers\" sent and kept by Edit, the own card saying it, viewer2 seeing it hidden; the 409 with two windows: its panel shows the review as it is now (a spoiler there hidden until asked), Reload puts the other window's text in the form and keeps this one's beside it, \"Use my text\" swaps them, Save sends the newer review's time; Overwrite sends the review time of the row its panel shows, with no read of its own, so a save made after the panel was shown is a 409 again with the newer text shown, then Overwrite saves; drafts: saved after a pause under jfur:draft:<user>:<item>, kept across another item and Back, a reload, and TV Back pressed from inside the text area (written at once), put back with Discard, removed at sign-out; selected raters after setting WhoCanRate = SelectedUsers (viewer only) through POST /Plugins/{id}/Configuration: viewer2 sees read-only stars with \"Rating is limited to selected members.\" and no tab stop there, gets 403 from PUT Mine/Rating, still reads viewer's review, deletes an older own row, and rates again once All users is set back, nothing else changed; in the TV layout, taken out of the raters while on the page, a rating's 403 turns the focused slider into the read-only stars, which take the focus (never the page's body), and the page shown again (visibilitychange) reads the item and gives the slider the focus back once viewer2 may rate (on the TV, never the page's body); RequirePlayedToRate: the disabled slider with its note on an unplayed item, a tab stop, nothing sent; ReadOnly (the probe's answer) the disabled slider with its note. The settings are put back to the defaults and every row of the run deleted at the end.",
   "failOnException": false,
   "timeout": 30000,
   "steps": [
@@ -22,14 +22,14 @@
       "reload": true
     },
     {
-      "name": "the layout applied, User Ratings 1.0.2.0 started",
+      "name": "the layout applied, User Ratings 1.0.3.0 started",
       "waitFor": "document.documentElement.classList.contains('layout-desktop') && !!window.ApiClient && !!ApiClient.getCurrentUserId() && !!(window.__jfkit && window.__jfkit.jfur)",
       "timeout": 40000
     },
     {
-      "name": "the served script is 1.0.2.0",
-      "assert": "window.__jfkit.jfur.version === '1.0.2.0'",
-      "message": "User Ratings 1.0.2.0 is not the script the page loaded"
+      "name": "the served script is 1.0.3.0",
+      "assert": "window.__jfkit.jfur.version === '1.0.3.0'",
+      "message": "User Ratings 1.0.3.0 is not the script the page loaded"
     },
     {
       "name": "Long Test Movie",
@@ -74,7 +74,7 @@
       "reload": true
     },
     {
-      "name": "admin: User Ratings 1.0.2.0 started",
+      "name": "admin: User Ratings 1.0.3.0 started",
       "waitFor": "!!window.ApiClient && !!ApiClient.getCurrentUserId() && !!(window.__jfkit && window.__jfkit.jfur)",
       "timeout": 40000
     },
@@ -116,7 +116,7 @@
       "reload": true
     },
     {
-      "name": "other: User Ratings 1.0.2.0 started",
+      "name": "other: User Ratings 1.0.3.0 started",
       "waitFor": "!!window.ApiClient && !!ApiClient.getCurrentUserId() && !!(window.__jfkit && window.__jfkit.jfur)",
       "timeout": 40000
     },
@@ -346,7 +346,7 @@
       "reload": true
     },
     {
-      "name": "window-b: User Ratings 1.0.2.0 started",
+      "name": "window-b: User Ratings 1.0.3.0 started",
       "waitFor": "!!window.ApiClient && !!ApiClient.getCurrentUserId() && !!(window.__jfkit && window.__jfkit.jfur)",
       "timeout": 40000
     },

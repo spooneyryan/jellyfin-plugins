@@ -335,7 +335,7 @@ function lmSettingsTab(ctx) {
         lmSettingsField('LibraryMaintenanceSettingsWait', 'Wait for a build (seconds)', wait,
             'How long a request for the groups waits for a running build before it answers with the index it has: 0 to 30.'),
         lmEl('h4', { class: lmClass('heading'), text: 'Web client and Move' }),
-        lmEl('p', { id: 'LibraryMaintenanceSettingsWebNote', class: lmClass('hint'), text: 'To turn these off, use these switches, not Disable on Jellyfin\'s Plugins page: on Jellyfin 10.11.5 a disabled plugin is deleted at the next start.' }),
+        lmEl('p', { id: 'LibraryMaintenanceSettingsWebNote', class: lmClass('hint'), text: 'To turn these off, use these switches, not Disable on Jellyfin\'s Plugins page, which can remove the plugin at the next start.' }),
         lmSettingsField('LibraryMaintenanceSettingsWebUi', 'Add Library Maintenance to the web client', webUi.element,
             'Its script in every page of the web client, which brings Move\'s entry in the item menu. Off: no script; this page and the API still work. A browser takes a change when it next loads the web client.'),
         lmSettingsField('LibraryMaintenanceSettingsMove', 'Move media', move.element,

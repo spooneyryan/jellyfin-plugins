@@ -1,5 +1,5 @@
 {
-  "name": "User Ratings 1.0.2.0, the chip and the Rate button next to Jellyfin Enhanced 12.14: in the je sandbox as admin: ShowDetailButton Auto shows no Rate button on Long Test Movie (no TMDb id, no JE Reviews) and one before More on Tagged Movie, where JE draws its Reviews; Tagged Movie, rated through the API, shows exactly one chip in the desktop and TV layouts (anywhere in the row: JE adds its audio-language item after it); in the TV layout JE's closed Reviews' controls outside its title are out of the focus order (the kit's tvSectionJump, registered by User Ratings, no jump button of ours drawn), the D-pad's Down from Play passes them and reaches the slider, Right along the buttons row reaches Rate and one OK press focuses the slider; opened, their own tabindex is back. JE's Reviews are left closed as found; the admin's rows are deleted at the end; no setting is changed.",
+  "name": "User Ratings 1.0.3.0, the chip and the Rate button next to Jellyfin Enhanced 12.14: in the je sandbox as admin: ShowDetailButton Auto shows no Rate button on Long Test Movie (no TMDb id, no JE Reviews) and one before More on Tagged Movie, where JE draws its Reviews; Tagged Movie, rated through the API, shows exactly one chip in the desktop and TV layouts (anywhere in the row: JE adds its audio-language item after it); in the TV layout JE's closed Reviews' controls outside its title are out of the focus order (the kit's tvSectionJump, registered by User Ratings, no jump button of ours drawn), the D-pad's Down from Play passes them and reaches the slider, Right along the buttons row reaches Rate and one OK press focuses the slider; opened, their own tabindex is back. JE's Reviews are left closed as found; the admin's rows are deleted at the end; no setting is changed.",
   "failOnException": false,
   "timeout": 30000,
   "steps": [
@@ -22,14 +22,14 @@
       "reload": true
     },
     {
-      "name": "the layout applied, User Ratings 1.0.2.0 started",
+      "name": "the layout applied, User Ratings 1.0.3.0 started",
       "waitFor": "document.documentElement.classList.contains('layout-desktop') && !!window.ApiClient && !!ApiClient.getCurrentUserId() && !!(window.__jfkit && window.__jfkit.jfur)",
       "timeout": 40000
     },
     {
-      "name": "the served script is 1.0.2.0",
-      "assert": "window.__jfkit.jfur.version === '1.0.2.0'",
-      "message": "User Ratings 1.0.2.0 is not the script the page loaded"
+      "name": "the served script is 1.0.3.0",
+      "assert": "window.__jfkit.jfur.version === '1.0.3.0'",
+      "message": "User Ratings 1.0.3.0 is not the script the page loaded"
     },
     {
       "name": "Long Test Movie",

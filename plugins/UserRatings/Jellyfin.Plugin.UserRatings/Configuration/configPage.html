@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>User Ratings</title>
+    <title>User Ratings And Reviews</title>
 </head>
 <body>
     <div id="UserRatingsConfigPage" data-role="page" class="page type-interior pluginConfigurationPage" data-require="emby-input,emby-button">
@@ -408,7 +408,7 @@
                     var anchors = d.WebAnchors || {};
                     summary.appendChild(table([
                         ['Version', d.PluginVersion],
-                        ['Kit', d.KitVersion],
+                        ['Shared library', d.KitVersion],
                         ['Jellyfin', 'Built for ' + abi.Target + ', running on ' + abi.Server + (abi.Active ? '' : ' (inactive)')],
                         ['Ratings database', (store.File || store.Error || 'unknown') + (store.Status
                             ? ' (' + (store.Version !== null && store.Version !== undefined ? 'schema ' + store.Version + ', ' : '') + store.Status + (store.ReadOnly ? ', read-only' : '') + ')'
@@ -419,7 +419,7 @@
                             + (records.Reviews || 0) + ' with a review, from ' + (records.Users || 0) + (records.Users === 1 ? ' member' : ' members'))],
                         // The 0.3.21 sanity check: JE season and episode reviews 0.3.21 kept detached under JE's whole
                         // TMDb key never attach; 0 is what a server that never ran 0.3.21 holds.
-                        ['Jellyfin Enhanced keys from 0.3.21', records.Error || ((records.DetachedJeWithKeySuffix || 0) + ' detached season or episode reviews still under the key 0.3.21 kept (0 expected)')],
+                        ['Old Jellyfin Enhanced keys', records.Error || ((records.DetachedJeWithKeySuffix || 0) + ' detached season or episode reviews still under an old key (0 expected)')],
                         ['Jellyfin Enhanced', !je.Installed ? 'Not installed' : (je.Version || 'Installed') + (overlap.On
                             ? ': its user reviews are on and visible beside those of User Ratings (Data → Import from Jellyfin Enhanced has the switch-over checklist)'
                             : ': its user reviews are off')],

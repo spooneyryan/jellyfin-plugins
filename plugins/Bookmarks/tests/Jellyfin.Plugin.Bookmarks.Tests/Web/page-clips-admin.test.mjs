@@ -561,7 +561,7 @@ test('"Name changed" in the scope names the owner\'s action, not one the admin h
     const page = await allUsers({ clips: [adminClip('a1', ALICE, { Name: 'Bank job' }, { IsNameOutdated: true })] });
     const badge = row(page, 'a1').querySelectorAll('.jfbm-badge').find((b) => b.textContent === 'Name changed');
     assert.equal(badge.getAttribute('title'),
-        'The clip file\'s name isn\'t the one Bookmarks gives this clip now (the bookmark was renamed, or the name holds words of its note from an earlier version). Its owner can rename the file on their My Clips page (Rename file).');
+        'The clip file\'s name isn\'t the one Bookmarks gives this clip now (for example, the bookmark was renamed). Its owner can rename the file on their My Clips page (Rename file).');
     assert.ok(titled(row(page, 'a1'), 'Rename file') === null, 'no Rename file of another user\'s clip');
     assert.equal(page.errors.length, 0, page.errors.join('\n'));
 });

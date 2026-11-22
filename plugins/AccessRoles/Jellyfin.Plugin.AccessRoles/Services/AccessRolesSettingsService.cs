@@ -315,7 +315,7 @@ internal sealed partial class AccessRolesSettingsService : IAccessRolesSettings
 
         if (before.BlockNonAdminRestart == true && after.BlockNonAdminRestart == false)
         {
-            warnings.Add("Anyone who can reach the server can restart it, without signing in, as on a stock 10.11.5.");
+            warnings.Add("Anyone who can reach the server can restart it, without signing in, as on a stock Jellyfin server.");
         }
 
         if (before.TrimPublicUsers == true && after.TrimPublicUsers == false)

@@ -44,7 +44,7 @@ const AR_SETTINGS_GROUPS = [
                 ]
             },
             { name: 'ConfigurationReadAllowList', kind: 'list', label: 'Configuration keys non-admins may read (comma-separated)', hint: 'Their known secrets are stripped all the same. network, livetv, database and subtitles carry secrets: adding one asks you to confirm. encoding is the one the web player reads.' },
-            { name: 'BlockNonAdminRestart', kind: 'bool', label: 'Only administrators can restart the server', hint: 'Off: anyone who can reach the server can restart it, without signing in, as on a stock 10.11.5. Shutting down is for administrators either way: Jellyfin itself allows only them.' },
+            { name: 'BlockNonAdminRestart', kind: 'bool', label: 'Only administrators can restart the server', hint: 'Off: anyone who can reach the server can restart it, without signing in, as on a stock Jellyfin server. Shutting down is for administrators either way: Jellyfin itself allows only them.' },
             { name: 'TrimPublicUsers', kind: 'bool', label: 'Trim the public user list to what the sign-in screen needs' },
             { name: 'MirrorPreferenceLockToPolicy', kind: 'bool', label: 'Also turn native preference access off when Profile, Display (account), Home, Playback and Subtitles are all locked', hint: 'For managed non-admins only. It keeps them out of those settings even without the plugin, stays when the plugin is disabled or its folder deleted (Release all locks on the Overview, or uninstalling while the plugin is enabled, puts it back), has no Dashboard checkbox, and blocks their own watched states and favourites through UserData. Enforcement off or the SAFE-MODE file pauses it without putting the flags back. Off by default.' }
         ]

@@ -49,7 +49,7 @@ public sealed class ClientScriptTests
     {
         var script = Scripts.Value.ClientScriptText;
 
-        Assert.Contains("var KIT_BUILD = {\"plugin\":\"Smart Search\",\"prefix\":\"jfss\",\"route\":\"SmartSearch\",\"version\":\"" + JellyfinLine.VersionOf(typeof(Plugin)) + "\",\"kit\":\"" + KitBuild.KitVersion + "\"", script, StringComparison.Ordinal);
+        Assert.Contains("var KIT_BUILD = {\"plugin\":\"Smart Search And Dynamic Collections\",\"prefix\":\"jfss\",\"route\":\"SmartSearch\",\"version\":\"" + JellyfinLine.VersionOf(typeof(Plugin)) + "\",\"kit\":\"" + KitBuild.KitVersion + "\"", script, StringComparison.Ordinal);
         Assert.Contains("// ---- Web/js/90-main.js\n", script, StringComparison.Ordinal);
         Assert.DoesNotContain("__PFX__", script, StringComparison.Ordinal);
         Assert.Null(Scripts.Value.AdminScriptText);

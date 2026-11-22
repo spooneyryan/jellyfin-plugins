@@ -65,7 +65,7 @@ internal static class BookmarksKit
     /// </summary>
     public static KitOptions Options { get; } = new()
     {
-        PluginName = "Bookmarks",
+        PluginName = "Bookmarks And Clips",
         RoutePrefix = "Bookmarks",
         Prefix = "jfbm",
         SchemaPrefix = "Bookmark",

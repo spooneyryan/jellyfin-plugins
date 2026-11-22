@@ -88,7 +88,7 @@ internal static class AutoCollectionErrors
     /// <param name="max">The most pins.</param>
     /// <returns>The exception.</returns>
     public static PluginException TooManyToKeep(int held, int max)
-        => new(PluginErrorKind.Conflict, held + " items are held; with the items already pinned that is more than the " + max + " that can be pinned. Nothing was changed: apply the removals, or change the rules so fewer go.") { Code = "TooManyToKeep" };
+        => new(PluginErrorKind.Conflict, (held == 1 ? "1 item is held" : held + " items are held") + "; with the items already pinned that is more than the " + max + " that can be pinned. Nothing was changed: apply the removals, or change the rules so fewer go.") { Code = "TooManyToKeep" };
 
     /// <summary>The 409 of a name a collection uses, with what is in the way and free names close to it.</summary>
     /// <param name="check">The name check.</param>

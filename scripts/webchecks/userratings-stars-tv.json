@@ -1,5 +1,5 @@
 {
-  "name": "User Ratings 1.0.2 in the TV layout: the star widget of the served ClientScript on Long Test Movie as viewer in jellyfin-web 10.11.5's TV layout: the − / + buttons hidden and the slider alone in its row; the D-pad reaches it from Play; the 3 px ring; Left/Right step by half a star with the focus kept and jellyfin-web's window handler seeing them prevented; OK saves; PageUp, PageDown, End, Home; Up and Down leave with the value kept and come back; disabled with a reason it leaves the D-pad alone; Back (Escape) is jellyfin-web's.",
+  "name": "User Ratings 1.0.3 in the TV layout: the star widget of the served ClientScript on Long Test Movie as viewer in jellyfin-web 10.11.5's TV layout: the − / + buttons hidden and the slider alone in its row; the D-pad reaches it from Play; the 3 px ring; Left/Right step by half a star with the focus kept and jellyfin-web's window handler seeing them prevented; OK saves; PageUp, PageDown, End, Home; Up and Down leave with the value kept and come back; disabled with a reason it leaves the D-pad alone; Back (Escape) is jellyfin-web's.",
   "failOnException": false,
   "timeout": 30000,
   "steps": [
@@ -50,9 +50,9 @@
       "full": true
     },
     {
-      "name": "mounted from the served ClientScript of 1.0.2",
-      "assert": "__vars.mounted.ok === true && __vars.mounted.version === '1.0.2.0'",
-      "message": "the probe could not mount the widget of User Ratings 1.0.2"
+      "name": "mounted from the served ClientScript of 1.0.3",
+      "assert": "__vars.mounted.ok === true && __vars.mounted.version === '1.0.3.0'",
+      "message": "the probe could not mount the widget of User Ratings 1.0.3"
     },
     {
       "name": "TV: styles",

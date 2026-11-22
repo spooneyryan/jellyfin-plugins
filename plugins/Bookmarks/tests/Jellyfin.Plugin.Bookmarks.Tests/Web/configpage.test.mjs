@@ -927,7 +927,7 @@ test('the clip file renames not finished are a line on the Diagnostics tab: none
     body.ClipRenames = { Unfinished: 2, Waiting: 1, Unreadable: 1, UnreadableFiles: ['clip-rename-0123456789abcdef0123456789abcdef.json'], Bookmarks: [], History: 0 };
     const view = await open(body);
     const line = view.summaryNode.querySelector('.bookmarksClipRenamesLine');
-    assert.equal(line.textContent, 'Clip file renames not finished: 2. Their clips are left as they are and show "Rename not finished" on My Clips; the server finishes each as soon as it can reach the clip\'s folder and save the bookmark data, trying again after a minute, then less often while nothing changes (every 16 minutes at most). 1 note can\'t be read (clip-rename-0123456789abcdef0123456789abcdef.json, in the plugin\'s data folder): look at that clip, then delete the note; its clip is held until then. Don\'t go back to Bookmarks 1.1 while any is waiting.');
+    assert.equal(line.textContent, 'Clip file renames not finished: 2. Their clips are left as they are and show "Rename not finished" on My Clips; the server finishes each as soon as it can reach the clip\'s folder and save the bookmark data, trying again after a minute, then less often while nothing changes (every 16 minutes at most). 1 note can\'t be read (clip-rename-0123456789abcdef0123456789abcdef.json, in the plugin\'s data folder): look at that clip, then delete the note; its clip is held until then.');
     assert.equal(line.getAttribute('role'), 'alert');
     assert.ok(line.classList.contains('bookmarksFieldWarning'), 'amber');
     assert.deepEqual(quiet.errors.concat(view.errors), []);

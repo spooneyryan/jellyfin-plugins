@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>Smart Search</title>
+    <title>Smart Search And Dynamic Collections</title>
 </head>
 <body>
     <div id="SmartSearchConfigPage" data-role="page" class="page type-interior pluginConfigurationPage" data-require="emby-input,emby-button,emby-select,emby-checkbox">
@@ -563,6 +563,21 @@
                 find('SmartSearchImportMode').addEventListener('change', resetImport);
                 find('SmartSearchImportUsers').addEventListener('change', resetImport);
 
+                // A code in words from one of the maps below, or the code itself when the map doesn't have it.
+                function codeText(map, code) {
+                    return Object.prototype.hasOwnProperty.call(map, code) ? map[code] : code;
+                }
+
+                // Why an owner in the file wasn't found here (the kit's ImportUnknownUser codes); another code shows as it is.
+                var unknownUserReasons = {
+                    NotOnThisServer: 'no user here has this id',
+                    NoKnownName: 'the file has no name for this user',
+                    NoUserWithThisName: 'no user here has this name, or more than one has it',
+                    SameNameTwice: 'two owners in the file have this name',
+                    DeletedOnThisServer: 'this user was deleted on this server',
+                    DeletedOnExportingServer: 'this user was deleted on the server the file comes from'
+                };
+
                 // The import report, as text: the file, what happens to its queries, its users, the notes, the
                 // auto-collections it would break and the snapshot taken before.
                 function renderImport(r) {
@@ -576,7 +591,7 @@
                         + ' (' + (c.SkippedUnknownUser || 0) + ' of users not found here).')];
                     var users = r.Users || {};
                     var rows = (users.Mapped || []).map(function (u) { return [element('bdi', u.Name || u.Id), 'Found' + (u.Id === u.NewId ? '' : ': ' + u.NewId), u.Records]; })
-                        .concat((users.Unknown || []).map(function (u) { return [element('bdi', u.Name || u.Id), 'Not found' + (u.Reason ? ': ' + u.Reason : ''), u.Records]; }));
+                        .concat((users.Unknown || []).map(function (u) { return [element('bdi', u.Name || u.Id), 'Not found' + (u.Reason ? ': ' + codeText(unknownUserReasons, u.Reason) : ''), u.Records]; }));
                     if (rows.length) {
                         parts.push(table(['Owner in the file', 'On this server', 'Queries'], rows));
                     }
@@ -676,6 +691,18 @@
                 }
 
                 var snapshotKinds = { Daily: 'Daily', PreOp: 'Before ' };
+                // What a snapshot was taken before (the kit's SnapshotOperations codes); another code shows as it is.
+                var snapshotOperations = {
+                    restore: 'a restore',
+                    'import': 'an import',
+                    remap: 'a remap by name',
+                    'apply-policy': 'applying the rule for deleted users',
+                    'user-deleted': 'handling a deleted user',
+                    purge: 'a purge',
+                    other: 'a change',
+                    moderate: 'a removal by a moderator',
+                    migrate: 'an upgrade'
+                };
                 function loadSnapshots() {
                     var node = find('SmartSearchSnapshots');
                     return ApiClient.getJSON(ApiClient.getUrl('SmartSearch/Admin/Snapshots')).then(function (r) {
@@ -686,7 +713,7 @@
                         }
 
                         node.replaceChildren(table(['Taken', 'Why', 'Size', ''], list.map(function (s) {
-                            var why = s.Kind === 'PreOp' ? snapshotKinds.PreOp + (s.Operation || 'a change') : (snapshotKinds[s.Kind] || s.Kind || '');
+                            var why = s.Kind === 'PreOp' ? snapshotKinds.PreOp + (s.Operation ? codeText(snapshotOperations, s.Operation) : 'a change') : (snapshotKinds[s.Kind] || s.Kind || '');
                             return [dateText(s.Utc), why, Math.max(1, Math.round((s.Size || 0) / 1024)) + ' KB', button('Check restore', function () { restore(s, true); }, 'smartSearchRestoreCheck')];
                         })));
                     }, function () {

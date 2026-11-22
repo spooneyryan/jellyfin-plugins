@@ -19,9 +19,9 @@ public sealed class KitOptionsTests
         // The naming rules: route, DOM prefix, DTO prefix and data folder of every planned plugin.
         (string Name, string Route, string Prefix, string Schema, string Folder)[] plugins =
         [
-            ("Bookmarks", "Bookmarks", "jfbm", "Bookmark", "bookmarks"),
-            ("User Ratings", "UserRatings", "jfur", "UserRatings", "userratings"),
-            ("Smart Search", "SmartSearch", "jfss", "SmartSearch", "smartsearch"),
+            ("Bookmarks And Clips", "Bookmarks", "jfbm", "Bookmark", "bookmarks"),
+            ("User Ratings And Reviews", "UserRatings", "jfur", "UserRatings", "userratings"),
+            ("Smart Search And Dynamic Collections", "SmartSearch", "jfss", "SmartSearch", "smartsearch"),
             ("Library Maintenance", "LibraryMaintenance", "jflm", "LibraryMaintenance", "librarymaintenance"),
             ("Access Roles", "AccessRoles", "jfar", "AccessRoles", "accessroles"),
             ("Tag Cloud", "TagCloud", "jftc", "TagCloud", "tagcloud")

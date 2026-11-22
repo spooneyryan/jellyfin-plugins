@@ -178,7 +178,7 @@
     },
     {
       "name": "no dialog; only the wait changed; a new version; the index not rebuilt",
-      "assert": "(() => { const w = __vars.waitSaved; return !w.review && w.message === 'Saved: Wait for a build.' && w.wait === __vars.pick.wait && w.field === String(__vars.pick.wait) && w.version !== __vars.before.version && w.rest === __vars.before.canonical && !w.dirty && w.index === __vars.before.index.version && !w.rebuilding; })()"
+      "assert": "(() => { const w = __vars.waitSaved; return !w.review && w.message === 'Saved: Wait for a build (seconds).' && w.wait === __vars.pick.wait && w.field === String(__vars.pick.wait) && w.version !== __vars.before.version && w.rest === __vars.before.canonical && !w.dirty && w.index === __vars.before.index.version && !w.rebuilding; })()"
     },
     {
       "name": "the library to choose",
@@ -349,7 +349,7 @@
     },
     {
       "name": "from this server and this version; the three changes back; the counts; no warning; Cancel focused",
-      "assert": "(async () => { const i = __vars.importing; const installed = (await ApiClient.getInstalledPlugins()).find((p) => String(p.Id).replace(/-/g, '').toLowerCase() === 'fd47a1d3dd8c4e34aeea4f2edd973800'); return !!installed && (i.source || '').indexOf('The file holds the settings of Library Maintenance ' + installed.Version + ', exported ') === 0 && / on this server\\.$/.test(i.source) && i.changes.slice().sort().join() === ['Excluded folders', 'Libraries', 'Wait for a build'].join() && i.movies === 'It holds ' + (__vars.pick.movies - __vars.pick.under).toLocaleString() + ' movies now; with these settings it would hold ' + __vars.before.index.movies.toLocaleString() + ' movies.' && i.warnings === null && i.confirm === 'Import and rebuild the index' && i.focus.text === 'Cancel' && i.focus.inReview; })()"
+      "assert": "(async () => { const i = __vars.importing; const installed = (await ApiClient.getInstalledPlugins()).find((p) => String(p.Id).replace(/-/g, '').toLowerCase() === 'fd47a1d3dd8c4e34aeea4f2edd973800'); return !!installed && (i.source || '').indexOf('The file holds the settings of Library Maintenance ' + installed.Version + ', exported ') === 0 && / on this server\\.$/.test(i.source) && i.changes.slice().sort().join() === ['Excluded folders', 'Libraries', 'Wait for a build (seconds)'].join() && i.movies === 'It holds ' + (__vars.pick.movies - __vars.pick.under).toLocaleString() + ' movies now; with these settings it would hold ' + __vars.before.index.movies.toLocaleString() + ' movies.' && i.warnings === null && i.confirm === 'Import and rebuild the index' && i.focus.text === 'Cancel' && i.focus.inReview; })()"
     },
     {
       "screenshot": "librarymaintenance-settings-import.png"

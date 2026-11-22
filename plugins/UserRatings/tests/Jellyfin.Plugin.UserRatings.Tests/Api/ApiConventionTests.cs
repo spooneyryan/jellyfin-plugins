@@ -72,7 +72,7 @@ public sealed class ApiConventionTests
         Assert.Empty(options.Validate());
         Assert.Same(typeof(Plugin).Assembly, options.PluginAssembly);
         Assert.Equal(
-            ("User Ratings", "UserRatings", "jfur", "UserRatings", "userratings", new Guid("f53c7c34-8cba-4846-b43b-956816b2f6ae")),
+            ("User Ratings And Reviews", "UserRatings", "jfur", "UserRatings", "userratings", new Guid("f53c7c34-8cba-4846-b43b-956816b2f6ae")),
             (options.PluginName, options.RoutePrefix, options.Prefix, options.SchemaPrefix, options.DataFolder, options.PluginId));
 
         // 0.3.0 has no user page yet (Top Rated is 1.1's) and so no head fragment.

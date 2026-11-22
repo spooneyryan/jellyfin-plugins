@@ -36,13 +36,13 @@ public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
     public static Plugin? Instance { get; private set; }
 
     /// <inheritdoc />
-    public override string Name => "Smart Search";
+    public override string Name => "Smart Search And Dynamic Collections";
 
     /// <inheritdoc />
     public override Guid Id => Guid.Parse(PluginId);
 
     /// <inheritdoc />
-    public override string Description => "An Advanced Search page with rules over title, year, library and more, saved queries, and auto-collections.";
+    public override string Description => "Search by almost any detail, save and share searches, and build collections that update themselves.";
 
     /// <inheritdoc />
     public IEnumerable<PluginPageInfo> GetPages()

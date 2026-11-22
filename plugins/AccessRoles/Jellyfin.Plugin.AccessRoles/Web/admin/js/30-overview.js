@@ -201,7 +201,7 @@ function arServerWideItems(enforcement) {
             : 'Configuration reads: non-admins read only ' + (keys.length ? keys.join(', ') : 'no key') + ', with its known secrets stripped; every other key is refused.',
         wide.BlockNonAdminRestart
             ? 'Restart: administrators only, anonymous callers included. Shutdown: administrators only, as Jellyfin itself allows.'
-            : 'Restart: not blocked; anyone who can reach the server can restart it, as on a stock 10.11.5. Shutdown: administrators only, as Jellyfin itself allows.',
+            : 'Restart: not blocked; anyone who can reach the server can restart it, as on a stock Jellyfin server. Shutdown: administrators only, as Jellyfin itself allows.',
         wide.TrimPublicUsers
             ? 'The public user list (the sign-in screen\'s) is trimmed to what the sign-in screen needs.'
             : 'The public user list is not trimmed: it shows every field, other users\' library ids included.',
@@ -414,7 +414,7 @@ function arOverview(ctx) {
     releaseConfirm.id = 'AccessRolesReleaseConfirm';
     const releaseBox = arEl('div', { id: 'AccessRolesRelease', class: arClass('section') }, [
         arHeading(3, 'Before disabling or deleting Access Roles'),
-        arEl('p', { text: 'Release the locks here, or uninstall, while Access Roles is still enabled: disabling it on the Dashboard takes effect only at the next server restart (its locks keep working until then), Jellyfin 10.11 deletes a disabled plugin\'s folder at that restart, and uninstalling a disabled plugin can\'t put anything back, because Jellyfin doesn\'t call it. What it wrote to users\' own policies stays when it stops: the native preference access the optional mirror turned off (which has no checkbox on the Dashboard), and the library access its roles gave. Release all locks puts the preference access back on and, if you tick the box, each user\'s original library access; the users released become Excluded (their roles are kept; set them Managed again to undo). Uninstalling while it is enabled puts the preference access back on, not the library access. Preview it first.' }),
+        arEl('p', { text: 'Release the locks here, or uninstall, while Access Roles is still enabled: disabling it on the Dashboard takes effect only at the next server restart (its locks keep working until then), Jellyfin may also delete a disabled plugin\'s folder at that restart, and uninstalling a disabled plugin can\'t put anything back, because Jellyfin doesn\'t call it. What it wrote to users\' own policies stays when it stops: the native preference access the optional mirror turned off (which has no checkbox on the Dashboard), and the library access its roles gave. Release all locks puts the preference access back on and, if you tick the box, each user\'s original library access; the users released become Excluded (their roles are kept; set them Managed again to undo). Uninstalling while it is enabled puts the preference access back on, not the library access. Preview it first.' }),
         releaseLibraries.element,
         arActions([releasePreview, releaseConfirm]),
         releaseResult

@@ -36,25 +36,28 @@ const icons = {
     <circle cx="150" cy="150" r="30" fill="url(#accent)"/><path fill="url(#accent)" d="M108 225 a42 38 0 0 1 84 0 z"/>`,
 };
 const plugins = [
-  ['AccessRoles', 'Access Roles', 'Roles that decide what each user can see and change'],
-  ['Bookmarks', 'Bookmarks', 'Mark moments, jump back to them, save clips'],
-  ['LibraryMaintenance', 'Library Maintenance', 'Find and fix problems in your libraries'],
-  ['SmartSearch', 'Smart Search', 'Advanced search, saved searches and auto-collections'],
-  ['TagCloud', 'Tag Cloud', 'Your library’s tags, genres and people as a word cloud'],
-  ['UserRatings', 'User Ratings', 'Your members’ own ratings and reviews'],
+  ['AccessRoles', 'Access Roles'],
+  ['Bookmarks', 'Bookmarks And Clips'],
+  ['LibraryMaintenance', 'Library Maintenance'],
+  ['SmartSearch', 'Smart Search And Dynamic Collections'],
+  ['TagCloud', 'Tag Cloud'],
+  ['UserRatings', 'User Ratings And Reviews'],
 ];
 function wrap(text, max) { const out = []; let line = ''; for (const w of text.split(' ')) { if ((line + ' ' + w).trim().length > max) { out.push(line); line = w; } else line = (line + ' ' + w).trim(); } out.push(line); return out; }
-for (const [key, name, tag] of plugins) {
-  const nameSize = Math.min(92, Math.floor(660 / (0.56 * name.length)));
-  const tagLines = wrap(tag, 30).map((l, i) => `<text x="560" y="${420 + i * 52}" font-size="40" fill="#cfd6e6">${l}</text>`).join('');
+for (const [key, name] of plugins) {
+  // A name longer than 19 characters goes on two lines; the size fits the longest line into 660px.
+  const nameLines = name.length > 19 ? wrap(name, 19) : [name];
+  const nameSize = Math.min(nameLines.length > 1 ? 80 : 92, Math.floor(660 / (0.56 * Math.max(...nameLines.map((l) => l.length)))));
+  // The title is centred on the icon tile (y 170 to 550).
+  const lineHeight = Math.round(nameSize * 1.12);
+  const nameTop = Math.round(360 - ((nameLines.length - 1) * lineHeight) / 2 + nameSize * 0.36);
+  const nameText = nameLines.map((l, i) => `<text x="560" y="${nameTop + i * lineHeight}" font-size="${nameSize}" font-weight="700" fill="#fff">${l}</text>`).join('');
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" font-family="Segoe UI, Arial, sans-serif">${defs}
   <rect width="${W}" height="${H}" fill="url(#bg)"/><rect width="${W}" height="${H}" fill="url(#glow)"/>
   <rect x="0" y="${H - 14}" width="${W}" height="14" fill="url(#accent)"/>
   <rect x="110" y="170" width="380" height="380" rx="72" fill="url(#accent)"/>
   <g transform="translate(150,210) scale(1)">${icons[key]}</g>
-  <text x="560" y="335" font-size="${nameSize}" font-weight="700" fill="#fff">${name}</text>
-  ${tagLines}
-  <text x="560" y="250" font-size="34" font-weight="600" letter-spacing="4" fill="#b4c4e4">JELLYFIN PLUGIN</text>
+  ${nameText}
 </svg>`;
   writeFileSync(out(`${key}.svg`), svg);
 }

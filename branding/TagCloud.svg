@@ -17,7 +17,5 @@
     <rect x="98" y="138" width="104" height="26" rx="13" fill="#fff"/>
     <rect x="88" y="178" width="50" height="16" rx="8" fill="#fff"/><rect x="150" y="178" width="68" height="16" rx="8" fill="#fff"/>
     <rect x="126" y="110" width="40" height="12" rx="6" fill="#fff"/></g>
-  <text x="560" y="335" font-size="92" font-weight="700" fill="#fff">Tag Cloud</text>
-  <text x="560" y="420" font-size="40" fill="#cfd6e6">Your library’s tags, genres</text><text x="560" y="472" font-size="40" fill="#cfd6e6">and people as a word cloud</text>
-  <text x="560" y="250" font-size="34" font-weight="600" letter-spacing="4" fill="#b4c4e4">JELLYFIN PLUGIN</text>
+  <text x="560" y="393" font-size="92" font-weight="700" fill="#fff">Tag Cloud</text>
 </svg>

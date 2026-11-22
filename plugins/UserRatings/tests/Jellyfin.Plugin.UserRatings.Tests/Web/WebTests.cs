@@ -139,7 +139,7 @@ public sealed partial class WebTests
     {
         var script = Scripts.Value.ClientScriptText;
 
-        Assert.Contains("var KIT_BUILD = {\"plugin\":\"User Ratings\",\"prefix\":\"jfur\",\"route\":\"UserRatings\",\"version\":\"" + JellyfinLine.VersionOf(typeof(Plugin)) + "\",\"kit\":\"" + KitBuild.KitVersion + "\"", script, StringComparison.Ordinal);
+        Assert.Contains("var KIT_BUILD = {\"plugin\":\"User Ratings And Reviews\",\"prefix\":\"jfur\",\"route\":\"UserRatings\",\"version\":\"" + JellyfinLine.VersionOf(typeof(Plugin)) + "\",\"kit\":\"" + KitBuild.KitVersion + "\"", script, StringComparison.Ordinal);
         Assert.Contains("// ---- Web/js/00-strings.js\n", script, StringComparison.Ordinal);
         Assert.Contains("// ---- Web/js/30-stars.js\n", script, StringComparison.Ordinal);
         Assert.Contains("// ---- Web/js/90-main.js\n", script, StringComparison.Ordinal);
@@ -180,7 +180,7 @@ public sealed partial class WebTests
         Assert.Equal(order.Order(), order);
         Assert.Single(Regex.Matches(script!, @"^function mount\(", RegexOptions.Multiline));
         Assert.Contains(".jfur-set-choices,.jfur-set-checks{display:flex;flex-wrap:wrap;gap:.5em}", script, StringComparison.Ordinal);
-        Assert.Contains("const KIT_BUILD = {\"plugin\":\"User Ratings\",\"prefix\":\"jfur\",\"route\":\"UserRatings\",\"version\":\"" + JellyfinLine.VersionOf(typeof(Plugin)) + "\"", script, StringComparison.Ordinal);
+        Assert.Contains("const KIT_BUILD = {\"plugin\":\"User Ratings And Reviews\",\"prefix\":\"jfur\",\"route\":\"UserRatings\",\"version\":\"" + JellyfinLine.VersionOf(typeof(Plugin)) + "\"", script, StringComparison.Ordinal);
         Assert.Contains("const kit = createKit(KIT_BUILD, KIT_CSS, { styleId: KIT_BUILD.prefix + '-admin-styles'", script, StringComparison.Ordinal);
         Assert.Contains("function mount(view, params) {", script, StringComparison.Ordinal);
         Assert.EndsWith("export { mount };\n", script.ReplaceLineEndings("\n"), StringComparison.Ordinal);

@@ -1,205 +1,110 @@
-# Bookmarks for Jellyfin
+# Bookmarks And Clips
 
-Bookmarks lets each user on your Jellyfin server mark moments in movies and episodes, give them a name, and find them
-again later. A bookmark can also have an end time, and the plugin can cut that range into a clip file with ffmpeg. It is
-meant for home-server admins who want one private bookmark system for everyone in the house, and it can bring over the
-bookmarks people already made in Jellyfin Enhanced.
+Bookmarks And Clips lets everyone on your Jellyfin server save moments in movies and episodes, give them a name and jump back to
+them later. Each person's bookmarks are their own. Give a bookmark an end time and the plugin can cut that scene into a
+clip file you can watch, download or keep in a library. If your household used Jellyfin Enhanced's bookmarks, you can
+bring them over in one go.
 
 ## Features
 
-- **While watching:** press **Shift+B**, or the bookmark button, to bookmark the current moment without pausing. A small
-  dialog asks for a name and suggests the chapter's title. A scissors button marks a range: press it at the start of a
-  scene and again at the end. A **Set end time** button turns an existing bookmark into a range that ends at the current
-  moment.
-- **Frame by frame:** the **Back one frame** and **Forward one frame** buttons, or the **,** and **.** keys, pause the
-  video and move exactly one frame. Hold a key to keep going. In the player's **Bookmarks** list, **Adjust** moves a
-  bookmark's start (or a range's end) frame by frame: step to the right frame, choose **Set start here** or **Set end
-  here**, then **Save**. This is in the web player (a browser, and the apps that show the web player); Jellyfin's
-  Android TV and other native players don't run the plugin's player tools.
-- **On the progress bar:** each bookmark shows as an amber tick, and a range as a band. Point at a tick to see its name.
-  Click it to play from there.
-- **On a movie or episode page:** an **Add bookmark** button, and two rows in the same style as the page's own
-  **Scenes** and **Special Features** rows. **Bookmarks** comes right after **Cast & Crew** (after **Guest Stars** on an
-  episode that has them), before Special Features; **Clips** comes right after Scenes. **Bookmarks** shows each of your bookmarks of that video
-  as a card with the frame at that moment, its name and time (a scissors when it has a clip). **Clips** shows each clip
-  you made from it, with its first frame (or its artwork, or the frame at its start), its name, length and range, marked when its range has
-  changed since. Click a card to play; its **⋮** menu has the rest: edit, name or delete a bookmark, make, cancel,
-  preview, download or delete its clip, or open it on My Clips. A row is hidden while it is empty.
-- **My Bookmarks page** (in the menu under **Library tools**): every bookmark you have, across all videos. You can
-  search, filter, sort, show them grouped by video or as one list, rename them in place and delete several at once.
-- **My Clips page** (under **Library tools**, after My Bookmarks): every clip you have made, including clips you kept
-  when you deleted their bookmark. Each clip shows its state (ready, being made, failed, file missing, clip folder
-  offline). You can preview, download, rename, remake, cancel or delete clips, and play the video from a clip's start.
-- **Clips** are made in the background in one of two modes. **Accurate** re-encodes to an H.264/AAC MP4 that is frame
-  exact and plays anywhere (HDR is tone-mapped to SDR). **Fast** copies the original streams into an MKV, which is nearly
-  instant but starts on the keyframe at or before your start time.
-- **Export a playlist** to the clip folder: a playlist's page has **Export to clips folder**. Its videos are joined end
-  to end, in playlist order, into one MP4 named after the playlist, beside your clips. You see what will be joined,
-  what is left out and why, and the estimated size and time before it starts; its progress is on My Clips.
-- **For admins:** a settings page with a Data tab (export, import, snapshots, restore, the Jellyfin Enhanced import) and
-  a Diagnostics tab. Admins can also switch My Clips to **All users** to see and manage every user's clips of the videos
-  they can open. This view never shows notes.
-- **Bookmarks follow their video** when it is moved or renamed. While a video is gone they wait as "Not in library".
+- Bookmark the current moment with **Shift+B** or a button in the player, without pausing, and give it a name. The
+  chapter's title is suggested for you.
+- Add a bookmark from a movie's or episode's page, and mark a whole scene with the scissors button in the player.
+  Step frame by frame with the **,** and **.** keys to land on exactly the right frame.
+- See your bookmarks as small marks on the progress bar, and click one to play from there.
+- Find them again in a **Bookmarks** row on each video's page, and on the **My Bookmarks** page, where you can search,
+  filter, sort, group them by video and delete several at once.
+- Choose your own shortcut and naming habits for your device under **Player options**.
+- Turn a scene into a clip, in **Accurate** or **Fast** mode, then preview, download, rename, remake or delete it on the
+  **My Clips** page.
+- Keep clips in a library of their own, with the movie's poster and backdrop or the clip's first frame as artwork.
+- Export a whole playlist into one video file, joined in playlist order.
+- Admins can see and manage every user's clips, without ever seeing anyone's notes.
+- Bring over everyone's Jellyfin Enhanced bookmarks in one go, with a checklist for switching its own bookmarks
+  off.
+- Keep your bookmarks safe with export and import, daily snapshots you can restore, and bookmarks that stay with their
+  video when you move or rename the file.
 
-## Requirements
+## Installing
 
-- **Jellyfin 10.11.5 or later within 10.11.** Jellyfin 12 and later are not supported yet. On any other Jellyfin version the
-  plugin adds nothing to the web client and leaves its data alone.
-- **No other plugin is required.** The plugin adds its own script to the web client's page when the server sends it, so
-  it does not need File Transformation or JavaScript Injector. It does not use Custom Tabs.
-- **Optional plugins:**
-  - **Plugin Pages:** only if you want the My Bookmarks and My Clips links in Plugin Pages' menu section instead of
-    Library tools. To use it, change **Where the pages are linked** on the settings page.
-  - **Jellyfin Enhanced:** only as a source to import bookmarks from. The import reads Jellyfin Enhanced's bookmark files
-    as versions 12.8 to 12.12 write them. The switch-off checklist gives its steps for Jellyfin Enhanced 12.11 and 12.12.
-    The plugin never changes Jellyfin Enhanced's files or settings.
-  - **Library Maintenance:** Bookmarks reads its move journal at every start, so bookmarks would follow a video it
-    moves. Library Maintenance 1.0.4 only *previews* moves, so for now there is nothing to follow.
-- **Clips need ffmpeg.** The plugin uses the ffmpeg Jellyfin is set up with (Dashboard -> Playback -> Transcoding), so
-  nothing extra needs installing. Without it, bookmarks still work and only clip making fails. A user can make and
-  download clips only if they have Jellyfin's **Allow media downloading** permission.
-- **Web client only.** The controls appear in Jellyfin's web client (desktop, phone and TV layouts). Phones get larger
-  touch targets and bottom-sheet dialogs. The TV layout works with the remote's D-pad and Back key. Apps that don't use
-  Jellyfin's web client won't show the bookmark controls. In the web client's experimental layout there is no Library
-  tools menu section, but links to the pages from video pages and the player still work.
-- **Tested on**: Windows only, with Jellyfin 10.11.5. Linux and Docker servers have not been tested yet.
+Bookmarks And Clips needs Jellyfin 12.4 or later.
 
-## Installation
+1. In Jellyfin, go to **Dashboard -> Plugins -> Repositories** and add
+   `https://raw.githubusercontent.com/spooneyryan/jellyfin-plugins/main/manifest.json`.
+2. Open the **Catalog**, find **Bookmarks And Clips** and install it.
+3. Restart the server, then reload the web client in your browser (Ctrl+F5).
 
-1. **From the plugin repository:** go to Dashboard -> Plugins -> Repositories and add `https://raw.githubusercontent.com/spooneyryan/jellyfin-plugins/main/manifest.json`. Then open
-   the Catalog, install **Bookmarks**, and restart the server.
-2. **Manually:** download the zip from the GitHub Releases page (<https://github.com/spooneyryan/jellyfin-plugins/releases>). Extract it into the
-   `plugins/Bookmarks_1.2.2.0` folder inside Jellyfin's data folder, then restart the server.
-3. **After installing or upgrading**, reload the web client with **Ctrl+F5** in every open browser tab so it loads the
-   plugin's script.
-
-## Getting started
-
-1. Open **Dashboard -> Plugins -> Bookmarks**. On the **Diagnostics** tab, check that the plugin shows as active and that
-   the clip folder has enough free space.
-2. On the **Settings** tab, review the **Clips** section:
-   - **Clip folder:** leave it empty to use the default folder (inside the plugin's data folder, outside every library).
-     Its free space is shown under the field.
-   - **Keep free on the clip drive (MB):** 2048 by default. Clips that would go below this are refused.
-   - **Default clip mode**, **Maximum clip length** (600 seconds by default), **Allow users to create clips**.
-   - **Admins can see and manage every user's clips:** on by default. Turn it off if admins shouldn't see other users'
-     clip names and file paths.
-3. Give clip makers Jellyfin's **Allow media downloading** permission (Dashboard -> Users -> the user).
-4. If you use Jellyfin Enhanced's bookmarks, move them over (see below) before people start using both.
+No other plugin is needed. Clips use the ffmpeg Jellyfin already has, so there is nothing extra to install.
 
 ## Using it
 
-- **Bookmark a moment:** press **Shift+B** in the player, or click the bookmark button. Type a name or press Escape to
-  skip. Each user can set their own shortcut on their device from **My Bookmarks -> Player options**. The admin can change
-  the server's default shortcut or hide the player buttons on the settings page.
-- **Make a clip:** give the bookmark an end time (the scissors button, **Set end time**, or the editor's End field). Then
-  use **Save & make clip** in the editor, **Make a clip** in a bookmark card's **⋮** menu, or the scissors on a row
-  of My Bookmarks. A message appears when the clip is ready, with a download link and **View in My Clips**.
-- **On a video's page:** click a bookmark card (or press Enter on it) to play from that moment; **Manage** next to the
-  row's title opens My Bookmarks for that video. Click a clip card to play the clip: in Jellyfin's own player when the
-  clip folder is in a library (so the clip is a library item), otherwise in the preview, as on My Clips. **My Clips**
-  next to the Clips row's title opens the page. On a TV remote, OK plays and the menu key opens the **⋮** menu; on a
-  phone the **⋮** button sits in the card's corner, as on Jellyfin's own cards.
-- **Export a playlist:** open the playlist and choose **Export to clips folder**. The dialog shows how many videos are
-  joined, which are left out and why (music and photos, offline or missing files, discs and streams, videos you may not
-  download), the running time, the picture size, the estimated size and time and the file name, with a warning over 3
-  hours or 20 GB. **Export** starts it; its progress and **Cancel** are on My Clips under **Playlist exports**, and a
-  message says when it is ready. Every video is re-encoded with the clip quality settings into one size (the largest
-  video's, at most 1920x1080, black bars as needed) and one frame rate; a video without sound gets silence. It needs the
-  same permission as clips. The file isn't a clip: it isn't listed among them and the clip clean-ups leave it alone.
-- **Delete a bookmark:** its clip is kept and stays on My Clips, unless you tick **Also delete its clip**.
-- **Import from Jellyfin Enhanced** (one time, admins): open **Data -> Import from Jellyfin Enhanced** on the settings
-  page. Run a **Dry run** first, which changes nothing and shows what would happen. Then run **Import**. Running it again
-  doesn't add anything twice. Then follow the switch-off checklist beneath it, in order: turn off Jellyfin Enhanced's
-  bookmarks feature and its tabs, remove its "Bookmarks" Custom Tab, restart, and **last** give Jellyfin Enhanced's
-  "Bookmark Current Time" shortcut a different key. Never leave that key blank, because Jellyfin Enhanced puts `B` back at
-  its next start. Once `B` is truly free, the checklist offers **Use B for bookmarks**.
-- **Admins' All users view:** on My Clips, switch from **My clips** to **All users**. There you can preview, download,
-  cancel or delete any user's clips. It lists the clips of the videos you can open. Clips of videos no longer in the
-  library are shown only to admins with access to every library. Renaming, remaking and editing are only available on
-  your own clips.
+- **Bookmark a moment.** While a video plays, press **Shift+B** or click the bookmark button. Type a name, or press
+  Escape to skip it. The chapter's title is suggested for you.
+- **Mark a scene.** Press the scissors button at the start of the scene and again at the end. Or use **Set end time** to
+  end an existing bookmark at the current moment.
+- **Fine-tune it.** In the player's **Bookmarks** list, pick **Adjust**, step to the right frame and choose **Set start
+  here** or **Set end here**, then **Save**.
+- **Find your bookmarks.** A video's page has a **Bookmarks** row and a **Clips** row. Click a card to play it, or open
+  its **⋮** menu to edit, rename or delete it. **My Bookmarks** and **My Clips** are in the menu under **Library
+  tools**. There you can search, filter, sort and delete several at once. A video's page also has an **Add bookmark**
+  button.
+- **Pick your own keys.** Under **My Bookmarks -> Player options** you can set your own bookmark shortcut for this
+  device, choose whether to be asked for a name, and pause while you type it.
+- **Make a clip.** Open a bookmark that has an end time and choose **Save & make clip**, or pick **Make a clip** from its
+  **⋮** menu. A message tells you when the clip is ready. A clip file is named like
+  `Bank job - Heat (1995) [01.52.10-01.55.00].mp4`: the clip's name, then the movie and year, then the time range.
+- **Look after your clips.** On **My Clips** you can filter by state, type and mode, and sort by date, length or size. A
+  badge tells you when a clip's bookmark was renamed or its range changed, so you can rename the file or make the clip
+  again. You can also cancel a clip that is still being made.
+- **Export a playlist.** On a playlist's page, choose **Export to clips folder**. You see what will be joined, what is
+  left out and roughly how big it will be before it starts. Its progress shows on My Clips.
+- **Import from Jellyfin Enhanced.** Admins can do this once from the **Data** tab of the settings page. Run a **Dry
+  run** first to see what would happen, then **Import**. A checklist then walks you through switching off Jellyfin
+  Enhanced's own bookmarks, so the two don't fight over the B key.
+- **Manage every user's clips.** Admins get an **All users** view on My Clips. There they can preview, download,
+  cancel and delete anyone's clips.
 
-## Important notes and limitations
+## Settings
 
-- **Don't use Disable on Jellyfin's Plugins page.** On Jellyfin 10.11.5, the next server start after Disable deletes the
-  disabled plugin's folder. To hide Bookmarks for a while, untick **Add the bookmark controls to the web client** on its
-  settings page instead.
-- **A missing library drive:** while a video is gone (for example on an unmounted drive), its bookmarks stay and show as
-  "Not in library". You can still edit, rename and delete them. When the video comes back, they reattach. They are kept
-  for good unless you set **Keep bookmarks of missing videos (days)**, and even then they are only moved to an archive,
-  never deleted.
-- **A missing clip drive:** if the clip folder's drive or share isn't there, its clips show as **Clip folder offline**
-  (or **Clip folder not recognised**). Only Play and Edit bookmark are offered for them, nothing is marked as gone, and
-  new clips into that folder are refused until it is back. If its clips really are gone for good, confirm that on the
-  Diagnostics tab with **This is the clip folder; its clips are gone**.
-- **A clip file deleted by hand:** the plugin may then stop recognising the clip folder, and new clips fail with "The
-  clip folder isn't recognised". Use the same Diagnostics button, but only if it really is the clip folder.
-- **Clips kept inside a library are visible to everyone** who can open that library. The default clip folder is outside
-  every library. If you want clips browsable in Jellyfin, use a separate **Home Videos and Photos** library for the clip
-  folder, never a Movies or TV library. There each clip shows its own first frame as its poster and thumbnail, and its
-  video's backdrop: Bookmarks puts them beside the clip as image files (`<clip>-poster.jpg`, `<clip>-thumb.jpg`,
-  `<clip>-fanart.jpg`), keeps them with the clip when it is renamed, and deletes them with it. A clip made again or
-  adjusted gets its new first frame. If ffmpeg can't take the frame, the video's poster is used (an episode's image, its
-  series' poster). Only those files, named after a Bookmarks clip, are ever written or deleted; your own images are
-  never touched. **Use each clip's first frame as its thumbnail** on the settings page goes back to the video's poster;
-  **Give clips their video's artwork** turns the video's images off.
-- **Clip limits:** clips can only be made from regular video files, not from disc folders, ISOs or remote streams. A clip
-  includes the video and the audio track that was playing, without subtitles. Clips are made one at a time by default.
-- **Maintenance never deletes clip files.** The daily **Bookmarks: Maintenance** task (Dashboard -> Scheduled Tasks)
-  marks clips whose file is gone. After 30 days it archives a kept clip of a deleted bookmark. It also gives every clip
-  its first frame and its video's artwork (a clip made before 1.7.0 / 2.5.0 gets its first frame then) and deletes
-  artwork whose clip is gone.
-- **Going back to 1.1.x:** before you downgrade, check that the Diagnostics tab says "Clip file renames not finished:
-  none." Version 1.1 would read a clip whose rename is still waiting as having no file.
-- **Admins only:** the settings page, the Jellyfin Enhanced import, export, import, restore and the All users view all
-  need an administrator.
-- **Web client changes:** the controls depend on the 10.11 web client's layout. If a future web client moves something,
-  only that feature switches off, and the Diagnostics tab lists what browsers reported.
+Find them at **Dashboard -> Plugins -> Bookmarks And Clips**.
 
-## Your data and privacy
+- **Clip folder**: where clips are saved. Leave it empty to use a folder outside all your libraries.
+- **Keep free on the clip drive**: clips that would leave less free space than this are refused (2 GB by default).
+- **Default clip mode**: **Accurate** makes an MP4 that starts on the exact frame and plays anywhere. **Fast** copies the
+  original into an MKV almost instantly, but may start a moment early.
+- **Maximum clip length** and **Allow users to create clips**.
+- **Admins can see and manage every user's clips**: on by default. Turn it off if admins shouldn't see other people's
+  clip names.
+- **Give clips their video's artwork** and **Use each clip's first frame as its thumbnail**: what a clip library shows
+  for each clip.
+- **Put each user's clips in a sub-folder named after the user.**
+- **Accurate clip encoding**: the quality, maximum resolution and audio of Accurate clips.
+- **Bookmark shortcut**: the server's default key. Each person can pick their own under **My Bookmarks -> Player
+  options**. **Ask for a name** and **Suggest the chapter's name** set how naming works.
+- **Pages**: turn My Bookmarks and My Clips on or off, and choose where they are linked: **Library tools** in the menu,
+  or the Plugin Pages plugin's section.
+- **When Jellyfin deletes a user**: delete their bookmarks and keep their clip files, or delete both.
+- **Daily snapshots to keep**: how many daily copies of the bookmark data to keep.
 
-- **Where it is stored:** in `data/bookmarks/` inside Jellyfin's data folder (for example
-  `%ProgramData%\Jellyfin\Server\data\bookmarks` on Windows, `/var/lib/jellyfin/data/bookmarks` on Linux,
-  `/config/data/bookmarks` in Docker). It holds `bookmarks.json` with a backup copy (`bookmarks.json.bak`),
-  `snapshots/`, `archive/`, and the default clip folder `clips/`. The settings are in
-  `plugins/configurations/Jellyfin.Plugin.Bookmarks.xml`.
-- **Your bookmarks are private.** Names, notes, positions and clips are shown only to their owner. Admins see only counts
-  per user on the Diagnostics tab. In the All users view, admins also see clip names and file paths, but never notes.
-  The server log doesn't record bookmark names or notes at its normal (Information) level.
-- **When a user is deleted** from the server, their bookmarks' names and notes are removed from the bookmark data, its
-  backup copy and the archive. A clip file that the **When Jellyfin deletes a user** setting keeps stays as it is, and
-  its file name still carries the bookmark's name; **Delete their bookmarks and their clip files** removes those files
-  too. Snapshots taken before the deletion still hold the text until they rotate out. Users deleted before 1.2.1 keep
-  their text. An admin can clear it on the settings page's **Data** tab: under **Users this server doesn't know**, press
-  **Apply the deleted-user policy (...) to them** (the policy set under **When Jellyfin deletes a user**).
-- **What an admin can still read:** an export contains every user's names and notes, so keep it as safe as a database
-  backup. Clip files are named after the bookmark's name, the video and the range
-  (`Bank job - Heat (1995) [01.52.10-01.55.00].mp4`; before 1.7.0 / 2.5.0 the video came first, and those files keep
-  their names until you rename them). Clips made before 1.2.0 for an
-  unnamed bookmark may still carry the start of its note in the file name.
-- **Backups:** Jellyfin's own backups don't include plugin data, so use the settings page's **Data** tab:
-  - **Export** downloads all bookmark data as a JSON file. Clip files are not included, so back up the clip folder
-    yourself if the clips matter.
-  - **Import an export** merges or replaces bookmarks. It has a dry run, and a snapshot is taken first.
-  - **Snapshots:** one is taken daily (7 kept) and another before every import or restore. Restore any of them from the
-    list.
-  - If `bookmarks.json` can't be read, the plugin never starts empty on its own. It restores from the backup copy or a
-    snapshot. If neither works, the data stays read-only and the settings page offers **Restore** or **Start empty**.
-- **No outside services:** the plugin doesn't contact any outside service. It talks only to your own Jellyfin server.
+The **Data** tab has export and import, snapshots you can restore, and a way to match bookmarks of users this server
+doesn't know to users by name. The **Diagnostics** tab shows whether everything is working and how many bookmarks
+each person has.
 
-## Uninstalling
+## Questions / Notes
 
-1. Optionally, make an **Export** first (Data tab), and copy the clip folder if you want to keep the clips.
-2. Uninstall Bookmarks from Dashboard -> Plugins, then restart the server. (Don't use Disable; see above.)
-3. What stays behind: the data folder `data/bookmarks/` (bookmarks, snapshots, and clips in the default clip folder), the
-   settings file `plugins/configurations/Jellyfin.Plugin.Bookmarks.xml`, and any clip folder you chose yourself. If you
-   install the plugin again, it picks these up. To remove everything, stop the server and delete them.
-4. If you switched Jellyfin Enhanced's bookmarks off, turn them back on in its settings and give **Bookmark Current
-   Time** its `B` key again. Bookmarks never changed Jellyfin Enhanced's own bookmark files, so they are as they were.
+- **Who can make clips?** Only users with Jellyfin's **Allow media downloading** permission (Dashboard -> Users).
+- **Who can see my bookmarks?** Only you. Admins see how many bookmarks each person has, and in My Clips' **All users**
+  view they see clip names and files, but never your notes.
+- **Want clips in a library?** Make a folder just for clips, add a **Home Videos and Photos** library for exactly that
+  folder, and enter it as the clip folder. Don't use a Movies or TV library: Jellyfin would show the clips as
+  duplicates of the movie. Everyone who can open that library can see every user's clips.
+- **Backups.** Jellyfin's own backups don't include plugin data. Use **Export** on the Data tab, and copy the clip folder
+  if the clips matter to you.
+- **Which apps?** The controls appear in Jellyfin's web client, on desktop, phone and TV layouts. Apps with their own
+  player, such as Android TV, don't show them.
+- **A drive went missing?** Bookmarks of videos that are gone wait as "Not in library" and reattach when the video comes
+  back. Clips on an unplugged drive show as **Clip folder offline**, and nothing is marked as gone until the drive is back.
 
-## More detail
+## License
 
-- The full technical reference (every setting, the REST API, how data is stored and recovered) is in
-  [DEVELOPMENT.md](DEVELOPMENT.md) in this folder.
-- What changed in each version: the `changelog` in [build.yaml](build.yaml), and in more detail in
-  [CHANGELOG.md](CHANGELOG.md).
+GPL-3.0-only.

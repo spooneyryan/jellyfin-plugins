@@ -147,7 +147,7 @@ public sealed class PluginServiceRegistratorTests : IDisposable
 
         var status = Assert.IsType<KitAbiStatus>(Assert.Single(services).ImplementationInstance);
         Assert.False(status.IsActive);
-        Assert.Equal($"User Ratings is built for Jellyfin {JellyfinLine.Target}, but the server is Jellyfin {JellyfinLine.OtherLineVersion}: the plugin is inactive. Install the User Ratings build for Jellyfin {JellyfinLine.OtherTarget}.", status.Message);
+        Assert.Equal($"User Ratings And Reviews is built for Jellyfin {JellyfinLine.Target}, but the server is Jellyfin {JellyfinLine.OtherLineVersion}: the plugin is inactive. Install the User Ratings And Reviews build for Jellyfin {JellyfinLine.OtherTarget}.", status.Message);
     }
 
     [Fact]

@@ -40,9 +40,9 @@ public sealed class PluginIdentityChecksTests
     }
 
     [Theory]
-    [InlineData("Bookmarks", "d0ee1b2a-7f71-4654-8ff2-163a81441b03", 0)]
-    [InlineData("Bookmarks", "f53c7c34-8cba-4846-b43b-956816b2f6ae", 1)]
-    [InlineData("Bookmarks", "D0EE1B2A-7F71-4654-8FF2-163A81441B03", 1)]
+    [InlineData("Bookmarks And Clips", "d0ee1b2a-7f71-4654-8ff2-163a81441b03", 0)]
+    [InlineData("Bookmarks And Clips", "f53c7c34-8cba-4846-b43b-956816b2f6ae", 1)]
+    [InlineData("Bookmarks And Clips", "D0EE1B2A-7F71-4654-8FF2-163A81441B03", 1)]
     [InlineData("Unlisted", "eb5d7894-8eef-4b36-aa6f-5d124e828ce1", 1)]
     [InlineData("Unlisted", "not-a-guid", 1)]
     [InlineData("Unlisted", "{3f2504e0-4f89-41d3-9a0c-0305e82c3301}", 1)]
@@ -159,7 +159,7 @@ public sealed class PluginIdentityChecksTests
     [Fact]
     public void CheckSourceGuids_RequiresOnlyTheBuildYamlGuid()
     {
-        var expected = PluginIdentityChecks.AssignedGuids["Bookmarks"];
+        var expected = PluginIdentityChecks.AssignedGuids["Bookmarks And Clips"];
 
         Assert.Empty(PluginIdentityChecks.CheckSourceGuids("const string PluginId = \"d0ee1b2a-7f71-4654-8ff2-163a81441b03\";", "Plugin.cs", expected));
         Assert.Single(PluginIdentityChecks.CheckSourceGuids("Guid Id => Guid.NewGuid();", "Plugin.cs", expected));

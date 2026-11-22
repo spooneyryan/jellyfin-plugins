@@ -15,7 +15,5 @@
   <rect x="110" y="170" width="380" height="380" rx="72" fill="url(#accent)"/>
   <g transform="translate(150,210) scale(1)"><path fill="none" stroke="#fff" stroke-width="22" stroke-linecap="round" stroke-linejoin="round" d="M80 35 H220 V270 L150 215 L80 270 Z"/>
     <path fill="#fff" d="M150 85 l14 30 33 4 -24 22 6 33 -29 -16 -29 16 6 -33 -24 -22 33 -4z"/></g>
-  <text x="560" y="335" font-size="92" font-weight="700" fill="#fff">Bookmarks</text>
-  <text x="560" y="420" font-size="40" fill="#cfd6e6">Mark moments, jump back to</text><text x="560" y="472" font-size="40" fill="#cfd6e6">them, save clips</text>
-  <text x="560" y="250" font-size="34" font-weight="600" letter-spacing="4" fill="#b4c4e4">JELLYFIN PLUGIN</text>
+  <text x="560" y="382" font-size="62" font-weight="700" fill="#fff">Bookmarks And Clips</text>
 </svg>

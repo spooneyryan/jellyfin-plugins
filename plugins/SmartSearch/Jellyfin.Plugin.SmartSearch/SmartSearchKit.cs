@@ -38,7 +38,7 @@ internal static class SmartSearchKit
     /// </summary>
     public static KitOptions Options { get; } = new()
     {
-        PluginName = "Smart Search",
+        PluginName = "Smart Search And Dynamic Collections",
         RoutePrefix = "SmartSearch",
         Prefix = "jfss",
         SchemaPrefix = "SmartSearch",

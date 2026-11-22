@@ -1,5 +1,5 @@
 {
-  "name": "User Ratings 1.0.2.0: the details page's section on Long Test Movie as viewer in the mobile layout at 390x844 with touch: no part of the section past the screen's edges; a tap on star 4's right half saves 4.0; a sideways drag saves 2.0 once; + + − saves 2.5 once; the histogram hidden under 600 px; the review form fits. Touches through Input.dispatchTouchEvent. The member's row is deleted at the end.",
+  "name": "User Ratings 1.0.3.0: the details page's section on Long Test Movie as viewer in the mobile layout at 390x844 with touch: no part of the section past the screen's edges; a tap on star 4's right half saves 4.0; a sideways drag saves 2.0 once; + + − saves 2.5 once; the histogram hidden under 600 px; the review form fits. Touches through Input.dispatchTouchEvent. The member's row is deleted at the end.",
   "failOnException": false,
   "timeout": 30000,
   "steps": [
@@ -31,14 +31,14 @@
       "reload": true
     },
     {
-      "name": "the layout applied, User Ratings 1.0.2.0 started",
+      "name": "the layout applied, User Ratings 1.0.3.0 started",
       "waitFor": "document.documentElement.classList.contains('layout-mobile') && !!window.ApiClient && !!ApiClient.getCurrentUserId() && !!(window.__jfkit && window.__jfkit.jfur)",
       "timeout": 40000
     },
     {
-      "name": "the served script is 1.0.2.0",
-      "assert": "window.__jfkit.jfur.version === '1.0.2.0'",
-      "message": "User Ratings 1.0.2.0 is not the script the page loaded"
+      "name": "the served script is 1.0.3.0",
+      "assert": "window.__jfkit.jfur.version === '1.0.3.0'",
+      "message": "User Ratings 1.0.3.0 is not the script the page loaded"
     },
     {
       "name": "Long Test Movie",

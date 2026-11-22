@@ -266,7 +266,7 @@ function lmGroupCard(group, compare) {
     });
     (group.Flags || []).forEach(function (flag) {
         if (flag === 'CrossLibrary') {
-            chips.push(lmChip('In ' + Object.keys(libraries).length + ' libraries', 'flag'));
+            chips.push(lmChip('In ' + lmCount(Object.keys(libraries).length, 'library', 'libraries'), 'flag'));
         } else if (LM_GROUP_FLAGS[flag]) {
             chips.push(lmChip(LM_GROUP_FLAGS[flag], LM_WARNING_FLAGS.indexOf(flag) >= 0 ? 'warning' : 'flag'));
         }

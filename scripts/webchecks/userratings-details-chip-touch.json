@@ -1,5 +1,5 @@
 {
-  "name": "User Ratings 1.0.2.0, the chip under touch: in the default sandbox as viewer in the mobile layout at 390x844 with touch: the chip on Long Test Movie as the server's summary calls for it, its word \"Members\" hidden under 600 px with the group glyph and the value kept, inside the screen; on Test Series a tap on the Rate button (Input.dispatchTouchEvent) focuses the slider in view. The member's row is deleted at the end.",
+  "name": "User Ratings 1.0.3.0, the chip under touch: in the default sandbox as viewer in the mobile layout at 390x844 with touch: the chip on Long Test Movie as the server's summary calls for it, its word \"Members\" hidden under 600 px with the group glyph and the value kept, inside the screen; on Test Series a tap on the Rate button (Input.dispatchTouchEvent) focuses the slider in view. The member's row is deleted at the end.",
   "failOnException": false,
   "timeout": 30000,
   "steps": [
@@ -31,14 +31,14 @@
       "reload": true
     },
     {
-      "name": "the layout applied, User Ratings 1.0.2.0 started",
+      "name": "the layout applied, User Ratings 1.0.3.0 started",
       "waitFor": "document.documentElement.classList.contains('layout-mobile') && !!window.ApiClient && !!ApiClient.getCurrentUserId() && !!(window.__jfkit && window.__jfkit.jfur)",
       "timeout": 40000
     },
     {
-      "name": "the served script is 1.0.2.0",
-      "assert": "window.__jfkit.jfur.version === '1.0.2.0'",
-      "message": "User Ratings 1.0.2.0 is not the script the page loaded"
+      "name": "the served script is 1.0.3.0",
+      "assert": "window.__jfkit.jfur.version === '1.0.3.0'",
+      "message": "User Ratings 1.0.3.0 is not the script the page loaded"
     },
     {
       "name": "Long Test Movie",

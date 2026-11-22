@@ -2,9 +2,12 @@
 
 A Jellyfin plugin that draws the tags, genres, actors, directors, writers or studios of a server's movies and shows as
 a word cloud, counted for each viewer over the titles they can see. This is its technical documentation; the user guide
-is [README.md](README.md), the release notes are the `changelog` in [build.yaml](build.yaml).
+is [README.md](README.md), the release notes are the `changelog` in
+[build.12.yaml](build.12.yaml) and [build.yaml](build.yaml).
 
-Version **1.0.1**, for Jellyfin **10.11.5** (`net9.0`). Not in 1.0.1: export and import of the saved clouds.
+Version **2.2.1** for Jellyfin **12.4** (`net10.0`, [build.12.yaml](build.12.yaml), the builds the plugin repository
+serves) and **1.2.1** for Jellyfin **10.11.5** (`net9.0`, [build.yaml](build.yaml), built from source). Not in either:
+export and import of the saved clouds.
 
 **What it changes on a server**: one script tag added to the web client's `index.html` as the server sends it (nothing
 is written to the web client's files, and the tag goes with the plugin or its switch), its settings file

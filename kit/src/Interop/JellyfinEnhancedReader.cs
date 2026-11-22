@@ -302,7 +302,7 @@ internal sealed class JellyfinEnhancedReader
             using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete, 1, FileOptions.SequentialScan);
             if (stream.Length > JellyfinEnhancedFiles.MaxBytes)
             {
-                problem = $"{Path.GetFileName(path)} is {stream.Length:N0} bytes, over the {JellyfinEnhancedFiles.MaxBytes / (1024 * 1024)} MB the kit reads.";
+                problem = $"{Path.GetFileName(path)} is {stream.Length:N0} bytes, over the {JellyfinEnhancedFiles.MaxBytes / (1024 * 1024)} MB that can be read.";
                 return false;
             }
 

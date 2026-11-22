@@ -2,10 +2,11 @@
 
 A Jellyfin plugin with an admin-only Dashboard page that lists the movies your libraries hold more than once and
 compares their copies, and a **preview** of moving an item's media to another place. This is its technical documentation; the user guide is
-[README.md](README.md), the release history [CHANGELOG.md](CHANGELOG.md).
+[README.md](README.md).
 
-Version **1.0.5** (release tag `librarymaintenance/v1.0.5`), for Jellyfin **10.11.5** (`net9.0`); **2.0.1** is the same
-code for Jellyfin **12.4** (`net10.0`, `build.12.yaml`, `-p:JellyfinTarget=12`).
+Version **1.0.6**, for Jellyfin **10.11.5** (`net9.0`, built from source, not in the catalog); **2.0.2** (release tag
+`librarymaintenance/v2.0.2`) is the same code for Jellyfin **12.4** (`net10.0`, `build.12.yaml`, `-p:JellyfinTarget=12`),
+the build the catalog serves.
 
 - **Duplicates** (since 1.0.0): the Dashboard page's Duplicates tab groups the movies by title (and year), with a
   confidence, a suggested copy to keep and the space the others take. Read-only.
@@ -14,7 +15,7 @@ code for Jellyfin **12.4** (`net10.0`, `build.12.yaml`, `-p:JellyfinTarget=12`).
   dialog plans a move and shows what would happen. **Nothing is moved**: the release is built plan-only
   (`MovePreviewOnly`), with no route or call that moves, renames, makes or deletes a file or folder. Moving itself is
   planned for 1.1 and is not in this code ("Move media: the preview").
-- Not in 1.0.5: marking a group as not a duplicate, CSV, merging versions, the Repair view, deleting a
+- Not in this version: marking a group as not a duplicate, CSV, merging versions, the Repair view, deleting a
   copy, and moving.
 
 **What it changes on a server**: one script tag added to the web client's `index.html` as the server sends it (for the

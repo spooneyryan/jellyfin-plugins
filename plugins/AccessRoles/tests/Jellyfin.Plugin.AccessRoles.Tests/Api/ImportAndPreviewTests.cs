@@ -150,7 +150,7 @@ public sealed class ImportAndPreviewTests : IDisposable
         Assert.Contains("overridden", managed.Message, StringComparison.Ordinal);
         var liveTv = Assert.Single(dry.Warnings, w => w.Code == AccessRolesImport.LiveTvManagement);
         Assert.Equal(["everything", "kid"], liveTv.Users.Select(u => u.Name));
-        Assert.Contains("10.11.7", liveTv.Message, StringComparison.Ordinal);
+        Assert.Contains("Older Jellyfin versions turned this on", liveTv.Message, StringComparison.Ordinal);
 
         // Applied with the box: the audit says so, and the sync writes nobody.
         await _admin.ImportExistingAsync(new AccessRolesWriteOptions(), true, _caller, TestContext.Current.CancellationToken);

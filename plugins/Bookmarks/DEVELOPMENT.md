@@ -3,8 +3,8 @@
 A Jellyfin plugin that lets each user bookmark moments in movies and episodes, name them, find them again on a page of
 their own, and cut a bookmarked range into a clip file with ffmpeg.
 
-Version **1.7.0**, for Jellyfin **10.11.5** (`net9.0`; 2.5.0 for Jellyfin 12.4). This is the technical reference for developers and for admins who
-want more than the user [README.md](README.md) gives. Release history: [CHANGELOG.md](CHANGELOG.md).
+Version **1.7.1**, for Jellyfin **10.11.5** (`net9.0`; 2.5.1 for Jellyfin 12.4). This is the technical reference for developers and for admins who
+want more than the user [README.md](README.md) gives.
 
 - **Bookmarks** belong to one user: a position, an optional end time, a **name** (one line, at most 100 characters) and
   a **note** (free text, at most 500).

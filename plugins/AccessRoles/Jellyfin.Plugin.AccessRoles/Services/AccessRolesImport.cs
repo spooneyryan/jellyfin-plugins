@@ -207,7 +207,7 @@ internal static class AccessRolesImport
 
         if (liveTv.Count > 0)
         {
-            warnings.Add(Group(LiveTvManagement, liveTv, true, Count(liveTv) + " the import assigns may manage Live TV (they can change Live TV server settings and schedule and delete recordings): " + string.Join(", ", Sorted(liveTv).Select(u => u.Name)) + ". Jellyfin turns this on for every new user before 10.11.7; clear it on the stock Dashboard page where it isn't meant."));
+            warnings.Add(Group(LiveTvManagement, liveTv, true, Count(liveTv) + " the import assigns may manage Live TV (they can change Live TV server settings and schedule and delete recordings): " + string.Join(", ", Sorted(liveTv).Select(u => u.Name)) + ". Older Jellyfin versions turned this on for every new user; clear it on the stock Dashboard page where it isn't meant."));
         }
 
         return new ImportPlan(kept, warnings, now);

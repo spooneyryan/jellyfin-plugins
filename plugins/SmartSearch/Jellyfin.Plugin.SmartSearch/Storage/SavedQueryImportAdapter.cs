@@ -117,7 +117,8 @@ internal sealed class SavedQueryImportAdapter : JsonImportAdapter<SavedQueriesDo
         if (overQuota.Count > 0)
         {
             skipped += overQuota.Count;
-            notes.Add(overQuota.Count.ToString(CultureInfo.InvariantCulture) + " queries would take their owner past the most saved queries a user may have (" + _maxPerUser.ToString(CultureInfo.InvariantCulture) + ") and were skipped.");
+            notes.Add((overQuota.Count == 1 ? "1 query would take its owner" : overQuota.Count.ToString(CultureInfo.InvariantCulture) + " queries would take their owner")
+                + " past the most saved queries a user may have (" + _maxPerUser.ToString(CultureInfo.InvariantCulture) + ") and " + (overQuota.Count == 1 ? "was" : "were") + " skipped.");
             mapped = mapped.Where(q => !overQuota.Contains(q)).ToList();
             merged = Merge(current, mapped, mode);
         }
@@ -138,12 +139,16 @@ internal sealed class SavedQueryImportAdapter : JsonImportAdapter<SavedQueriesDo
             .Refresh(queries.Select(q => q.OwnerUserId), users.Mapped.GroupBy(m => m.NewId).ToDictionary(g => g.Key, g => g.First().Name));
         if (unshared > 0)
         {
-            notes.Add(unshared.ToString(CultureInfo.InvariantCulture) + " shared queries use an administrator-only field and were imported as not shared.");
+            notes.Add(unshared == 1
+                ? "1 shared query uses an administrator-only field and was imported as not shared."
+                : unshared.ToString(CultureInfo.InvariantCulture) + " shared queries use an administrator-only field and were imported as not shared.");
         }
 
         if (renamed > 0)
         {
-            notes.Add(renamed.ToString(CultureInfo.InvariantCulture) + " queries were renamed with a number, as their owner already had a query of that name.");
+            notes.Add(renamed == 1
+                ? "1 query was renamed with a number, as its owner already had a query of that name."
+                : renamed.ToString(CultureInfo.InvariantCulture) + " queries were renamed with a number, as their owner already had a query of that name.");
         }
 
         var document = !changed && known.Equals(current.KnownUsers ?? KnownUsers.Empty)

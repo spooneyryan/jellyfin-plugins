@@ -57,8 +57,8 @@ function ssBuildResults(page) {
     ]);
     page.notices = h('div', { class: 'jfss-notices' });
     page.resultList = h('div', { class: 'jfss-results', 'aria-label': SS_TEXT.results });
+    // The kit's own "Load more".
     page.pager = kit.pager({
-        text: SS_TEXT.moreResults,
         onMore: function () {
             ssLoadMore(page);
         }

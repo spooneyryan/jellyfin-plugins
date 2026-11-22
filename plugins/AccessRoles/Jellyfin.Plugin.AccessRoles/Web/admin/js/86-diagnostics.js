@@ -260,7 +260,7 @@ function arDiagnosticsTab(ctx) {
         const enforcement = d.Enforcement || {};
         status.appendChild(arStatusSection('Plugin', [
             ['Version', d.PluginVersion],
-            ['Kit', d.KitVersion],
+            ['Framework', d.KitVersion],
             ['Jellyfin', 'Built for ' + abi.Target + ', running on ' + abi.Server + (abi.Active ? '' : ' (inactive)')],
             ['Enforcement', enforcement.Message || (enforcement.Active ? 'Active' : 'None')],
             ['Settings locks', arSettingsLocksText(enforcement)],

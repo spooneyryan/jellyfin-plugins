@@ -6,13 +6,13 @@
 
   <PropertyGroup>
     <RootNamespace>Jellyfin.Plugin.AccessRoles</RootNamespace>
-    <!-- Keep equal to build.yaml's version (checked by tests/Repo.Tests). Development builds were 0.9.<n>.0; 1.0.0.0 was the first release, 1.0.1.0 its fixes, 1.0.2.0 corrected texts, 1.0.3.0 the owner name. -->
-    <Version Condition="'$(JellyfinTarget)' != '12'">1.0.3.0</Version>
-    <Version Condition="'$(JellyfinTarget)' == '12'">2.0.0.0</Version>
-    <AssemblyVersion Condition="'$(JellyfinTarget)' != '12'">1.0.3.0</AssemblyVersion>
-    <AssemblyVersion Condition="'$(JellyfinTarget)' == '12'">2.0.0.0</AssemblyVersion>
-    <FileVersion Condition="'$(JellyfinTarget)' != '12'">1.0.3.0</FileVersion>
-    <FileVersion Condition="'$(JellyfinTarget)' == '12'">2.0.0.0</FileVersion>
+    <!-- Keep equal to build.yaml's version (checked by tests/Repo.Tests). Development builds were 0.9.<n>.0; 1.0.0.0 was the first release, 1.0.1.0 its fixes, 1.0.2.0 corrected texts, 1.0.3.0 the owner name, 1.0.4.0 (2.0.1.0 for Jellyfin 12) corrected texts. -->
+    <Version Condition="'$(JellyfinTarget)' != '12'">1.0.4.0</Version>
+    <Version Condition="'$(JellyfinTarget)' == '12'">2.0.1.0</Version>
+    <AssemblyVersion Condition="'$(JellyfinTarget)' != '12'">1.0.4.0</AssemblyVersion>
+    <AssemblyVersion Condition="'$(JellyfinTarget)' == '12'">2.0.1.0</AssemblyVersion>
+    <FileVersion Condition="'$(JellyfinTarget)' != '12'">1.0.4.0</FileVersion>
+    <FileVersion Condition="'$(JellyfinTarget)' == '12'">2.0.1.0</FileVersion>
   </PropertyGroup>
 
   <ItemGroup>

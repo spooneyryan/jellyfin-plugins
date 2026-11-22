@@ -93,7 +93,7 @@ public sealed class AdminToolsApiTests : IAsyncLifetime
         using var envelope = JsonDocument.Parse(body);
         var root = envelope.RootElement;
         Assert.Equal("jellyfin-plugin-export/1", root.GetProperty("Format").GetString());
-        Assert.Equal("Bookmarks", root.GetProperty("Plugin").GetString());
+        Assert.Equal("Bookmarks And Clips", root.GetProperty("Plugin").GetString());
         Assert.Equal(JellyfinLine.VersionOf(typeof(Plugin)), root.GetProperty("PluginVersion").GetString());
         Assert.Equal(2, root.GetProperty("SchemaVersion").GetInt32());
         Assert.Equal(new[] { "admin", "alex" }, root.GetProperty("Users").EnumerateArray().Select(u => u.GetProperty("Name").GetString()).Order());

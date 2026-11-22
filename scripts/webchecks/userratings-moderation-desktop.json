@@ -1,5 +1,5 @@
 {
-  "name": "User Ratings 1.0.2.0, moderation: in the default sandbox as admin, the desktop layout: the settings page's Moderation tab with viewer's reviews of Long Test Movie and Tagged Movie, viewer2's of Long Test Movie and a synthetic member's with a long right-to-left name (created for the run, its password random and kept nowhere): its first requests only reads; every name, title, star count and review as text (a review's markup-looking part no element) and isolated; the search (server-side), Clear filters, \"Only viewer\" and its chip; Remove text only after its dry run (one DELETE without dryRun=false, the focus on Cancel), with the reason Spoiler, the dry run's token sent back, the stars kept on the server and the log's row with no word of the review; Remove rating and review (its own dry run on the choice); a stale token: viewer edits the review between the dry run and Remove, the 409 shows \"changed\" with the dry run again and nothing removed, then the second Remove removes; Enter on a Remove… and Escape: the focus back on it. Every rating on both movies removed and the synthetic member deleted at the end.",
+  "name": "User Ratings 1.0.3.0, moderation: in the default sandbox as admin, the desktop layout: the settings page's Moderation tab with viewer's reviews of Long Test Movie and Tagged Movie, viewer2's of Long Test Movie and a synthetic member's with a long right-to-left name (created for the run, its password random and kept nowhere): its first requests only reads; every name, title, star count and review as text (a review's markup-looking part no element) and isolated; the search (server-side), Clear filters, \"Only viewer\" and its chip; Remove text only after its dry run (one DELETE without dryRun=false, the focus on Cancel), with the reason Spoiler, the dry run's token sent back, the stars kept on the server and the log's row with no word of the review; Remove rating and review (its own dry run on the choice); a stale token: viewer edits the review between the dry run and Remove, the 409 shows \"changed\" with the dry run again and nothing removed, then the second Remove removes; Enter on a Remove… and Escape: the focus back on it. Every rating on both movies removed and the synthetic member deleted at the end.",
   "failOnException": false,
   "timeout": 30000,
   "steps": [
@@ -22,14 +22,14 @@
       "reload": true
     },
     {
-      "name": "admin: User Ratings 1.0.2.0 started",
+      "name": "admin: User Ratings 1.0.3.0 started",
       "waitFor": "!!window.ApiClient && !!ApiClient.getCurrentUserId() && !!(window.__jfkit && window.__jfkit.jfur)",
       "timeout": 40000
     },
     {
-      "name": "the served script is 1.0.2.0",
-      "assert": "window.__jfkit.jfur.version === '1.0.2.0'",
-      "message": "User Ratings 1.0.2.0 is not the script the page loaded"
+      "name": "the served script is 1.0.3.0",
+      "assert": "window.__jfkit.jfur.version === '1.0.3.0'",
+      "message": "User Ratings 1.0.3.0 is not the script the page loaded"
     },
     {
       "name": "Long Test Movie",
@@ -72,14 +72,14 @@
       "reload": true
     },
     {
-      "name": "viewer: User Ratings 1.0.2.0 started",
+      "name": "viewer: User Ratings 1.0.3.0 started",
       "waitFor": "!!window.ApiClient && !!ApiClient.getCurrentUserId() && !!(window.__jfkit && window.__jfkit.jfur)",
       "timeout": 40000
     },
     {
-      "name": "the served script is 1.0.2.0",
-      "assert": "window.__jfkit.jfur.version === '1.0.2.0'",
-      "message": "User Ratings 1.0.2.0 is not the script the page loaded"
+      "name": "the served script is 1.0.3.0",
+      "assert": "window.__jfkit.jfur.version === '1.0.3.0'",
+      "message": "User Ratings 1.0.3.0 is not the script the page loaded"
     },
     {
       "name": "viewer: Long Test Movie",
@@ -121,14 +121,14 @@
       "reload": true
     },
     {
-      "name": "viewer2: User Ratings 1.0.2.0 started",
+      "name": "viewer2: User Ratings 1.0.3.0 started",
       "waitFor": "!!window.ApiClient && !!ApiClient.getCurrentUserId() && !!(window.__jfkit && window.__jfkit.jfur)",
       "timeout": 40000
     },
     {
-      "name": "the served script is 1.0.2.0",
-      "assert": "window.__jfkit.jfur.version === '1.0.2.0'",
-      "message": "User Ratings 1.0.2.0 is not the script the page loaded"
+      "name": "the served script is 1.0.3.0",
+      "assert": "window.__jfkit.jfur.version === '1.0.3.0'",
+      "message": "User Ratings 1.0.3.0 is not the script the page loaded"
     },
     {
       "name": "viewer2 on Long Test Movie: stars and a review through the API",

@@ -109,7 +109,7 @@ function lmComparePlace(place) {
         case 'ExtrasFolder':
             return count + ' in the folder ' + String(place.Folder || '');
         case 'AudioTrack':
-            return count + ' as an audio track' + (count === 1 ? '' : 's');
+            return count + (count === 1 ? ' as an audio track' : ' as audio tracks');
         default:
             return count + ' elsewhere';
     }

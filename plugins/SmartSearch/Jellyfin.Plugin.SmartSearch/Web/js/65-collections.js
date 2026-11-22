@@ -29,6 +29,7 @@ const SS_AC_ERRORS = Object.freeze(['Error', 'QueryMissing', 'QueryInvalid', 'Ev
 const SS_AC_BUSY = Object.freeze(['Queued', 'Running']);
 const SS_AC_REASONS = Object.freeze(['PostScan', 'Events', 'Daily', 'Manual', 'Saved', 'Startup', 'ManualEdit', 'Moved', 'WatchState']);
 const SS_AC_OUTCOMES = Object.freeze(['Created', 'Written', 'NoChange', 'Stopped', 'Failed']);
+const SS_AC_GUARD_REASONS = Object.freeze(['Empty', 'ScanRunning', 'LocationUnreachable', 'CandidateDrop', 'StartupPass']);
 
 function ssCanManageCollections(page) {
     return !!(page && page.acAccess && page.acAccess.CanManage);
@@ -482,15 +483,27 @@ function ssReassignPanel(page, item) {
     ];
 }
 
+// A text with a {count}: its ...One form for 1, else the count in the reader's number format.
+function ssCountText(key, count, vars) {
+    return count === 1 ? ssText(key + 'One', vars) : ssText(key, Object.assign({}, vars, { count: (count || 0).toLocaleString() }));
+}
+
+// One of the guard's reasons (GuardReasons.cs) in words; a code this page doesn't know shows as it is.
+function ssGuardReason(reason) {
+    return SS_AC_GUARD_REASONS.indexOf(reason) >= 0
+        ? kit.h('p', { class: 'jfss-ac-guard-reason', text: SS_TEXT['acGuardReason' + reason] })
+        : kit.h('p', { class: 'jfss-ac-guard-reason' }, ssBdi(reason));
+}
+
 function ssGuardPanel(page, item, guard) {
     const h = kit.h;
     const id = ssId(item.Id);
     const parts = [h('p', { class: 'jfss-ac-panel-text jfss-ac-guard-text', text: ssText('acGuardMessage', { count: (guard.WouldRemoveCount || 0).toLocaleString() }) })];
     (guard.Reasons || []).forEach(function (reason) {
-        parts.push(h('p', { class: 'jfss-ac-guard-reason' }, ssBdi(reason)));
+        parts.push(ssGuardReason(reason));
     });
     if (guard.HiddenCount > 0) {
-        parts.push(h('p', { class: 'jfss-ac-guard-hidden', text: ssText('acGuardHidden', { count: guard.HiddenCount }) }));
+        parts.push(h('p', { class: 'jfss-ac-guard-hidden', text: ssCountText('acGuardHidden', guard.HiddenCount) }));
     }
 
     if (Array.isArray(guard.Locations) && guard.Locations.length) {
@@ -505,7 +518,7 @@ function ssGuardPanel(page, item, guard) {
     const apply = kit.button(SS_TEXT.acGuardApply, { variant: 'danger', className: 'jfss-ac-guard-apply', onClick: function () {
         kit.confirm({
             title: SS_TEXT.acGuardApply,
-            message: ssText('acGuardApplyConfirm', { count: guard.WouldRemoveCount, name: ssIsolate(item.Name) }),
+            message: ssCountText('acGuardApplyConfirm', guard.WouldRemoveCount, { name: ssIsolate(item.Name) }),
             confirmLabel: SS_TEXT.acGuardApply,
             cancelLabel: SS_TEXT.cancel
         }).then(function (yes) {
@@ -597,7 +610,7 @@ function ssCollectionHistory(page, item, returnFocus) {
                 ms: (run.DurationMs || 0).toLocaleString()
             }) })];
             if (run.Dead > 0) {
-                lines.push(h('div', { class: 'jfss-ac-history-more', text: ssText('acHistoryDead', { count: run.Dead }) }));
+                lines.push(h('div', { class: 'jfss-ac-history-more', text: ssCountText('acHistoryDead', run.Dead) }));
             }
 
             if (run.Pinned > 0 || run.Excluded > 0 || run.Reverted > 0) {
@@ -630,8 +643,8 @@ function ssCollectionHistory(page, item, returnFocus) {
                 });
             } }) : null;
             dialog.body.append(h('div', { class: 'jfss-ac-history-removed' }, [
-                h('p', { text: ssText('acHistoryRemoved', { count: ids.length + (last.HiddenCount || 0) }) }),
-                last.HiddenCount > 0 ? h('p', { class: 'jfss-ac-guard-hidden', text: ssText('acHistoryRemovedHidden', { count: last.HiddenCount }) }) : null,
+                h('p', { text: ssCountText('acHistoryRemoved', ids.length + (last.HiddenCount || 0)) }),
+                last.HiddenCount > 0 ? h('p', { class: 'jfss-ac-guard-hidden', text: ssCountText('acHistoryRemovedHidden', last.HiddenCount) }) : null,
                 keep ? h('div', { class: 'jfss-actions' }, [keep]) : null
             ].filter(Boolean)));
         }
@@ -1175,16 +1188,16 @@ function ssShowNameCheck(node, check, onPick) {
 function ssShowPreview(state, body, preview, editing) {
     const h = kit.h;
     state.textContent = editing
-        ? ssText('acPreviewChange', { added: preview.WouldAdd || 0, removed: preview.WouldRemove || 0, count: (preview.Total || 0).toLocaleString() })
-        : ssText('acPreviewNew', { count: (preview.Total || 0).toLocaleString() });
+        ? ssCountText('acPreviewChange', preview.Total || 0, { added: preview.WouldAdd || 0, removed: preview.WouldRemove || 0 })
+        : ssCountText('acPreviewNew', preview.Total || 0);
     const parts = [];
     if (preview.HiddenFromCaller > 0) {
-        parts.push(h('p', { class: 'jfss-share-note jfss-ac-preview-hidden', text: ssText('acPreviewHidden', { count: preview.HiddenFromCaller }) }));
+        parts.push(h('p', { class: 'jfss-share-note jfss-ac-preview-hidden', text: ssCountText('acPreviewHidden', preview.HiddenFromCaller) }));
     }
 
     if (preview.Guard && preview.Guard.WouldTrip) {
         parts.push(h('div', { class: 'jfss-ac-preview-guard' }, [h('p', { text: SS_TEXT.acPreviewGuard })].concat((preview.Guard.Reasons || []).map(function (reason) {
-            return h('p', { class: 'jfss-ac-guard-reason' }, ssBdi(reason));
+            return ssGuardReason(reason);
         }))));
     }
 

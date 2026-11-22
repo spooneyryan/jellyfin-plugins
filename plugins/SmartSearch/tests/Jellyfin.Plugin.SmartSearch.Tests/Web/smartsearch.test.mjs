@@ -2310,7 +2310,7 @@ test('a user who doesn\'t manage collections gets no Auto-collections tab and no
 test('the Auto-collections tab lists each with its link, query, status, members, last change and watch-state user, names as text; the filter narrows it', { skip }, async () => {
     const s = await shownWithCollections([
         autoCollection(DEF1, 'Horror <img src=x onerror=alert(1)>', { EvaluationUserId: BOB, EvaluationUserName: 'bob' }, { MixedAudience: true }),
-        autoCollection(DEF2, 'Held', {}, { Status: 'Guarded', PendingGuard: { DetectedUtc: '2026-11-09T10:00:00.0000000Z', WouldRemoveCount: 6, WouldRemove: [], HiddenCount: 2, Reasons: ['Would remove 6 of 12 items.'], Approved: false } }),
+        autoCollection(DEF2, 'Held', {}, { Status: 'Guarded', PendingGuard: { DetectedUtc: '2026-11-09T10:00:00.0000000Z', WouldRemoveCount: 6, WouldRemove: [], HiddenCount: 2, Reasons: ['ScanRunning', 'SomethingNew'], Approved: false } }),
         autoCollection(DEF3, 'Broken', { CreatedByUserId: BOB, CreatedByName: 'bob', Source: { Mode: 'Reference', SavedQueryId: QC, QueryName: null, QueryVisibleToCaller: false } }, { Status: 'QueryMissing', LastError: 'The saved query is gone.', LastSuccessUtc: null })
     ]);
     assert.deepEqual(s.all('[role="tab"]').map((t) => [t.textContent, t.getAttribute('aria-selected')]), [['Search', 'false'], ['Saved queries', 'false'], ['Auto-collections', 'true']]);
@@ -2330,6 +2330,7 @@ test('the Auto-collections tab lists each with its link, query, status, members,
     assert.equal(rows[1].querySelector('.jfss-ac-status').textContent, 'Needs review');
     assert.equal(rows[1].querySelector('.jfss-ac-guard-text').textContent, 'Would remove 6 of its items.');
     assert.equal(rows[1].querySelector('.jfss-ac-guard-hidden').textContent, '2 of them are in libraries you can\'t open.');
+    assert.deepEqual(rows[1].querySelectorAll('.jfss-ac-guard-reason').map((p) => p.textContent), ['A library scan is running.', 'SomethingNew'], 'a known reason in words, another as it is');
     assert.deepEqual(rows[1].querySelectorAll('.jfss-ac-panel button').map((b) => b.textContent), ['Keep these items', 'Apply removals', 'Wait']);
     // Someone else's, whose query is gone: no source, no Turn off, and Choose another query.
     assert.equal(rows[2].querySelector('.jfss-ac-status').textContent, 'Query missing');

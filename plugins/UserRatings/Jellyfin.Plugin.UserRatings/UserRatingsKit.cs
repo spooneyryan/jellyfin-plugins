@@ -16,7 +16,7 @@ internal static class UserRatingsKit
     /// </summary>
     public static KitOptions Options { get; } = new()
     {
-        PluginName = "User Ratings",
+        PluginName = "User Ratings And Reviews",
         RoutePrefix = "UserRatings",
         Prefix = "jfur",
         SchemaPrefix = "UserRatings",

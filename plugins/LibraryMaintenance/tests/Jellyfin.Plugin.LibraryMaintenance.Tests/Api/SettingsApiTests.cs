@@ -589,7 +589,7 @@ public sealed class SettingsApiTests
         var dry = await Post(host, Import, file);
         var warnings = Strings(dry, "Warnings");
         Assert.Contains(warnings, w => w.StartsWith("The file has settings this version doesn't have, which are left out: DefaultYearTolerance.", StringComparison.Ordinal));
-        Assert.Contains(warnings, w => w.StartsWith("The file doesn't have these settings, which keep their saved values: Find duplicate movies, A movie with no year,", StringComparison.Ordinal));
+        Assert.Contains(warnings, w => w.StartsWith("The file doesn't have these settings, which keep their saved values: Find duplicate movies, A movie with no year matches,", StringComparison.Ordinal));
         Assert.Contains("The file is from another server: its libraries and folders are this server's only where their ids and paths are the same.", warnings);
         Assert.Contains("DefaultMatchMode \"Fuzzy\" isn't one this version knows (TitleAndYear, Title); the saved \"TitleAndYear\" is kept.", warnings);
         Assert.Contains("1 of the file's included libraries isn't on this server and is left out.", warnings);
@@ -707,10 +707,10 @@ public sealed class SettingsApiTests
         var warnings = Strings(report, "Warnings");
         var named = string.Join(", ", new[] { "A" + new string('k', 79) + "…" }.Concat(Enumerable.Range(0, 49).Select(i => "Zz" + i.ToString("D3", System.Globalization.CultureInfo.InvariantCulture))));
         Assert.Contains("The file has settings this version doesn't have, which are left out: " + named + ", and 71 more.", warnings);
-        Assert.Contains("The file has no value (null) for these settings, which keep their saved values: Wait for a build.", warnings);
+        Assert.Contains("The file has no value (null) for these settings, which keep their saved values: Wait for a build (seconds).", warnings);
         Assert.Equal(5, report.GetProperty("Settings").GetProperty("RequestWaitSeconds").GetInt32());
         Assert.Equal("Title", report.GetProperty("Settings").GetProperty("DefaultMatchMode").GetString());
-        Assert.DoesNotContain(warnings, w => w.Contains("Wait for a build", StringComparison.Ordinal) && w.StartsWith("The file doesn't have", StringComparison.Ordinal));
+        Assert.DoesNotContain(warnings, w => w.Contains("Wait for a build (seconds)", StringComparison.Ordinal) && w.StartsWith("The file doesn't have", StringComparison.Ordinal));
     }
 
     [Fact]

@@ -1136,7 +1136,7 @@ function clipFactsLine(clip) {
 }
 
 // What "Name changed" says (IsNameOutdated), before the action that gives the file its name.
-const CLIP_NAME_CHANGED_TITLE = 'The clip file\'s name isn\'t the one Bookmarks gives this clip now (the bookmark was renamed, or the name holds words of its note from an earlier version).';
+const CLIP_NAME_CHANGED_TITLE = 'The clip file\'s name isn\'t the one Bookmarks gives this clip now (for example, the bookmark was renamed).';
 
 // The badges: what the state doesn't say already. In the admins' scope "Name changed" names its owner's
 // action, not one the admin has there (no rename of other users' clips).

@@ -142,7 +142,7 @@ public sealed class PluginIdentityTests
             var hasPages = Assert.IsAssignableFrom<IHasWebPages>(instance);
             var pages = hasPages.GetPages().ToList();
             var resources = instance.GetType().Assembly.GetManifestResourceNames();
-            AssertNoProblems(PluginIdentityChecks.CheckPages(pages, yaml.Name, resources));
+            AssertNoProblems(PluginIdentityChecks.CheckPages(pages, plugin, resources));
         });
     }
 

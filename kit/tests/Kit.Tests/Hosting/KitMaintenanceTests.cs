@@ -6,8 +6,10 @@ using System.Threading;
 using System.Threading.Tasks;
 using Jellyfin.Plugin.Kit.Diagnostics;
 using Jellyfin.Plugin.Kit.Hosting;
+using Jellyfin.Plugin.Kit.Library;
 using Jellyfin.Plugin.Kit.Tests.TestHosting;
 using Jellyfin.Plugin.Kit.TestSupport.Logging;
+using Jellyfin.Plugin.Kit.Users;
 using MediaBrowser.Common.Configuration;
 using MediaBrowser.Controller;
 using MediaBrowser.Controller.Library;
@@ -236,6 +238,19 @@ public sealed class KitMaintenanceTests
         var trigger = Assert.Single(task.GetDefaultTriggers());
         Assert.Equal(TaskTriggerInfoType.DailyTrigger, trigger.Type);
         Assert.Equal(new TimeSpan(3, 10, 0).Ticks, trigger.TimeOfDayTicks);
+    }
+
+    [Fact]
+    public void TheTasksDescription_NamesOnlyTheUpkeepThePluginRegistered()
+    {
+        // A plugin without detached records (Access Roles, Smart Search, Tag Cloud) used to be described with them too.
+        using var users = Provider(services => services.AddKitMaintenance().AddKitUsers());
+        using var both = Provider(services => services.AddKitMaintenance().AddKitUsers().AddKitDetachedRecords());
+
+        Assert.Equal("Daily upkeep of the plugin's data: snapshots, users no longer on the server.", new FxMaintenanceTask(users).Description);
+        Assert.Equal(
+            "Daily upkeep of the plugin's data: snapshots, records whose library item is gone (detached, archived, reattached), users no longer on the server.",
+            new FxMaintenanceTask(both).Description);
     }
 
     [Fact]

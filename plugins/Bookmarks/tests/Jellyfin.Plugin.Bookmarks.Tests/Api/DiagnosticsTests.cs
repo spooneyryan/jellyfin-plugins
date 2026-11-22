@@ -96,7 +96,7 @@ public sealed class DiagnosticsTests : IDisposable
         Assert.Equal(HttpStatusCode.NoContent, first.StatusCode);
         Assert.Equal(HttpStatusCode.NoContent, second.StatusCode);
         var warning = Assert.Single(_logger.At(LogLevel.Warning), e => e.Message.Contains("web anchor", StringComparison.Ordinal));
-        Assert.StartsWith("Bookmarks web anchor detailButtons is missing on the details view (web 10.11.5)", warning.Message, StringComparison.Ordinal);
+        Assert.StartsWith("Bookmarks And Clips web anchor detailButtons is missing on the details view (web 10.11.5)", warning.Message, StringComparison.Ordinal);
         var entry = Assert.Single(diagnostics.GetProperty("ClientHealth").EnumerateArray());
         Assert.Equal("detailButtons", entry.GetProperty("Anchor").GetString());
         Assert.True(entry.GetProperty("Required").GetBoolean());

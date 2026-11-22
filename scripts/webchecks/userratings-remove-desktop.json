@@ -1,5 +1,5 @@
 {
-  "name": "User Ratings 1.0.2.0, a review removed from the details page: in the default sandbox, desktop layout, on Long Test Movie with viewer's, viewer2's and the admin's own reviews: viewer sees no \"Remove…\" on any review; the admin sees one on viewer's and on viewer2's and none on their own, named for the member; Remove text only after its dry run (the focus on Cancel, the name isolated): viewer's row stays with its stars and no review, the stars kept on the server; Remove rating and review on viewer2's after its own dry run; each real run sent its dry run's token; the focus stays in the section; the summary counts two ratings; the chip and the Rate button as before. Every rating on the movie removed at the end.",
+  "name": "User Ratings 1.0.3.0, a review removed from the details page: in the default sandbox, desktop layout, on Long Test Movie with viewer's, viewer2's and the admin's own reviews: viewer sees no \"Remove…\" on any review; the admin sees one on viewer's and on viewer2's and none on their own, named for the member; Remove text only after its dry run (the focus on Cancel, the name isolated): viewer's row stays with its stars and no review, the stars kept on the server; Remove rating and review on viewer2's after its own dry run; each real run sent its dry run's token; the focus stays in the section; the summary counts two ratings; the chip and the Rate button as before. Every rating on the movie removed at the end.",
   "failOnException": false,
   "timeout": 30000,
   "steps": [
@@ -22,14 +22,14 @@
       "reload": true
     },
     {
-      "name": "admin: User Ratings 1.0.2.0 started",
+      "name": "admin: User Ratings 1.0.3.0 started",
       "waitFor": "!!window.ApiClient && !!ApiClient.getCurrentUserId() && !!(window.__jfkit && window.__jfkit.jfur)",
       "timeout": 40000
     },
     {
-      "name": "the served script is 1.0.2.0",
-      "assert": "window.__jfkit.jfur.version === '1.0.2.0'",
-      "message": "User Ratings 1.0.2.0 is not the script the page loaded"
+      "name": "the served script is 1.0.3.0",
+      "assert": "window.__jfkit.jfur.version === '1.0.3.0'",
+      "message": "User Ratings 1.0.3.0 is not the script the page loaded"
     },
     {
       "name": "Long Test Movie",
@@ -72,14 +72,14 @@
       "reload": true
     },
     {
-      "name": "viewer: User Ratings 1.0.2.0 started",
+      "name": "viewer: User Ratings 1.0.3.0 started",
       "waitFor": "!!window.ApiClient && !!ApiClient.getCurrentUserId() && !!(window.__jfkit && window.__jfkit.jfur)",
       "timeout": 40000
     },
     {
-      "name": "the served script is 1.0.2.0",
-      "assert": "window.__jfkit.jfur.version === '1.0.2.0'",
-      "message": "User Ratings 1.0.2.0 is not the script the page loaded"
+      "name": "the served script is 1.0.3.0",
+      "assert": "window.__jfkit.jfur.version === '1.0.3.0'",
+      "message": "User Ratings 1.0.3.0 is not the script the page loaded"
     },
     {
       "name": "viewer: the movie",
@@ -112,14 +112,14 @@
       "reload": true
     },
     {
-      "name": "viewer2: User Ratings 1.0.2.0 started",
+      "name": "viewer2: User Ratings 1.0.3.0 started",
       "waitFor": "!!window.ApiClient && !!ApiClient.getCurrentUserId() && !!(window.__jfkit && window.__jfkit.jfur)",
       "timeout": 40000
     },
     {
-      "name": "the served script is 1.0.2.0",
-      "assert": "window.__jfkit.jfur.version === '1.0.2.0'",
-      "message": "User Ratings 1.0.2.0 is not the script the page loaded"
+      "name": "the served script is 1.0.3.0",
+      "assert": "window.__jfkit.jfur.version === '1.0.3.0'",
+      "message": "User Ratings 1.0.3.0 is not the script the page loaded"
     },
     {
       "name": "viewer2: stars and a review through the API",

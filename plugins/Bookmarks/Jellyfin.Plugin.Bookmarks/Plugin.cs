@@ -36,13 +36,13 @@ public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
     public static Plugin? Instance { get; private set; }
 
     /// <inheritdoc />
-    public override string Name => "Bookmarks";
+    public override string Name => "Bookmarks And Clips";
 
     /// <inheritdoc />
     public override Guid Id => Guid.Parse(PluginId);
 
     /// <inheritdoc />
-    public override string Description => "Named per-user bookmarks, a My Bookmarks page, and ffmpeg clip extraction.";
+    public override string Description => "Bookmark moments in movies and episodes, name them, and turn them into clips.";
 
     /// <inheritdoc />
     public IEnumerable<PluginPageInfo> GetPages()

@@ -347,7 +347,7 @@ internal sealed class BookmarkAdminTools : IBookmarkAdminTools
     /// <inheritdoc />
     public IDictionary<string, object?> CheckShortcut(string? combo)
         => _jellyfinEnhanced.CheckShortcut(BookmarksKit.BookmarkNowShortcutName, combo)
-            ?? throw new InvalidOperationException("Bookmarks' shortcut setting isn't known to the kit.");
+            ?? throw new InvalidOperationException("Bookmarks couldn't find its shortcut setting.");
 
     /// <inheritdoc />
     public async Task<IDictionary<string, object?>> ConfirmClipFolderAsync(string? rootId, bool? dryRun, Guid adminId, CancellationToken cancellationToken)

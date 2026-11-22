@@ -16,7 +16,7 @@ using Xunit;
 namespace Jellyfin.Plugins.Repo.Tests;
 
 /// <summary>
-/// The Access Roles README's recovery line ("Recovery after the plugin folder was deleted with the mirror on"), run as
+/// The Access Roles DEVELOPMENT.md's recovery line ("Recovery after the plugin folder was deleted with the mirror on"), run as
 /// it is there but for the server's address, the key and the data file, in Windows
 /// PowerShell 5.1 (and PowerShell 7 when it is installed) against a loopback stand-in for Jellyfin's two user routes: each
 /// policy posted back as UTF-8 with its charset, non-ASCII tags and all, and nothing of it changed but the flag. The stand-in
@@ -27,7 +27,7 @@ public sealed class AccessRolesRecoveryLineTests
 {
     private const string Key = "recovery-line-test-key";
 
-    private static readonly string Readme = Path.Combine(PluginIdentityChecks.FindRepositoryRoot(), "plugins", "AccessRoles", "README.md");
+    private static readonly string Readme = Path.Combine(PluginIdentityChecks.FindRepositoryRoot(), "plugins", "AccessRoles", "DEVELOPMENT.md");
 
     // The data file's PreferenceMirror keys, as the store writes them (Guid "D"), and a role name that isn't ASCII either.
     private static readonly Guid Kid = Guid.Parse("4b606ec3-8c35-4458-9a17-562d8125cb0c");

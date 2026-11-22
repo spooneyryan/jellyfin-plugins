@@ -1566,7 +1566,7 @@ test('the Overview: the chips say what enforces, the web client, the sync and it
     assert.equal(off.root.querySelector('#AccessRolesDegraded').hasAttribute('hidden'), true, 'a read-only file can\'t be ended from the page');
     const offItems = all(off.root.querySelector('#AccessRolesServerWide'), 'li').map((li) => li.textContent);
     assert.ok(offItems[0].includes('(Redact)'), offItems[0]);
-    assert.equal(offItems[1], 'Restart: not blocked; anyone who can reach the server can restart it, as on a stock 10.11.5. Shutdown: administrators only, as Jellyfin itself allows.');
+    assert.equal(offItems[1], 'Restart: not blocked; anyone who can reach the server can restart it, as on a stock Jellyfin server. Shutdown: administrators only, as Jellyfin itself allows.');
     assert.ok(offItems[2].includes('is not trimmed'), offItems[2]);
     assert.ok(offItems[3].startsWith('Library leak hardening: Off;'), offItems[3]);
     assert.ok(offItems[4].includes('(ShowUntilKnown)'), offItems[4]);
@@ -2363,7 +2363,7 @@ test('Release all locks previews whom it releases and how, the box adds the orig
     // On 10.11.5 Disable waits for a restart, and a disabled plugin's uninstall isn't called.
     assert.ok(box.textContent.includes('or uninstall, while Access Roles is still enabled'), box.textContent);
     assert.ok(box.textContent.includes('takes effect only at the next server restart'), box.textContent);
-    assert.ok(box.textContent.includes('Jellyfin 10.11 deletes a disabled plugin\'s folder at that restart'), box.textContent);
+    assert.ok(box.textContent.includes('Jellyfin may also delete a disabled plugin\'s folder at that restart'), box.textContent);
     assert.ok(box.textContent.includes('uninstalling a disabled plugin can\'t put anything back'), box.textContent);
     assert.ok(!box.textContent.includes('stops its settings locks at once'));
     assert.equal(confirm.disabled, true, 'nothing to confirm before a preview');

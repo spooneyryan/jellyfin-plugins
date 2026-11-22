@@ -59,7 +59,7 @@ public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
     public override Guid Id => Guid.Parse(PluginId);
 
     /// <inheritdoc />
-    public override string Description => "Find duplicate movies across your libraries.";
+    public override string Description => "Find the movies you have more than once, and preview moving media.";
 
     /// <inheritdoc />
     /// <remarks>Jellyfin's <c>ConfigurationChanged</c> gives only the new settings; the index needs the old ones too, to

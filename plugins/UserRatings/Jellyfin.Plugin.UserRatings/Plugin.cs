@@ -42,13 +42,13 @@ public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
     public static Plugin? Instance { get; private set; }
 
     /// <inheritdoc />
-    public override string Name => "User Ratings";
+    public override string Name => "User Ratings And Reviews";
 
     /// <inheritdoc />
     public override Guid Id => Guid.Parse(PluginId);
 
     /// <inheritdoc />
-    public override string Description => "Five-star ratings with half stars and reviews, shared by every member of the server.";
+    public override string Description => "Lets everyone on your server rate and review what they watch, from half a star to five stars.";
 
     /// <summary>
     /// Gets the dashboard pages: the one User Ratings page, its settings page, first and not in the main menu, so the

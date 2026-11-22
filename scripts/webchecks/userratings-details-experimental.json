@@ -1,5 +1,5 @@
 {
-  "name": "User Ratings 1.0.2.0: the details page's section in jellyfin-web 10.11.5's experimental layout (the legacy details view) as viewer: mounted before the cast; Right ×7 and Enter save 3.5; a review written and edited; item to item with a change waiting saves it once; Back reads the item again; Delete. The member's rows are deleted at the end.",
+  "name": "User Ratings 1.0.3.0: the details page's section in jellyfin-web 10.11.5's experimental layout (the legacy details view) as viewer: mounted before the cast; Right ×7 and Enter save 3.5; a review written and edited; item to item with a change waiting saves it once; Back reads the item again; Delete. The member's rows are deleted at the end.",
   "failOnException": false,
   "timeout": 30000,
   "steps": [
@@ -22,14 +22,14 @@
       "reload": true
     },
     {
-      "name": "the layout applied, User Ratings 1.0.2.0 started",
+      "name": "the layout applied, User Ratings 1.0.3.0 started",
       "waitFor": "document.documentElement.classList.contains('layout-desktop') && !!window.ApiClient && !!ApiClient.getCurrentUserId() && !!(window.__jfkit && window.__jfkit.jfur)",
       "timeout": 40000
     },
     {
-      "name": "the served script is 1.0.2.0",
-      "assert": "window.__jfkit.jfur.version === '1.0.2.0'",
-      "message": "User Ratings 1.0.2.0 is not the script the page loaded"
+      "name": "the served script is 1.0.3.0",
+      "assert": "window.__jfkit.jfur.version === '1.0.3.0'",
+      "message": "User Ratings 1.0.3.0 is not the script the page loaded"
     },
     {
       "name": "Long Test Movie",

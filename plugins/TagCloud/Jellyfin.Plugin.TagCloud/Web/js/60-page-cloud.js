@@ -1013,7 +1013,7 @@ function tcPage(body, params, context, caps) {
                 if (c) {
                     openSaved(c, params.show === '1' ? false : undefined);
                 } else {
-                    status.append(kit.notice({ kind: 'info', text: 'That saved cloud isn’t there any more.' }));
+                    status.append(kit.notice({ kind: 'info', text: 'That saved cloud isn\'t there any more.' }));
                     cloud.savedId = null;
                 }
             }

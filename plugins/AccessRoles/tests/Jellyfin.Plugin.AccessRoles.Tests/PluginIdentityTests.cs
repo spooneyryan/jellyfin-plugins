@@ -28,8 +28,8 @@ public sealed class PluginIdentityTests : IDisposable
         Assert.Equal(("Access Roles", "7cbc1019-49a5-4b97-8aa2-279de946ef88"), (Yaml.Name, Yaml.Guid));
         Assert.Equal(PluginIdentityChecks.AssignedGuids["Access Roles"], Guid.Parse(Yaml.Guid));
 
-        // Development builds were 0.9.<n>.0 (0.9.1.0 to 0.9.16.0); 1.0.0.0 was the first release, 1.0.1.0 its fixes, 1.0.2.0 corrected texts, and 1.0.3.0 the owner name.
-        Assert.Equal(JellyfinLine.Is12 ? "2.0.0.0" : "1.0.3.0", Yaml.Version);
+        // Development builds were 0.9.<n>.0 (0.9.1.0 to 0.9.16.0); 1.0.0.0 was the first release, 1.0.1.0 its fixes, 1.0.2.0 corrected texts, 1.0.3.0 the owner name, and 1.0.4.0 (2.0.1.0 for Jellyfin 12) corrected texts.
+        Assert.Equal(JellyfinLine.Is12 ? "2.0.1.0" : "1.0.4.0", Yaml.Version);
         Assert.Empty(PluginIdentityChecks.CheckVersionFormat(Yaml.Version));
         Assert.Empty(PluginIdentityChecks.CheckTargetAbi(Yaml));
         Assert.Equal(["Jellyfin.Plugin.AccessRoles.dll"], Yaml.Artifacts);
@@ -55,7 +55,7 @@ public sealed class PluginIdentityTests : IDisposable
         var plugin = (Plugin)PluginIdentityChecks.CreatePlugin(typeof(Plugin), _scratch.FullName);
         var pages = plugin.GetPages().ToList();
 
-        Assert.Empty(PluginIdentityChecks.CheckPages(pages, Yaml.Name, typeof(Plugin).Assembly.GetManifestResourceNames()));
+        Assert.Empty(PluginIdentityChecks.CheckPages(pages, "AccessRoles", typeof(Plugin).Assembly.GetManifestResourceNames()));
         Assert.Equal(2, pages.Count);
         Assert.Equal(("AccessRoles", "Access Roles", true), (pages[0].Name, pages[0].DisplayName, pages[0].EnableInMainMenu));
         Assert.Equal("Jellyfin.Plugin.AccessRoles.Configuration.configPage.html", pages[0].EmbeddedResourcePath);

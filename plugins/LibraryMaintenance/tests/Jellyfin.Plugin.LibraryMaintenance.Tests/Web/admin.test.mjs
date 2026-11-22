@@ -1131,7 +1131,7 @@ function answer(page, path, changes) {
 
 const MODE_AND_WAIT = [
     { Field: 'DefaultMatchMode', Label: 'Default match mode', From: 'Title + Year', To: 'Title only' },
-    { Field: 'RequestWaitSeconds', Label: 'Wait for a build', From: '5 s', To: '10 s' }
+    { Field: 'RequestWaitSeconds', Label: 'Wait for a build (seconds)', From: '5 s', To: '10 s' }
 ];
 
 test('the Settings tab shows the saved settings: switches, selects that keep a newer value, toggles, a folder or phrase a line', { skip }, async () => {
@@ -1201,7 +1201,7 @@ test('the Settings tab has the web client\'s and Move\'s switches, says not to u
     assert.deepEqual(ids.map((id) => byId(page, id).getAttribute('role')), ['switch', 'switch', 'switch', 'switch']);
     assert.deepEqual(ids.map((id) => byId(page, id).getAttribute('aria-checked')), ['false', 'true', 'false', 'true']);
     assert.deepEqual(ids.map((id) => byId(page, id).getAttribute('aria-describedby')), ids.map((id) => id + 'Hint'));
-    assert.match(textOf(page, 'LibraryMaintenanceSettingsWebNote'), /not Disable on Jellyfin's Plugins page: on Jellyfin 10\.11\.5 a disabled plugin is deleted at the next start\./);
+    assert.match(textOf(page, 'LibraryMaintenanceSettingsWebNote'), /not Disable on Jellyfin's Plugins page, which can remove the plugin at the next start\./);
     assert.match(textOf(page, 'LibraryMaintenanceSettingsMoveHint'), /^This version only previews a move: nothing is moved\./);
 
     answer(page, SETTINGS, { Changes: [{ Field: 'EnableWebUi', Label: 'Add Library Maintenance to the web client', From: 'Off', To: 'On' }, { Field: 'MoveEnabled', Label: 'Move media', From: 'On', To: 'Off' }] });
@@ -1234,7 +1234,7 @@ test('a save is a dry run with the version; a change that leaves the index\'s sc
     assert.deepEqual(sent[0].body, savedSettings({ DefaultMatchMode: 'Title', RequestWaitSeconds: 10 }));
     assert.deepEqual(sent[1].body, sent[0].body);
     assert.equal(review(page), null, 'no dialog: the scope is the same');
-    assert.equal(textOf(page, 'LibraryMaintenanceSettingsMessage'), 'Saved: Default match mode, Wait for a build.');
+    assert.equal(textOf(page, 'LibraryMaintenanceSettingsMessage'), 'Saved: Default match mode, Wait for a build (seconds).');
 
     // Read again (the new version goes with the next save), and the index and the diagnostics with them.
     assert.equal(gets(page).length, 2);
@@ -1474,7 +1474,7 @@ test('an import reads the file and shows its dry run (where it came from, what c
     const envelope = { Format: 'jellyfin-plugin-export/1', Plugin: 'Library Maintenance', PluginVersion: '1.0.4.0', SchemaVersion: 1, Settings: savedSettings({ RequestWaitSeconds: 9 }), Data: {} };
     const warning = 'The file is from another server: its libraries and folders are this server\'s only where their ids and paths are the same.';
     answer(page, IMPORT, {
-        Changes: [{ Field: 'RequestWaitSeconds', Label: 'Wait for a build', From: '5 s', To: '9 s' }],
+        Changes: [{ Field: 'RequestWaitSeconds', Label: 'Wait for a build (seconds)', From: '5 s', To: '9 s' }],
         Source: { PluginVersion: '1.0.4.0', ExportedUtc: '2026-11-01T12:00:00Z', SameServer: false },
         Warnings: [warning]
     });
@@ -1498,7 +1498,7 @@ test('an import reads the file and shows its dry run (where it came from, what c
     assert.equal(dialog.querySelector('h3').textContent, 'Import these settings?');
     assert.match(textOf(page, 'LibraryMaintenanceSettingsSource'), /^The file holds the settings of Library Maintenance 1\.0\.4\.0, exported .+ on another server\.$/);
     assert.ok(dialog.textContent.includes('The changes made on this page and not saved are dropped.'));
-    assert.deepEqual(rows(page, 'LibraryMaintenanceSettingsChanges'), ['Wait for a build5 s → 9 s']);
+    assert.deepEqual(rows(page, 'LibraryMaintenanceSettingsChanges'), ['Wait for a build (seconds)5 s → 9 s']);
     assert.deepEqual(byId(page, 'LibraryMaintenanceSettingsWarnings').querySelectorAll('li').map((li) => li.textContent), [warning]);
 
     page.respond('GET', SETTINGS, settingsView({ RequestWaitSeconds: 9 }, { Version: 'cccccccccccccccc' }));
@@ -1506,7 +1506,7 @@ test('an import reads the file and shows its dry run (where it came from, what c
     await page.flush();
     assert.deepEqual(posts(page, IMPORT).map((e) => e.query.dryRun), ['true', 'false']);
     assert.deepEqual(posts(page, IMPORT)[1].body, envelope);
-    assert.equal(textOf(page, 'LibraryMaintenanceSettingsTransfer'), 'Imported: Wait for a build.');
+    assert.equal(textOf(page, 'LibraryMaintenanceSettingsTransfer'), 'Imported: Wait for a build (seconds).');
     assert.equal(byId(page, 'LibraryMaintenanceSettingsWait').value, '9');
     assert.equal(page.document.activeElement, importButton);
     assert.equal(page.errors.length, 0, page.errors.join('\n'));

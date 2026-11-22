@@ -1,5 +1,5 @@
 {
-  "name": "User Ratings 1.0.2.0, a 409 with two windows: as viewer in two browser contexts (two windows of the same member): window A opens Edit on its review of Long Test Movie; window B saves another review; window A then changes its stars, whose answer carries window B's row; window A's Save sends the review's time its form started from (IfReviewUpdatedUtc) and gets the 409, window B's review stays and window A's text stays in its form, with the form saying so (the reviewer's overwrite), and the 409 shows window B's review as it is now, read-only. The control, on Tagged Movie: this window's stars and then another window's (through the API) move the row's time but never the review's, and Save goes through with the review's own time. The member's rows are deleted at the end.",
+  "name": "User Ratings 1.0.3.0, a 409 with two windows: as viewer in two browser contexts (two windows of the same member): window A opens Edit on its review of Long Test Movie; window B saves another review; window A then changes its stars, whose answer carries window B's row; window A's Save sends the review's time its form started from (IfReviewUpdatedUtc) and gets the 409, window B's review stays and window A's text stays in its form, with the form saying so (the reviewer's overwrite), and the 409 shows window B's review as it is now, read-only. The control, on Tagged Movie: this window's stars and then another window's (through the API) move the row's time but never the review's, and Save goes through with the review's own time. The member's rows are deleted at the end.",
   "failOnException": false,
   "timeout": 30000,
   "steps": [
@@ -22,14 +22,14 @@
       "reload": true
     },
     {
-      "name": "the layout applied, User Ratings 1.0.2.0 started",
+      "name": "the layout applied, User Ratings 1.0.3.0 started",
       "waitFor": "document.documentElement.classList.contains('layout-desktop') && !!window.ApiClient && !!ApiClient.getCurrentUserId() && !!(window.__jfkit && window.__jfkit.jfur)",
       "timeout": 40000
     },
     {
-      "name": "the served script is 1.0.2.0",
-      "assert": "window.__jfkit.jfur.version === '1.0.2.0'",
-      "message": "User Ratings 1.0.2.0 is not the script the page loaded"
+      "name": "the served script is 1.0.3.0",
+      "assert": "window.__jfkit.jfur.version === '1.0.3.0'",
+      "message": "User Ratings 1.0.3.0 is not the script the page loaded"
     },
     {
       "name": "Long Test Movie",
@@ -116,7 +116,7 @@
       "reload": true
     },
     {
-      "name": "window-b: User Ratings 1.0.2.0 started",
+      "name": "window-b: User Ratings 1.0.3.0 started",
       "waitFor": "!!window.ApiClient && !!ApiClient.getCurrentUserId() && !!(window.__jfkit && window.__jfkit.jfur)",
       "timeout": 40000
     },

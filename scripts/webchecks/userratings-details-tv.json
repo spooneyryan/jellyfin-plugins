@@ -1,5 +1,5 @@
 {
-  "name": "User Ratings 1.0.2.0: the details page's section on Long Test Movie as viewer in jellyfin-web 10.11.5's TV layout: the title no tab stop and the slider the only focusable control of its row; the D-pad reaches it from Play; Left and Right consumed with the focus kept; OK saves; Up and Down leave and come back, Down to Clear or Write a review; Back with a change waiting leaves the page and the change is saved once; a Delete answered 503 leaves the focus on Delete, never the page's body. The member's row is deleted at the end.",
+  "name": "User Ratings 1.0.3.0: the details page's section on Long Test Movie as viewer in jellyfin-web 10.11.5's TV layout: the title no tab stop and the slider the only focusable control of its row; the D-pad reaches it from Play; Left and Right consumed with the focus kept; OK saves; Up and Down leave and come back, Down to Clear or Write a review; Back with a change waiting leaves the page and the change is saved once; a Delete answered 503 leaves the focus on Delete, never the page's body. The member's row is deleted at the end.",
   "failOnException": false,
   "timeout": 30000,
   "steps": [
@@ -22,14 +22,14 @@
       "reload": true
     },
     {
-      "name": "the layout applied, User Ratings 1.0.2.0 started",
+      "name": "the layout applied, User Ratings 1.0.3.0 started",
       "waitFor": "document.documentElement.classList.contains('layout-tv') && !!window.ApiClient && !!ApiClient.getCurrentUserId() && !!(window.__jfkit && window.__jfkit.jfur)",
       "timeout": 40000
     },
     {
-      "name": "the served script is 1.0.2.0",
-      "assert": "window.__jfkit.jfur.version === '1.0.2.0'",
-      "message": "User Ratings 1.0.2.0 is not the script the page loaded"
+      "name": "the served script is 1.0.3.0",
+      "assert": "window.__jfkit.jfur.version === '1.0.3.0'",
+      "message": "User Ratings 1.0.3.0 is not the script the page loaded"
     },
     {
       "name": "Long Test Movie",

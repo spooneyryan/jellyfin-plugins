@@ -53,7 +53,7 @@ public sealed class ClientScriptTests
     {
         var script = Scripts.Value.ClientScriptText;
 
-        Assert.Contains("var KIT_BUILD = {\"plugin\":\"Bookmarks\",\"prefix\":\"jfbm\",\"route\":\"Bookmarks\",\"version\":\"" + JellyfinLine.VersionOf(typeof(Plugin)) + "\",\"kit\":\"" + KitBuild.KitVersion + "\"", script, StringComparison.Ordinal);
+        Assert.Contains("var KIT_BUILD = {\"plugin\":\"Bookmarks And Clips\",\"prefix\":\"jfbm\",\"route\":\"Bookmarks\",\"version\":\"" + JellyfinLine.VersionOf(typeof(Plugin)) + "\",\"kit\":\"" + KitBuild.KitVersion + "\"", script, StringComparison.Ordinal);
         Assert.Contains("// ---- Web/js/90-main.js\n", script, StringComparison.Ordinal);
         Assert.Contains(".jfbm-row{", script, StringComparison.Ordinal);
         Assert.Contains(".jfbm-toast{", script, StringComparison.Ordinal);

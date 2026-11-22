@@ -202,7 +202,7 @@ test('importing adds nothing and sends nothing; mount builds the tab, and the fi
     assert.equal(typeof t.mounted.refresh, 'function');
     assert.ok(t.page.document.getElementById('jfur-admin-styles'), 'the admin styles');
     assert.equal(calls(t.page, 'GET').length, 1);
-    assert.deepEqual(plain(t.all('.jfur-set-group-title').map((h) => h.textContent)), ['Ratings and reviews', 'Reviewers', 'Details page', 'Web client', 'Data and retention', 'Jellyfin Enhanced', 'Coming with version 1.1']);
+    assert.deepEqual(plain(t.all('.jfur-set-group-title').map((h) => h.textContent)), ['Ratings and reviews', 'Reviewers', 'Details page', 'Web client', 'Data and retention', 'Jellyfin Enhanced', 'Coming later']);
     assert.deepEqual(plain(t.all('.jfur-set-row').map((r) => r.getAttribute('data-jfur-field'))), ORDER);
     assert.equal(ORDER.length, 32);
     assert.equal(shown(t.q('.jfur-set-save')), true);
@@ -260,12 +260,12 @@ test('each setting has its label, its help and its default, as text; a switch, a
     }
 
     assert.ok(!help(t, 'ShowFallbackNav').includes('restart'));
-    assert.equal(text(t.q('[data-jfur-group="later"] .jfur-set-group-note')), 'Kept for what version 1.1 brings: rating badges on posters, the Top Rated page, and the copy into Jellyfin\'s own ratings. They change nothing yet.');
+    assert.equal(text(t.q('[data-jfur-group="later"] .jfur-set-group-note')), 'Kept for features still to come: rating badges on posters, the Top Rated page, and the copy into Jellyfin\'s own ratings. They change nothing yet.');
     assert.ok(t.q('[data-jfur-group="je"] .jfur-set-group-note') === null, 'the banner setting works: no "later" note');
     const mirror = control(t, 'MirrorToUserData');
     assert.equal(mirror.disabled, true);
     assert.equal(mirror.getAttribute('aria-checked'), 'false');
-    assert.ok(help(t, 'MirrorToUserData').includes('It can\'t be turned on until that is checked. This can\'t be turned on yet. Default: Off.'));
+    assert.ok(help(t, 'MirrorToUserData').includes('so this waits until that is checked. This can\'t be turned on yet. Default: Off.'));
     mirror.click();
     assert.equal(mirror.getAttribute('aria-checked'), 'false', 'it stays off');
     assert.equal(t.page.errors.length, 0);

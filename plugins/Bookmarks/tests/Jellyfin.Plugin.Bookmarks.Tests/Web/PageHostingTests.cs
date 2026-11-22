@@ -32,9 +32,9 @@ namespace Jellyfin.Plugin.Bookmarks.Tests.Web;
 /// </summary>
 public sealed class PageHostingTests
 {
-    private const string BookmarksShell = "<div class=\"jfbm-page\" data-jfbm-page=\"bookmarks\"><p class=\"jfbm-shell-note\">This page needs the Bookmarks web UI, which is turned off or failed to load.</p></div>";
+    private const string BookmarksShell = "<div class=\"jfbm-page\" data-jfbm-page=\"bookmarks\"><p class=\"jfbm-shell-note\">This page needs the Bookmarks And Clips web UI, which is turned off or failed to load.</p></div>";
     private const string BookmarksOff = "<div class=\"jfbm-page\"><p class=\"jfbm-shell-note\">My Bookmarks is turned off by your server admin.</p></div>";
-    private const string ClipsShell = "<div class=\"jfbm-page\" data-jfbm-page=\"clips\"><p class=\"jfbm-shell-note\">This page needs the Bookmarks web UI, which is turned off or failed to load.</p></div>";
+    private const string ClipsShell = "<div class=\"jfbm-page\" data-jfbm-page=\"clips\"><p class=\"jfbm-shell-note\">This page needs the Bookmarks And Clips web UI, which is turned off or failed to load.</p></div>";
     private const string ClipsOff = "<div class=\"jfbm-page\"><p class=\"jfbm-shell-note\">My Clips is turned off by your server admin.</p></div>";
 
     private static readonly string WebJs = Path.Combine(PluginIdentityChecks.FindRepositoryRoot(), "plugins", "Bookmarks", "Jellyfin.Plugin.Bookmarks", "Web", "js");
@@ -171,7 +171,7 @@ public sealed class PageHostingTests
         Assert.Contains("data-jfbm-pages>{\"mode\":\"FallbackOnly\",\"nav\":true,\"off\":[],\"pages\":[\"bookmarks\",\"clips\",\"demo-a\",\"demo-b\"]}</script>", html, StringComparison.Ordinal);
         Assert.Contains("data-jfbm-pages>{\"mode\":\"Auto\",\"nav\":true,\"off\":[\"demo-b\"],\"pages\":[\"bookmarks\",\"clips\",\"demo-a\",\"demo-b\"]}</script>", htmlOff, StringComparison.Ordinal);
         Assert.Equal(
-            "<div class=\"jfbm-page\" data-jfbm-page=\"demo-a\"><p class=\"jfbm-shell-note\">This page needs the Bookmarks web UI, which is turned off or failed to load.</p></div>",
+            "<div class=\"jfbm-page\" data-jfbm-page=\"demo-a\"><p class=\"jfbm-shell-note\">This page needs the Bookmarks And Clips web UI, which is turned off or failed to load.</p></div>",
             await shellA.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
         Assert.Contains("Demo page B is turned off by your server admin.", await shellB.Content.ReadAsStringAsync(TestContext.Current.CancellationToken), StringComparison.Ordinal);
     }

@@ -15,7 +15,5 @@
   <rect x="110" y="170" width="380" height="380" rx="72" fill="url(#accent)"/>
   <g transform="translate(150,210) scale(1)"><path fill="#fff" d="M150 30 l35 72 79 11 -57 56 14 79 -71 -38 -71 38 14 -79 -57 -56 79 -11z"/>
     <circle cx="150" cy="150" r="30" fill="url(#accent)"/><path fill="url(#accent)" d="M108 225 a42 38 0 0 1 84 0 z"/></g>
-  <text x="560" y="335" font-size="92" font-weight="700" fill="#fff">User Ratings</text>
-  <text x="560" y="420" font-size="40" fill="#cfd6e6">Your members’ own ratings and</text><text x="560" y="472" font-size="40" fill="#cfd6e6">reviews</text>
-  <text x="560" y="250" font-size="34" font-weight="600" letter-spacing="4" fill="#b4c4e4">JELLYFIN PLUGIN</text>
+  <text x="560" y="345" font-size="73" font-weight="700" fill="#fff">User Ratings And</text><text x="560" y="427" font-size="73" font-weight="700" fill="#fff">Reviews</text>
 </svg>

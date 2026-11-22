@@ -6,8 +6,9 @@ groups, and save searches, private or shared. Every search runs as the signed-in
 A saved search can drive an **auto-collection**, a Jellyfin collection kept equal to its results. This is its technical documentation; the user guide is [README.md](README.md), the release notes the `changelog` in
 [build.yaml](build.yaml).
 
-Version **1.2.0** for Jellyfin **10.11.5** (`net9.0`, `build.yaml`) and **2.1.0** for Jellyfin **12.4**
-(`-p:JellyfinTarget=12`, `net10.0`, `build.12.yaml`), not yet tagged; the releases before it are 1.1.2
+Version **1.2.1** for Jellyfin **10.11.5** (`net9.0`, `build.yaml`) and **2.1.1** for Jellyfin **12.4**
+(`-p:JellyfinTarget=12`, `net10.0`, `build.12.yaml`), not yet tagged; the releases before it are 2.1.0
+(`smartsearch/v2.1.0`), 1.1.2
 (`smartsearch/v1.1.2`), 1.1.1 (`smartsearch/v1.1.1`), 1.1.0 (`smartsearch/v1.1.0`) and 1.0.0 (`smartsearch/v1.0.0`),
 and 2.0.0 for Jellyfin 12.
 

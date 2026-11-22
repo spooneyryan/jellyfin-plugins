@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>Bookmarks</title>
+    <title>Bookmarks And Clips</title>
 </head>
 <body>
     <div id="BookmarksConfigPage" data-role="page" class="page type-interior pluginConfigurationPage" data-require="emby-input,emby-button,emby-select,emby-checkbox">
@@ -1401,8 +1401,7 @@
                         + 'the server finishes each as soon as it can reach the clip\'s folder and save the bookmark data, trying again after a minute, then less often while nothing changes (every 16 minutes at most).'
                         + (unreadable.length > 0
                             ? ' ' + count(renames.Unreadable || unreadable.length, 'note', 'notes') + ' can\'t be read (' + unreadable.join(', ') + ', in the plugin\'s data folder): look at that clip, then delete the note; its clip is held until then.'
-                            : '')
-                        + ' Don\'t go back to Bookmarks 1.1 while any is waiting.', 'bookmarksClipRenamesLine', 'alert'));
+                            : ''), 'bookmarksClipRenamesLine', 'alert'));
                 }
 
                 function renderDiagnostics(d) {
@@ -1414,7 +1413,7 @@
                     var anchors = d.WebAnchors || {};
                     var reports = anchors.Reports || {};
                     summary.replaceChildren(
-                        element('p', 'Bookmarks ' + d.PluginVersion + ', kit ' + d.KitVersion + ', built for Jellyfin ' + abi.Target + ' (server ' + abi.Server + ', ' + (abi.Active ? 'active' : 'inactive') + ').'),
+                        element('p', 'Bookmarks ' + d.PluginVersion + ', built for Jellyfin ' + abi.Target + ' (server ' + abi.Server + ', ' + (abi.Active ? 'active' : 'inactive') + ').'),
                         element('p', 'Bookmark file: ' + (store.File || store.Error || 'unknown') + (store.Status ? ' (schema ' + store.Version + ', ' + store.Status + ')' : '') + '.'));
 
                     // The bookmark file: the store's own sentence on how it came up. Read-only

@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using Jellyfin.Plugin.Kit.Library;
+using Jellyfin.Plugin.Kit.Users;
 using MediaBrowser.Model.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -54,8 +56,12 @@ public abstract class KitMaintenanceTaskBase : IScheduledTask
     /// <inheritdoc />
     public string Key => _pluginName.Replace(" ", string.Empty, StringComparison.Ordinal) + "Maintenance";
 
-    /// <inheritdoc />
-    public string Description => "Daily upkeep of the plugin's data: snapshots, records whose library item is gone (detached, archived, reattached), users no longer on the server.";
+    /// <summary>
+    /// Gets the task's description on the Scheduled Tasks page. It names only the kit's upkeep the plugin registered: the
+    /// records whose library item is gone with <c>AddKitDetachedRecords</c>, the users no longer on the server with
+    /// <c>AddKitUsers</c> (read from the registrations, nothing is created).
+    /// </summary>
+    public string Description => Describe(_services);
 
     /// <inheritdoc />
     public string Category => _pluginName;
@@ -75,4 +81,22 @@ public abstract class KitMaintenanceTaskBase : IScheduledTask
     /// <inheritdoc />
     public IEnumerable<TaskTriggerInfo> GetDefaultTriggers()
         => [new TaskTriggerInfo { Type = TaskTriggerInfoType.DailyTrigger, TimeOfDayTicks = _dailyAt.Ticks }];
+
+    // The description from the plugin's registrations; with no way to ask (not Microsoft's container), the full text.
+    internal static string Describe(IServiceProvider services)
+    {
+        var registered = services.GetService<IServiceProviderIsService>();
+        var parts = new List<string> { "snapshots" };
+        if (registered?.IsService(typeof(DetachedRecords)) ?? true)
+        {
+            parts.Add("records whose library item is gone (detached, archived, reattached)");
+        }
+
+        if (registered?.IsService(typeof(UserReconciler)) ?? true)
+        {
+            parts.Add("users no longer on the server");
+        }
+
+        return "Daily upkeep of the plugin's data: " + string.Join(", ", parts) + ".";
+    }
 }

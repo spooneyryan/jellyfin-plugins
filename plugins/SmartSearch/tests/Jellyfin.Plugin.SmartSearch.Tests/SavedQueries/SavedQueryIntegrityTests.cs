@@ -148,7 +148,7 @@ public sealed class SavedQueryIntegrityTests
         var notes = Notes(report);
         Assert.Contains("Record 2 has a query larger than a saved query may be (64 KB) and was skipped.", notes);
         Assert.Contains("Record 3 uses an administrator-only field, and its owner here isn't an administrator: it was skipped.", notes);
-        Assert.Contains(notes, n => n.StartsWith("1 queries would take their owner past", StringComparison.Ordinal));
+        Assert.Contains(notes, n => n.StartsWith("1 query would take its owner past", StringComparison.Ordinal));
     }
 
     [Fact]

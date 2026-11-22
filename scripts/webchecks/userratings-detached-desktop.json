@@ -1,5 +1,5 @@
 {
-  "name": "User Ratings 1.0.2.0, detached ratings: in the default sandbox as admin, with viewer in their own window, the desktop layout: three detached ratings made by importing a synthetic export by id (the sandbox's own export with its ratings replaced: viewer's with a review, two of viewer2's, on titles the library lacks, named as Long Test Movie, detached as removed, missing and not matched); the Data tab's detached list shows them oldest first, each title and name as isolated text, the member, stars and review, why and when, Long Test Movie to go back to by how it matches, and Purge… named for it; a reason reads the list for it alone; Relink asks first (Cancel focused), then gives viewer's rating back to Long Test Movie (POST 204, the list read again, viewer sees their stars and review on it); one purged meanwhile through the API: its Relink is the 404, whose note stays while the list is read again without it; Purge… asks first, then deletes the last for good (DELETE 204, the note cleared, the focus kept); none of the three detached any more, and a dry run of the same file skips both purged ratings as purged before (PreviouslyPurged). Every rating on Long Test Movie removed at the end, and none of the run's ratings left detached.",
+  "name": "User Ratings 1.0.3.0, detached ratings: in the default sandbox as admin, with viewer in their own window, the desktop layout: three detached ratings made by importing a synthetic export by id (the sandbox's own export with its ratings replaced: viewer's with a review, two of viewer2's, on titles the library lacks, named as Long Test Movie, detached as removed, missing and not matched); the Data tab's detached list shows them oldest first, each title and name as isolated text, the member, stars and review, why and when, Long Test Movie to go back to by how it matches, and Purge… named for it; a reason reads the list for it alone; Relink asks first (Cancel focused), then gives viewer's rating back to Long Test Movie (POST 204, the list read again, viewer sees their stars and review on it); one purged meanwhile through the API: its Relink is the 404, whose note stays while the list is read again without it; Purge… asks first, then deletes the last for good (DELETE 204, the note cleared, the focus kept); none of the three detached any more, and a dry run of the same file skips both purged ratings as purged before (PreviouslyPurged). Every rating on Long Test Movie removed at the end, and none of the run's ratings left detached.",
   "failOnException": false,
   "timeout": 30000,
   "steps": [
@@ -25,14 +25,14 @@
       "reload": true
     },
     {
-      "name": "viewer: User Ratings 1.0.2.0 started",
+      "name": "viewer: User Ratings 1.0.3.0 started",
       "waitFor": "!!window.ApiClient && !!ApiClient.getCurrentUserId() && !!(window.__jfkit && window.__jfkit.jfur)",
       "timeout": 40000
     },
     {
-      "name": "the served script is 1.0.2.0",
-      "assert": "window.__jfkit.jfur.version === '1.0.2.0'",
-      "message": "User Ratings 1.0.2.0 is not the script the page loaded"
+      "name": "the served script is 1.0.3.0",
+      "assert": "window.__jfkit.jfur.version === '1.0.3.0'",
+      "message": "User Ratings 1.0.3.0 is not the script the page loaded"
     },
     {
       "context": "main"
@@ -56,14 +56,14 @@
       "reload": true
     },
     {
-      "name": "admin: User Ratings 1.0.2.0 started",
+      "name": "admin: User Ratings 1.0.3.0 started",
       "waitFor": "!!window.ApiClient && !!ApiClient.getCurrentUserId() && !!(window.__jfkit && window.__jfkit.jfur)",
       "timeout": 40000
     },
     {
-      "name": "the served script is 1.0.2.0",
-      "assert": "window.__jfkit.jfur.version === '1.0.2.0'",
-      "message": "User Ratings 1.0.2.0 is not the script the page loaded"
+      "name": "the served script is 1.0.3.0",
+      "assert": "window.__jfkit.jfur.version === '1.0.3.0'",
+      "message": "User Ratings 1.0.3.0 is not the script the page loaded"
     },
     {
       "name": "the users' ids",

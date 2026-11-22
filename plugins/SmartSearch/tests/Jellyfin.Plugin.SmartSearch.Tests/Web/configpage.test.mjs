@@ -121,7 +121,7 @@ function chooseFile(view, text) {
 
 const REPORT = {
     DryRun: true, Mode: 'Merge', MapUsersBy: 'Id', SourcePluginVersion: '0.6.12.0', ExportedUtc: '2026-11-10T11:43:27Z', SchemaVersion: 1,
-    Users: { Mapped: [{ Id: 'a1', NewId: 'a1', Name: EVIL, Records: 2 }], Unknown: [{ Id: 'b2', Name: 'gone', Records: 1, Reason: 'No user of this id.' }] },
+    Users: { Mapped: [{ Id: 'a1', NewId: 'a1', Name: EVIL, Records: 2 }], Unknown: [{ Id: 'b2', Name: 'gone', Records: 1, Reason: 'NotOnThisServer' }] },
     Records: { Incoming: 3, Added: 1, Updated: 1, Unchanged: 0, KeptNewer: 0, Removed: 0, SkippedUnknownUser: 1, Skipped: 0 },
     Notes: ['A query of <b>gone</b> was skipped.'],
     SafetySnapshot: null,
@@ -172,7 +172,7 @@ test('Import: a dry run of the chosen file shows what would change, the owners, 
     const report = view.q('#SmartSearchImportReport');
     assert.equal(report.querySelector('p').textContent, 'Dry run, nothing was changed. The file is an export of Smart Search 0.6.12.0 from '
         + new Date('2026-11-10T11:43:27Z').toLocaleString() + ', with 3 queries. The import would add 1, update 1, leave 0 unchanged, keep 0 newer here, remove 0, and skip 1 (1 of users not found here).');
-    assert.deepEqual(report.querySelectorAll('td').map((td) => td.textContent), [EVIL, 'Found', '2', 'gone', 'Not found: No user of this id.', '1']);
+    assert.deepEqual(report.querySelectorAll('td').map((td) => td.textContent), [EVIL, 'Found', '2', 'gone', 'Not found: no user here has this id', '1']);
     assert.equal(report.querySelectorAll('img, b, i').length, 0, 'markup stays text');
     assert.match(report.textContent, /A query of <b>gone<\/b> was skipped\./);
     assert.match(report.textContent, /1 auto-collection would lose the saved query it uses:/);
@@ -252,7 +252,7 @@ test('the snapshots: listed newest first, a restore checked first (nothing chang
         : { DryRun: false, RestoredFrom: 'saved-queries-20261109.json', Queries: 4, BrokenAutoCollections: [] }), { snapshots: list });
     const rows = view.q('#SmartSearchSnapshots').querySelectorAll('tr');
     assert.equal(rows.length, 3);
-    assert.deepEqual(rows[1].querySelectorAll('td').map((td) => td.textContent).slice(1), ['Before import', '2 KB', 'Check restore']);
+    assert.deepEqual(rows[1].querySelectorAll('td').map((td) => td.textContent).slice(1), ['Before an import', '2 KB', 'Check restore']);
     assert.deepEqual(rows[2].querySelectorAll('td').map((td) => td.textContent).slice(1, 2), ['Daily']);
     rows[2].querySelector('.smartSearchRestoreCheck').click();
     await view.settle();

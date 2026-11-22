@@ -205,7 +205,7 @@ function lmDuplicatesTab(ctx) {
         if (index.Version && broken.length > 0) {
             details.append(
                 lmEl('h4', { class: lmClass('heading'), text: 'Version links to repair' }),
-                lmEl('p', { class: lmClass('hint'), text: lmCount(index.BrokenEntries, 'entry has', 'entries have') + ' a broken version link. Repairing them arrives in Library Maintenance 1.1.' }),
+                lmEl('p', { class: lmClass('hint'), text: lmCount(index.BrokenEntries, 'entry has', 'entries have') + ' a broken version link. Repair comes in a later version.' }),
                 lmEl('table', { class: lmClass('table') }, lmEl('tbody', null, broken.map(function (state) {
                     return lmEl('tr', null, [lmEl('th', { scope: 'row', text: state.label }), lmEl('td', { text: String(states[state.key]) })]);
                 }))));

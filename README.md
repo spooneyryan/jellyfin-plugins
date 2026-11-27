@@ -32,20 +32,32 @@ To remove a plugin, uninstall it from **Dashboard → Plugins** rather than usin
 ## If Jellyfin won't start after an update
 
 Three plugins were renamed on 22 November 2026: Bookmarks became Bookmarks And Clips, Smart Search became Smart Search
-And Dynamic Collections, and User Ratings became User Ratings And Reviews. If you had one of them installed under its
-old name and then updated it, Jellyfin can end up with two copies of the plugin and refuse to start.
+And Dynamic Collections, and User Ratings became User Ratings And Reviews. Updating one of them from its old name leaves
+Jellyfin with two copies of the plugin, one under each name.
 
-To fix it:
+The current versions (Bookmarks And Clips 2.5.2, Smart Search And Dynamic Collections 2.1.2 and User Ratings And
+Reviews 2.0.2) sort this out on their own. After you install the update and restart, one of two things happens:
+
+- Jellyfin has already set the older copy aside, and the new copy simply runs.
+- Or the older copy is still running for this one start. The server's log then has a warning about it, the new copy
+  turns the older one off, and the Dashboard asks for a restart. Restart Jellyfin once more and the new copy takes over.
+
+The Plugins page may keep listing the older copy as disabled for a while. Jellyfin removes it when the server next
+starts fresh, for example after the computer restarts, and you can also remove it yourself with **Uninstall** on the
+Dashboard's Plugins page. Your bookmarks, clips, saved searches, dynamic collections, ratings and settings are all kept.
+
+If you installed one of the first renamed versions (2.5.1, 2.1.1 or 2.0.1) next to a copy under the old name, Jellyfin
+may not start at all. To fix it:
 
 1. Open the `plugins` folder inside Jellyfin's data folder.
 2. Delete the folder with the old name, for example `Bookmarks_2.5.0.0`. Keep the one with the new name, for example
    `Bookmarks And Clips_2.5.1.0`.
-3. Start Jellyfin again.
+3. Start Jellyfin again, and update the plugin from the catalog as usual.
+4. Open the settings page of each of these plugins and look the settings over. A plugin that was caught in the failed
+   start may be back at its default settings; set them again if so.
 
-Your bookmarks, clips, searches, collections and ratings are stored elsewhere and are kept.
-
-Those three updates have been taken out of the catalog while this is fixed, so for now the catalog lists the three
-plugins under their old names. A fixed version will follow.
+Your bookmarks, clips, saved searches, dynamic collections and ratings are stored separately from the settings, so they
+are kept.
 
 ## Questions and problems
 

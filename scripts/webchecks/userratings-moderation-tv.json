@@ -1,5 +1,5 @@
 {
-  "name": "User Ratings 1.0.3.0, moderation in the TV layout: in the default sandbox as admin in jellyfin-web 10.11.5's TV layout: the Moderation tab with the seeded reviews; OK on a Remove… opens the dialog with the focus on Cancel and its dry run; Down past the last control and Up past the first keep the focus inside it (no wrap, no way out) and the page where it was; Back (keyCode 461) closes it with the focus back on its Remove…; OK, Remove and OK remove the review, the focus on a Remove… of the list, never the page's body. Every rating on both movies removed and the synthetic member deleted at the end.",
+  "name": "User Ratings 1.0.4.0, moderation in the TV layout: in the default sandbox as admin in jellyfin-web 10.11.5's TV layout: the Moderation tab with the seeded reviews; OK on a Remove… opens the dialog with the focus on Cancel and its dry run; Down past the last control and Up past the first keep the focus inside it (no wrap, no way out) and the page where it was; Back (keyCode 461) closes it with the focus back on its Remove…; OK, Remove and OK remove the review, the focus on a Remove… of the list, never the page's body. Every rating on both movies removed and the synthetic member deleted at the end.",
   "failOnException": false,
   "timeout": 30000,
   "steps": [
@@ -22,14 +22,14 @@
       "reload": true
     },
     {
-      "name": "admin: User Ratings 1.0.3.0 started",
+      "name": "admin: User Ratings 1.0.4.0 started",
       "waitFor": "!!window.ApiClient && !!ApiClient.getCurrentUserId() && !!(window.__jfkit && window.__jfkit.jfur)",
       "timeout": 40000
     },
     {
-      "name": "the served script is 1.0.3.0",
-      "assert": "window.__jfkit.jfur.version === '1.0.3.0'",
-      "message": "User Ratings 1.0.3.0 is not the script the page loaded"
+      "name": "the served script is 1.0.4.0",
+      "assert": "window.__jfkit.jfur.version === '1.0.4.0'",
+      "message": "User Ratings 1.0.4.0 is not the script the page loaded"
     },
     {
       "name": "Long Test Movie",
@@ -72,14 +72,14 @@
       "reload": true
     },
     {
-      "name": "viewer: User Ratings 1.0.3.0 started",
+      "name": "viewer: User Ratings 1.0.4.0 started",
       "waitFor": "!!window.ApiClient && !!ApiClient.getCurrentUserId() && !!(window.__jfkit && window.__jfkit.jfur)",
       "timeout": 40000
     },
     {
-      "name": "the served script is 1.0.3.0",
-      "assert": "window.__jfkit.jfur.version === '1.0.3.0'",
-      "message": "User Ratings 1.0.3.0 is not the script the page loaded"
+      "name": "the served script is 1.0.4.0",
+      "assert": "window.__jfkit.jfur.version === '1.0.4.0'",
+      "message": "User Ratings 1.0.4.0 is not the script the page loaded"
     },
     {
       "name": "viewer: Long Test Movie",
@@ -121,14 +121,14 @@
       "reload": true
     },
     {
-      "name": "viewer2: User Ratings 1.0.3.0 started",
+      "name": "viewer2: User Ratings 1.0.4.0 started",
       "waitFor": "!!window.ApiClient && !!ApiClient.getCurrentUserId() && !!(window.__jfkit && window.__jfkit.jfur)",
       "timeout": 40000
     },
     {
-      "name": "the served script is 1.0.3.0",
-      "assert": "window.__jfkit.jfur.version === '1.0.3.0'",
-      "message": "User Ratings 1.0.3.0 is not the script the page loaded"
+      "name": "the served script is 1.0.4.0",
+      "assert": "window.__jfkit.jfur.version === '1.0.4.0'",
+      "message": "User Ratings 1.0.4.0 is not the script the page loaded"
     },
     {
       "name": "viewer2 on Long Test Movie: stars and a review through the API",

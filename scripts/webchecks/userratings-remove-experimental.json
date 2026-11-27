@@ -1,5 +1,5 @@
 {
-  "name": "User Ratings 1.0.3.0, a review removed from the details page: in the default sandbox, jellyfin-web 10.11.5's experimental layout: the details page's \"Remove…\" as in userratings-remove-desktop.json: none for viewer; the admin's on the other members' reviews only; Remove text only and Remove rating and review, each after its dry run; the chip and the Rate button as before. Every rating on the movie removed at the end.",
+  "name": "User Ratings 1.0.4.0, a review removed from the details page: in the default sandbox, jellyfin-web 10.11.5's experimental layout: the details page's \"Remove…\" as in userratings-remove-desktop.json: none for viewer; the admin's on the other members' reviews only; Remove text only and Remove rating and review, each after its dry run; the chip and the Rate button as before. Every rating on the movie removed at the end.",
   "failOnException": false,
   "timeout": 30000,
   "steps": [
@@ -22,14 +22,14 @@
       "reload": true
     },
     {
-      "name": "admin: User Ratings 1.0.3.0 started",
+      "name": "admin: User Ratings 1.0.4.0 started",
       "waitFor": "!!window.ApiClient && !!ApiClient.getCurrentUserId() && !!(window.__jfkit && window.__jfkit.jfur)",
       "timeout": 40000
     },
     {
-      "name": "the served script is 1.0.3.0",
-      "assert": "window.__jfkit.jfur.version === '1.0.3.0'",
-      "message": "User Ratings 1.0.3.0 is not the script the page loaded"
+      "name": "the served script is 1.0.4.0",
+      "assert": "window.__jfkit.jfur.version === '1.0.4.0'",
+      "message": "User Ratings 1.0.4.0 is not the script the page loaded"
     },
     {
       "name": "Long Test Movie",
@@ -72,14 +72,14 @@
       "reload": true
     },
     {
-      "name": "viewer: User Ratings 1.0.3.0 started",
+      "name": "viewer: User Ratings 1.0.4.0 started",
       "waitFor": "!!window.ApiClient && !!ApiClient.getCurrentUserId() && !!(window.__jfkit && window.__jfkit.jfur)",
       "timeout": 40000
     },
     {
-      "name": "the served script is 1.0.3.0",
-      "assert": "window.__jfkit.jfur.version === '1.0.3.0'",
-      "message": "User Ratings 1.0.3.0 is not the script the page loaded"
+      "name": "the served script is 1.0.4.0",
+      "assert": "window.__jfkit.jfur.version === '1.0.4.0'",
+      "message": "User Ratings 1.0.4.0 is not the script the page loaded"
     },
     {
       "name": "viewer: the movie",
@@ -112,14 +112,14 @@
       "reload": true
     },
     {
-      "name": "viewer2: User Ratings 1.0.3.0 started",
+      "name": "viewer2: User Ratings 1.0.4.0 started",
       "waitFor": "!!window.ApiClient && !!ApiClient.getCurrentUserId() && !!(window.__jfkit && window.__jfkit.jfur)",
       "timeout": 40000
     },
     {
-      "name": "the served script is 1.0.3.0",
-      "assert": "window.__jfkit.jfur.version === '1.0.3.0'",
-      "message": "User Ratings 1.0.3.0 is not the script the page loaded"
+      "name": "the served script is 1.0.4.0",
+      "assert": "window.__jfkit.jfur.version === '1.0.4.0'",
+      "message": "User Ratings 1.0.4.0 is not the script the page loaded"
     },
     {
       "name": "viewer2: stars and a review through the API",

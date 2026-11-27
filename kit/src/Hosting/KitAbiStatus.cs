@@ -42,6 +42,21 @@ internal sealed class KitAbiStatus
     public string Message { get; }
 
     /// <summary>
+    /// Gets a value indicating whether another copy of the plugin was loaded beside this one and this copy stands down
+    /// (<see cref="KitDuplicateGuard"/>). Its controllers then drop out of routing, so the other copy's identical routes
+    /// answer (<see cref="Api.KitAbiGateAttribute"/>).
+    /// </summary>
+    public bool IsDuplicate { get; init; }
+
+    /// <summary>
+    /// Gets this status for a copy that stands down beside another copy: inactive, with <paramref name="message"/>.
+    /// </summary>
+    /// <param name="message">The duplicate guard's sentence; empty keeps this status's own (an inert build's).</param>
+    /// <returns>The status.</returns>
+    public KitAbiStatus AsDuplicate(string message)
+        => new(PluginName, Target, Server, false, string.IsNullOrEmpty(message) ? Message : message) { IsDuplicate = true };
+
+    /// <summary>
     /// Gets the status as the <c>{Target, Server, Active}</c> object of the Diagnostics shape.
     /// </summary>
     /// <returns>The summary.</returns>

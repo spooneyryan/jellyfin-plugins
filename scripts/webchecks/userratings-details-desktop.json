@@ -1,5 +1,5 @@
 {
-  "name": "User Ratings 1.0.3.0: the details page's section on Long Test Movie as viewer in the desktop layout: mounted before the cast, the slider alone in its row; Tab reaches it; Right ×7 and Enter save 3.5; a real click on the middle of star 3 saves 2.5; a review written (its limit and counter, IfUpdatedUtc as read, isolated) and edited (\"(edited)\"); Clear on a reviewed row asks and keeps the review; a 503 puts the stars back with Try again, a review's 503 keeps the form; IsPartial keeps the summary; a 404 after the write removes the section with no error and the write saved; item to item with a change waiting saves it once; Back reads the item again; Delete asks and deletes; the title collapses and opens the section. The member's rows are deleted at the end.",
+  "name": "User Ratings 1.0.4.0: the details page's section on Long Test Movie as viewer in the desktop layout: mounted before the cast, the slider alone in its row; Tab reaches it; Right ×7 and Enter save 3.5; a real click on the middle of star 3 saves 2.5; a review written (its limit and counter, IfUpdatedUtc as read, isolated) and edited (\"(edited)\"); Clear on a reviewed row asks and keeps the review; a 503 puts the stars back with Try again, a review's 503 keeps the form; IsPartial keeps the summary; a 404 after the write removes the section with no error and the write saved; item to item with a change waiting saves it once; Back reads the item again; Delete asks and deletes; the title collapses and opens the section. The member's rows are deleted at the end.",
   "failOnException": false,
   "timeout": 30000,
   "steps": [
@@ -22,14 +22,14 @@
       "reload": true
     },
     {
-      "name": "the layout applied, User Ratings 1.0.3.0 started",
+      "name": "the layout applied, User Ratings 1.0.4.0 started",
       "waitFor": "document.documentElement.classList.contains('layout-desktop') && !!window.ApiClient && !!ApiClient.getCurrentUserId() && !!(window.__jfkit && window.__jfkit.jfur)",
       "timeout": 40000
     },
     {
-      "name": "the served script is 1.0.3.0",
-      "assert": "window.__jfkit.jfur.version === '1.0.3.0'",
-      "message": "User Ratings 1.0.3.0 is not the script the page loaded"
+      "name": "the served script is 1.0.4.0",
+      "assert": "window.__jfkit.jfur.version === '1.0.4.0'",
+      "message": "User Ratings 1.0.4.0 is not the script the page loaded"
     },
     {
       "name": "Long Test Movie",

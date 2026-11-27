@@ -1,5 +1,5 @@
 {
-  "name": "User Ratings 1.0.3.0: run by scripts/userratings-details-probe.mjs after it seeded more than 20 synthetic members' ratings and reviews and viewer's own on Long Test Movie; as viewer2: the average with viewer's rating in it, the counts, the histogram and viewer's row (item 2a without the chip); every name and text isolated and as text; Show more on a long review; Load more past 20, each row once; the four orders as the server gives them; Load more's 403 shows \"Reviews are turned off on this server.\" and removes the list and the form, with no error.",
+  "name": "User Ratings 1.0.4.0: run by scripts/userratings-details-probe.mjs after it seeded more than 20 synthetic members' ratings and reviews and viewer's own on Long Test Movie; as viewer2: the average with viewer's rating in it, the counts, the histogram and viewer's row (item 2a without the chip); every name and text isolated and as text; Show more on a long review; Load more past 20, each row once; the four orders as the server gives them; Load more's 403 shows \"Reviews are turned off on this server.\" and removes the list and the form, with no error.",
   "failOnException": false,
   "timeout": 30000,
   "steps": [
@@ -22,14 +22,14 @@
       "reload": true
     },
     {
-      "name": "the layout applied, User Ratings 1.0.3.0 started",
+      "name": "the layout applied, User Ratings 1.0.4.0 started",
       "waitFor": "document.documentElement.classList.contains('layout-desktop') && !!window.ApiClient && !!ApiClient.getCurrentUserId() && !!(window.__jfkit && window.__jfkit.jfur)",
       "timeout": 40000
     },
     {
-      "name": "the served script is 1.0.3.0",
-      "assert": "window.__jfkit.jfur.version === '1.0.3.0'",
-      "message": "User Ratings 1.0.3.0 is not the script the page loaded"
+      "name": "the served script is 1.0.4.0",
+      "assert": "window.__jfkit.jfur.version === '1.0.4.0'",
+      "message": "User Ratings 1.0.4.0 is not the script the page loaded"
     },
     {
       "name": "Long Test Movie",

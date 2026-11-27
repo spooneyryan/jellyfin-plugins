@@ -84,6 +84,20 @@ public sealed class KitAdoptionTests
 
     [Theory]
     [MemberData(nameof(Plugins))]
+    public void Registrator_BesideAnOlderCopyUnderAnotherName_StandsDownThroughTheDuplicateGuard(string plugin)
+    {
+        // A copy of the real assembly in a plugins folder, beside an older build without the guard in a folder of
+        // another name (what a rename leaves behind): the registrator stands down, and the plugin class shows no pages
+        // and never touches its settings.
+        var yaml = BuildYaml.Load(Path.Combine(RepositoryRoot, "plugins", plugin, JellyfinLine.BuildYamlName));
+        var pluginType = LoadAssembly(plugin).GetTypes().Single(t => t is { IsClass: true, IsAbstract: false } && typeof(MediaBrowser.Common.Plugins.BasePlugin).IsAssignableFrom(t));
+
+        DuplicateGuardChecks.StandsDownBesideAnOlderCopy(pluginType, Guid.Parse(yaml.Guid), "Old Name_0.9.0.0", yaml.Name + "_" + yaml.Version);
+        DuplicateGuardChecks.RegistersAlone(pluginType, Guid.Parse(yaml.Guid), yaml.Name + "_" + yaml.Version);
+    }
+
+    [Theory]
+    [MemberData(nameof(Plugins))]
     public void Registrator_OnItsLine_AddsItsWebUiThroughTheKitMiddleware(string plugin)
     {
         // The only startup filter is the kit's index.html injection, compiled into the plugin. A plugin with

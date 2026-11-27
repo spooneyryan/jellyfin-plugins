@@ -1,5 +1,5 @@
 {
-  "name": "User Ratings 1.0.3 under a pen: the star widget of the served ClientScript on Long Test Movie as viewer in the desktop layout, under a pen (Input.dispatchMouseEvent with pointerType pen): a scrub from star 2 that overshoots the right edge follows the pen to 5 and, lifted off the stars, saves 5 once; a key's change (4.5) waiting for its save is kept through a pen that went down from the stars and lifted below them, and saved after; a tap sets 3.0 on its lift. No request to User Ratings' API.",
+  "name": "User Ratings 1.0.4 under a pen: the star widget of the served ClientScript on Long Test Movie as viewer in the desktop layout, under a pen (Input.dispatchMouseEvent with pointerType pen): a scrub from star 2 that overshoots the right edge follows the pen to 5 and, lifted off the stars, saves 5 once; a key's change (4.5) waiting for its save is kept through a pen that went down from the stars and lifted below them, and saved after; a tap sets 3.0 on its lift. No request to User Ratings' API.",
   "failOnException": false,
   "timeout": 30000,
   "steps": [
@@ -50,9 +50,9 @@
       "full": true
     },
     {
-      "name": "mounted from the served ClientScript of 1.0.3",
-      "assert": "__vars.mounted.ok === true && __vars.mounted.version === '1.0.3.0'",
-      "message": "the probe could not mount the widget of User Ratings 1.0.3"
+      "name": "mounted from the served ClientScript of 1.0.4",
+      "assert": "__vars.mounted.ok === true && __vars.mounted.version === '1.0.4.0'",
+      "message": "the probe could not mount the widget of User Ratings 1.0.4"
     },
     {
       "name": "pen: the stars in view, the value 1 (saved)",

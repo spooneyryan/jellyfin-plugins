@@ -1,5 +1,5 @@
 {
-  "name": "User Ratings 1.0.3.0, the Data tab: in the default sandbox as admin, with viewer in their own window, the desktop layout: the settings page's Data tab read with GETs only (and the page's own Detached/Seen), no select; before a file Dry run and Import are off; Export runs as a job (POST 202, polled), its file fetched with the session's authorization (no token in any query) and handed to a blob: download link, which the run keeps in the page (a[download] clicks prevented, so no file is written): the kit's export envelope of User Ratings 1.0.3.0 with the users' ids in the \"N\" format, every table and viewer's row; Download again gives the same name and bytes; that file in the file field: Import stays off until a Merge dry run by id (the file sent as it is, every row Unchanged, the report as text); viewer changes their review: Import asks first, then the job's 409 Changed shows in the tab's words, nothing is imported and Import is off again; the dry run again (viewer's row kept as newer here) and Import: the report names the import's snapshot, listed as \"Before an import\"; viewer changes their review again; Restore… of the import's snapshot asks first (Cancel focused), then restores it: viewer's review as before the import, the restore's own snapshot named and listed. Then viewer rates Tagged Movie (its folder's TMDb id) 4.5 stars with a review, and Export for Jellyfin Enhanced fetches JE 12.14's reviews.json with one GET (its only query leaveOutRestricted=true, the default choice since 0.3.24) and saves it the same way: only Reviews, its keys sorted, each <userIdN>:<movie|tv>:<tmdbKey> with JE's seven fields in order, TmdbId the whole key; viewer's Tagged Movie in it with 4.5 and the text as it is; Long Test Movie counted as no TMDb id when the film has none; the status counting the reviews. Every rating on Long Test Movie and Tagged Movie removed at the end.",
+  "name": "User Ratings 1.0.4.0, the Data tab: in the default sandbox as admin, with viewer in their own window, the desktop layout: the settings page's Data tab read with GETs only (and the page's own Detached/Seen), no select; before a file Dry run and Import are off; Export runs as a job (POST 202, polled), its file fetched with the session's authorization (no token in any query) and handed to a blob: download link, which the run keeps in the page (a[download] clicks prevented, so no file is written): the kit's export envelope of User Ratings 1.0.4.0 with the users' ids in the \"N\" format, every table and viewer's row; Download again gives the same name and bytes; that file in the file field: Import stays off until a Merge dry run by id (the file sent as it is, every row Unchanged, the report as text); viewer changes their review: Import asks first, then the job's 409 Changed shows in the tab's words, nothing is imported and Import is off again; the dry run again (viewer's row kept as newer here) and Import: the report names the import's snapshot, listed as \"Before an import\"; viewer changes their review again; Restore… of the import's snapshot asks first (Cancel focused), then restores it: viewer's review as before the import, the restore's own snapshot named and listed. Then viewer rates Tagged Movie (its folder's TMDb id) 4.5 stars with a review, and Export for Jellyfin Enhanced fetches JE 12.14's reviews.json with one GET (its only query leaveOutRestricted=true, the default choice since 0.3.24) and saves it the same way: only Reviews, its keys sorted, each <userIdN>:<movie|tv>:<tmdbKey> with JE's seven fields in order, TmdbId the whole key; viewer's Tagged Movie in it with 4.5 and the text as it is; Long Test Movie counted as no TMDb id when the film has none; the status counting the reviews. Every rating on Long Test Movie and Tagged Movie removed at the end.",
   "failOnException": false,
   "timeout": 30000,
   "steps": [
@@ -25,14 +25,14 @@
       "reload": true
     },
     {
-      "name": "viewer: User Ratings 1.0.3.0 started",
+      "name": "viewer: User Ratings 1.0.4.0 started",
       "waitFor": "!!window.ApiClient && !!ApiClient.getCurrentUserId() && !!(window.__jfkit && window.__jfkit.jfur)",
       "timeout": 40000
     },
     {
-      "name": "the served script is 1.0.3.0",
-      "assert": "window.__jfkit.jfur.version === '1.0.3.0'",
-      "message": "User Ratings 1.0.3.0 is not the script the page loaded"
+      "name": "the served script is 1.0.4.0",
+      "assert": "window.__jfkit.jfur.version === '1.0.4.0'",
+      "message": "User Ratings 1.0.4.0 is not the script the page loaded"
     },
     {
       "context": "main"
@@ -56,14 +56,14 @@
       "reload": true
     },
     {
-      "name": "admin: User Ratings 1.0.3.0 started",
+      "name": "admin: User Ratings 1.0.4.0 started",
       "waitFor": "!!window.ApiClient && !!ApiClient.getCurrentUserId() && !!(window.__jfkit && window.__jfkit.jfur)",
       "timeout": 40000
     },
     {
-      "name": "the served script is 1.0.3.0",
-      "assert": "window.__jfkit.jfur.version === '1.0.3.0'",
-      "message": "User Ratings 1.0.3.0 is not the script the page loaded"
+      "name": "the served script is 1.0.4.0",
+      "assert": "window.__jfkit.jfur.version === '1.0.4.0'",
+      "message": "User Ratings 1.0.4.0 is not the script the page loaded"
     },
     {
       "name": "the users' ids",
@@ -167,8 +167,8 @@
       "full": true
     },
     {
-      "name": "export: the kit's export envelope of User Ratings 1.0.3.0 (the users' ids in the \"N\" format, Deleted only when true), with every table and viewer's row as they rated; a blob: link named userratings-export-<time>.json, the status naming it; Download again shown",
-      "assert": "(() => { const f = __vars.exportFile; return f.parsed && f.format === 'jellyfin-plugin-export/1' && f.version === '1.0.3.0' && f.users.every(u => /^[0-9a-f]{32}$/.test(u.id) && !u.deleted) && f.users.some(u => u.id === __vars.ids.viewer) && ['FormerUsers', 'ImportLedger', 'ModerationLog', 'Ratings', 'Tombstones'].every(t => f.tables.indexOf(t) >= 0) && f.viewerText === \"data webcheck review: the lighthouse <b>stays plain</b> & lit.\" && f.viewerStars === 4 && f.scheme === 'blob' && /^userratings-export-[0-9]{8}-[0-9]{6}[.]json$/.test(f.name) && f.status.endsWith(' as ' + f.name + '.') && f.again; })()"
+      "name": "export: the kit's export envelope of User Ratings 1.0.4.0 (the users' ids in the \"N\" format, Deleted only when true), with every table and viewer's row as they rated; a blob: link named userratings-export-<time>.json, the status naming it; Download again shown",
+      "assert": "(() => { const f = __vars.exportFile; return f.parsed && f.format === 'jellyfin-plugin-export/1' && f.version === '1.0.4.0' && f.users.every(u => /^[0-9a-f]{32}$/.test(u.id) && !u.deleted) && f.users.some(u => u.id === __vars.ids.viewer) && ['FormerUsers', 'ImportLedger', 'ModerationLog', 'Ratings', 'Tombstones'].every(t => f.tables.indexOf(t) >= 0) && f.viewerText === \"data webcheck review: the lighthouse <b>stays plain</b> & lit.\" && f.viewerStars === 4 && f.scheme === 'blob' && /^userratings-export-[0-9]{8}-[0-9]{6}[.]json$/.test(f.name) && f.status.endsWith(' as ' + f.name + '.') && f.again; })()"
     },
     {
       "name": "export: the tab's requests since the mark",
@@ -221,8 +221,8 @@
       "full": true
     },
     {
-      "name": "dry run: the file named (User Ratings 1.0.3.0), every row Unchanged, none added or updated; text only; no hint",
-      "assert": "__vars.dry1.summary.indexOf('The file is an export of User Ratings 1.0.3.0 from ') > 0 && __vars.dry1.outcomes.some(o => o.key === 'Unchanged') && !__vars.dry1.outcomes.some(o => o.key === 'Added' || o.key === 'Updated' || o.key === 'StoredDetached') && __vars.dry1.markup === 0 && __vars.dry1.hint === ''"
+      "name": "dry run: the file named (User Ratings 1.0.4.0), every row Unchanged, none added or updated; text only; no hint",
+      "assert": "__vars.dry1.summary.indexOf('The file is an export of User Ratings 1.0.4.0 from ') > 0 && __vars.dry1.outcomes.some(o => o.key === 'Unchanged') && !__vars.dry1.outcomes.some(o => o.key === 'Added' || o.key === 'Updated' || o.key === 'StoredDetached') && __vars.dry1.markup === 0 && __vars.dry1.hint === ''"
     },
     {
       "name": "dry run: the requests",

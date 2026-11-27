@@ -24,7 +24,17 @@ internal static class KitStartupLog
     /// <param name="category">The logger category, for example <c>Jellyfin.Plugin.Bookmarks.Kit.AbiGuard</c>.</param>
     /// <param name="message">The message; braces are escaped, so it is never read as a message template.</param>
     /// <returns><c>true</c> when the line was handed to Serilog.</returns>
-    public static bool Error(string category, string message)
+    public static bool Error(string category, string message) => Write("Error", category, message);
+
+    /// <summary>
+    /// Writes a Warning line.
+    /// </summary>
+    /// <param name="category">The logger category, for example <c>Jellyfin.Plugin.Bookmarks.Kit.DuplicateGuard</c>.</param>
+    /// <param name="message">The message; braces are escaped, so it is never read as a message template.</param>
+    /// <returns><c>true</c> when the line was handed to Serilog.</returns>
+    public static bool Warning(string category, string message) => Write("Warning", category, message);
+
+    private static bool Write(string level, string category, string message)
     {
         try
         {
@@ -33,14 +43,14 @@ internal static class KitStartupLog
             var loggerInterface = serilog?.GetType("Serilog.ILogger");
             var logger = serilog?.GetType("Serilog.Log")?.GetProperty("Logger", BindingFlags.Public | BindingFlags.Static)?.GetValue(null);
             var forContext = loggerInterface?.GetMethod("ForContext", [typeof(string), typeof(object), typeof(bool)]);
-            var error = loggerInterface?.GetMethod("Error", [typeof(string)]);
-            if (logger is null || forContext is null || error is null)
+            var write = loggerInterface?.GetMethod(level, [typeof(string)]);
+            if (logger is null || forContext is null || write is null)
             {
                 return false;
             }
 
             var contextual = forContext.Invoke(logger, ["SourceContext", category, false]);
-            error.Invoke(contextual, [message.Replace("{", "{{", StringComparison.Ordinal).Replace("}", "}}", StringComparison.Ordinal)]);
+            write.Invoke(contextual, [message.Replace("{", "{{", StringComparison.Ordinal).Replace("}", "}}", StringComparison.Ordinal)]);
             return true;
         }
         catch (Exception)

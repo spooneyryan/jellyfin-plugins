@@ -1,5 +1,5 @@
 {
-  "name": "User Ratings 1.0.3.0, the Rate button's TV reachability: in the default sandbox as viewer in jellyfin-web 10.11.5's TV layout: on Test Series (ShowDetailButton Auto) the Rate button before More; the D-pad's Right from Play along the buttons row reaches it, and one OK press focuses the slider, in view, writing nothing; its Left and Right are the slider's again (Right saves half a star after the slider's pause). The member's rows are deleted at the end.",
+  "name": "User Ratings 1.0.4.0, the Rate button's TV reachability: in the default sandbox as viewer in jellyfin-web 10.11.5's TV layout: on Test Series (ShowDetailButton Auto) the Rate button before More; the D-pad's Right from Play along the buttons row reaches it, and one OK press focuses the slider, in view, writing nothing; its Left and Right are the slider's again (Right saves half a star after the slider's pause). The member's rows are deleted at the end.",
   "failOnException": false,
   "timeout": 30000,
   "steps": [
@@ -22,14 +22,14 @@
       "reload": true
     },
     {
-      "name": "the layout applied, User Ratings 1.0.3.0 started",
+      "name": "the layout applied, User Ratings 1.0.4.0 started",
       "waitFor": "document.documentElement.classList.contains('layout-tv') && !!window.ApiClient && !!ApiClient.getCurrentUserId() && !!(window.__jfkit && window.__jfkit.jfur)",
       "timeout": 40000
     },
     {
-      "name": "the served script is 1.0.3.0",
-      "assert": "window.__jfkit.jfur.version === '1.0.3.0'",
-      "message": "User Ratings 1.0.3.0 is not the script the page loaded"
+      "name": "the served script is 1.0.4.0",
+      "assert": "window.__jfkit.jfur.version === '1.0.4.0'",
+      "message": "User Ratings 1.0.4.0 is not the script the page loaded"
     },
     {
       "name": "Long Test Movie",

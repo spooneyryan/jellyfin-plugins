@@ -1,5 +1,5 @@
 {
-  "name": "User Ratings 1.0.3 next to Jellyfin Enhanced, in the je sandbox as admin: Jellyfin Enhanced's version and its review settings (names and kinds only); on Long Test Movie every key the slider handles reaches it unprevented past JE's capture listener, is handled, and JE does nothing; JE's own keys (3 S I C + - B) aren't the slider's; no style rule of JE's (or of anyone but jellyfin-web) selects a node of the widget, and our ids are unique, also on Tagged Movie with JE's review section drawn; JE's review parts recorded; the TV layout with JE loaded: on Long Test Movie the D-pad reaches the slider, Left/Right handled, Up and Down move on; on Tagged Movie where the D-pad goes from Play (JE's review section) recorded, the slider's keys the same. No setting is changed.",
+  "name": "User Ratings 1.0.4 next to Jellyfin Enhanced, in the je sandbox as admin: Jellyfin Enhanced's version and its review settings (names and kinds only); on Long Test Movie every key the slider handles reaches it unprevented past JE's capture listener, is handled, and JE does nothing; JE's own keys (3 S I C + - B) aren't the slider's; no style rule of JE's (or of anyone but jellyfin-web) selects a node of the widget, and our ids are unique, also on Tagged Movie with JE's review section drawn; JE's review parts recorded; the TV layout with JE loaded: on Long Test Movie the D-pad reaches the slider, Left/Right handled, Up and Down move on; on Tagged Movie where the D-pad goes from Play (JE's review section) recorded, the slider's keys the same. No setting is changed.",
   "failOnException": false,
   "timeout": 30000,
   "steps": [
@@ -68,9 +68,9 @@
       "full": true
     },
     {
-      "name": "mounted from the served ClientScript of 1.0.3",
-      "assert": "__vars.mounted.ok === true && __vars.mounted.version === '1.0.3.0'",
-      "message": "the probe could not mount the widget of User Ratings 1.0.3"
+      "name": "mounted from the served ClientScript of 1.0.4",
+      "assert": "__vars.mounted.ok === true && __vars.mounted.version === '1.0.4.0'",
+      "message": "the probe could not mount the widget of User Ratings 1.0.4"
     },
     {
       "name": "JE desktop ArrowRight: the slider focused",

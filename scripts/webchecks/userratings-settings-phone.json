@@ -1,5 +1,5 @@
 {
-  "name": "User Ratings 1.0.3.0, the Settings tab under touch: in the default sandbox as admin on a 375x812 phone with touch: the Settings tab with the users picker shown: no sideways scroll; every control, help text and user name inside the screen, the names isolated (dir=\"auto\", unicode-bidi: isolate); every button and field of the tab at least 44 px high; Save's dialog inside the screen with every control at least 44 px; Cancel saves nothing and puts the focus back on Save. Every setting as it began at the end.",
+  "name": "User Ratings 1.0.4.0, the Settings tab under touch: in the default sandbox as admin on a 375x812 phone with touch: the Settings tab with the users picker shown: no sideways scroll; every control, help text and user name inside the screen, the names isolated (dir=\"auto\", unicode-bidi: isolate); every button and field of the tab at least 44 px high; Save's dialog inside the screen with every control at least 44 px; Cancel saves nothing and puts the focus back on Save. Every setting as it began at the end.",
   "failOnException": false,
   "timeout": 30000,
   "steps": [
@@ -31,14 +31,14 @@
       "reload": true
     },
     {
-      "name": "admin: User Ratings 1.0.3.0 started",
+      "name": "admin: User Ratings 1.0.4.0 started",
       "waitFor": "!!window.ApiClient && !!ApiClient.getCurrentUserId() && !!(window.__jfkit && window.__jfkit.jfur)",
       "timeout": 40000
     },
     {
-      "name": "the served script is 1.0.3.0",
-      "assert": "window.__jfkit.jfur.version === '1.0.3.0'",
-      "message": "User Ratings 1.0.3.0 is not the script the page loaded"
+      "name": "the served script is 1.0.4.0",
+      "assert": "window.__jfkit.jfur.version === '1.0.4.0'",
+      "message": "User Ratings 1.0.4.0 is not the script the page loaded"
     },
     {
       "name": "the settings before the run",

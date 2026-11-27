@@ -141,6 +141,32 @@ The log shows one `[ERR] Jellyfin.Plugin.Bookmarks.Kit.AbiGuard` line and every 
 Deploy a normal build afterwards (`./scripts/Deploy-Plugin.ps1 -Plugin Bookmarks -DataDir .sandbox\default\data
 -Configuration Debug`).
 
+**The duplicate guard** (`KitDuplicateGuard`, run by `KitAbiGuard.Register`). Jellyfin removes older versions of a
+plugin by name only, so after a rename the copy under the old name stays beside the new one and both load; their
+settings types collide in Jellyfin's XML serializer cache and the server fails to start. At registration the guard reads
+the folders beside its own (no loading) for a DLL of the plugin's file name with no `meta.json` or with the plugin's
+GUID, and asks Jellyfin's plugin manager (registered, with every plugin's assemblies loaded, before the registrators run)
+which of them it loaded; without a plugin manager it works that out from each `meta.json`'s status and `targetAbi`.
+Copies are ordered by version, then folder name. A copy with a higher loaded copy stands down; the highest copy stands
+down itself when a loaded lower copy lacks the guard (found by this type's name in its metadata). Once the server has
+started the highest copy cleans up every lower copy (`KitDuplicateRemoval`): a loaded one is turned off with
+`IPluginManager.DisablePlugin` and `NotifyPendingRestart`, and its entry's in-memory status is set to `Disabled` again
+(Jellyfin 10.11's `DisablePlugin` leaves `Restart` there, which its catalog refresh would write back as `Active`); one
+that isn't loaded is deleted with `RemovePlugin`, or kept
+`Disabled` while its DLL is still in use (a Dashboard restart runs in the same process, and Windows keeps a DLL loaded
+before it locked); a leftover that lost its `meta.json` to a deletion Jellyfin couldn't finish is deleted or given a
+`Disabled` one with the plugin's GUID (without it Jellyfin makes up an id that can sort it above the newest version, which
+it then deletes). `Disabled` is the only mark Jellyfin's catalog refresh keeps: it sets `Superseded` and `Deleted`
+manifests back to `Active`. Only a folder whose Jellyfin entry has the plugin's GUID is acted on (or one Jellyfin created
+no plugin from and that still has no readable `meta.json`), never one whose `meta.json` names another plugin; each copy
+is handled on its own, so one failure doesn't stop the rest. Standing down is the inert mode with `KitAbiStatus.IsDuplicate`, one Warning
+(`Jellyfin.Plugin.<X>.Kit.DuplicateGuard`), and `[KitAbiGate]` as an action constraint that drops the copy's actions out
+of routing so the other copy's identical routes answer. The plugin class reads `KitDuplicateGuard.IsStandingDown`: no
+pages, default settings in memory, `SaveConfiguration` refused. Jellyfin's own `/Plugins/{id}/Configuration` takes the
+first listed copy with an instance, so for the one stand-down start it can reach the copy that stands down if that copy
+sorts first (after the rename the old name sorts first and is the one running). The type's full name is a contract with other copies;
+never rename it. Repo.Tests `KitAdoptionTests` checks every plugin with a copy of its assembly beside an older build.
+
 ### index.html injection (`Web/`)
 
 Every plugin adds `<script data-<pfx>-plugin="<version>" src="../<Route>/ClientScript?v=<version>-<mvid8>" defer>` to

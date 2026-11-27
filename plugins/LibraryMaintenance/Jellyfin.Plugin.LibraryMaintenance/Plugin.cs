@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using Jellyfin.Plugin.Kit.Hosting;
 using Jellyfin.Plugin.LibraryMaintenance.Configuration;
 using MediaBrowser.Common.Configuration;
 using MediaBrowser.Common.Plugins;
@@ -39,6 +40,12 @@ public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
         : base(applicationPaths, xmlSerializer)
     {
         Instance = this;
+        if (KitDuplicateGuard.IsStandingDown)
+        {
+            // Another copy of the plugin was loaded too and runs instead: Jellyfin's settings serializer is shared by both
+            // copies' settings types, so this copy never reads or writes the settings file (KitDuplicateGuard).
+            Configuration = new PluginConfiguration();
+        }
     }
 
     /// <summary>
@@ -74,6 +81,12 @@ public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
     /// <inheritdoc />
     public IEnumerable<PluginPageInfo> GetPages()
     {
+        if (KitDuplicateGuard.IsStandingDown)
+        {
+            // The copy that runs shows its own pages.
+            return [];
+        }
+
         // The HTML page first (the kit's ordering rule): jellyfin-web opens the first page when none is in the main menu,
         // and the Settings button would otherwise open the script.
         return
@@ -91,5 +104,16 @@ public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
                 EmbeddedResourcePath = string.Format(CultureInfo.InvariantCulture, "{0}.Configuration.LibraryMaintenanceJs.js", GetType().Namespace)
             }
         ];
+    }
+
+    /// <summary>
+    /// Saves the settings. A copy that stands down beside another copy of the plugin (<see cref="KitDuplicateGuard"/>)
+    /// refuses: the shared settings serializer belongs to the copy that runs.
+    /// </summary>
+    /// <param name="config">The settings.</param>
+    public override void SaveConfiguration(PluginConfiguration config)
+    {
+        KitDuplicateGuard.ThrowIfStandingDown(Name);
+        base.SaveConfiguration(config);
     }
 }

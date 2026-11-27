@@ -28,8 +28,8 @@ public sealed class PluginIdentityTests : IDisposable
         Assert.Equal(("Smart Search And Dynamic Collections", "d92488d5-409f-4ad0-af1d-3615db9d0513"), (Yaml.Name, Yaml.Guid));
         Assert.Equal(PluginIdentityChecks.AssignedGuids["Smart Search And Dynamic Collections"], Guid.Parse(Yaml.Guid));
 
-        // 1.1.1.0 gives auto-collections their default poster, 1.1.2.0 the owner name, 1.2.0.0 (2.1.0.0 on Jellyfin 12) the People rule, 1.2.1.0 (2.1.1.0) wording.
-        Assert.Equal(JellyfinLine.Is12 ? "2.1.1.0" : "1.2.1.0", Yaml.Version);
+        // 1.1.1.0 gives auto-collections their default poster, 1.1.2.0 the owner name, 1.2.0.0 (2.1.0.0 on Jellyfin 12) the People rule, 1.2.1.0 (2.1.1.0) wording, 1.2.2.0 (2.1.2.0) the duplicate guard.
+        Assert.Equal(JellyfinLine.Is12 ? "2.1.2.0" : "1.2.2.0", Yaml.Version);
         Assert.Empty(PluginIdentityChecks.CheckVersionFormat(Yaml.Version));
         Assert.Empty(PluginIdentityChecks.CheckTargetAbi(Yaml));
         Assert.Equal(["Jellyfin.Plugin.SmartSearch.dll"], Yaml.Artifacts);

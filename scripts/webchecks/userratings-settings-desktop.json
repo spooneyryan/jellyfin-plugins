@@ -1,5 +1,5 @@
 {
-  "name": "User Ratings 1.0.3.0, the Settings tab: in the default sandbox as admin, with viewer and viewer2 in their own windows, the desktop layout: the settings page's Settings tab read with GETs only; every setting in its group and order, shown as the server holds it, with its help and default, the restart settings marked, Mirror locked, no select; the inline checks (nobody chosen for \"Only the users chosen below\", a review length under 2000, no kind) send nothing and put the focus on the first setting to fix, Undo puts every value back; another tab and back keeps a change not saved (nothing read), and with nothing changed reads again, a click made while that read is held kept; item 2b through the tab: only viewer chosen, the dry run's dialog first (in the tab's words, the users who can no longer rate), one dry run and one save with the version and only the two settings; viewer2 gets 403 \"Rating is limited to selected members.\" and the read-only note on the details page, still sees viewer's review, deletes their own older row; every user again: viewer2 rates, viewer's row unchanged; Movies out of what can be rated: viewer's read 404 and no section on the next details view, Movies back: the section again; the Top Rated page's restart notice; a save over settings saved meanwhile: the 409, nothing saved, Reload; item 15: every setting but Mirror changed through its control at once, saved after the dialog, held by the server and by PluginConfiguration, kept after the page is reloaded, then every one put back through the tab. Every setting as it began and every rating on Long Test Movie removed at the end.",
+  "name": "User Ratings 1.0.4.0, the Settings tab: in the default sandbox as admin, with viewer and viewer2 in their own windows, the desktop layout: the settings page's Settings tab read with GETs only; every setting in its group and order, shown as the server holds it, with its help and default, the restart settings marked, Mirror locked, no select; the inline checks (nobody chosen for \"Only the users chosen below\", a review length under 2000, no kind) send nothing and put the focus on the first setting to fix, Undo puts every value back; another tab and back keeps a change not saved (nothing read), and with nothing changed reads again, a click made while that read is held kept; item 2b through the tab: only viewer chosen, the dry run's dialog first (in the tab's words, the users who can no longer rate), one dry run and one save with the version and only the two settings; viewer2 gets 403 \"Rating is limited to selected members.\" and the read-only note on the details page, still sees viewer's review, deletes their own older row; every user again: viewer2 rates, viewer's row unchanged; Movies out of what can be rated: viewer's read 404 and no section on the next details view, Movies back: the section again; the Top Rated page's restart notice; a save over settings saved meanwhile: the 409, nothing saved, Reload; item 15: every setting but Mirror changed through its control at once, saved after the dialog, held by the server and by PluginConfiguration, kept after the page is reloaded, then every one put back through the tab. Every setting as it began and every rating on Long Test Movie removed at the end.",
   "failOnException": false,
   "timeout": 30000,
   "steps": [
@@ -25,14 +25,14 @@
       "reload": true
     },
     {
-      "name": "viewer: User Ratings 1.0.3.0 started",
+      "name": "viewer: User Ratings 1.0.4.0 started",
       "waitFor": "!!window.ApiClient && !!ApiClient.getCurrentUserId() && !!(window.__jfkit && window.__jfkit.jfur)",
       "timeout": 40000
     },
     {
-      "name": "the served script is 1.0.3.0",
-      "assert": "window.__jfkit.jfur.version === '1.0.3.0'",
-      "message": "User Ratings 1.0.3.0 is not the script the page loaded"
+      "name": "the served script is 1.0.4.0",
+      "assert": "window.__jfkit.jfur.version === '1.0.4.0'",
+      "message": "User Ratings 1.0.4.0 is not the script the page loaded"
     },
     {
       "context": "viewer2"
@@ -56,14 +56,14 @@
       "reload": true
     },
     {
-      "name": "viewer2: User Ratings 1.0.3.0 started",
+      "name": "viewer2: User Ratings 1.0.4.0 started",
       "waitFor": "!!window.ApiClient && !!ApiClient.getCurrentUserId() && !!(window.__jfkit && window.__jfkit.jfur)",
       "timeout": 40000
     },
     {
-      "name": "the served script is 1.0.3.0",
-      "assert": "window.__jfkit.jfur.version === '1.0.3.0'",
-      "message": "User Ratings 1.0.3.0 is not the script the page loaded"
+      "name": "the served script is 1.0.4.0",
+      "assert": "window.__jfkit.jfur.version === '1.0.4.0'",
+      "message": "User Ratings 1.0.4.0 is not the script the page loaded"
     },
     {
       "context": "main"
@@ -87,14 +87,14 @@
       "reload": true
     },
     {
-      "name": "admin: User Ratings 1.0.3.0 started",
+      "name": "admin: User Ratings 1.0.4.0 started",
       "waitFor": "!!window.ApiClient && !!ApiClient.getCurrentUserId() && !!(window.__jfkit && window.__jfkit.jfur)",
       "timeout": 40000
     },
     {
-      "name": "the served script is 1.0.3.0",
-      "assert": "window.__jfkit.jfur.version === '1.0.3.0'",
-      "message": "User Ratings 1.0.3.0 is not the script the page loaded"
+      "name": "the served script is 1.0.4.0",
+      "assert": "window.__jfkit.jfur.version === '1.0.4.0'",
+      "message": "User Ratings 1.0.4.0 is not the script the page loaded"
     },
     {
       "name": "the settings before the run",

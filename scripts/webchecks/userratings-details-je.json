@@ -1,5 +1,5 @@
 {
-  "name": "User Ratings 1.0.3.0 next to Jellyfin Enhanced 12.14, in the je sandbox as admin: the details page's section on Tagged Movie beside Jellyfin Enhanced's review section, no style rule of JE's on it, our ids unique; the slider's keys reach it past JE's capture listener and save; in the TV layout the D-pad reaches the slider on Long Test Movie, and on Tagged Movie past JE 12.14's closed Reviews (out of the TV focus order since Bookmarks 1.2.0's kit) it reaches the slider too, and without the section (the probe answering the item's read 404) it leaves the buttons row, none of the Downs prevented by us. The admin's rows are deleted at the end; no setting is changed.",
+  "name": "User Ratings 1.0.4.0 next to Jellyfin Enhanced 12.14, in the je sandbox as admin: the details page's section on Tagged Movie beside Jellyfin Enhanced's review section, no style rule of JE's on it, our ids unique; the slider's keys reach it past JE's capture listener and save; in the TV layout the D-pad reaches the slider on Long Test Movie, and on Tagged Movie past JE 12.14's closed Reviews (out of the TV focus order since Bookmarks 1.2.0's kit) it reaches the slider too, and without the section (the probe answering the item's read 404) it leaves the buttons row, none of the Downs prevented by us. The admin's rows are deleted at the end; no setting is changed.",
   "failOnException": false,
   "timeout": 30000,
   "steps": [
@@ -22,14 +22,14 @@
       "reload": true
     },
     {
-      "name": "the layout applied, User Ratings 1.0.3.0 started",
+      "name": "the layout applied, User Ratings 1.0.4.0 started",
       "waitFor": "document.documentElement.classList.contains('layout-desktop') && !!window.ApiClient && !!ApiClient.getCurrentUserId() && !!(window.__jfkit && window.__jfkit.jfur)",
       "timeout": 40000
     },
     {
-      "name": "the served script is 1.0.3.0",
-      "assert": "window.__jfkit.jfur.version === '1.0.3.0'",
-      "message": "User Ratings 1.0.3.0 is not the script the page loaded"
+      "name": "the served script is 1.0.4.0",
+      "assert": "window.__jfkit.jfur.version === '1.0.4.0'",
+      "message": "User Ratings 1.0.4.0 is not the script the page loaded"
     },
     {
       "name": "Long Test Movie",

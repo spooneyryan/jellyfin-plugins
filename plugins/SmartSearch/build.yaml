@@ -1,7 +1,7 @@
 ---
 name: "Smart Search And Dynamic Collections"
 guid: "d92488d5-409f-4ad0-af1d-3615db9d0513"
-version: "1.2.1.0"
+version: "1.2.2.0"
 targetAbi: "10.11.5.0"
 framework: "net9.0"
 overview: "Search by almost any detail, save and share searches, and build collections that update themselves"
@@ -20,6 +20,16 @@ owner: "NoRepine"
 artifacts:
 - "Jellyfin.Plugin.SmartSearch.dll"
 changelog: |
+  1.2.2
+  - After updating from a version installed under the old name,
+    Smart Search, Jellyfin could fail to start. This is fixed.
+  - If the older copy is still running, the plugin turns it off and
+    asks you to restart Jellyfin once more. The Plugins page may list
+    the older copy as disabled until the server next starts fresh, or
+    you can uninstall it there.
+  - Your saved searches, collections and settings are kept. If
+    Jellyfin had already failed to start, the settings may be back at
+    their defaults: look them over on the plugin's settings page.
   1.2.1
   - An Advanced Search page, in Library tools and in the header.
   - Find movies, shows, episodes and more by title, year, genre, people,

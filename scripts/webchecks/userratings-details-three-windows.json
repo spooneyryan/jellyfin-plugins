@@ -1,5 +1,5 @@
 {
-  "name": "User Ratings 1.0.3.0, Reload after Reload: as viewer in three browser contexts (three windows of the same member), the reviewer's sequence: window A edits its review of Long Test Movie; window B saves one; A's Save is a 409 (the panel shows B's review) and A reloads: B's review in the text area, A's text kept beside it; A edits B's review there; window C saves one; A's Save is a 409 again and A reloads: C's review in the text area and both of A's texts kept beside it, in the order written, and in the draft (before the fix the second Reload dropped A's first text); a reload of the page brings all of it back; Use my text puts A's first text in the text area with the other kept and C's review beside it; Save sends C's review time and saves A's text, and the form stays open with A's other text beside it and in the draft, C's review gone; Discard lets it go and Cancel closes the form with no draft. The member's row is deleted at the end.",
+  "name": "User Ratings 1.0.4.0, Reload after Reload: as viewer in three browser contexts (three windows of the same member), the reviewer's sequence: window A edits its review of Long Test Movie; window B saves one; A's Save is a 409 (the panel shows B's review) and A reloads: B's review in the text area, A's text kept beside it; A edits B's review there; window C saves one; A's Save is a 409 again and A reloads: C's review in the text area and both of A's texts kept beside it, in the order written, and in the draft (before the fix the second Reload dropped A's first text); a reload of the page brings all of it back; Use my text puts A's first text in the text area with the other kept and C's review beside it; Save sends C's review time and saves A's text, and the form stays open with A's other text beside it and in the draft, C's review gone; Discard lets it go and Cancel closes the form with no draft. The member's row is deleted at the end.",
   "failOnException": false,
   "timeout": 30000,
   "steps": [
@@ -22,14 +22,14 @@
       "reload": true
     },
     {
-      "name": "the layout applied, User Ratings 1.0.3.0 started",
+      "name": "the layout applied, User Ratings 1.0.4.0 started",
       "waitFor": "document.documentElement.classList.contains('layout-desktop') && !!window.ApiClient && !!ApiClient.getCurrentUserId() && !!(window.__jfkit && window.__jfkit.jfur)",
       "timeout": 40000
     },
     {
-      "name": "the served script is 1.0.3.0",
-      "assert": "window.__jfkit.jfur.version === '1.0.3.0'",
-      "message": "User Ratings 1.0.3.0 is not the script the page loaded"
+      "name": "the served script is 1.0.4.0",
+      "assert": "window.__jfkit.jfur.version === '1.0.4.0'",
+      "message": "User Ratings 1.0.4.0 is not the script the page loaded"
     },
     {
       "name": "Long Test Movie",
@@ -100,7 +100,7 @@
       "reload": true
     },
     {
-      "name": "window-b: User Ratings 1.0.3.0 started",
+      "name": "window-b: User Ratings 1.0.4.0 started",
       "waitFor": "!!window.ApiClient && !!ApiClient.getCurrentUserId() && !!(window.__jfkit && window.__jfkit.jfur)",
       "timeout": 40000
     },
@@ -216,7 +216,7 @@
       "reload": true
     },
     {
-      "name": "window-c: User Ratings 1.0.3.0 started",
+      "name": "window-c: User Ratings 1.0.4.0 started",
       "waitFor": "!!window.ApiClient && !!ApiClient.getCurrentUserId() && !!(window.__jfkit && window.__jfkit.jfur)",
       "timeout": 40000
     },

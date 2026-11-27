@@ -27,8 +27,8 @@ public sealed class PluginIdentityTests : IDisposable
         Assert.Equal(("User Ratings And Reviews", "f53c7c34-8cba-4846-b43b-956816b2f6ae"), (Yaml.Name, Yaml.Guid));
         Assert.Equal(PluginIdentityChecks.AssignedGuids["User Ratings And Reviews"], Guid.Parse(Yaml.Guid));
 
-        // Development builds were 0.3.<n>.0; 1.0.0.0 is the first release, 1.0.1.0 its fix release, 1.0.2.0 the owner name, 1.0.3.0 (2.0.1.0) the public text.
-        Assert.Equal(JellyfinLine.Is12 ? "2.0.1.0" : "1.0.3.0", Yaml.Version);
+        // Development builds were 0.3.<n>.0; 1.0.0.0 is the first release, 1.0.1.0 its fix release, 1.0.2.0 the owner name, 1.0.3.0 (2.0.1.0) the public text, 1.0.4.0 (2.0.2.0) the duplicate guard.
+        Assert.Equal(JellyfinLine.Is12 ? "2.0.2.0" : "1.0.4.0", Yaml.Version);
         Assert.Empty(PluginIdentityChecks.CheckVersionFormat(Yaml.Version));
         Assert.Empty(PluginIdentityChecks.CheckTargetAbi(Yaml));
         Assert.Equal(JellyfinLine.Is12 ? "12.4.0.0" : "10.11.5.0", Yaml.TargetAbi);

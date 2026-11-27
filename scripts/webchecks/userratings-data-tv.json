@@ -1,5 +1,5 @@
 {
-  "name": "User Ratings 1.0.3.0, the Data tab in the TV layout: in the default sandbox as admin in jellyfin-web 10.11.5's TV layout: the Data tab and the detached list have no select; OK on a choice picks it (Replace, then Merge again); Down and Up walk the tab (Export, the file field, Merge and back, then the Data tab above it), and Down from the last Restore… stays in the tab, never the dashboard's drawer; OK on Restore… opens its question with the focus on Cancel; Down past the last control and Up past the first keep the focus inside it (no wrap, no way out); Back (keyCode 461) closes it with the focus back on that Restore… and the page where it was; OK on Cancel closes it the same way; OK on a reason of the detached list reads the list for it, and on \"Every reason\" again; nothing is written and the snapshots are as before the run.",
+  "name": "User Ratings 1.0.4.0, the Data tab in the TV layout: in the default sandbox as admin in jellyfin-web 10.11.5's TV layout: the Data tab and the detached list have no select; OK on a choice picks it (Replace, then Merge again); Down and Up walk the tab (Export, the file field, Merge and back, then the Data tab above it), and Down from the last Restore… stays in the tab, never the dashboard's drawer; OK on Restore… opens its question with the focus on Cancel; Down past the last control and Up past the first keep the focus inside it (no wrap, no way out); Back (keyCode 461) closes it with the focus back on that Restore… and the page where it was; OK on Cancel closes it the same way; OK on a reason of the detached list reads the list for it, and on \"Every reason\" again; nothing is written and the snapshots are as before the run.",
   "failOnException": false,
   "timeout": 30000,
   "steps": [
@@ -22,14 +22,14 @@
       "reload": true
     },
     {
-      "name": "admin: User Ratings 1.0.3.0 started",
+      "name": "admin: User Ratings 1.0.4.0 started",
       "waitFor": "!!window.ApiClient && !!ApiClient.getCurrentUserId() && !!(window.__jfkit && window.__jfkit.jfur)",
       "timeout": 40000
     },
     {
-      "name": "the served script is 1.0.3.0",
-      "assert": "window.__jfkit.jfur.version === '1.0.3.0'",
-      "message": "User Ratings 1.0.3.0 is not the script the page loaded"
+      "name": "the served script is 1.0.4.0",
+      "assert": "window.__jfkit.jfur.version === '1.0.4.0'",
+      "message": "User Ratings 1.0.4.0 is not the script the page loaded"
     },
     {
       "name": "the TV layout applied",

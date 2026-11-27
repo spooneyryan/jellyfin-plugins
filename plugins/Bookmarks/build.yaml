@@ -1,7 +1,7 @@
 ---
 name: "Bookmarks And Clips"
 guid: "d0ee1b2a-7f71-4654-8ff2-163a81441b03"
-version: "1.7.1.0"
+version: "1.7.2.0"
 targetAbi: "10.11.5.0"
 framework: "net9.0"
 overview: "Bookmark moments in movies and episodes, name them, and turn them into clips"
@@ -19,6 +19,16 @@ owner: "NoRepine"
 artifacts:
 - "Jellyfin.Plugin.Bookmarks.dll"
 changelog: |
+  1.7.2
+  - After updating from a version installed under the old name,
+    Bookmarks, Jellyfin could fail to start. This is fixed.
+  - If the older copy is still running, the plugin turns it off and
+    asks you to restart Jellyfin once more. The Plugins page may list
+    the older copy as disabled until the server next starts fresh, or
+    you can uninstall it there.
+  - Your bookmarks, clips and settings are kept. If Jellyfin had
+    already failed to start, the settings may be back at their
+    defaults: look them over on the plugin's settings page.
   1.7.1
   - Bookmark any moment while you watch, with Shift+B or a button,
     and give it a name.

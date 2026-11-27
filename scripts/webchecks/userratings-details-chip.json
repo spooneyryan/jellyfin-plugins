@@ -1,5 +1,5 @@
 {
-  "name": "User Ratings 1.0.3.0, the chip and the Rate button (ShowDetailButton): in the default sandbox as viewer, the desktop layout: the member-average chip on Long Test Movie as the server's summary calls for it (\"Members x.x/5 (n)\" last in the media-info row, its name and title \"Member average x.x out of 5, n ratings\", the group glyph drawn) and following a rating; jellyfin-web's write of the row takes it and the scanner puts it back once; ShowDetailButton Auto: no Rate button on the Movie, one before More on Test Series, its season and Test Album A, and Rate (a mouse click) opens the section and focuses the slider in view with no request; the season's empty, hidden row is shown while it holds the chip; Back and Forward across the items leave one chip and one section, for the item shown; on Versions Movie the other version chosen and favourite toggled and back keep the chip; the health check reports nothing. The member's rows are deleted at the end.",
+  "name": "User Ratings 1.0.4.0, the chip and the Rate button (ShowDetailButton): in the default sandbox as viewer, the desktop layout: the member-average chip on Long Test Movie as the server's summary calls for it (\"Members x.x/5 (n)\" last in the media-info row, its name and title \"Member average x.x out of 5, n ratings\", the group glyph drawn) and following a rating; jellyfin-web's write of the row takes it and the scanner puts it back once; ShowDetailButton Auto: no Rate button on the Movie, one before More on Test Series, its season and Test Album A, and Rate (a mouse click) opens the section and focuses the slider in view with no request; the season's empty, hidden row is shown while it holds the chip; Back and Forward across the items leave one chip and one section, for the item shown; on Versions Movie the other version chosen and favourite toggled and back keep the chip; the health check reports nothing. The member's rows are deleted at the end.",
   "failOnException": false,
   "timeout": 30000,
   "steps": [
@@ -22,14 +22,14 @@
       "reload": true
     },
     {
-      "name": "the layout applied, User Ratings 1.0.3.0 started",
+      "name": "the layout applied, User Ratings 1.0.4.0 started",
       "waitFor": "document.documentElement.classList.contains('layout-desktop') && !!window.ApiClient && !!ApiClient.getCurrentUserId() && !!(window.__jfkit && window.__jfkit.jfur)",
       "timeout": 40000
     },
     {
-      "name": "the served script is 1.0.3.0",
-      "assert": "window.__jfkit.jfur.version === '1.0.3.0'",
-      "message": "User Ratings 1.0.3.0 is not the script the page loaded"
+      "name": "the served script is 1.0.4.0",
+      "assert": "window.__jfkit.jfur.version === '1.0.4.0'",
+      "message": "User Ratings 1.0.4.0 is not the script the page loaded"
     },
     {
       "name": "Long Test Movie",

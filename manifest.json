@@ -36,21 +36,13 @@
   },
   {
     "guid": "d0ee1b2a-7f71-4654-8ff2-163a81441b03",
-    "name": "Bookmarks And Clips",
-    "description": "Bookmarks And Clips lets everyone on your server save moments in movies and episodes, give them a name and jump back to them later. Press Shift+B while you watch, then find your bookmarks on the progress bar, on the video's own page or on the My Bookmarks page. Give a bookmark an end time and it can be cut into a clip, which you can preview, download and manage on My Clips, or keep in a clip library with the movie's artwork. You can also export a whole playlist into one video file, and bring over the bookmarks you made in Jellyfin Enhanced.",
-    "overview": "Bookmark moments in movies and episodes, name them, and turn them into clips",
+    "name": "Bookmarks",
+    "description": "Lets each user bookmark moments in movies and episodes, optionally with an end time and a name, and extract the bookmarked range into a clip file with ffmpeg. Adds bookmark buttons and Shift+B to the web player, Bookmarks and Clips rows to item pages, a My Bookmarks page listing every bookmark and a My Clips page listing every clip, and imports Jellyfin Enhanced's bookmarks; no other plugin is needed for the web UI.",
+    "overview": "Named per-user bookmarks, My Bookmarks and My Clips pages, and ffmpeg clip extraction",
     "owner": "NoRepine",
     "category": "General",
     "imageUrl": "https://raw.githubusercontent.com/spooneyryan/jellyfin-plugins/main/plugins/Bookmarks/image.png",
     "versions": [
-      {
-        "version": "2.5.1.0",
-        "changelog": "- Bookmark any moment while you watch, with Shift+B or a button,\n  and give it a name.\n- See your bookmarks on the progress bar, on each video's page and\n  on the My Bookmarks page, with search, filters and sorting.\n- Step frame by frame to put a bookmark exactly where you want it.\n- Turn a bookmark with an end time into a clip you can preview,\n  download, rename and remake on the My Clips page.\n- Keep clips in a library of their own, with the movie's artwork.\n- Export a whole playlist into one video file.\n- Bring over the bookmarks you made in Jellyfin Enhanced.\n- Back up your bookmarks with export, import and daily snapshots.",
-        "targetAbi": "12.4.0.0",
-        "sourceUrl": "https://github.com/spooneyryan/jellyfin-plugins/releases/download/bookmarks%2Fv2.5.1/bookmarks_2.5.1.0.zip",
-        "checksum": "a0f2b58af899f5e852486eed41c4065e",
-        "timestamp": "2026-11-22T07:07:49Z"
-      },
       {
         "version": "2.5.0.0",
         "changelog": "- A clip's file is now named with its own name first, then the\n  video's title, then the time range: \"Bank job - Heat (1995)\n  [01.52.10-01.55.00].mp4\". A clip without a name stays \"Heat (1995)\n  [..]\". Clips you already have keep their names (they aren't shown\n  as \"Name changed\"); Rename or Rename file gives one the new order.\n- Each clip's first frame is now its thumbnail: it is saved beside\n  the clip as its poster and thumbnail, and shown on the video's\n  Clips row, on My Clips and in a clip library. A clip made again or\n  adjusted gets its new first frame; clips you already have get one\n  at the next clip artwork pass. If ffmpeg can't take the frame, the\n  film's poster is used, as before. A new setting, \"Use each clip's\n  first frame as its thumbnail\" (on by default), turns it off.",
@@ -154,21 +146,13 @@
   },
   {
     "guid": "d92488d5-409f-4ad0-af1d-3615db9d0513",
-    "name": "Smart Search And Dynamic Collections",
-    "description": "Smart Search And Dynamic Collections adds an Advanced Search page for finding movies, shows, episodes and more by title, year, genre, people, ratings, watch state and many other details. You can mix rules in groups, then save a search for yourself or share it with everyone on your server. Each search only finds what the person running it can see. Admins and collection managers can turn a saved search into a dynamic collection that updates itself as your library changes, keeps your own adds and removes, and holds back large removals for review when a drive goes missing.",
-    "overview": "Search by almost any detail, save and share searches, and build collections that update themselves",
+    "name": "Smart Search",
+    "description": "Adds an Advanced Search page under Library tools in the menu: find movies, shows and episodes by title, year, library, type, genre and many more fields, combine rules with All and Any groups, and save searches, private or shared. Every search runs as the signed-in user, over the libraries they can open. Administrators and users who manage collections can turn a saved search into an auto-collection, a Jellyfin collection the plugin keeps equal to the search's results. Administrators set the limits a search runs under and export, import and restore the saved searches and auto-collections.",
+    "overview": "An Advanced Search page with rules over title, year, library and more, saved queries, and auto-collections",
     "owner": "NoRepine",
     "category": "General",
     "imageUrl": "https://raw.githubusercontent.com/spooneyryan/jellyfin-plugins/main/plugins/SmartSearch/image.png",
     "versions": [
-      {
-        "version": "2.1.1.0",
-        "changelog": "- An Advanced Search page, in Library tools and in the header.\n- Find movies, shows, episodes and more by title, year, genre, people,\n  ratings, watch state and many other details.\n- Mix rules in groups, and see results as posters or a list.\n- Save searches for yourself or share them with others on the server.\n- Dynamic collections that follow a saved search and keep themselves\n  up to date, with a preview, a history and a note on their page.\n- Items you add or remove by hand stay that way, and large removals\n  wait for your review when a library looks unhealthy.\n- Export, import and daily snapshots of searches and collections.\n- Every search only finds what the person running it can see.",
-        "targetAbi": "12.4.0.0",
-        "sourceUrl": "https://github.com/spooneyryan/jellyfin-plugins/releases/download/smartsearch%2Fv2.1.1/smartsearch_2.1.1.0.zip",
-        "checksum": "249abb16cba7593f4890a83d10e84b6b",
-        "timestamp": "2026-11-22T07:08:28Z"
-      },
       {
         "version": "2.1.0.0",
         "changelog": "- First release for Jellyfin 12.4 and later (versions 2.x; Jellyfin 10.11\n  servers keep getting 1.x).\n- People in the advanced search: a People rule finds what one or more\n  people are credited on, as actors, directors, writers, producers,\n  composers or guest stars, or in any role. It matches any, all, none\n  or not all of them: \"Robert De Niro and Al Pacino as actors\", or\n  \"directed by Ridley Scott or Tony Scott\".\n- People are picked from suggestions as you type (2 letters or more).\n  Only people credited on something you can see are suggested.\n- Saved searches and auto-collections can use People rules. A saved\n  rule still finds a person after Jellyfin rebuilds its people, by\n  their name.",
@@ -240,21 +224,13 @@
   },
   {
     "guid": "f53c7c34-8cba-4846-b43b-956816b2f6ae",
-    "name": "User Ratings And Reviews",
-    "description": "User Ratings And Reviews lets the people on your server rate movies, shows, episodes, albums, books and more from half a star to five stars, and write a review if they like. Everyone sees each other's ratings and reviews on the titles they can open, with the members' average, a histogram and spoilers kept blurred. As an admin you choose who may rate and what can be rated, and remove reviews that don't belong, with a log of each removal. You can back up, restore and move every rating with export, import and daily snapshots, and ratings stay with their titles when files move. If you used Jellyfin Enhanced's reviews, you can bring them over, or send them back.",
-    "overview": "Lets everyone on your server rate and review what they watch, from half a star to five stars",
+    "name": "User Ratings",
+    "description": "Lets members rate any movie, show, season, episode, album, book or video from half a star to five stars and write a review, on the item's details page; everyone on the server sees every member's ratings and reviews on the items they can open, with the member average. Admins can limit who may rate, moderate reviews and import Jellyfin Enhanced's reviews. Ratings follow their items through library scans and moves and are kept while a drive is away; the settings page has every setting, the moderation, and the Data tab: export, import, snapshots and restore, the detached ratings, and the export back to Jellyfin Enhanced.",
+    "overview": "Five-star ratings with half stars and reviews, shared by every member of the server",
     "owner": "NoRepine",
     "category": "General",
     "imageUrl": "https://raw.githubusercontent.com/spooneyryan/jellyfin-plugins/main/plugins/UserRatings/image.png",
     "versions": [
-      {
-        "version": "2.0.1.0",
-        "changelog": "- Rate movies, shows, episodes, albums, books and more from half a\n  star to five stars, and add a review if you like.\n- See everyone's ratings and reviews on a title, in the order you\n  like, with the members' average next to its other scores.\n- Mark a review as a spoiler so it stays blurred until someone opens\n  it.\n- Admins pick who can rate and what, and remove reviews that don't\n  belong, with a log of each removal.\n- Back up, restore or move every rating with export, import and\n  daily snapshots.\n- Ratings stay with their titles when files are renamed or moved,\n  and admins can relink or purge the ones left behind.\n- Bring reviews over from Jellyfin Enhanced, or send them back.",
-        "targetAbi": "12.4.0.0",
-        "sourceUrl": "https://github.com/spooneyryan/jellyfin-plugins/releases/download/userratings%2Fv2.0.1/userratings_2.0.1.0.zip",
-        "checksum": "85aba7d7c087421785f6a1e48c613543",
-        "timestamp": "2026-11-22T07:08:46Z"
-      },
       {
         "version": "2.0.0.0",
         "changelog": "- For Jellyfin 12.4 and later: the same plugin as 1.0.2, built for\n  Jellyfin 12. Jellyfin 10.11 servers keep 1.0.2.",
